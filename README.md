@@ -134,3 +134,14 @@ M0 does **not** support:
 - [React adapter boundary](docs/react-adapter.md)
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Forbidden concepts](docs/forbidden-concepts.md)
+
+
+## M1c typed UI lengths
+
+Anchor fields now accept typed `UiLength` values in addition to numeric pixels:
+
+- `number` (implicit px)
+- `{ unit: "px", value: number }`
+- `{ unit: "ui", value: number }` (normalized against parent axis)
+
+Example: `left: { unit: "ui", value: 0.25 }`.

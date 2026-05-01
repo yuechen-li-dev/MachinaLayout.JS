@@ -108,6 +108,32 @@ describe("resolveFrame anchor", () => {
     expect(rect).toEqual({ x: 772, y: 760, width: 120, height: 32 });
   });
 
+
+  it("supports ui lengths on anchor fields", () => {
+    const rect = resolveFrame(parent, {
+      kind: "anchor",
+      left: { unit: "ui", value: 0.25 },
+      width: 200,
+      top: 10,
+      height: 20,
+    });
+    expect(rect).toEqual({ x: 300, y: 210, width: 200, height: 20 });
+  });
+
+  it("supports right+width and left+right with ui units", () => {
+    const rightWidth = resolveFrame(parent, { kind: "anchor", right: { unit: "ui", value: 0.125 }, width: { unit: "ui", value: 0.25 }, top: 0, height: 10 });
+    expect(rightWidth.x).toBe(600);
+    expect(rightWidth.width).toBe(200);
+
+    const leftRight = resolveFrame(parent, { kind: "anchor", left: { unit: "ui", value: 0.25 }, right: { unit: "ui", value: 0.25 }, top: 0, height: 10 });
+    expect(leftRight.width).toBe(400);
+  });
+
+  it("supports vertical ui units", () => {
+    const rect = resolveFrame(parent, { kind: "anchor", left: 10, width: 20, top: { unit: "ui", value: 0.1 }, height: { unit: "ui", value: 0.2 } });
+    expect(rect.y).toBe(260);
+    expect(rect.height).toBe(120);
+  });
   it("allows negative anchor offsets when resolved size remains non-negative", () => {
     const rect = resolveFrame(parent, { kind: "anchor", left: -8, right: -8, top: -4, bottom: -4 });
     expect(rect).toEqual({ x: 92, y: 196, width: 816, height: 608 });
@@ -172,6 +198,10 @@ describe("resolveFrame errors", () => {
     expectErrorCode(() => resolveFrame(parent, { kind: "fill" }), "FillFrameWithoutArranger");
   });
 
+  it("rejects invalid ui length units", () => {
+    expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: { unit: "percent", value: 0.2 } as never, width: 1, top: 0, height: 1 }), "InvalidLengthUnit");
+  });
+
   it("rejects non-finite numbers", () => {
     expectErrorCode(
       () => resolveFrame({ x: Number.NaN, y: 0, width: 10, height: 10 }, { kind: "absolute", x: 0, y: 0, width: 1, height: 1 }),
@@ -199,7 +229,9 @@ describe("resolveFrame errors", () => {
     expectErrorCode(() => resolveFrame(parent, { kind: "absolute", x: 0, y: 0, width: -1, height: 1 }), "NegativeSize");
     expectErrorCode(() => resolveFrame(parent, { kind: "absolute", x: 0, y: 0, width: 1, height: -1 }), "NegativeSize");
     expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: 0, width: -1, top: 0, height: 1 }), "NegativeSize");
+    expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: 0, width: { unit: "ui", value: -0.25 }, top: 0, height: 1 }), "NegativeSize");
     expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: 0, width: 1, top: 0, height: -1 }), "NegativeSize");
+    expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: 0, width: 1, top: 0, height: { unit: "ui", value: -0.25 } }), "NegativeSize");
   });
 
   it("returns fresh rect and does not mutate parent/frame", () => {

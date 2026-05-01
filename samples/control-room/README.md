@@ -7,6 +7,7 @@ This sample demonstrates:
 - sibling-local z-order,
 - slot-based React rendering,
 - numeric layout edits.
+- typed `UiLength` anchor constraints (`px` and normalized `ui`).
 
 ## Run
 

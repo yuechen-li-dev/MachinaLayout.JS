@@ -1,5 +1,6 @@
 import { MachinaLayoutError } from "./errors";
-import type { AnchorFrame, FrameSpec, Rect } from "./types";
+import { resolveUiLength } from "./length";
+import type { AnchorFrame, FrameSpec, Rect, UiLength } from "./types";
 import { assertFiniteNumber, assertNonNegativeSize } from "./validation";
 
 function validateParentRect(parent: Rect): void {
@@ -9,52 +10,40 @@ function validateParentRect(parent: Rect): void {
   assertNonNegativeSize(parent.height, "parent.height");
 }
 
-function hasNumber(value: number | undefined): value is number {
+function hasLength(value: UiLength | undefined): value is UiLength {
   return value !== undefined;
 }
 
 function resolveAnchor(parent: Rect, frame: AnchorFrame): Rect {
-  if (hasNumber(frame.left)) assertFiniteNumber(frame.left, "frame.left");
-  if (hasNumber(frame.right)) assertFiniteNumber(frame.right, "frame.right");
-  if (hasNumber(frame.top)) assertFiniteNumber(frame.top, "frame.top");
-  if (hasNumber(frame.bottom)) assertFiniteNumber(frame.bottom, "frame.bottom");
-  if (hasNumber(frame.width)) assertNonNegativeSize(frame.width, "frame.width");
-  if (hasNumber(frame.height)) assertNonNegativeSize(frame.height, "frame.height");
+  const hasLeft = hasLength(frame.left);
+  const hasRight = hasLength(frame.right);
+  const hasTop = hasLength(frame.top);
+  const hasBottom = hasLength(frame.bottom);
+  const hasWidth = hasLength(frame.width);
+  const hasHeight = hasLength(frame.height);
 
-  const hasLeft = hasNumber(frame.left);
-  const hasRight = hasNumber(frame.right);
-  const hasWidth = hasNumber(frame.width);
+  const left = hasLeft ? resolveUiLength(frame.left!, parent.width, "frame.left") : undefined;
+  const right = hasRight ? resolveUiLength(frame.right!, parent.width, "frame.right") : undefined;
+  const top = hasTop ? resolveUiLength(frame.top!, parent.height, "frame.top") : undefined;
+  const bottom = hasBottom ? resolveUiLength(frame.bottom!, parent.height, "frame.bottom") : undefined;
+  const explicitWidth = hasWidth ? resolveUiLength(frame.width!, parent.width, "frame.width") : undefined;
+  const explicitHeight = hasHeight ? resolveUiLength(frame.height!, parent.height, "frame.height") : undefined;
+
+  if (hasWidth) assertNonNegativeSize(explicitWidth as number, "frame.width");
+  if (hasHeight) assertNonNegativeSize(explicitHeight as number, "frame.height");
+
   const horizontalCount = Number(hasLeft) + Number(hasRight) + Number(hasWidth);
-
   if (horizontalCount !== 2) {
-    throw new MachinaLayoutError(
-      "InvalidAnchorHorizontal",
-      "Anchor frame must specify exactly two horizontal constraints: left, right, width."
-    );
+    throw new MachinaLayoutError("InvalidAnchorHorizontal", "Anchor frame must specify exactly two horizontal constraints: left, right, width.");
   }
 
-  const hasTop = hasNumber(frame.top);
-  const hasBottom = hasNumber(frame.bottom);
-  const hasHeight = hasNumber(frame.height);
   const verticalCount = Number(hasTop) + Number(hasBottom) + Number(hasHeight);
-
   if (verticalCount !== 2) {
-    throw new MachinaLayoutError(
-      "InvalidAnchorVertical",
-      "Anchor frame must specify exactly two vertical constraints: top, bottom, height."
-    );
+    throw new MachinaLayoutError("InvalidAnchorVertical", "Anchor frame must specify exactly two vertical constraints: top, bottom, height.");
   }
-
-  const left = frame.left;
-  const right = frame.right;
-  const top = frame.top;
-  const bottom = frame.bottom;
-  const explicitWidth = frame.width;
-  const explicitHeight = frame.height;
 
   let x: number;
   let width: number;
-
   if (hasLeft && hasWidth) {
     x = parent.x + (left as number);
     width = explicitWidth as number;
@@ -68,7 +57,6 @@ function resolveAnchor(parent: Rect, frame: AnchorFrame): Rect {
 
   let y: number;
   let height: number;
-
   if (hasTop && hasHeight) {
     y = parent.y + (top as number);
     height = explicitHeight as number;
@@ -100,29 +88,17 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
 
-      return {
-        x: parent.x + frame.x,
-        y: parent.y + frame.y,
-        width: frame.width,
-        height: frame.height,
-      };
+      return { x: parent.x + frame.x, y: parent.y + frame.y, width: frame.width, height: frame.height };
     }
-
     case "anchor":
       return resolveAnchor(parent, frame);
-
     case "root":
       throw new MachinaLayoutError("RootFrameWithoutRoot", "RootFrame can only be declared on the root row.");
-
     case "fixed": {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
-      throw new MachinaLayoutError(
-        "FixedFrameWithoutArranger",
-        "Fixed frames require an arranger to determine placement."
-      );
+      throw new MachinaLayoutError("FixedFrameWithoutArranger", "Fixed frames require an arranger to determine placement.");
     }
-
     case "fill":
       throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
   }

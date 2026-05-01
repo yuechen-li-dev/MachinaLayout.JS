@@ -59,3 +59,8 @@ The Control Room sample (`samples/control-room`) demonstrates the M0 contract in
 
 
 > M1b note: `FillFrame` is now supported as a direct child of `StackArrange` for weighted remaining-space distribution.
+
+
+## M1c implemented scope note
+
+M1c adds typed `UiLength` support for `AnchorFrame` only; resolved rect outputs remain numeric pixels.

@@ -15,14 +15,16 @@ export type AbsoluteFrame = {
   height: number;
 };
 
+export type UiLength = number | { unit: "px"; value: number } | { unit: "ui"; value: number };
+
 export type AnchorFrame = {
   kind: "anchor";
-  left?: number;
-  right?: number;
-  top?: number;
-  bottom?: number;
-  width?: number;
-  height?: number;
+  left?: UiLength;
+  right?: UiLength;
+  top?: UiLength;
+  bottom?: UiLength;
+  width?: UiLength;
+  height?: UiLength;
 };
 
 export type RootFrame = {
