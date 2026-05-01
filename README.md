@@ -29,7 +29,7 @@ import {
 const rows: LayoutRow[] = [
   {
     id: "root",
-    frame: { kind: "absolute", x: 0, y: 0, width: 1024, height: 640 },
+    frame: { kind: "root" },
   },
   {
     id: "header",
@@ -106,6 +106,7 @@ npm run dev
 
 M0 supports:
 
+- `RootFrame` (M1a)
 - `AbsoluteFrame`
 - `AnchorFrame`
 - `FixedFrame`

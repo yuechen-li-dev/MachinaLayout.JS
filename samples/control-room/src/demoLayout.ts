@@ -12,7 +12,7 @@ export function buildDemoRows(state: ControlRoomState): LayoutRow[] {
   const mainLeft = state.sidebarLeft + SIDEBAR_WIDTH + 16;
 
   return [
-    { id: "root", frame: { kind: "absolute", x: 0, y: 0, width: 1100, height: 720 }, slot: "RootShell" },
+    { id: "root", frame: { kind: "root" }, slot: "RootShell" },
     { id: "header", parent: "root", z: 1, frame: { kind: "anchor", left: 16, right: 16, top: 16, height: 56 }, slot: "Header" },
     { id: "sidebar", parent: "root", frame: { kind: "anchor", left: state.sidebarLeft, top: 88, bottom: 16, width: SIDEBAR_WIDTH }, slot: "Sidebar" },
     { id: "main", parent: "root", frame: { kind: "anchor", left: mainLeft, top: 88, right: 16, bottom: 16 }, slot: "MainShell" },

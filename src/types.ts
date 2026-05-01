@@ -25,13 +25,17 @@ export type AnchorFrame = {
   height?: number;
 };
 
+export type RootFrame = {
+  kind: "root";
+};
+
 export type FixedFrame = {
   kind: "fixed";
   width: number;
   height: number;
 };
 
-export type FrameSpec = AbsoluteFrame | AnchorFrame | FixedFrame;
+export type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame;
 
 export type StackAxis = "horizontal" | "vertical";
 

@@ -25,7 +25,7 @@ describe("resolved tree helpers", () => {
     const document: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 1, y: 2, width: 3, height: 4 }, frame: { kind: "fixed", width: 1, height: 1 }, slot: "app", debugLabel: "Root" },
+        root: { id: "root", rect: { x: 1, y: 2, width: 3, height: 4 }, frame: { kind: "root" }, slot: "app", debugLabel: "Root" },
       },
       children: { root: [] },
     };
@@ -38,6 +38,7 @@ describe("resolved tree helpers", () => {
     expect(tree.children).not.toBe(document.children.root);
     expect(tree.slot).toBe("app");
     expect(tree.debugLabel).toBe("Root");
+    expect(tree.frame.kind).toBe("root");
   });
 
   it("toResolvedTree: nested tree + preserved order + fresh objects + no mutation", () => {
@@ -121,6 +122,7 @@ describe("resolved tree helpers", () => {
     const before = JSON.stringify(tree);
     const flat = flattenResolvedTree(tree);
     expect(flat.map((n) => n.id)).toEqual(["root", "a", "a1", "b"]);
+    expect(flat[0].frame.kind).toBe("fixed");
     expect(flat[1].z).toBe(5);
     expect(flat[3].z).toBe(-5);
     expect(flat[0]).not.toBe(tree as unknown as never);

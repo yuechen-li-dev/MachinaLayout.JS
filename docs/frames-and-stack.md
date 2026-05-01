@@ -85,3 +85,12 @@ Deliberate exclusions:
 Stack computes positions by arithmetic over order, fixed sizes, gap, and padding.
 
 > Stack is ordered arithmetic, not Flexbox.
+
+
+## RootFrame
+
+`RootFrame` is `{ kind: "root" }` and is valid only on the root row (`parent === undefined`).
+
+- Root geometry is still copied from `rootRect` passed by the caller.
+- `resolveFrame(parent, { kind: "root" })` throws `RootFrameWithoutRoot`.
+- Non-root rows with `RootFrame` are rejected during compile with `RootFrameNotRoot`.

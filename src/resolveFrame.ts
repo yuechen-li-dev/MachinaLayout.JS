@@ -111,6 +111,9 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
     case "anchor":
       return resolveAnchor(parent, frame);
 
+    case "root":
+      throw new MachinaLayoutError("RootFrameWithoutRoot", "RootFrame can only be declared on the root row.");
+
     case "fixed": {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");

@@ -32,6 +32,10 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
       assertFiniteNumber(row.order, `rows[${rowIndex}].order`);
     }
 
+    if (row.frame.kind === "root" && row.parent !== undefined) {
+      throw new MachinaLayoutError("RootFrameNotRoot", `row ${row.id} uses RootFrame but is not a root row.`);
+    }
+
     if (row.z !== undefined) {
       assertFiniteNumber(row.z, `rows[${rowIndex}].z`);
       if (!Number.isInteger(row.z) || row.z < -5 || row.z > 5) {
