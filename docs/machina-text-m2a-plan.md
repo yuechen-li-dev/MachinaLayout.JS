@@ -304,3 +304,12 @@ Application/renderers decide click behavior.
 - Current core shape is layout-only and should remain unchanged for M2a. `src/types.ts`.
 - Current React integration seam (`view ?? slot` mapping) is a suitable place for app-level text view components in early milestones, avoiding immediate core API expansion. `src/react/MachinaReactView.tsx`.
 - Current docs already enforce similar anti-creep guardrails (no intrinsic sizing/DOM authority), and MachinaText should align with that philosophy. `docs/forbidden-concepts.md`.
+
+## M2b status note (implemented)
+
+M2b parser-only foundation is now implemented in `src/text`:
+
+- public MachinaText types are exported,
+- `parseMachinaText` returns AST + diagnostics,
+- no renderer integration added,
+- no layout resolver API changes made.

@@ -17,3 +17,5 @@ export * from "./flattenResolvedTree";
 export * from "./formatRect";
 
 export * from "./react";
+
+export * from "./text";
