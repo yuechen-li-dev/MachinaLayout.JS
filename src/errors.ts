@@ -20,7 +20,9 @@ export type MachinaLayoutErrorCode =
   | "FixedFrameWithoutArranger"
   | "StackChildMustBeFixed"
   | "StackContentNegative"
-  | "StackOverflow";
+  | "StackOverflow"
+  | "RootFrameNotRoot"
+  | "RootFrameWithoutRoot";
 
 export class MachinaLayoutError extends Error {
   readonly code: MachinaLayoutErrorCode;

@@ -53,3 +53,6 @@ The Control Room sample (`samples/control-room`) demonstrates the M0 contract in
 - CSS replacement
 - flexbox clone
 - grid clone
+
+
+> M1a note: Root rows may now declare `frame: { kind: "root" }`; root geometry still comes from caller-provided `rootRect`.

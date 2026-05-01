@@ -22,7 +22,7 @@ describe("resolveLayoutDocument", () => {
     const rootRect: Rect = { x: 1, y: 2, width: 300, height: 200 };
     const document: LayoutDocument = {
       rootId: "root",
-      nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 }, slot: "app", debugLabel: "Root" } },
+      nodes: { root: { id: "root", frame: { kind: "root" }, slot: "app", debugLabel: "Root" } },
       children: { root: [] },
     };
 
@@ -30,6 +30,7 @@ describe("resolveLayoutDocument", () => {
     expect(resolved.rootId).toBe("root");
     expect(resolved.nodes.root.rect).toEqual(rootRect);
     expect(resolved.nodes.root.rect).not.toBe(rootRect);
+    expect(resolved.nodes.root.frame.kind).toBe("root");
     expect(resolved.nodes.root.slot).toBe("app");
     expect(resolved.nodes.root.debugLabel).toBe("Root");
     expect(resolved.children.root).toEqual([]);

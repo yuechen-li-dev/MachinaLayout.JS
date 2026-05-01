@@ -157,6 +157,10 @@ describe("resolveFrame errors", () => {
     );
   });
 
+  it("rejects direct RootFrame resolution", () => {
+    expectErrorCode(() => resolveFrame(parent, { kind: "root" }), "RootFrameWithoutRoot");
+  });
+
   it("rejects direct fixed frame resolution", () => {
     expectErrorCode(
       () => resolveFrame(parent, { kind: "fixed", width: 10, height: 20 }),

@@ -21,7 +21,7 @@ describe("compileLayoutRows", () => {
     const rows: LayoutRow[] = [
       {
         id: "root",
-        frame: { kind: "fixed", width: 640, height: 480 },
+        frame: { kind: "root" },
         slot: "app",
         debugLabel: "Root",
       },
@@ -32,6 +32,28 @@ describe("compileLayoutRows", () => {
     expect(doc.rootId).toBe("root");
     expect(doc.nodes.root).toEqual(rows[0]);
     expect(doc.children).toEqual({});
+  });
+
+
+
+  it("accepts RootFrame on root", () => {
+    const doc = compileLayoutRows([{ id: "root", frame: { kind: "root" } }]);
+    expect(doc.nodes.root.frame.kind).toBe("root");
+  });
+
+  it("rejects RootFrame on non-root", () => {
+    expectCode(
+      [
+        { id: "root", frame: { kind: "root" } },
+        { id: "child", parent: "root", frame: { kind: "root" } },
+      ],
+      "RootFrameNotRoot"
+    );
+  });
+
+  it("still accepts legacy root frames", () => {
+    expect(() => compileLayoutRows([{ id: "root", frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } }])).not.toThrow();
+    expect(() => compileLayoutRows([{ id: "root", frame: { kind: "anchor", left: 0, width: 1, top: 0, height: 1 } }])).not.toThrow();
   });
 
   it("builds parent-child map", () => {

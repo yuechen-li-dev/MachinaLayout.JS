@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { LayoutNode, LayoutRow, ResolvedLayoutNode, ResolvedLayoutTree } from "../src";
+import type { LayoutNode, LayoutRow, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame } from "../src";
 import { normalizePadding } from "../src";
 
 describe("public API", () => {
   it("imports from index and types a LayoutRow", () => {
+    const rootFrame: RootFrame = { kind: "root" };
     const row: LayoutRow = {
       id: "root",
       z: 1,
-      frame: { kind: "fixed", width: 100, height: 100 },
+      frame: rootFrame,
     };
 
     const node: LayoutNode = { id: "n", z: -1, frame: { kind: "fixed", width: 10, height: 10 } };
