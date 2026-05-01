@@ -168,6 +168,10 @@ describe("resolveFrame errors", () => {
     );
   });
 
+  it("rejects direct fill frame resolution", () => {
+    expectErrorCode(() => resolveFrame(parent, { kind: "fill" }), "FillFrameWithoutArranger");
+  });
+
   it("rejects non-finite numbers", () => {
     expectErrorCode(
       () => resolveFrame({ x: Number.NaN, y: 0, width: 10, height: 10 }, { kind: "absolute", x: 0, y: 0, width: 1, height: 1 }),

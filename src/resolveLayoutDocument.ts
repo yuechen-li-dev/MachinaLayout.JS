@@ -45,30 +45,60 @@ function resolveStackChildRects(parentRect: Rect, arrange: StackArrange, childId
 
   const childMainSizes: number[] = [];
   const childCrossSizes: number[] = [];
+  const fillWeights: number[] = [];
 
   for (const childId of childIds) {
     const childNode = document.nodes[childId];
     if (!childNode) {
       throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by arranged parent is missing`);
     }
-    if (childNode.frame.kind !== "fixed") {
-      throw new MachinaLayoutError("StackChildMustBeFixed", `stack child must use fixed frame: ${childId}`);
+
+    if (childNode.frame.kind === "fixed") {
+      assertNonNegativeSize(childNode.frame.width, `${childId}.frame.width`);
+      assertNonNegativeSize(childNode.frame.height, `${childId}.frame.height`);
+      childMainSizes.push(isHorizontal ? childNode.frame.width : childNode.frame.height);
+      childCrossSizes.push(isHorizontal ? childNode.frame.height : childNode.frame.width);
+      fillWeights.push(0);
+      continue;
     }
 
-    assertNonNegativeSize(childNode.frame.width, `${childId}.frame.width`);
-    assertNonNegativeSize(childNode.frame.height, `${childId}.frame.height`);
+    if (childNode.frame.kind !== "fill") {
+      throw new MachinaLayoutError("StackChildMustBeFixed", `stack child must use fixed or fill frame: ${childId}`);
+    }
 
-    childMainSizes.push(isHorizontal ? childNode.frame.width : childNode.frame.height);
-    childCrossSizes.push(isHorizontal ? childNode.frame.height : childNode.frame.width);
+    const weight = childNode.frame.weight ?? 1;
+    assertFiniteNumber(weight, `${childId}.frame.weight`);
+    if (weight <= 0) {
+      throw new MachinaLayoutError("InvalidFillWeight", `${childId}.frame.weight must be greater than 0`);
+    }
+
+    const cross = childNode.frame.cross ?? "fill";
+    let childCross = contentCross;
+    if (cross !== "fill") {
+      assertNonNegativeSize(cross, `${childId}.frame.cross`);
+      childCross = cross;
+    }
+
+    childMainSizes.push(0);
+    childCrossSizes.push(childCross);
+    fillWeights.push(weight);
   }
 
-  const totalChildMain = childMainSizes.reduce((sum, size) => sum + size, 0);
+  const fixedMainTotal = childIds.reduce((sum, _id, i) => sum + (fillWeights[i] === 0 ? childMainSizes[i] : 0), 0);
   const totalGap = gap * Math.max(0, childIds.length - 1);
-  const occupiedMain = totalChildMain + totalGap;
-  const remainingMain = contentMain - occupiedMain;
+  const remainingMain = contentMain - fixedMainTotal - totalGap;
 
   if (remainingMain < 0) {
     throw new MachinaLayoutError("StackOverflow", "stack main axis overflow");
+  }
+
+  const totalFillWeight = fillWeights.reduce((sum, w) => sum + w, 0);
+  if (totalFillWeight > 0) {
+    for (let i = 0; i < childMainSizes.length; i += 1) {
+      if (fillWeights[i] > 0) {
+        childMainSizes[i] = (remainingMain * fillWeights[i]) / totalFillWeight;
+      }
+    }
   }
 
   for (const childCross of childCrossSizes) {
@@ -77,36 +107,39 @@ function resolveStackChildRects(parentRect: Rect, arrange: StackArrange, childId
     }
   }
 
+  const occupiedMain = childMainSizes.reduce((sum, size) => sum + size, 0) + totalGap;
+  const remainingMainAfterFill = contentMain - occupiedMain;
+
   let startOffset = 0;
   let actualGap = gap;
 
-  switch (justify) {
-    case "start":
-      break;
-    case "center":
-      startOffset = remainingMain / 2;
-      break;
-    case "end":
-      startOffset = remainingMain;
-      break;
-    case "space-between":
-      if (childIds.length <= 1) {
-        actualGap = 0;
-      } else {
-        actualGap = gap + remainingMain / (childIds.length - 1);
-      }
-      break;
-    default:
-      throw new Error(`Unsupported stack justify: ${String(justify)}`);
+  if (totalFillWeight === 0) {
+    switch (justify) {
+      case "start":
+        break;
+      case "center":
+        startOffset = remainingMainAfterFill / 2;
+        break;
+      case "end":
+        startOffset = remainingMainAfterFill;
+        break;
+      case "space-between":
+        if (childIds.length <= 1) {
+          actualGap = 0;
+        } else {
+          actualGap = gap + remainingMainAfterFill / (childIds.length - 1);
+        }
+        break;
+      default:
+        throw new Error(`Unsupported stack justify: ${String(justify)}`);
+    }
   }
 
   const rects: Record<NodeId, Rect> = {};
   let currentMain = startOffset;
 
   childIds.forEach((childId, index) => {
-    const childNode = document.nodes[childId]!;
-    const childWidth = childNode.frame.kind === "fixed" ? childNode.frame.width : 0;
-    const childHeight = childNode.frame.kind === "fixed" ? childNode.frame.height : 0;
+    const childMain = childMainSizes[index];
     const childCross = childCrossSizes[index];
 
     let crossOffset = 0;
@@ -124,14 +157,15 @@ function resolveStackChildRects(parentRect: Rect, arrange: StackArrange, childId
     }
 
     rects[childId] = isHorizontal
-      ? { x: content.x + currentMain, y: content.y + crossOffset, width: childWidth, height: childHeight }
-      : { x: content.x + crossOffset, y: content.y + currentMain, width: childWidth, height: childHeight };
+      ? { x: content.x + currentMain, y: content.y + crossOffset, width: childMain, height: childCross }
+      : { x: content.x + crossOffset, y: content.y + currentMain, width: childCross, height: childMain };
 
-    currentMain += childMainSizes[index] + actualGap;
+    currentMain += childMain + actualGap;
   });
 
   return rects;
 }
+
 
 export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect): ResolvedLayoutDocument {
   validateRootRect(rootRect);

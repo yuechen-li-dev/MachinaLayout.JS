@@ -26,6 +26,7 @@ export function buildDemoRows(state: ControlRoomState): LayoutRow[] {
     },
     { id: "tool-run", parent: "toolbar", frame: { kind: "fixed", width: 90, height: 32 }, slot: "RunButton" },
     { id: "tool-inspect", parent: "toolbar", frame: { kind: "fixed", width: 110, height: 32 }, slot: "InspectButton" },
+    { id: "toolbar-fill", parent: "toolbar", frame: { kind: "fill", weight: 1, cross: 32 }, slot: "ToolbarStatus" },
     { id: "tool-reset", parent: "toolbar", frame: { kind: "fixed", width: 90, height: 32 }, slot: "ResetButton" },
     { id: "preview", parent: "main", frame: { kind: "anchor", left: 16, top: 80, right: 320, bottom: 16 }, slot: "Preview" },
     { id: "inspector", parent: "main", z: 1, frame: { kind: "anchor", right: 16, top: 80, bottom: 16, width: 280 }, slot: "Inspector" },

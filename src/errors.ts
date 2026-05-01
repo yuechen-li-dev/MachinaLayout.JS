@@ -18,6 +18,8 @@ export type MachinaLayoutErrorCode =
   | "InvalidAnchorVertical"
   | "NegativeResolvedSize"
   | "FixedFrameWithoutArranger"
+  | "FillFrameWithoutArranger"
+  | "InvalidFillWeight"
   | "StackChildMustBeFixed"
   | "StackContentNegative"
   | "StackOverflow"

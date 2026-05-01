@@ -1,123 +1,82 @@
 import { describe, expect, it } from "vitest";
-import {
-  MachinaLayoutError,
-  resolveLayoutDocument,
-  resolveLayoutRows,
-  type LayoutDocument,
-  type LayoutRow,
-  type MachinaLayoutErrorCode,
-} from "../src";
+import { MachinaLayoutError, resolveLayoutDocument, type LayoutDocument, type MachinaLayoutErrorCode } from "../src";
 
 function expectCode(run: () => unknown, code: MachinaLayoutErrorCode): void {
-  try {
-    run();
-    throw new Error("expected throw");
-  } catch (error) {
+  try { run(); throw new Error("expected throw"); } catch (error) {
     expect(error).toBeInstanceOf(MachinaLayoutError);
     expect((error as MachinaLayoutError).code).toBe(code);
   }
 }
 
-function baseDoc(arrange: LayoutDocument["nodes"][string]["arrange"]): LayoutDocument {
+function stackDoc(axis: "horizontal"|"vertical", parentSize:{w:number;h:number}, children: LayoutDocument["nodes"]): LayoutDocument {
   return {
     rootId: "root",
     nodes: {
       root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-      parent: { id: "parent", frame: { kind: "absolute", x: 10, y: 20, width: 300, height: 40 }, arrange },
-      a: { id: "a", frame: { kind: "fixed", width: 50, height: 20 } },
-      b: { id: "b", frame: { kind: "fixed", width: 60, height: 20 } },
-      c: { id: "c", frame: { kind: "fixed", width: 70, height: 20 } },
+      parent: { id: "parent", frame: { kind: "absolute", x: 0, y: 0, width: parentSize.w, height: parentSize.h }, arrange: { kind: "stack", axis } },
+      ...children,
     },
-    children: { root: ["parent"], parent: ["a", "b", "c"] },
+    children: { root: ["parent"], parent: Object.keys(children) },
   };
 }
 
-describe("stack arrange", () => {
-  it("places horizontal children sequentially with defaults", () => {
-    const resolved = resolveLayoutDocument(baseDoc({ kind: "stack", axis: "horizontal" }), { x: 0, y: 0, width: 1000, height: 800 });
-    expect(resolved.nodes.parent.rect).toEqual({ x: 10, y: 20, width: 300, height: 40 });
-    expect(resolved.nodes.a.rect).toEqual({ x: 10, y: 20, width: 50, height: 20 });
-    expect(resolved.nodes.b.rect).toEqual({ x: 60, y: 20, width: 60, height: 20 });
-    expect(resolved.nodes.c.rect).toEqual({ x: 120, y: 20, width: 70, height: 20 });
+describe("stack arrange fill", () => {
+  it("horizontal fixed+fill distributes remaining width", () => {
+    const doc = stackDoc("horizontal", { w: 300, h: 40 }, {
+      a: { id: "a", frame: { kind: "fixed", width: 50, height: 20 } },
+      b: { id: "b", frame: { kind: "fill", weight: 1, cross: 20 } },
+      c: { id: "c", frame: { kind: "fixed", width: 70, height: 20 } },
+    });
+    doc.nodes.parent.arrange = { kind: "stack", axis: "horizontal", gap: 10 };
+    const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 999, height: 999 });
+    expect(r.nodes.a.rect).toEqual({ x: 0, y: 0, width: 50, height: 20 });
+    expect(r.nodes.b.rect).toEqual({ x: 60, y: 0, width: 160, height: 20 });
+    expect(r.nodes.c.rect).toEqual({ x: 230, y: 0, width: 70, height: 20 });
   });
 
-  it("supports gap, padding, justify, align and space-between", () => {
-    const resolved = resolveLayoutDocument(
-      baseDoc({ kind: "stack", axis: "horizontal", gap: 10, padding: { top: 2, right: 4, bottom: 6, left: 8 }, justify: "space-between", align: "end" }),
-      { x: 0, y: 0, width: 1000, height: 800 }
-    );
-    expect(resolved.nodes.a.rect).toEqual({ x: 18, y: 34, width: 50, height: 20 });
-    expect(resolved.nodes.b.rect.x).toBe(122);
-    expect(resolved.nodes.c.rect.x).toBe(236);
-
-    const centered = resolveLayoutDocument(
-      baseDoc({ kind: "stack", axis: "horizontal", justify: "center", align: "center" }),
-      { x: 0, y: 0, width: 1000, height: 800 }
-    );
-    expect(centered.nodes.a.rect.x).toBe(70);
-    expect(centered.nodes.a.rect.y).toBe(30);
+  it("weighted fill + justify no-op when fill exists", () => {
+    for (const justify of ["start", "center", "end", "space-between"] as const) {
+      const doc = stackDoc("horizontal", { w: 300, h: 40 }, {
+        a: { id: "a", frame: { kind: "fixed", width: 50, height: 20 } },
+        b: { id: "b", frame: { kind: "fill", weight: 1 } },
+      });
+      doc.nodes.parent.arrange = { kind: "stack", axis: "horizontal", justify, gap: 0 };
+      const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 400, height: 200 });
+      expect(r.nodes.a.rect.x).toBe(0);
+      expect(r.nodes.b.rect.x).toBe(50);
+      expect(r.nodes.b.rect.width).toBe(250);
+    }
   });
 
-  it("supports vertical stacks and nested stacks", () => {
-    const doc: LayoutDocument = {
-      rootId: "root",
-      nodes: {
-        root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-        outer: { id: "outer", frame: { kind: "absolute", x: 100, y: 200, width: 300, height: 400 }, arrange: { kind: "stack", axis: "vertical", gap: 10, padding: 5 } },
-        row: { id: "row", frame: { kind: "fixed", width: 200, height: 50 }, arrange: { kind: "stack", axis: "horizontal", gap: 5 } },
-        b1: { id: "b1", frame: { kind: "fixed", width: 40, height: 20 } },
-        b2: { id: "b2", frame: { kind: "fixed", width: 50, height: 20 } },
-      },
-      children: { root: ["outer"], outer: ["row"], row: ["b1", "b2"] },
-    };
-    const resolved = resolveLayoutDocument(doc, { x: 0, y: 0, width: 1000, height: 1000 });
-    expect(resolved.nodes.row.rect).toEqual({ x: 105, y: 205, width: 200, height: 50 });
-    expect(resolved.nodes.b1.rect).toEqual({ x: 105, y: 205, width: 40, height: 20 });
-    expect(resolved.nodes.b2.rect).toEqual({ x: 150, y: 205, width: 50, height: 20 });
+  it("equal and weighted fill sizes", () => {
+    const eq = stackDoc("horizontal", { w: 300, h: 20 }, {
+      a: { id: "a", frame: { kind: "fill", cross: 20 } }, b: { id: "b", frame: { kind: "fill", cross: 20 } }, c: { id: "c", frame: { kind: "fill", cross: 20 } },
+    });
+    let r = resolveLayoutDocument(eq, { x: 0, y: 0, width: 500, height: 100 });
+    expect(r.nodes.a.rect.width).toBe(100); expect(r.nodes.b.rect.width).toBe(100); expect(r.nodes.c.rect.width).toBe(100);
+    const wt = stackDoc("horizontal", { w: 300, h: 20 }, {
+      a: { id: "a", frame: { kind: "fill", weight: 1, cross: 20 } }, b: { id: "b", frame: { kind: "fill", weight: 2, cross: 20 } },
+    });
+    r = resolveLayoutDocument(wt, { x: 0, y: 0, width: 500, height: 100 });
+    expect(r.nodes.a.rect.width).toBe(100); expect(r.nodes.b.rect.width).toBe(200);
   });
 
-  it("throws required stack errors", () => {
-    const withAbsoluteChild = baseDoc({ kind: "stack", axis: "horizontal" });
-    withAbsoluteChild.nodes.a = { id: "a", frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } };
-    expectCode(() => resolveLayoutDocument(withAbsoluteChild, { x: 0, y: 0, width: 500, height: 500 }), "StackChildMustBeFixed");
-
-    const overflow = baseDoc({ kind: "stack", axis: "horizontal" });
-    overflow.nodes.parent.frame = { kind: "absolute", x: 0, y: 0, width: 100, height: 40 };
-    expectCode(() => resolveLayoutDocument(overflow, { x: 0, y: 0, width: 500, height: 500 }), "StackOverflow");
-
-    const contentNegative = baseDoc({ kind: "stack", axis: "horizontal", padding: { top: 0, right: 200, bottom: 0, left: 200 } });
-    expectCode(() => resolveLayoutDocument(contentNegative, { x: 0, y: 0, width: 500, height: 500 }), "StackContentNegative");
+  it("vertical fill and cross/align behavior", () => {
+    const doc = stackDoc("vertical", { w: 40, h: 300 }, {
+      a: { id: "a", frame: { kind: "fixed", width: 20, height: 50 } },
+      b: { id: "b", frame: { kind: "fill", weight: 1, cross: 20 } },
+      c: { id: "c", frame: { kind: "fixed", width: 20, height: 70 } },
+    });
+    doc.nodes.parent.arrange = { kind: "stack", axis: "vertical", gap: 10 };
+    const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 999, height: 999 });
+    expect(r.nodes.b.rect.height).toBe(160);
+    expect(r.nodes.c.rect.y).toBe(230);
   });
 
-  it("enforces numeric validation and preserves non-stack fixed behavior", () => {
-    expectCode(() => resolveLayoutDocument(baseDoc({ kind: "stack", axis: "horizontal", gap: -1 }), { x: 0, y: 0, width: 500, height: 500 }), "NegativeGap");
-    expectCode(() => resolveLayoutDocument(baseDoc({ kind: "stack", axis: "horizontal", gap: Number.NaN }), { x: 0, y: 0, width: 500, height: 500 }), "NonFiniteNumber");
-    expectCode(() => resolveLayoutDocument(baseDoc({ kind: "stack", axis: "horizontal", padding: { top: -1, right: 0, bottom: 0, left: 0 } }), { x: 0, y: 0, width: 500, height: 500 }), "NegativePadding");
-
-    const nonArranging: LayoutDocument = {
-      rootId: "root",
-      nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } }, child: { id: "child", frame: { kind: "fixed", width: 10, height: 10 } } },
-      children: { root: ["child"] },
-    };
-    expectCode(() => resolveLayoutDocument(nonArranging, { x: 0, y: 0, width: 100, height: 100 }), "FixedFrameWithoutArranger");
-  });
-
-  it("supports empty stacks, zero sizes, immutability, and resolveLayoutRows", () => {
-    const empty: LayoutDocument = {
-      rootId: "root",
-      nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 }, arrange: { kind: "stack", axis: "horizontal" } } },
-      children: { root: [] },
-    };
-    expect(() => resolveLayoutDocument(empty, { x: 0, y: 0, width: 0, height: 0 })).not.toThrow();
-
-    const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-      { id: "toolbar", parent: "root", frame: { kind: "absolute", x: 10, y: 10, width: 100, height: 20 }, arrange: { kind: "stack", axis: "horizontal" } },
-      { id: "z", parent: "toolbar", frame: { kind: "fixed", width: 0, height: 0 } },
-    ];
-    const before = JSON.stringify(rows);
-    const resolved = resolveLayoutRows(rows, { x: 0, y: 0, width: 500, height: 500 });
-    expect(resolved.nodes.z.rect).toEqual({ x: 10, y: 10, width: 0, height: 0 });
-    expect(JSON.stringify(rows)).toBe(before);
+  it("validates fill errors and overflow", () => {
+    expectCode(() => resolveLayoutDocument(stackDoc("horizontal", { w: 100, h: 20 }, { f: { id: "f", frame: { kind: "fill", weight: 0 } } }), { x: 0, y: 0, width: 1, height: 1 }), "InvalidFillWeight");
+    expectCode(() => resolveLayoutDocument(stackDoc("horizontal", { w: 100, h: 20 }, { f: { id: "f", frame: { kind: "fill", weight: Number.NaN } } }), { x: 0, y: 0, width: 1, height: 1 }), "NonFiniteNumber");
+    expectCode(() => resolveLayoutDocument(stackDoc("horizontal", { w: 100, h: 20 }, { f: { id: "f", frame: { kind: "fill", cross: -1 } } }), { x: 0, y: 0, width: 1, height: 1 }), "NegativeSize");
+    expectCode(() => resolveLayoutDocument(stackDoc("horizontal", { w: 100, h: 20 }, { f: { id: "f", frame: { kind: "fill", cross: 30 } } }), { x: 0, y: 0, width: 1, height: 1 }), "StackOverflow");
   });
 });

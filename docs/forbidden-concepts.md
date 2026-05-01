@@ -4,13 +4,13 @@ These concepts are forbidden in core M0/M1 unless a future milestone deliberatel
 
 ## Flexbox negotiation features
 
-Forbidden: `flex-basis`, `flex-shrink`, `flex-grow` triangle, `align-content`, `align-self`, `space-around`, `space-evenly`, stretch defaults, baseline alignment.
+Forbidden: `flex-basis`, `flex-shrink`, flex grow/shrink/basis triangle, `align-content`, `align-self`, `space-around`, `space-evenly`, stretch defaults, baseline alignment. FillFrame weights are not flexbox.
 
 Why: this would reintroduce hidden layout negotiation and makes layout harder to reason about from records.
 
 ## Margin-driven placement
 
-Forbidden: auto margins, per-child margins, margin collapse.
+Forbidden: auto margins, per-child margins, margin collapse. FillFrame does not add per-item margin behavior.
 
 Why: margins introduce implicit inter-node coupling and hidden offsets that are not explicit in row geometry.
 

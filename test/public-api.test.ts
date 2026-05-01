@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { LayoutNode, LayoutRow, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame } from "../src";
+import type { FillFrame, LayoutNode, LayoutRow, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame } from "../src";
 import { normalizePadding } from "../src";
 
 describe("public API", () => {
@@ -11,6 +11,7 @@ describe("public API", () => {
       frame: rootFrame,
     };
 
+    const fillFrame: FillFrame = { kind: "fill", weight: 1 };
     const node: LayoutNode = { id: "n", z: -1, frame: { kind: "fixed", width: 10, height: 10 } };
     const resolvedNode: ResolvedLayoutNode = {
       id: "rn",
@@ -26,7 +27,10 @@ describe("public API", () => {
       children: [],
     };
 
+    const fillRow: LayoutRow = { id: "fill", parent: "root", frame: fillFrame };
+
     expect(row.id).toBe("root");
+    expect(fillRow.frame.kind).toBe("fill");
     expect(node.z).toBe(-1);
     expect(resolvedNode.z).toBe(2);
     expect(tree.z).toBe(0);

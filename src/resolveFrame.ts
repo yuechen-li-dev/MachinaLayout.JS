@@ -122,5 +122,8 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
         "Fixed frames require an arranger to determine placement."
       );
     }
+
+    case "fill":
+      throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
   }
 }

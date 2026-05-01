@@ -110,6 +110,7 @@ M0 supports:
 - `AbsoluteFrame`
 - `AnchorFrame`
 - `FixedFrame`
+- `FillFrame` (M1b, stack-child weighted fill)
 - `StackArrange`
 - bounded sibling-local z metadata
 - React adapter
@@ -118,7 +119,7 @@ M0 does **not** support:
 
 - FlowBox
 - wrapping
-- weights
+- flexbox-style shrink/basis/min/max negotiation
 - intrinsic sizing
 - text measurement
 - routing
