@@ -45,9 +45,9 @@ describe("resolved tree helpers", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "fixed", width: 1, height: 1 }, debugLabel: "r" },
-        b: { id: "b", rect: { x: 2, y: 2, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
-        a: { id: "a", rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "panel" },
-        c: { id: "c", rect: { x: 3, y: 3, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
+        b: { id: "b", z: -5, rect: { x: 2, y: 2, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
+        a: { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "panel" },
+        c: { id: "c", z: 0, rect: { x: 3, y: 3, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
         a1: { id: "a1", rect: { x: 11, y: 11, width: 2, height: 2 }, frame: { kind: "absolute", x: 1, y: 1, width: 2, height: 2 } },
       },
       children: { root: ["b", "a", "c"], a: ["a1"] },
@@ -57,6 +57,7 @@ describe("resolved tree helpers", () => {
     const tree = toResolvedTree(document);
 
     expect(tree.children.map((x) => x.id)).toEqual(["b", "a", "c"]);
+    expect(tree.children.map((x) => x.z)).toEqual([-5, 5, 0]);
     expect(tree.children[1].children[0].id).toBe("a1");
     expect(tree).not.toBe(document.nodes.root as unknown as ResolvedLayoutTree);
     expect(tree.rect).not.toBe(document.nodes.root.rect);
@@ -113,13 +114,15 @@ describe("resolved tree helpers", () => {
       rect: { x: 0, y: 0, width: 100, height: 100 },
       frame: { kind: "fixed", width: 1, height: 1 },
       children: [
-        { id: "a", rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "s", children: [{ id: "a1", rect: { x: 2, y: 2, width: 3, height: 3 }, frame: { kind: "fixed", width: 3, height: 3 }, children: [] }] },
-        { id: "b", rect: { x: 4, y: 4, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, children: [] },
+        { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "s", children: [{ id: "a1", rect: { x: 2, y: 2, width: 3, height: 3 }, frame: { kind: "fixed", width: 3, height: 3 }, children: [] }] },
+        { id: "b", z: -5, rect: { x: 4, y: 4, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, children: [] },
       ],
     };
     const before = JSON.stringify(tree);
     const flat = flattenResolvedTree(tree);
     expect(flat.map((n) => n.id)).toEqual(["root", "a", "a1", "b"]);
+    expect(flat[1].z).toBe(5);
+    expect(flat[3].z).toBe(-5);
     expect(flat[0]).not.toBe(tree as unknown as never);
     expect(flat[0].rect).not.toBe(tree.rect);
     expect(flat[1].slot).toBe("s");

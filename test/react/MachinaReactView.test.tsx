@@ -113,6 +113,96 @@ describe("MachinaReactView", () => {
     expect(directIds).toEqual(["b", "a", "c"]);
   });
 
+  it("applies zIndex from node z", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    layout.nodes.child.z = 4;
+    const { container } = render(<MachinaReactView layout={layout} />);
+    expect(container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).toContain("z-index: 4");
+  });
+
+  it("renders siblings sorted by z ascending", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
+        a: { id: "a", z: 5, rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
+        b: { id: "b", z: -5, rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
+        c: { id: "c", z: 0, rect: { x: 20, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 } },
+      },
+      children: { root: ["a", "b", "c"], a: [], b: [], c: [] },
+    };
+    const { container } = render(<MachinaReactView layout={layout} />);
+    const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
+    const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+    expect(directIds).toEqual(["b", "c", "a"]);
+  });
+
+  it("uses original sibling order as tie-break for same z", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
+        b: { id: "b", rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
+        a: { id: "a", rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
+        c: { id: "c", rect: { x: 20, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 } },
+      },
+      children: { root: ["b", "a", "c"], a: [], b: [], c: [] },
+    };
+    const { container } = render(<MachinaReactView layout={layout} />);
+    const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
+    const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+    expect(directIds).toEqual(["b", "a", "c"]);
+  });
+
+  it("does not mutate input child ordering while rendering z-sorted", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
+        a: { id: "a", z: 5, rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
+        b: { id: "b", z: -5, rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
+      },
+      children: { root: ["a", "b"], a: [], b: [] },
+    };
+    render(<MachinaReactView layout={layout} />);
+    expect(layout.children.root).toEqual(["a", "b"]);
+  });
+
+  it("uses default containment policy", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    render(<MachinaReactView layout={layout} />);
+    expect(document.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ contain: "layout paint" });
+    expect(document.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).not.toContain("content-visibility");
+  });
+
+  it("supports nodeContainment none and strict", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    const { rerender, container } = render(<MachinaReactView layout={layout} nodeContainment="none" />);
+    expect(container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).not.toContain("contain:");
+
+    rerender(<MachinaReactView layout={layout} nodeContainment="strict" />);
+    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ contain: "strict" });
+  });
+
+  it("supports nodeContentVisibility auto and contain intrinsic size", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    const { container } = render(<MachinaReactView layout={layout} nodeContentVisibility="auto" nodeContainIntrinsicSize="auto 300px" />);
+    const styleAttr = container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style") ?? "";
+    expect(styleAttr).toContain("content-visibility: auto");
+    expect(styleAttr).toContain("contain-intrinsic-size: auto 300px");
+  });
+
+  it("containment policy does not change positioning", () => {
+    const layout = makeLayout({ x: 100, y: 200, width: 800, height: 600 }, { x: 116, y: 212, width: 100, height: 50 });
+    render(<MachinaReactView layout={layout} nodeContainment="strict" nodeContentVisibility="auto" />);
+    expect(document.querySelector('[data-machina-node-id="child"]')).toHaveStyle({
+      left: "16px",
+      top: "12px",
+      width: "100px",
+      height: "50px",
+    });
+  });
+
   it("adds data attributes", () => {
     const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
     render(<MachinaReactView layout={layout} />);

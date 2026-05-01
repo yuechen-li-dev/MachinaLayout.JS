@@ -31,6 +31,7 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
 
     return {
       id: node.id,
+      z: node.z,
       rect: { ...node.rect },
       frame: node.frame,
       arrange: node.arrange,

@@ -17,6 +17,9 @@ export type MachinaReactViewProps = {
   style?: React.CSSProperties;
   nodeClassName?: string;
   debug?: boolean;
+  nodeContainment?: "none" | "layout-paint" | "strict";
+  nodeContentVisibility?: "none" | "auto";
+  nodeContainIntrinsicSize?: string;
 };
 
 function renderNode(
@@ -25,6 +28,9 @@ function renderNode(
   views: Record<string, React.ComponentType<MachinaSlotProps>>,
   nodeClassName: string | undefined,
   debug: boolean | undefined,
+  nodeContainment: "none" | "layout-paint" | "strict",
+  nodeContentVisibility: "none" | "auto",
+  nodeContainIntrinsicSize: string | undefined,
   nodesById: ResolvedLayoutDocument["nodes"],
 ): React.ReactElement {
   const slotView = node.slot ? views[node.slot] : undefined;
@@ -38,6 +44,11 @@ function renderNode(
     width: node.rect.width,
     height: node.rect.height,
     boxSizing: "border-box",
+    zIndex: node.z ?? 0,
+    ...(nodeContainment === "layout-paint" ? { contain: "layout paint" } : null),
+    ...(nodeContainment === "strict" ? { contain: "strict" } : null),
+    ...(nodeContentVisibility === "auto" ? { contentVisibility: "auto" } : null),
+    ...(nodeContainIntrinsicSize !== undefined ? { containIntrinsicSize: nodeContainIntrinsicSize } : null),
     ...(debug ? { outline: "1px dashed rgba(59, 130, 246, 0.9)" } : null),
   };
 
@@ -63,7 +74,22 @@ function renderNode(
     >
       {debug ? <small>{node.debugLabel ?? node.id}</small> : null}
       {renderedSlot}
-      {node.children.map((child) => renderNode(child, rootRect, views, nodeClassName, debug, nodesById))}
+      {[...node.children]
+        .map((child, index) => ({ child, index }))
+        .sort((a, b) => (a.child.z ?? 0) - (b.child.z ?? 0) || a.index - b.index)
+        .map(({ child }) =>
+          renderNode(
+            child,
+            rootRect,
+            views,
+            nodeClassName,
+            debug,
+            nodeContainment,
+            nodeContentVisibility,
+            nodeContainIntrinsicSize,
+            nodesById
+          )
+        )}
     </div>
   );
 }
@@ -76,7 +102,17 @@ function renderNode(
  * embeds cleanly in local React trees even when root rect x/y is non-zero.
  */
 export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element {
-  const { layout, views = {}, className, style, nodeClassName, debug } = props;
+  const {
+    layout,
+    views = {},
+    className,
+    style,
+    nodeClassName,
+    debug,
+    nodeContainment = "layout-paint",
+    nodeContentVisibility = "none",
+    nodeContainIntrinsicSize,
+  } = props;
   const tree = toResolvedTree(layout);
 
   const wrapperStyle: React.CSSProperties = {
@@ -88,7 +124,17 @@ export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Elemen
 
   return (
     <div className={className} style={wrapperStyle} data-machina-root-id={tree.id}>
-      {renderNode(tree, tree.rect, views, nodeClassName, debug, layout.nodes)}
+      {renderNode(
+        tree,
+        tree.rect,
+        views,
+        nodeClassName,
+        debug,
+        nodeContainment,
+        nodeContentVisibility,
+        nodeContainIntrinsicSize,
+        layout.nodes
+      )}
     </div>
   );
 }

@@ -166,6 +166,7 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
 
     resolvedNodes[nodeId] = {
       id: node.id,
+      z: node.z,
       rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       frame: node.frame,
       arrange: node.arrange,

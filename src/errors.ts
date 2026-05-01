@@ -10,6 +10,7 @@ export type MachinaLayoutErrorCode =
   | "Cycle"
   | "UnreachableNode"
   | "NonFiniteNumber"
+  | "InvalidZ"
   | "NegativeSize"
   | "NegativeGap"
   | "NegativePadding"

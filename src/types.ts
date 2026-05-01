@@ -61,6 +61,7 @@ export type LayoutRow = {
   id: NodeId;
   parent?: NodeId;
   order?: number;
+  z?: number;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
   slot?: string;
@@ -69,6 +70,7 @@ export type LayoutRow = {
 
 export type LayoutNode = {
   id: NodeId;
+  z?: number;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
   slot?: string;
@@ -83,6 +85,7 @@ export type LayoutDocument = {
 
 export type ResolvedLayoutNode = {
   id: NodeId;
+  z?: number;
   rect: Rect;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
@@ -99,6 +102,7 @@ export type ResolvedLayoutDocument = {
 
 export type ResolvedLayoutTree = {
   id: NodeId;
+  z?: number;
   rect: Rect;
   frame: FrameSpec;
   arrange?: ArrangeSpec;

@@ -189,4 +189,65 @@ describe("compileLayoutRows", () => {
     compileLayoutRows(rows);
     expect(JSON.stringify(rows)).toBe(before);
   });
+
+  it("preserves z metadata", () => {
+    const doc = compileLayoutRows([
+      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "a", parent: "root", z: 3, frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "b", parent: "root", z: -2, frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "c", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+    ]);
+
+    expect(doc.nodes.a.z).toBe(3);
+    expect(doc.nodes.b.z).toBe(-2);
+    expect(doc.nodes.c.z).toBeUndefined();
+  });
+
+  it("validates z range", () => {
+    expect(() =>
+      compileLayoutRows([
+        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "a", parent: "root", z: -5, frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "b", parent: "root", z: 5, frame: { kind: "fixed", width: 1, height: 1 } },
+      ])
+    ).not.toThrow();
+
+    expectCode(
+      [
+        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "a", parent: "root", z: -6, frame: { kind: "fixed", width: 1, height: 1 } },
+      ],
+      "InvalidZ"
+    );
+
+    expectCode(
+      [
+        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "a", parent: "root", z: 6, frame: { kind: "fixed", width: 1, height: 1 } },
+      ],
+      "InvalidZ"
+    );
+  });
+
+  it("validates z integer", () => {
+    expectCode(
+      [
+        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "a", parent: "root", z: 1.5, frame: { kind: "fixed", width: 1, height: 1 } },
+      ],
+      "InvalidZ"
+    );
+  });
+
+  it("validates z finite", () => {
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expectCode(
+        [
+          { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+          { id: "a", parent: "root", z: value, frame: { kind: "fixed", width: 1, height: 1 } },
+        ],
+        "NonFiniteNumber"
+      );
+    }
+  });
 });

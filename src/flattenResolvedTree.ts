@@ -6,6 +6,7 @@ export function flattenResolvedTree(tree: ResolvedLayoutTree): ResolvedLayoutNod
   const visit = (node: ResolvedLayoutTree): void => {
     out.push({
       id: node.id,
+      z: node.z,
       rect: { ...node.rect },
       frame: node.frame,
       arrange: node.arrange,
