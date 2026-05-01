@@ -24,7 +24,7 @@ export type MachinaReactViewProps = {
 
 function renderNode(
   node: ResolvedLayoutTree,
-  rootRect: Rect,
+  parentRect: Rect,
   views: Record<string, React.ComponentType<MachinaSlotProps>>,
   nodeClassName: string | undefined,
   debug: boolean | undefined,
@@ -34,8 +34,8 @@ function renderNode(
   nodesById: ResolvedLayoutDocument["nodes"],
 ): React.ReactElement {
   const slotView = node.slot ? views[node.slot] : undefined;
-  const left = node.rect.x - rootRect.x;
-  const top = node.rect.y - rootRect.y;
+  const left = node.rect.x - parentRect.x;
+  const top = node.rect.y - parentRect.y;
 
   const style: React.CSSProperties = {
     position: "absolute",
@@ -80,7 +80,7 @@ function renderNode(
         .map(({ child }) =>
           renderNode(
             child,
-            rootRect,
+            node.rect,
             views,
             nodeClassName,
             debug,
@@ -97,9 +97,10 @@ function renderNode(
 /**
  * Renders resolved nodes in a root-local coordinate space.
  *
- * Coordinates are normalized relative to the resolved root rect origin
- * (`node.rect.x - root.rect.x`, `node.rect.y - root.rect.y`) so the output
- * embeds cleanly in local React trees even when root rect x/y is non-zero.
+ * Coordinates are normalized per DOM nesting level: each child is positioned
+ * relative to its immediate parent wrapper (`node.rect - parent.rect`).
+ * The root node is rendered at local origin (0,0) inside a wrapper sized to
+ * the resolved root rect, preserving embeddability for non-zero root origins.
  */
 export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element {
   const {
