@@ -41,7 +41,7 @@ describe("resolveLayoutDocument", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-        panel: { id: "panel", frame: { kind: "absolute", x: 100, y: 100, width: 300, height: 200 }, arrange: { kind: "stack", axis: "horizontal" } },
+        panel: { id: "panel", frame: { kind: "absolute", x: 100, y: 100, width: 300, height: 200 } },
         button: { id: "button", frame: { kind: "absolute", x: 10, y: 20, width: 50, height: 30 } },
       },
       children: { root: ["panel"], panel: ["button"] },
@@ -50,7 +50,6 @@ describe("resolveLayoutDocument", () => {
     const resolved = resolveLayoutDocument(document, { x: 0, y: 0, width: 1000, height: 800 });
     expect(resolved.nodes.panel.rect).toEqual({ x: 100, y: 100, width: 300, height: 200 });
     expect(resolved.nodes.button.rect).toEqual({ x: 110, y: 120, width: 50, height: 30 });
-    expect(resolved.nodes.panel.arrange).toEqual({ kind: "stack", axis: "horizontal" });
   });
 
   it("resolves anchor child", () => {
@@ -83,7 +82,7 @@ describe("resolveLayoutDocument", () => {
     expect(resolved.children.root).not.toBe(doc.children.root);
   });
 
-  it("fails fixed frames without arranger behavior even if parent has stack metadata", () => {
+  it("resolves fixed frames under stack arranger", () => {
     const doc: LayoutDocument = {
       rootId: "root",
       nodes: {
@@ -93,7 +92,8 @@ describe("resolveLayoutDocument", () => {
       },
       children: { root: ["parent"], parent: ["child"] },
     };
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: 0, width: 100, height: 100 }), "FixedFrameWithoutArranger");
+    const resolved = resolveLayoutDocument(doc, { x: 0, y: 0, width: 100, height: 100 });
+    expect(resolved.nodes.child.rect).toEqual({ x: 0, y: 0, width: 10, height: 20 });
   });
 
   it("validates root rect numeric rules", () => {
