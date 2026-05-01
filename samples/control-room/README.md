@@ -33,3 +33,6 @@ Machina controls outer rectangles. Sample components control view internals (usi
 Toolbar demo includes a `toolbar-fill` FillFrame node between Inspect and Reset, so status content automatically consumes remaining width.
 
 - node-level `offset` demo (`floating-action` uses a small post-placement nudge).
+
+
+This sample now also demonstrates `MachinaTextView` for lightweight parsed text rendering inside existing views.
