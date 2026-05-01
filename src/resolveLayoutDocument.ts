@@ -1,13 +1,136 @@
 import { MachinaLayoutError } from "./errors";
+import { normalizePadding } from "./padding";
 import { resolveFrame } from "./resolveFrame";
-import type { LayoutDocument, NodeId, Rect, ResolvedLayoutDocument, ResolvedLayoutNode } from "./types";
-import { assertFiniteNumber, assertNonNegativeSize } from "./validation";
+import type {
+  LayoutDocument,
+  NodeId,
+  Rect,
+  ResolvedLayoutDocument,
+  ResolvedLayoutNode,
+  StackAlign,
+  StackArrange,
+  StackAxis,
+  StackJustify,
+} from "./types";
+import { assertFiniteNumber, assertNonNegativeGap, assertNonNegativeSize } from "./validation";
 
 function validateRootRect(rootRect: Rect): void {
   assertFiniteNumber(rootRect.x, "rootRect.x");
   assertFiniteNumber(rootRect.y, "rootRect.y");
   assertNonNegativeSize(rootRect.width, "rootRect.width");
   assertNonNegativeSize(rootRect.height, "rootRect.height");
+}
+
+function resolveStackChildRects(parentRect: Rect, arrange: StackArrange, childIds: NodeId[], document: LayoutDocument): Record<NodeId, Rect> {
+  const gap = arrange.gap ?? 0;
+  const justify: StackJustify = arrange.justify ?? "start";
+  const align: StackAlign = arrange.align ?? "start";
+  assertNonNegativeGap(gap, "gap");
+  const padding = normalizePadding(arrange.padding);
+
+  const content: Rect = {
+    x: parentRect.x + padding.left,
+    y: parentRect.y + padding.top,
+    width: parentRect.width - padding.left - padding.right,
+    height: parentRect.height - padding.top - padding.bottom,
+  };
+
+  if (content.width < 0 || content.height < 0) {
+    throw new MachinaLayoutError("StackContentNegative", "stack content size cannot be negative after applying padding");
+  }
+
+  const isHorizontal = arrange.axis === "horizontal";
+  const contentMain = isHorizontal ? content.width : content.height;
+  const contentCross = isHorizontal ? content.height : content.width;
+
+  const childMainSizes: number[] = [];
+  const childCrossSizes: number[] = [];
+
+  for (const childId of childIds) {
+    const childNode = document.nodes[childId];
+    if (!childNode) {
+      throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by arranged parent is missing`);
+    }
+    if (childNode.frame.kind !== "fixed") {
+      throw new MachinaLayoutError("StackChildMustBeFixed", `stack child must use fixed frame: ${childId}`);
+    }
+
+    assertNonNegativeSize(childNode.frame.width, `${childId}.frame.width`);
+    assertNonNegativeSize(childNode.frame.height, `${childId}.frame.height`);
+
+    childMainSizes.push(isHorizontal ? childNode.frame.width : childNode.frame.height);
+    childCrossSizes.push(isHorizontal ? childNode.frame.height : childNode.frame.width);
+  }
+
+  const totalChildMain = childMainSizes.reduce((sum, size) => sum + size, 0);
+  const totalGap = gap * Math.max(0, childIds.length - 1);
+  const occupiedMain = totalChildMain + totalGap;
+  const remainingMain = contentMain - occupiedMain;
+
+  if (remainingMain < 0) {
+    throw new MachinaLayoutError("StackOverflow", "stack main axis overflow");
+  }
+
+  for (const childCross of childCrossSizes) {
+    if (childCross > contentCross) {
+      throw new MachinaLayoutError("StackOverflow", "stack cross axis overflow");
+    }
+  }
+
+  let startOffset = 0;
+  let actualGap = gap;
+
+  switch (justify) {
+    case "start":
+      break;
+    case "center":
+      startOffset = remainingMain / 2;
+      break;
+    case "end":
+      startOffset = remainingMain;
+      break;
+    case "space-between":
+      if (childIds.length <= 1) {
+        actualGap = 0;
+      } else {
+        actualGap = gap + remainingMain / (childIds.length - 1);
+      }
+      break;
+    default:
+      throw new Error(`Unsupported stack justify: ${String(justify)}`);
+  }
+
+  const rects: Record<NodeId, Rect> = {};
+  let currentMain = startOffset;
+
+  childIds.forEach((childId, index) => {
+    const childNode = document.nodes[childId]!;
+    const childWidth = childNode.frame.kind === "fixed" ? childNode.frame.width : 0;
+    const childHeight = childNode.frame.kind === "fixed" ? childNode.frame.height : 0;
+    const childCross = childCrossSizes[index];
+
+    let crossOffset = 0;
+    switch (align) {
+      case "start":
+        break;
+      case "center":
+        crossOffset = (contentCross - childCross) / 2;
+        break;
+      case "end":
+        crossOffset = contentCross - childCross;
+        break;
+      default:
+        throw new Error(`Unsupported stack align: ${String(align)}`);
+    }
+
+    rects[childId] = isHorizontal
+      ? { x: content.x + currentMain, y: content.y + crossOffset, width: childWidth, height: childHeight }
+      : { x: content.x + crossOffset, y: content.y + currentMain, width: childWidth, height: childHeight };
+
+    currentMain += childMainSizes[index] + actualGap;
+  });
+
+  return rects;
 }
 
 export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect): ResolvedLayoutDocument {
@@ -24,7 +147,7 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
   const visitState = new Map<NodeId, 0 | 1 | 2>();
   let visitedCount = 0;
 
-  const resolveNode = (nodeId: NodeId, parentRect: Rect | undefined): void => {
+  const resolveNode = (nodeId: NodeId, rect: Rect): void => {
     const state = visitState.get(nodeId) ?? 0;
     if (state === 1) {
       throw new MachinaLayoutError("Cycle", `cycle detected at node ${nodeId}`);
@@ -41,14 +164,9 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
     visitState.set(nodeId, 1);
     visitedCount += 1;
 
-    const rect =
-      parentRect === undefined
-        ? { x: rootRect.x, y: rootRect.y, width: rootRect.width, height: rootRect.height }
-        : resolveFrame(parentRect, node.frame);
-
     resolvedNodes[nodeId] = {
       id: node.id,
-      rect,
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       frame: node.frame,
       arrange: node.arrange,
       slot: node.slot,
@@ -58,17 +176,23 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
     const childIds = document.children[nodeId] ?? [];
     resolvedChildren[nodeId] = [...childIds];
 
+    const childRects = node.arrange?.kind === "stack"
+      ? resolveStackChildRects(rect, node.arrange, childIds, document)
+      : undefined;
+
     for (const childId of childIds) {
-      if (!document.nodes[childId]) {
+      const childNode = document.nodes[childId];
+      if (!childNode) {
         throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by ${nodeId} is missing`);
       }
-      resolveNode(childId, rect);
+      const childRect = childRects?.[childId] ?? resolveFrame(rect, childNode.frame);
+      resolveNode(childId, childRect);
     }
 
     visitState.set(nodeId, 2);
   };
 
-  resolveNode(document.rootId, undefined);
+  resolveNode(document.rootId, { x: rootRect.x, y: rootRect.y, width: rootRect.width, height: rootRect.height });
 
   if (visitedCount !== Object.keys(document.nodes).length) {
     throw new MachinaLayoutError("UnreachableNode", "one or more nodes are unreachable from the root.");
