@@ -3,6 +3,7 @@ export * from "./errors";
 export * from "./validation";
 export * from "./padding";
 export * from "./length";
+export * from "./offset";
 
 export * from "./compileLayoutRows";
 

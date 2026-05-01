@@ -80,6 +80,16 @@ describe("compileLayoutRows", () => {
     expect((frame as any).width).toBe(width);
   });
 
+
+  it("preserves offset metadata without resolving", () => {
+    const offset = { x: 2, y: { unit: "ui", value: 0.1 } as const };
+    const doc = compileLayoutRows([
+      { id: "root", frame: { kind: "root" } },
+      { id: "child", parent: "root", frame: { kind: "fixed", width: 10, height: 10 }, offset },
+    ]);
+    expect(doc.nodes.child.offset).toBe(offset);
+  });
+
   it("rejects FillFrame on root", () => {
     expectCode([{ id: "root", frame: { kind: "fill" } }], "FillFrameWithoutArranger");
   });

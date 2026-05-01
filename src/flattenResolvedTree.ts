@@ -12,6 +12,7 @@ export function flattenResolvedTree(tree: ResolvedLayoutTree): ResolvedLayoutNod
       arrange: node.arrange,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      offset: node.offset,
     });
 
     for (const child of node.children) {

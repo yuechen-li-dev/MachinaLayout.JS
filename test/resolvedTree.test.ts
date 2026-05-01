@@ -47,7 +47,7 @@ describe("resolved tree helpers", () => {
       nodes: {
         root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "fixed", width: 1, height: 1 }, debugLabel: "r" },
         b: { id: "b", z: -5, rect: { x: 2, y: 2, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
-        a: { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "panel" },
+        a: { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "panel", offset: { x: 3 } },
         c: { id: "c", z: 0, rect: { x: 3, y: 3, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
         a1: { id: "a1", rect: { x: 11, y: 11, width: 2, height: 2 }, frame: { kind: "absolute", x: 1, y: 1, width: 2, height: 2 } },
       },
@@ -64,6 +64,7 @@ describe("resolved tree helpers", () => {
     expect(tree.rect).not.toBe(document.nodes.root.rect);
     expect(tree.children).not.toBe(document.children.root);
     expect(tree.children[1].slot).toBe("panel");
+    expect(tree.children[1].offset).toEqual({ x: 3 });
     expect(tree.debugLabel).toBe("r");
     expect(JSON.stringify(document)).toBe(before);
   });
@@ -128,6 +129,7 @@ describe("resolved tree helpers", () => {
     expect(flat[0]).not.toBe(tree as unknown as never);
     expect(flat[0].rect).not.toBe(tree.rect);
     expect(flat[1].slot).toBe("s");
+    expect(flat[1].offset).toBeUndefined();
     expect(JSON.stringify(tree)).toBe(before);
   });
 

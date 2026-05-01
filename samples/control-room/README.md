@@ -31,3 +31,5 @@ Machina controls outer rectangles. Sample components control slot internals.
 
 
 Toolbar demo includes a `toolbar-fill` FillFrame node between Inspect and Reset, so status content automatically consumes remaining width.
+
+- node-level `offset` demo (`floating-action` uses a small post-placement nudge).

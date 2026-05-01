@@ -125,3 +125,7 @@ Notes:
 - fractional pixels are preserved
 - negative offsets are allowed
 - explicit negative width/height are rejected
+
+## Node offsets (M1d)
+
+`offset` is applied after normal frame/stack placement and does not change stack distribution, sibling positions, or width/height. `offset.x` resolves against parent rect width; `offset.y` resolves against parent rect height.

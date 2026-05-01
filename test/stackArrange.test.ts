@@ -80,3 +80,25 @@ describe("stack arrange fill", () => {
     expectCode(() => resolveLayoutDocument(stackDoc("horizontal", { w: 100, h: 20 }, { f: { id: "f", frame: { kind: "fill", cross: 30 } } }), { x: 0, y: 0, width: 1, height: 1 }), "StackOverflow");
   });
 });
+
+it("offset on fixed child does not affect siblings", () => {
+  const doc = stackDoc("horizontal", { w: 300, h: 40 }, {
+    a: { id: "a", frame: { kind: "fixed", width: 100, height: 20 } },
+    b: { id: "b", frame: { kind: "fixed", width: 100, height: 20 }, offset: { x: 20 } },
+    c: { id: "c", frame: { kind: "fixed", width: 100, height: 20 } },
+  });
+  const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 300, height: 40 });
+  expect(r.nodes.a.rect.x).toBe(0); expect(r.nodes.b.rect.x).toBe(120); expect(r.nodes.c.rect.x).toBe(200);
+});
+
+it("offset on fill child does not affect distribution", () => {
+  const doc = stackDoc("horizontal", { w: 300, h: 40 }, {
+    a: { id: "a", frame: { kind: "fixed", width: 100, height: 20 } },
+    b: { id: "b", frame: { kind: "fill", weight: 1, cross: 20 }, offset: { x: 10 } },
+    c: { id: "c", frame: { kind: "fixed", width: 50, height: 20 } },
+  });
+  const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 300, height: 40 });
+  expect(r.nodes.a.rect).toEqual({ x: 0, y: 0, width: 100, height: 20 });
+  expect(r.nodes.b.rect).toEqual({ x: 110, y: 0, width: 150, height: 20 });
+  expect(r.nodes.c.rect).toEqual({ x: 250, y: 0, width: 50, height: 20 });
+});

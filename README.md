@@ -145,3 +145,5 @@ Anchor fields now accept typed `UiLength` values in addition to numeric pixels:
 - `{ unit: "ui", value: number }` (normalized against parent axis)
 
 Example: `left: { unit: "ui", value: 0.25 }`.
+
+- node-level `OffsetSpec` post-placement nudges (M1d, not margins)

@@ -56,3 +56,5 @@ Why: silent repair hides authoring mistakes and weakens determinism guarantees.
 Forbidden: string percentages (e.g. `"50%"`), CSS unit parsing, and CSS `calc`.
 
 Allowed in M1c: typed `UiLength` objects for `AnchorFrame` only (`px` and normalized `ui`), because conversion is explicit and deterministic.
+
+M1d clarification: per-item margins remain forbidden. Use explicit node `offset` for local post-placement nudges when needed.

@@ -51,6 +51,7 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
       arrange: row.arrange,
       slot: row.slot,
       debugLabel: row.debugLabel,
+      offset: row.offset,
     };
 
     if (row.parent === undefined) {

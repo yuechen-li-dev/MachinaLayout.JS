@@ -64,3 +64,7 @@ The Control Room sample (`samples/control-room`) demonstrates the M0 contract in
 ## M1c implemented scope note
 
 M1c adds typed `UiLength` support for `AnchorFrame` only; resolved rect outputs remain numeric pixels.
+
+## M1d implemented scope note
+
+M1d adds optional node-level `OffsetSpec` for deterministic post-placement translation. Offsets are not margins and do not participate in stack distribution.
