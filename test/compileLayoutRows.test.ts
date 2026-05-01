@@ -56,6 +56,19 @@ describe("compileLayoutRows", () => {
     expect(() => compileLayoutRows([{ id: "root", frame: { kind: "anchor", left: 0, width: 1, top: 0, height: 1 } }])).not.toThrow();
   });
 
+
+  it("preserves FillFrame children", () => {
+    const doc = compileLayoutRows([
+      { id: "root", frame: { kind: "root" } },
+      { id: "stack", parent: "root", frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 40 }, arrange: { kind: "stack", axis: "horizontal" } },
+      { id: "fill", parent: "stack", frame: { kind: "fill", weight: 2, cross: "fill" } },
+    ]);
+    expect(doc.nodes.fill.frame).toEqual({ kind: "fill", weight: 2, cross: "fill" });
+  });
+
+  it("rejects FillFrame on root", () => {
+    expectCode([{ id: "root", frame: { kind: "fill" } }], "FillFrameWithoutArranger");
+  });
   it("builds parent-child map", () => {
     const rows: LayoutRow[] = [
       { id: "root", frame: { kind: "fixed", width: 10, height: 10 } },

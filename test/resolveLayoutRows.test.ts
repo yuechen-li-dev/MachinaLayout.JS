@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveLayoutRows, type LayoutRow } from "../src";
+import { MachinaLayoutError, resolveLayoutRows, type LayoutRow } from "../src";
 
 describe("resolveLayoutRows", () => {
   it("compiles rows and resolves rectangles", () => {
@@ -19,4 +19,16 @@ describe("resolveLayoutRows", () => {
     expect(JSON.stringify(rows)).toBe(beforeRows);
     expect(JSON.stringify(rootRect)).toBe(beforeRoot);
   });
+});
+
+
+it("rejects FillFrame under non-arranging parent", () => {
+  const rows: LayoutRow[] = [
+    { id: "root", frame: { kind: "fixed", width: 100, height: 100 } },
+    { id: "child", parent: "root", frame: { kind: "fill" } },
+  ];
+  expect(() => resolveLayoutRows(rows, { x: 0, y: 0, width: 100, height: 100 })).toThrowError(MachinaLayoutError);
+  try { resolveLayoutRows(rows, { x: 0, y: 0, width: 100, height: 100 }); } catch (e) {
+    expect((e as MachinaLayoutError).code).toBe("FillFrameWithoutArranger");
+  }
 });

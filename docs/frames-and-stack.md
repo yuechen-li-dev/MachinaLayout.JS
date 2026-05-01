@@ -48,7 +48,7 @@ Fixed frame is size-only.
 
 Stack is ordered sequence arrangement over direct children.
 
-- Direct children must be `FixedFrame`.
+- Direct children must be `FixedFrame` or `FillFrame`.
 - Axis: `horizontal` or `vertical`.
 - Supports `gap` and `padding`.
 - `justify`: `start` | `center` | `end` | `space-between`
@@ -58,7 +58,7 @@ Deliberate exclusions:
 
 - no shrink
 - no stretch
-- no weights
+- no shrink/basis/min/max negotiation
 - no wrap
 - no margins
 
@@ -94,3 +94,15 @@ Stack computes positions by arithmetic over order, fixed sizes, gap, and padding
 - Root geometry is still copied from `rootRect` passed by the caller.
 - `resolveFrame(parent, { kind: "root" })` throws `RootFrameWithoutRoot`.
 - Non-root rows with `RootFrame` are rejected during compile with `RootFrameNotRoot`.
+
+
+## `FillFrame`
+
+`FillFrame` is valid only as a direct child of `StackArrange`.
+
+- `weight` defaults to `1` and must be finite and `> 0`.
+- `cross` defaults to `"fill"`.
+- `cross: "fill"` uses stack content cross size.
+- numeric `cross` is explicit cross size and must be finite/non-negative.
+
+Fill children consume all remaining main-axis space after fixed sizes and gaps. When one or more fill children exist, `justify` has no additional free space to distribute.

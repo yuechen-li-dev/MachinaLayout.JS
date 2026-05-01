@@ -35,7 +35,13 @@ export type FixedFrame = {
   height: number;
 };
 
-export type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame;
+export type FillFrame = {
+  kind: "fill";
+  weight?: number;
+  cross?: number | "fill";
+};
+
+export type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame | FillFrame;
 
 export type StackAxis = "horizontal" | "vertical";
 

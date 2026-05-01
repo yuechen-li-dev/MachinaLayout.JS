@@ -31,6 +31,7 @@ export function createViews(layout: ResolvedLayoutDocument, inspector: Inspector
     ),
     RunButton: () => <Button>Run</Button>,
     InspectButton: () => <Button>Inspect</Button>,
+    ToolbarStatus: () => <Card><div className="mono">Status: FillFrame consumes remaining toolbar width</div></Card>,
     ResetButton: () => <Button onClick={inspector.reset}>Reset</Button>,
     Preview: () => (
       <Card><h3>Resolved Rectangles</h3><table className="mono"><thead><tr><th>id</th><th>rect</th><th>z</th></tr></thead><tbody>{["header","sidebar","main","toolbar","preview","inspector","floating-action","debug-badge"].map((id)=>{const n=layout.nodes[id];return <tr key={id}><td>{id}</td><td>{n ? formatRect(n.rect) : "-"}</td><td>{n?.z ?? 0}</td></tr>;})}</tbody></table></Card>

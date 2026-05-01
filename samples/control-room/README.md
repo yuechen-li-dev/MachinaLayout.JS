@@ -3,7 +3,7 @@
 This sample demonstrates:
 
 - flat `LayoutRow[]` authoring,
-- `AnchorFrame` / `FixedFrame` / `StackArrange`,
+- `AnchorFrame` / `FixedFrame` / `FillFrame` / `StackArrange`,
 - sibling-local z-order,
 - slot-based React rendering,
 - numeric layout edits.
@@ -27,3 +27,6 @@ npm run dev
 ## Boundary
 
 Machina controls outer rectangles. Sample components control slot internals.
+
+
+Toolbar demo includes a `toolbar-fill` FillFrame node between Inspect and Reset, so status content automatically consumes remaining width.
