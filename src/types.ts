@@ -95,3 +95,14 @@ export type ResolvedLayoutDocument = {
   nodes: Record<NodeId, ResolvedLayoutNode>;
   children: Record<NodeId, NodeId[]>;
 };
+
+
+export type ResolvedLayoutTree = {
+  id: NodeId;
+  rect: Rect;
+  frame: FrameSpec;
+  arrange?: ArrangeSpec;
+  slot?: string;
+  debugLabel?: string;
+  children: ResolvedLayoutTree[];
+};

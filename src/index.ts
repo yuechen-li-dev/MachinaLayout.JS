@@ -9,3 +9,7 @@ export * from "./resolveFrame";
 
 export * from "./resolveLayoutDocument";
 export * from "./resolveLayoutRows";
+
+export * from "./toResolvedTree";
+export * from "./flattenResolvedTree";
+export * from "./formatRect";
