@@ -69,3 +69,5 @@ This keeps compile and resolve deterministic.
 | sidebar          | root    | 1     | anchor `{left:0,top:64,bottom:0,w:240}` | —   | `sidebar`     | 0 |
 | toolbar          | root    | 2     | anchor `{left:240,right:0,top:64,h:56}` | stack | —             | 0 |
 | toolbar-button-1 | toolbar | 0     | fixed `{w:120,h:40}`                | —       | `toolbarButton` | 0 |
+
+- `offset`: optional post-placement local translation (`OffsetSpec` using `UiLength`), not margin and does not affect siblings.

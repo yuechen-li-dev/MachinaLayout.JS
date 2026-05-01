@@ -1,5 +1,6 @@
 import { MachinaLayoutError } from "./errors";
 import { normalizePadding } from "./padding";
+import { applyOffset } from "./offset";
 import { resolveFrame } from "./resolveFrame";
 import type {
   LayoutDocument,
@@ -206,6 +207,7 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
       arrange: node.arrange,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      offset: node.offset,
     };
 
     const childIds = document.children[nodeId] ?? [];
@@ -220,7 +222,8 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
       if (!childNode) {
         throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by ${nodeId} is missing`);
       }
-      const childRect = childRects?.[childId] ?? resolveFrame(rect, childNode.frame);
+      const normalChildRect = childRects?.[childId] ?? resolveFrame(rect, childNode.frame);
+      const childRect = applyOffset(normalChildRect, rect, childNode.offset);
       resolveNode(childId, childRect);
     }
 

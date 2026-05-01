@@ -197,3 +197,35 @@ describe("resolveLayoutDocument", () => {
     expect(resolved.nodes.child).not.toBe(document.nodes.child);
   });
 });
+
+it("applies offset to absolute/anchor and ignores root offset", () => {
+  const doc: LayoutDocument = {
+    rootId: "root",
+    nodes: {
+      root: { id: "root", frame: { kind: "root" }, offset: { x: 100, y: 100 } },
+      abs: { id: "abs", frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 }, offset: { x: 5, y: -2 } },
+      anc: { id: "anc", frame: { kind: "anchor", left: 10, width: 100, top: 20, height: 50 }, offset: { x: { unit: "ui", value: 0.1 }, y: { unit: "ui", value: -0.05 } } },
+    },
+    children: { root: ["abs", "anc"] },
+  };
+  const rootRect = { x: 100, y: 200, width: 800, height: 600 };
+  const r = resolveLayoutDocument(doc, rootRect);
+  expect(r.nodes.root.rect).toEqual(rootRect);
+  expect(r.nodes.abs.rect).toEqual({ x: 115, y: 218, width: 100, height: 50 });
+  expect(r.nodes.anc.rect).toEqual({ x: 190, y: 190, width: 100, height: 50 });
+});
+
+it("allows offsets outside parent and reports length errors", () => {
+  const doc: LayoutDocument = {
+    rootId: "root",
+    nodes: {
+      root: { id: "root", frame: { kind: "root" } },
+      child: { id: "child", frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 }, offset: { x: -1000, y: 1000 } },
+    },
+    children: { root: ["child"] },
+  };
+  const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 100, height: 100 });
+  expect(r.nodes.child.rect).toEqual({ x: -1000, y: 1000, width: 10, height: 10 });
+  expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: Number.NaN } } } }, { x: 0, y: 0, width: 100, height: 100 }), "NonFiniteNumber");
+  expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: { unit: "bad" as never, value: 1 } } } } }, { x: 0, y: 0, width: 100, height: 100 }), "InvalidLengthUnit");
+});

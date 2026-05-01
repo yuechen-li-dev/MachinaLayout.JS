@@ -17,6 +17,11 @@ export type AbsoluteFrame = {
 
 export type UiLength = number | { unit: "px"; value: number } | { unit: "ui"; value: number };
 
+export type OffsetSpec = {
+  x?: UiLength;
+  y?: UiLength;
+};
+
 export type AnchorFrame = {
   kind: "anchor";
   left?: UiLength;
@@ -78,6 +83,7 @@ export type LayoutRow = {
   arrange?: ArrangeSpec;
   slot?: string;
   debugLabel?: string;
+  offset?: OffsetSpec;
 };
 
 export type LayoutNode = {
@@ -87,6 +93,7 @@ export type LayoutNode = {
   arrange?: ArrangeSpec;
   slot?: string;
   debugLabel?: string;
+  offset?: OffsetSpec;
 };
 
 export type LayoutDocument = {
@@ -103,6 +110,7 @@ export type ResolvedLayoutNode = {
   arrange?: ArrangeSpec;
   slot?: string;
   debugLabel?: string;
+  offset?: OffsetSpec;
 };
 
 export type ResolvedLayoutDocument = {
@@ -120,5 +128,6 @@ export type ResolvedLayoutTree = {
   arrange?: ArrangeSpec;
   slot?: string;
   debugLabel?: string;
+  offset?: OffsetSpec;
   children: ResolvedLayoutTree[];
 };
