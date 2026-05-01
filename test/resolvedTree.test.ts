@@ -131,6 +131,22 @@ describe("resolved tree helpers", () => {
     expect(JSON.stringify(tree)).toBe(before);
   });
 
+
+  it("preserves UiLength metadata in tree and flattened output", () => {
+    const resolved = resolveLayoutRows(
+      [
+        { id: "root", frame: { kind: "root" } },
+        { id: "child", parent: "root", frame: { kind: "anchor", left: { unit: "ui", value: 0.25 }, width: { unit: "px", value: 120 }, top: 10, height: 20 } },
+      ],
+      { x: 0, y: 0, width: 800, height: 600 }
+    );
+    const tree = toResolvedTree(resolved);
+    const flat = flattenResolvedTree(tree);
+    expect((tree.children[0].frame as any).left).toEqual({ unit: "ui", value: 0.25 });
+    expect((flat[1].frame as any).width).toEqual({ unit: "px", value: 120 });
+    expect(flat[1].rect).toEqual({ x: 200, y: 10, width: 120, height: 20 });
+  });
+
   it("formatRect exact output", () => {
     expect(formatRect({ x: 1, y: 2, width: 3, height: 4 })).toBe("x=1 y=2 w=3 h=4");
     expect(formatRect({ x: 1.5, y: -2, width: 0, height: 42 })).toBe("x=1.5 y=-2 w=0 h=42");

@@ -66,6 +66,20 @@ describe("compileLayoutRows", () => {
     expect(doc.nodes.fill.frame).toEqual({ kind: "fill", weight: 2, cross: "fill" });
   });
 
+
+  it("preserves UiLength objects without resolving", () => {
+    const left = { unit: "ui", value: 0.25 } as const;
+    const width = { unit: "px", value: 100 } as const;
+    const doc = compileLayoutRows([
+      { id: "root", frame: { kind: "root" } },
+      { id: "child", parent: "root", frame: { kind: "anchor", left, width, top: 0, height: 10 } },
+    ]);
+    const frame = doc.nodes.child.frame;
+    expect(frame.kind).toBe("anchor");
+    expect((frame as any).left).toBe(left);
+    expect((frame as any).width).toBe(width);
+  });
+
   it("rejects FillFrame on root", () => {
     expectCode([{ id: "root", frame: { kind: "fill" } }], "FillFrameWithoutArranger");
   });

@@ -28,7 +28,7 @@ export function buildDemoRows(state: ControlRoomState): LayoutRow[] {
     { id: "tool-inspect", parent: "toolbar", frame: { kind: "fixed", width: 110, height: 32 }, slot: "InspectButton" },
     { id: "toolbar-fill", parent: "toolbar", frame: { kind: "fill", weight: 1, cross: 32 }, slot: "ToolbarStatus" },
     { id: "tool-reset", parent: "toolbar", frame: { kind: "fixed", width: 90, height: 32 }, slot: "ResetButton" },
-    { id: "preview", parent: "main", frame: { kind: "anchor", left: 16, top: 80, right: 320, bottom: 16 }, slot: "Preview" },
+    { id: "preview", parent: "main", frame: { kind: "anchor", left: { unit: "px", value: 16 }, top: 80, right: { unit: "ui", value: 0.35 }, bottom: 16 }, slot: "Preview" },
     { id: "inspector", parent: "main", z: 1, frame: { kind: "anchor", right: 16, top: 80, bottom: 16, width: 280 }, slot: "Inspector" },
     { id: "floating-action", parent: "main", z: state.floatingZ, frame: { kind: "anchor", right: 304, bottom: 32, width: 160, height: 64 }, slot: "FloatingAction" },
     { id: "debug-badge", parent: "main", z: 4, frame: { kind: "anchor", right: 260, top: 68, width: 140, height: 36 }, slot: "DebugBadge" },

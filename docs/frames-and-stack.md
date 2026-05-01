@@ -106,3 +106,22 @@ Stack computes positions by arithmetic over order, fixed sizes, gap, and padding
 - numeric `cross` is explicit cross size and must be finite/non-negative.
 
 Fill children consume all remaining main-axis space after fixed sizes and gaps. When one or more fill children exist, `justify` has no additional free space to distribute.
+
+
+## Anchor UiLength (M1c)
+
+Anchor fields `left/right/top/bottom/width/height` accept `UiLength`:
+- plain number means px
+- `{ unit: "px", value }` explicit px
+- `{ unit: "ui", value }` normalized unit resolved deterministically during frame resolution
+
+Axis mapping:
+- horizontal (`left/right/width`) uses `parent.width`
+- vertical (`top/bottom/height`) uses `parent.height`
+
+Notes:
+- no string percentages
+- no CSS `calc`
+- fractional pixels are preserved
+- negative offsets are allowed
+- explicit negative width/height are rejected

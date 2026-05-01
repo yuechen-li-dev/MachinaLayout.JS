@@ -49,3 +49,10 @@ Why: z is sibling-local paint metadata; geometry and order resolution must remai
 Forbidden: silent clamping.
 
 Why: silent repair hides authoring mistakes and weakens determinism guarantees.
+
+
+## Unit parsing guardrail
+
+Forbidden: string percentages (e.g. `"50%"`), CSS unit parsing, and CSS `calc`.
+
+Allowed in M1c: typed `UiLength` objects for `AnchorFrame` only (`px` and normalized `ui`), because conversion is explicit and deterministic.
