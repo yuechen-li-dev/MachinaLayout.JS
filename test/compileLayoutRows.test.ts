@@ -309,4 +309,15 @@ describe("compileLayoutRows", () => {
       );
     }
   });
+
+
+  it("preserves view while keeping slot support", () => {
+    const doc = compileLayoutRows([
+      { id: "root", frame: { kind: "root" } },
+      { id: "child", parent: "root", frame: { kind: "fixed", width: 10, height: 10 }, view: "Header", slot: "HeaderSlot" },
+    ]);
+
+    expect(doc.nodes.child.view).toBe("Header");
+    expect(doc.nodes.child.slot).toBe("HeaderSlot");
+  });
 });

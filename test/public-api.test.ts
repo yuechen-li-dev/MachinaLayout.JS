@@ -12,21 +12,24 @@ describe("public API", () => {
       z: 1,
       frame: rootFrame,
       offset,
+      view: "RootView",
     };
 
     const fillFrame: FillFrame = { kind: "fill", weight: 1 };
-    const node: LayoutNode = { id: "n", z: -1, frame: { kind: "fixed", width: 10, height: 10 } };
+    const node: LayoutNode = { id: "n", z: -1, frame: { kind: "fixed", width: 10, height: 10 }, view: "NodeView" };
     const resolvedNode: ResolvedLayoutNode = {
       id: "rn",
       z: 2,
       rect: { x: 0, y: 0, width: 10, height: 10 },
       frame: { kind: "fixed", width: 10, height: 10 },
+      view: "ResolvedNodeView",
     };
     const tree: ResolvedLayoutTree = {
       id: "rt",
       z: 0,
       rect: { x: 0, y: 0, width: 10, height: 10 },
       frame: { kind: "fixed", width: 10, height: 10 },
+      view: "ResolvedNodeView",
       children: [],
     };
 

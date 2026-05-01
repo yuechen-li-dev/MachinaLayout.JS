@@ -33,7 +33,8 @@ function renderNode(
   nodeContainIntrinsicSize: string | undefined,
   nodesById: ResolvedLayoutDocument["nodes"],
 ): React.ReactElement {
-  const slotView = node.slot ? views[node.slot] : undefined;
+  const effectiveViewKey = node.view ?? node.slot;
+  const slotView = effectiveViewKey ? views[effectiveViewKey] : undefined;
   const left = node.rect.x - parentRect.x;
   const top = node.rect.y - parentRect.y;
 
@@ -70,6 +71,7 @@ function renderNode(
       style={style}
       data-machina-node-id={node.id}
       data-machina-slot={node.slot}
+      data-machina-view={effectiveViewKey}
       data-machina-debug-label={node.debugLabel}
     >
       {debug ? <small>{node.debugLabel ?? node.id}</small> : null}

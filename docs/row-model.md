@@ -22,7 +22,7 @@ Rows are:
 - `order`: sibling order key.
 - `frame`: geometry primitive (`absolute`, `anchor`, `fixed`).
 - `arrange`: optional arrangement strategy (currently `stack`).
-- `slot`: renderer slot key.
+- `slot`: renderer view key.
 - `debugLabel`: optional debug-facing label.
 - `z`: optional sibling-local paint layer metadata.
 
