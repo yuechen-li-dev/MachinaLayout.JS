@@ -47,6 +47,49 @@ describe("MachinaReactView", () => {
     expect(child).toHaveStyle({ left: "16px", top: "12px" });
   });
 
+
+
+  it("normalizes coordinates relative to immediate parent for nested descendants", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 1100, height: 720 }, frame: { kind: "absolute", x: 0, y: 0, width: 1100, height: 720 } },
+        main: { id: "main", rect: { x: 268, y: 88, width: 816, height: 616 }, frame: { kind: "absolute", x: 268, y: 88, width: 816, height: 616 } },
+        toolbar: { id: "toolbar", rect: { x: 284, y: 104, width: 784, height: 48 }, frame: { kind: "absolute", x: 284, y: 104, width: 784, height: 48 } },
+        "tool-run": { id: "tool-run", rect: { x: 292, y: 112, width: 90, height: 32 }, frame: { kind: "absolute", x: 292, y: 112, width: 90, height: 32 } },
+      },
+      children: {
+        root: ["main"],
+        main: ["toolbar"],
+        toolbar: ["tool-run"],
+        "tool-run": [],
+      },
+    };
+
+    const { container } = render(<MachinaReactView layout={layout} />);
+
+    expect(container.querySelector('[data-machina-node-id="main"]')).toHaveStyle({ left: "268px", top: "88px" });
+    expect(container.querySelector('[data-machina-node-id="toolbar"]')).toHaveStyle({ left: "16px", top: "16px" });
+    expect(container.querySelector('[data-machina-node-id="tool-run"]')).toHaveStyle({ left: "8px", top: "8px" });
+  });
+
+  it("normalizes nested coordinates correctly when root origin is non-zero", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 100, y: 200, width: 800, height: 600 }, frame: { kind: "absolute", x: 100, y: 200, width: 800, height: 600 } },
+        panel: { id: "panel", rect: { x: 150, y: 250, width: 300, height: 200 }, frame: { kind: "absolute", x: 150, y: 250, width: 300, height: 200 } },
+        child: { id: "child", rect: { x: 175, y: 275, width: 50, height: 40 }, frame: { kind: "absolute", x: 175, y: 275, width: 50, height: 40 } },
+      },
+      children: { root: ["panel"], panel: ["child"], child: [] },
+    };
+
+    const { container } = render(<MachinaReactView layout={layout} />);
+
+    expect(container.querySelector('[data-machina-node-id="panel"]')).toHaveStyle({ left: "50px", top: "50px" });
+    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ left: "25px", top: "25px" });
+  });
+
   it("outer wrapper uses root size", () => {
     const layout = makeLayout({ x: 100, y: 200, width: 800, height: 600 }, { x: 116, y: 212, width: 100, height: 50 });
     const { container } = render(<MachinaReactView layout={layout} />);

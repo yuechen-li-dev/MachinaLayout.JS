@@ -32,19 +32,30 @@ Slot views receive:
 - `debugLabel`
 - `node`
 
-## Root normalization
+## Coordinate normalization
 
-The adapter uses root-local embedding.
+Core resolved rects are global/root-space coordinates.
 
-- Rendered node `left = node.rect.x - root.rect.x`
-- Rendered node `top = node.rect.y - root.rect.y`
-- Root wrapper width/height come from resolved root size.
+The React adapter renders nested absolutely positioned DOM wrappers, so each node
+wrapper is positioned in its parent-local DOM coordinate space:
 
-Example:
+- `left = node.rect.x - parent.rect.x`
+- `top = node.rect.y - parent.rect.y`
+
+The outer wrapper represents the root coordinate space and uses the resolved root
+width/height. The root node itself renders at local `left: 0` and `top: 0`.
+
+Examples:
 
 - root rect `{ x: 100, y: 200, width: 800, height: 600 }`
 - child rect `{ x: 116, y: 212, width: 100, height: 50 }`
 - rendered child CSS `left: 16px; top: 12px;`
+
+Nested example:
+
+- parent rect `{ x: 268, y: 88, width: 816, height: 616 }`
+- child rect `{ x: 284, y: 104, width: 784, height: 48 }`
+- rendered child CSS `left: 16px; top: 16px;`
 
 ## CSS boundary
 
