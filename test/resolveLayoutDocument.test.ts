@@ -176,6 +176,21 @@ describe("resolveLayoutDocument", () => {
     );
   });
 
+  it("preserves view metadata", () => {
+    const doc: LayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", frame: { kind: "root" } },
+        child: { id: "child", frame: { kind: "absolute", x: 1, y: 2, width: 3, height: 4 }, view: "Header", slot: "HeaderSlot" },
+      },
+      children: { root: ["child"] },
+    };
+
+    const resolved = resolveLayoutDocument(doc, { x: 0, y: 0, width: 100, height: 100 });
+    expect(resolved.nodes.child.view).toBe("Header");
+    expect(resolved.nodes.child.slot).toBe("HeaderSlot");
+  });
+
   it("does not mutate inputs and returns fresh node objects", () => {
     const document: LayoutDocument = {
       rootId: "root",

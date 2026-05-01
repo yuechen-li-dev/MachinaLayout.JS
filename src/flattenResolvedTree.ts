@@ -10,6 +10,7 @@ export function flattenResolvedTree(tree: ResolvedLayoutTree): ResolvedLayoutNod
       rect: { ...node.rect },
       frame: node.frame,
       arrange: node.arrange,
+      view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
       offset: node.offset,

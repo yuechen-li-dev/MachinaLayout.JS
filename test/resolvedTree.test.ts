@@ -25,7 +25,7 @@ describe("resolved tree helpers", () => {
     const document: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 1, y: 2, width: 3, height: 4 }, frame: { kind: "root" }, slot: "app", debugLabel: "Root" },
+        root: { id: "root", rect: { x: 1, y: 2, width: 3, height: 4 }, frame: { kind: "root" }, view: "AppView", slot: "app", debugLabel: "Root" },
       },
       children: { root: [] },
     };
@@ -37,6 +37,7 @@ describe("resolved tree helpers", () => {
     expect(tree.children).toEqual([]);
     expect(tree.children).not.toBe(document.children.root);
     expect(tree.slot).toBe("app");
+    expect(tree.view).toBe("AppView");
     expect(tree.debugLabel).toBe("Root");
     expect(tree.frame.kind).toBe("root");
   });
@@ -172,5 +173,26 @@ describe("resolved tree helpers", () => {
     expect(flat.map((n) => n.id)).toEqual(["root", "panel", "button"]);
     expect(flat[1].rect).toEqual({ x: 10, y: 20, width: 100, height: 50 });
     expect(flat[2].rect).toEqual({ x: 15, y: 26, width: 30, height: 10 });
+  });
+
+
+  it("flattenResolvedTree preserves view", () => {
+    const tree: ResolvedLayoutTree = {
+      id: "root",
+      rect: { x: 0, y: 0, width: 10, height: 10 },
+      frame: { kind: "root" },
+      children: [
+        {
+          id: "child",
+          rect: { x: 1, y: 1, width: 4, height: 4 },
+          frame: { kind: "absolute", x: 1, y: 1, width: 4, height: 4 },
+          view: "Header",
+          children: [],
+        },
+      ],
+    };
+
+    const flat = flattenResolvedTree(tree);
+    expect(flat[1].view).toBe("Header");
   });
 });

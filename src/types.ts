@@ -81,6 +81,7 @@ export type LayoutRow = {
   z?: number;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
+  view?: string;
   slot?: string;
   debugLabel?: string;
   offset?: OffsetSpec;
@@ -91,6 +92,7 @@ export type LayoutNode = {
   z?: number;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
+  view?: string;
   slot?: string;
   debugLabel?: string;
   offset?: OffsetSpec;
@@ -108,6 +110,7 @@ export type ResolvedLayoutNode = {
   rect: Rect;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
+  view?: string;
   slot?: string;
   debugLabel?: string;
   offset?: OffsetSpec;
@@ -126,6 +129,7 @@ export type ResolvedLayoutTree = {
   rect: Rect;
   frame: FrameSpec;
   arrange?: ArrangeSpec;
+  view?: string;
   slot?: string;
   debugLabel?: string;
   offset?: OffsetSpec;

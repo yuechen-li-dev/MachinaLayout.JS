@@ -35,6 +35,7 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
       rect: { ...node.rect },
       frame: node.frame,
       arrange: node.arrange,
+      view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
       offset: node.offset,

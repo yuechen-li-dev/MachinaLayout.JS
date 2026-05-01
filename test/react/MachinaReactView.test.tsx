@@ -253,6 +253,7 @@ describe("MachinaReactView", () => {
     const child = document.querySelector('[data-machina-node-id="child"]');
     expect(child).toHaveAttribute("data-machina-node-id", "child");
     expect(child).toHaveAttribute("data-machina-slot", "Sidebar");
+    expect(child).toHaveAttribute("data-machina-view", "Sidebar");
     expect(child).toHaveAttribute("data-machina-debug-label", "child-label");
   });
 
@@ -293,5 +294,56 @@ describe("MachinaReactView", () => {
 
     expect(screen.getByText("slot-sidebar")).toBeInTheDocument();
     expect(document.querySelector('[data-machina-node-id="sidebar"]')).toHaveStyle({ left: "0px", top: "0px" });
+  });
+
+
+  it("renders preferred view key", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    layout.nodes.child.view = "Header";
+    const Header = () => <div>header-view</div>;
+
+    render(<MachinaReactView layout={layout} views={{ Header }} />);
+    expect(screen.getByText("header-view")).toBeInTheDocument();
+  });
+
+  it("view wins when both view and slot are provided", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    layout.nodes.child.view = "Preferred";
+    layout.nodes.child.slot = "Fallback";
+
+    render(<MachinaReactView layout={layout} views={{ Preferred: () => <div>Preferred</div>, Fallback: () => <div>Fallback</div> }} />);
+
+    expect(screen.getByText("Preferred")).toBeInTheDocument();
+    expect(screen.queryByText("Fallback")).not.toBeInTheDocument();
+  });
+
+  it("missing view does not crash and children still render", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "root" }, view: "Missing" },
+        child: { id: "child", rect: { x: 0, y: 0, width: 20, height: 20 }, frame: { kind: "absolute", x: 0, y: 0, width: 20, height: 20 }, view: "Child" },
+      },
+      children: { root: ["child"], child: [] },
+    };
+
+    expect(() => render(<MachinaReactView layout={layout} views={{ Child: () => <div>child-view</div> }} />)).not.toThrow();
+    expect(screen.getByText("child-view")).toBeInTheDocument();
+  });
+
+  it("node can render its own view and children", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "root" } },
+        panel: { id: "panel", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 100 }, view: "Panel" },
+        button: { id: "button", rect: { x: 2, y: 2, width: 20, height: 10 }, frame: { kind: "absolute", x: 2, y: 2, width: 20, height: 10 }, view: "Button" },
+      },
+      children: { root: ["panel"], panel: ["button"], button: [] },
+    };
+
+    render(<MachinaReactView layout={layout} views={{ Panel: () => <div>Panel</div>, Button: () => <div>Button</div> }} />);
+    expect(screen.getByText("Panel")).toBeInTheDocument();
+    expect(screen.getByText("Button")).toBeInTheDocument();
   });
 });

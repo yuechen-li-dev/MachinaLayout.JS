@@ -205,6 +205,7 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
       rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       frame: node.frame,
       arrange: node.arrange,
+      view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
       offset: node.offset,

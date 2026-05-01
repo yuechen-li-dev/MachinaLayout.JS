@@ -7,7 +7,7 @@ MachinaLayout is a framework-independent, machine-native layout system that reso
 - **Layout is data.**
 - **Rendering is an adapter.**
 - **Nesting is an output shape, not an authoring strategy.**
-- **MachinaLayout controls outer rectangles; host frameworks control slot internals.**
+- **MachinaLayout controls outer rectangles; host frameworks control view internals (using `view ?? slot`).**
 
 ## What problem it solves
 
