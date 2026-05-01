@@ -82,6 +82,20 @@ describe("resolveLayoutDocument", () => {
     expect(resolved.children.root).not.toBe(doc.children.root);
   });
 
+  it("preserves z metadata", () => {
+    const doc: LayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        a: { id: "a", z: 4, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      },
+      children: { root: ["a"] },
+    };
+    const resolved = resolveLayoutDocument(doc, { x: 0, y: 0, width: 10, height: 10 });
+    expect(resolved.nodes.a.z).toBe(4);
+    expect(resolved.children.root).toEqual(["a"]);
+  });
+
   it("resolves fixed frames under stack arranger", () => {
     const doc: LayoutDocument = {
       rootId: "root",

@@ -32,9 +32,17 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
       assertFiniteNumber(row.order, `rows[${rowIndex}].order`);
     }
 
+    if (row.z !== undefined) {
+      assertFiniteNumber(row.z, `rows[${rowIndex}].z`);
+      if (!Number.isInteger(row.z) || row.z < -5 || row.z > 5) {
+        throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].z must be an integer in range -5..5`);
+      }
+    }
+
     rowById.set(row.id, row);
     nodes[row.id] = {
       id: row.id,
+      z: row.z,
       frame: row.frame,
       arrange: row.arrange,
       slot: row.slot,
