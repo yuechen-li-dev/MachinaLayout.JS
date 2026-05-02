@@ -1,10 +1,10 @@
 {
   "name": "machinalayout",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -14,10 +14,47 @@
     "@types/react-dom": "^19.2.3",
     "jsdom": "^29.1.1",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
-  }
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "description": "Machine-native layout and text primitives for deterministic app UI records.",
+  "license": "MIT",
+  "author": "MachinaLayout contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/machinalayout/MachinaLayout.JS.git"
+  },
+  "homepage": "https://github.com/machinalayout/MachinaLayout.JS#readme",
+  "bugs": {
+    "url": "https://github.com/machinalayout/MachinaLayout.JS/issues"
+  },
+  "keywords": [
+    "layout",
+    "ui",
+    "react",
+    "typescript",
+    "machina",
+    "text",
+    "rectangles"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
+  "sideEffects": false
 }
