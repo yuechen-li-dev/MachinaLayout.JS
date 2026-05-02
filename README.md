@@ -1,6 +1,10 @@
-# MachinaLayout
+# MachinaLayout (Machine Native Layout for JavaScript)
 
-MachinaLayout is a framework-independent, machine-native layout system that resolves flat typed layout records into deterministic rectangles.
+MachinaLayout is a framework-independent, machine-native layout system in pure TypeScript that resolves flat typed layout records into deterministic rectangles.
+
+This library was created to address the specific challenges of reliable frontend layout generation by making layout position clear and unambiguous.
+
+MachinaLayout is designed to be a simple alternative to traditional HTML/CSS based layout system that is friendly to both human web designers as well as LLMs for content creation on the modern web.
 
 ## Install
 
