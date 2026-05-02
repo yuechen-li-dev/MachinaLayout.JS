@@ -4,6 +4,12 @@ import { buildDemoRows } from "./demoLayout";
 import { createViews } from "./views";
 
 const ROOT_RECT = { x: 0, y: 0, width: 1100, height: 720 };
+const FLOATING_Z_MIN = -5;
+const FLOATING_Z_MAX = 5;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
 
 export function App() {
   const [sidebarLeft, setSidebarLeft] = useState(16);
@@ -12,7 +18,7 @@ export function App() {
   const [debug, setDebug] = useState(false);
 
   const resolved: ResolvedLayoutDocument = useMemo(
-    () => resolveLayoutRows(buildDemoRows({ sidebarLeft, toolbarGap, floatingZ: Math.max(-5, Math.min(5, floatingZ)) }), ROOT_RECT),
+    () => resolveLayoutRows(buildDemoRows({ sidebarLeft, toolbarGap, floatingZ: clamp(floatingZ, FLOATING_Z_MIN, FLOATING_Z_MAX) }), ROOT_RECT),
     [sidebarLeft, toolbarGap, floatingZ]
   );
 
@@ -31,8 +37,8 @@ export function App() {
         floatingZ,
         debug,
         setSidebarLeft,
-        setToolbarGap,
-        setFloatingZ: (n) => setFloatingZ(Math.max(-5, Math.min(5, n))),
+        setToolbarGap: (n) => setToolbarGap(Math.max(0, n)),
+        setFloatingZ: (n) => setFloatingZ(clamp(n, FLOATING_Z_MIN, FLOATING_Z_MAX)),
         setDebug,
         reset,
       }),
