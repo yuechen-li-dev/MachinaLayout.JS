@@ -1,10 +1,10 @@
 # MachinaLayout (Machine Native Layout for JavaScript)
 
-MachinaLayout is a framework-independent, machine-native layout system in pure TypeScript that resolves flat typed layout records into deterministic rectangles.
+MachinaLayout is a framework-independent, machine-native, human friendly layout system in pure TypeScript that resolves flat typed layout records into deterministic rectangles (frames).
 
 This library was created to address the specific challenges of reliable frontend layout generation by making layout position clear and unambiguous.
 
-MachinaLayout is designed to be a simple alternative to traditional HTML/CSS based layout system that is friendly to both human web designers as well as LLMs for content creation on the modern web.
+MachinaLayout is designed to be a simple alternative to traditional HTML/CSS based layout system.
 
 ## Install
 
@@ -102,7 +102,9 @@ export function App() {
 
 ## Sample demo
 
-See [`samples/control-room`](samples/control-room/README.md).
+See [`samples/control-room`](samples/control-room/README.md) for sandbox demo.
+
+See [`samples/music-player`](samples/music-player/README.md) to see MachinaLayout in action.
 
 Run it locally:
 
@@ -112,15 +114,15 @@ npm install
 npm run dev
 ```
 
-## M0 scope (current)
+## Scope (current)
 
-M0 supports:
+MachinaLayout currently supports:
 
-- `RootFrame` (M1a)
+- `RootFrame`
 - `AbsoluteFrame`
 - `AnchorFrame`
 - `FixedFrame`
-- `FillFrame` (M1b, stack-child weighted fill)
+- `FillFrame` (Stack-child weighted fill)
 - `StackArrange`
 - bounded sibling-local z metadata
 - React adapter
