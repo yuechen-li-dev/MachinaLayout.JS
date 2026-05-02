@@ -78,3 +78,33 @@ Not allowed as Machina geometry authority:
 - CSS classes determining geometry
 
 Slot internals may use normal React/CSS/shadcn-style components. Machina controls only the outer rectangle.
+
+## Stable view registry and data channels
+
+`views` should be a stable registry of component types, not inline factories recreated from state.
+
+Bad (new component identity each render):
+
+```tsx
+const views = {
+  Inspector: () => <Inspector sidebarLeft={sidebarLeft} />,
+};
+```
+
+Good (stable component type + dynamic data):
+
+```tsx
+const views = { Inspector };
+
+<MachinaReactView
+  layout={resolved}
+  views={views}
+  viewData={{ Inspector: { sidebarLeft } }}
+/>
+```
+
+Use adapter data channels for changing values:
+
+- `viewData`: keyed by effective `view ?? slot` key.
+- `nodeData`: keyed by concrete node id.
+- slot props include `viewKey`, `viewData`, and `nodeData`.

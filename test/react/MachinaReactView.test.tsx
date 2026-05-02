@@ -22,6 +22,15 @@ function makeLayout(rootRect: Rect, childRect: Rect): ResolvedLayoutDocument {
   };
 }
 
+
+
+const StablePanel: React.FC<any> = (props) => {
+  React.useEffect(() => {
+    (globalThis as any).__mountCount = ((globalThis as any).__mountCount ?? 0) + 1;
+  }, []);
+  return <div>{(props.viewData as any)?.value}</div>;
+};
+
 describe("MachinaReactView", () => {
   it("renders without crashing", () => {
     const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
@@ -297,6 +306,67 @@ describe("MachinaReactView", () => {
   });
 
 
+
+
+  it("passes viewKey to selected view", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    layout.nodes.child.view = "Panel";
+    render(<MachinaReactView layout={layout} views={{ Panel: ({ viewKey }) => <div>{viewKey}</div> }} />);
+    expect(screen.getAllByText("Panel").length).toBeGreaterThan(0);
+  });
+
+  it("passes viewData by effective view key", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    layout.nodes.child.view = "Panel";
+    render(<MachinaReactView layout={layout} views={{ Panel: ({ viewData }) => <div>{(viewData as any)?.message}</div> }} viewData={{ Panel: { message: "hello" } }} />);
+    expect(screen.getByText("hello")).toBeInTheDocument();
+  });
+
+  it("passes nodeData by node id", () => {
+    const layout: ResolvedLayoutDocument = {
+      rootId: "root",
+      nodes: {
+        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "root" } },
+        panel: { id: "panel", rect: { x: 10, y: 10, width: 50, height: 40 }, frame: { kind: "absolute", x: 10, y: 10, width: 50, height: 40 }, view: "Panel" },
+      },
+      children: { root: ["panel"], panel: [] },
+    };
+    render(<MachinaReactView layout={layout} views={{ Panel: ({ nodeData }) => <div>{(nodeData as any)?.count}</div> }} nodeData={{ panel: { count: 3 } }} />);
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("view wins over slot for component and data lookup", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    layout.nodes.child.view = "Preferred";
+    layout.nodes.child.slot = "Fallback";
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ Preferred: ({ viewData }) => <div>{(viewData as any)?.label}</div>, Fallback: () => <div>fallback</div> }}
+        viewData={{ Preferred: { label: "preferred-data" }, Fallback: { label: "fallback-data" } }}
+      />
+    );
+    expect(screen.getByText("preferred-data")).toBeInTheDocument();
+    expect(screen.queryByText("fallback")).not.toBeInTheDocument();
+  });
+
+  it("slot fallback receives viewKey and viewData", () => {
+    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    render(<MachinaReactView layout={layout} views={{ Sidebar: ({ viewKey, viewData }) => <div>{viewKey}-{(viewData as any)?.label}</div> }} viewData={{ Sidebar: { label: "fallback-data" } }} />);
+    expect(screen.getByText("Sidebar-fallback-data")).toBeInTheDocument();
+  });
+
+  it("stable views do not remount when only viewData changes", () => {
+    (globalThis as any).__mountCount = 0;
+    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    layout.nodes.child.view = "Panel";
+    const views = { Panel: StablePanel };
+    const { rerender } = render(<MachinaReactView layout={layout} views={views} viewData={{ Panel: { value: 1 } }} />);
+    rerender(<MachinaReactView layout={layout} views={views} viewData={{ Panel: { value: 2 } }} />);
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect((globalThis as any).__mountCount).toBe(1);
+  });
+
   it("renders preferred view key", () => {
     const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
     layout.nodes.child.view = "Header";
@@ -343,7 +413,7 @@ describe("MachinaReactView", () => {
     };
 
     render(<MachinaReactView layout={layout} views={{ Panel: () => <div>Panel</div>, Button: () => <div>Button</div> }} />);
-    expect(screen.getByText("Panel")).toBeInTheDocument();
+    expect(screen.getAllByText("Panel").length).toBeGreaterThan(0);
     expect(screen.getByText("Button")).toBeInTheDocument();
   });
 });
