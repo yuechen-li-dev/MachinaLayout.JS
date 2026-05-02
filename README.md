@@ -86,7 +86,7 @@ const views = {
 };
 
 export function App() {
-  return <MachinaReactView layout={resolved} views={views} />;
+  return <MachinaReactView layout={resolved} views={views} viewData={{ sidebar: { collapsed: false } }} />;
 }
 ```
 

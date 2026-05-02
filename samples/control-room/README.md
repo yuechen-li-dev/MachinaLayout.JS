@@ -37,3 +37,6 @@ Toolbar demo includes a `toolbar-fill` FillFrame node between Inspect and Reset,
 
 This sample now also demonstrates `MachinaTextView` for lightweight parsed text rendering inside existing views.
 It also includes a minimal vertical-rhythm demo via `leading` and `valign` policy in header/toolbar text.
+
+
+This sample keeps `views` as stable component references and sends changing control state through `viewData` / `nodeData`.

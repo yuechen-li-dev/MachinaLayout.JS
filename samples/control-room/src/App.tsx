@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { MachinaReactView, resolveLayoutRows, type ResolvedLayoutDocument } from "../../../src/index";
 import { buildDemoRows } from "./demoLayout";
-import { createViews } from "./views";
+import { VIEWS } from "./views";
 
 const ROOT_RECT = { x: 0, y: 0, width: 1100, height: 720 };
 const FLOATING_Z_MIN = -5;
@@ -29,25 +29,30 @@ export function App() {
     setDebug(false);
   };
 
-  const views = useMemo(
-    () =>
-      createViews(resolved, {
+  const viewData = useMemo(
+    () => ({
+      Inspector: {
         sidebarLeft,
         toolbarGap,
         floatingZ,
         debug,
         setSidebarLeft,
-        setToolbarGap: (n) => setToolbarGap(Math.max(0, n)),
-        setFloatingZ: (n) => setFloatingZ(clamp(n, FLOATING_Z_MIN, FLOATING_Z_MAX)),
+        setToolbarGap,
+        setFloatingZ,
         setDebug,
         reset,
-      }),
-    [resolved, sidebarLeft, toolbarGap, floatingZ, debug]
+      },
+      Preview: { layout: resolved },
+      ResetButton: { reset },
+    }),
+    [sidebarLeft, toolbarGap, floatingZ, debug, resolved]
   );
+
+  const nodeData = useMemo(() => ({ "floating-action": { floatingZ } }), [floatingZ]);
 
   return (
     <div className="page-shell">
-      <MachinaReactView layout={resolved} views={views} debug={debug} className="control-room" nodeContainment="layout-paint" nodeContentVisibility="none" />
+      <MachinaReactView layout={resolved} views={VIEWS} viewData={viewData} nodeData={nodeData} debug={debug} className="control-room" nodeContainment="layout-paint" nodeContentVisibility="none" />
     </div>
   );
 }

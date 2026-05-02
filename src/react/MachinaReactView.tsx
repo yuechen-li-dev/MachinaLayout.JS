@@ -3,16 +3,21 @@ import React from "react";
 import { toResolvedTree } from "../toResolvedTree";
 import type { NodeId, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree } from "../types";
 
-export type MachinaSlotProps = {
+export type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
   id: NodeId;
   rect: Rect;
   debugLabel?: string;
   node: ResolvedLayoutNode;
+  viewKey?: string;
+  viewData?: TViewData;
+  nodeData?: TNodeData;
 };
 
 export type MachinaReactViewProps = {
   layout: ResolvedLayoutDocument;
   views?: Record<string, React.ComponentType<MachinaSlotProps>>;
+  viewData?: Record<string, unknown>;
+  nodeData?: Record<NodeId, unknown>;
   className?: string;
   style?: React.CSSProperties;
   nodeClassName?: string;
@@ -26,6 +31,8 @@ function renderNode(
   node: ResolvedLayoutTree,
   parentRect: Rect,
   views: Record<string, React.ComponentType<MachinaSlotProps>>,
+  viewData: Record<string, unknown> | undefined,
+  nodeData: Record<NodeId, unknown> | undefined,
   nodeClassName: string | undefined,
   debug: boolean | undefined,
   nodeContainment: "none" | "layout-paint" | "strict",
@@ -33,8 +40,10 @@ function renderNode(
   nodeContainIntrinsicSize: string | undefined,
   nodesById: ResolvedLayoutDocument["nodes"],
 ): React.ReactElement {
-  const effectiveViewKey = node.view ?? node.slot;
-  const slotView = effectiveViewKey ? views[effectiveViewKey] : undefined;
+  const viewKey = node.view ?? node.slot;
+  const View = viewKey ? views[viewKey] : undefined;
+  const selectedViewData = viewKey ? viewData?.[viewKey] : undefined;
+  const selectedNodeData = nodeData?.[node.id];
   const left = node.rect.x - parentRect.x;
   const top = node.rect.y - parentRect.y;
 
@@ -54,12 +63,15 @@ function renderNode(
   };
 
   const renderedSlot =
-    slotView && nodesById[node.id]
-      ? React.createElement(slotView, {
+    View && nodesById[node.id]
+      ? React.createElement(View, {
           id: node.id,
           rect: { ...node.rect },
           debugLabel: node.debugLabel,
           node: { ...nodesById[node.id], rect: { ...nodesById[node.id].rect } },
+          viewKey,
+          viewData: selectedViewData,
+          nodeData: selectedNodeData,
         })
       : null;
 
@@ -71,7 +83,7 @@ function renderNode(
       style={style}
       data-machina-node-id={node.id}
       data-machina-slot={node.slot}
-      data-machina-view={effectiveViewKey}
+      data-machina-view={viewKey}
       data-machina-debug-label={node.debugLabel}
     >
       {debug ? <small>{node.debugLabel ?? node.id}</small> : null}
@@ -84,6 +96,8 @@ function renderNode(
             child,
             node.rect,
             views,
+            viewData,
+            nodeData,
             nodeClassName,
             debug,
             nodeContainment,
@@ -96,18 +110,12 @@ function renderNode(
   );
 }
 
-/**
- * Renders resolved nodes in a root-local coordinate space.
- *
- * Coordinates are normalized per DOM nesting level: each child is positioned
- * relative to its immediate parent wrapper (`node.rect - parent.rect`).
- * The root node is rendered at local origin (0,0) inside a wrapper sized to
- * the resolved root rect, preserving embeddability for non-zero root origins.
- */
 export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element {
   const {
     layout,
     views = {},
+    viewData,
+    nodeData,
     className,
     style,
     nodeClassName,
@@ -131,6 +139,8 @@ export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Elemen
         tree,
         tree.rect,
         views,
+        viewData,
+        nodeData,
         nodeClassName,
         debug,
         nodeContainment,
