@@ -8,9 +8,11 @@ export type {
   MachinaTextDiagnosticLevel,
   MachinaTextDocument,
   MachinaTextOverflow,
+  MachinaTextLeading,
   MachinaTextSource,
   MachinaTextSpec,
   MachinaTextVariant,
+  MachinaTextVerticalAlign,
   MachinaTextWrap,
   ParseMachinaTextResult,
 } from "./types";

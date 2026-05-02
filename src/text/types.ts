@@ -4,6 +4,8 @@ export type MachinaTextVariant = "body" | "label" | "caption" | "title" | "mono"
 export type MachinaTextWrap = "word" | "none";
 export type MachinaTextOverflow = "clip" | "ellipsis" | "scroll";
 export type MachinaTextAlign = "start" | "center" | "end";
+export type MachinaTextLeading = "tight" | "normal" | "loose" | number;
+export type MachinaTextVerticalAlign = "top" | "center" | "bottom";
 
 export type MachinaTextSpec = {
   kind: "text";
@@ -12,6 +14,10 @@ export type MachinaTextSpec = {
   wrap?: MachinaTextWrap;
   overflow?: MachinaTextOverflow;
   align?: MachinaTextAlign;
+  leading?: MachinaTextLeading;
+  blockGap?: number;
+  listGap?: number;
+  valign?: MachinaTextVerticalAlign;
 };
 
 export type MachinaTextDocument = {

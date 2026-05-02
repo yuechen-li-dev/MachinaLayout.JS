@@ -22,6 +22,50 @@ describe("MachinaTextView", () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root).toHaveStyle({ fontSize: "18px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "center" });
   });
+  it("maps leading presets and numeric values", () => {
+    const { container: tight } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "tight" }} />);
+    expect(tight.firstElementChild).toHaveStyle({ lineHeight: "1.15" });
+    cleanup();
+    const { container: loose } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "loose" }} />);
+    expect(loose.firstElementChild).toHaveStyle({ lineHeight: "1.6" });
+    cleanup();
+    const { container: numeric } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: 2 }} />);
+    expect(numeric.firstElementChild).toHaveStyle({ lineHeight: "2" });
+  });
+  it("leading normal preserves variant default", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, variant: "mono", leading: "normal" }} />);
+    expect(container.firstElementChild).toHaveStyle({ lineHeight: "1.35" });
+  });
+  it("applies blockGap", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "First\n\nSecond" }, blockGap: 12 }} />);
+    const paragraphs = container.querySelectorAll("p");
+    expect(paragraphs[0]).toHaveStyle({ marginBottom: "12px" });
+    expect(paragraphs[1]).toHaveStyle({ margin: "0" });
+  });
+  it("supports blockGap zero", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "First\n\nSecond" }, blockGap: 0 }} />);
+    const paragraphs = container.querySelectorAll("p");
+    expect(paragraphs[0]).toHaveStyle({ marginBottom: "0px" });
+  });
+  it("applies listGap", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "- One\n- Two" }, listGap: 6 }} />);
+    const items = container.querySelectorAll("li");
+    expect(items[0]).toHaveStyle({ marginBottom: "6px" });
+  });
+  it("maps vertical alignment", () => {
+    const { container: top } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Top" }, valign: "top" }} />);
+    expect(top.firstElementChild).toHaveStyle({ justifyContent: "flex-start" });
+    cleanup();
+    const { container: center } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Center" }, valign: "center" }} />);
+    expect(center.firstElementChild).toHaveStyle({ justifyContent: "center" });
+    cleanup();
+    const { container: bottom } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Bottom" }, valign: "bottom" }} />);
+    expect(bottom.firstElementChild).toHaveStyle({ justifyContent: "flex-end" });
+  });
+  it("defaults vertical alignment to top", () => {
+    const { container } = render(<MachinaTextView text="Default" />);
+    expect(container.firstElementChild).toHaveStyle({ justifyContent: "flex-start" });
+  });
   it("renders inline code", () => {
     const { container } = render(<MachinaTextView text="Use `rect` now" />);
     expect(container.querySelector("code")?.textContent).toBe("rect");
@@ -79,5 +123,18 @@ describe("MachinaTextView", () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain("marker");
     expect(root).toHaveStyle({ width: "100%", height: "100%", boxSizing: "border-box", color: "rgb(255, 0, 0)" });
+  });
+  it("keeps nowrap + ellipsis overflow behavior", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "none", overflow: "ellipsis" }} />);
+    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
+  });
+  it("falls back for invalid numeric policy values", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello\n\nWorld\n- One\n- Two" }, leading: 0 as unknown as number, blockGap: -1 as unknown as number, listGap: -1 as unknown as number }} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveStyle({ lineHeight: "1.4" });
+    const firstParagraph = container.querySelector("p");
+    expect(firstParagraph).toHaveStyle({ marginBottom: "8px" });
+    const firstItem = container.querySelector("li");
+    expect(firstItem).toHaveStyle({ marginBottom: "2px" });
   });
 });

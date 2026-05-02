@@ -22,8 +22,21 @@ Supported policy fields:
 - `wrap`: `word | none`
 - `overflow`: `clip | ellipsis | scroll`
 - `align`: `start | center | end`
+- `leading`: `tight | normal | loose | number`
+- `blockGap`: non-negative number (pixels)
+- `listGap`: non-negative number (pixels)
+- `valign`: `top | center | bottom`
 
-Defaults are `body`, `word`, `clip`, `start`.
+Defaults are `body`, `word`, `clip`, `start`, `normal`, `8`, `2`, `top`.
+
+Vertical rhythm policy is internal to the text renderer inside an already-owned rectangle. It does not change outer Machina layout, resolver behavior, or sizing.
+
+- `leading` maps to `line-height` (`tight=1.15`, `loose=1.6`, `normal=variant default`, numeric uses provided value when valid).
+- `blockGap` controls spacing between top-level text blocks (paragraph/list blocks).
+- `listGap` controls spacing between list items (including nested list items).
+- `valign` controls vertical placement of content in the wrapper rectangle.
+
+`MachinaTextView` may use internal flex layout for this vertical positioning only. This does not imply flex/grid-based Machina node placement.
 
 ## Link behavior boundary
 
