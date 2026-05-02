@@ -42,8 +42,30 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (prev?.kind === "text") prev.text += t;
     else inline.push({ kind: "text", text: t });
   };
+  const allowedEscapes = new Set(["\\", "*", "`", "[", "]", "(", ")", "-"]);
+  const consumeEscape = (): boolean => {
+    if (text[cursor] !== "\\") return false;
+    if (cursor === text.length - 1) {
+      diagnostics.push(makeDiagnostic("invalid_escape", "Dangling escape sequence.", lineIndex + cursor, 1, line, cursor + 1));
+      pushText("\\");
+      cursor += 1;
+      return true;
+    }
+    const escaped = text[cursor + 1];
+    if (allowedEscapes.has(escaped)) {
+      pushText(escaped);
+      cursor += 2;
+      return true;
+    }
+    diagnostics.push(makeDiagnostic("invalid_escape", `Unsupported escape sequence: \\${escaped}`, lineIndex + cursor, 2, line, cursor + 1));
+    pushText(escaped);
+    cursor += 2;
+    return true;
+  };
 
   while (cursor < text.length) {
+    if (consumeEscape()) continue;
+
     if (text.startsWith("![", cursor)) {
       diagnostics.push(makeDiagnostic("unsupported_syntax", "Images are not supported.", lineIndex + cursor, 2, line, cursor + 1));
       pushText("![");
@@ -122,11 +144,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
       continue;
     }
 
-    const specials = ["![", "`", "**", "*", "["];
+    const specials = ["![", "`", "**", "*", "[", "\\"];
     let next = text.length;
     for (const special of specials) {
-      const p = text.indexOf(special, cursor + 1);
+      const p = text.indexOf(special, cursor);
       if (p >= 0 && p < next) next = p;
+    }
+    if (next === cursor) {
+      pushText(text[cursor]);
+      cursor += 1;
+      continue;
     }
     pushText(text.slice(cursor, next));
     cursor = next;
@@ -147,6 +174,7 @@ function classifyForbiddenBlock(line: string): MachinaTextDiagnosticCode | undef
   return undefined;
 }
 function parseBulletLine(line: string): { depth: number; text: string } | undefined {
+  if (line.startsWith("\\- ")) return undefined;
   if (line.startsWith("- ")) return { depth: 1, text: line.slice(2) };
   if (line.startsWith("  - ")) return { depth: 2, text: line.slice(4) };
   if (line.startsWith("    - ")) return { depth: 3, text: line.slice(6) };

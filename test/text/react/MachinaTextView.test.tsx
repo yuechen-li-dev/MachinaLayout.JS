@@ -128,6 +128,14 @@ describe("MachinaTextView", () => {
     const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "none", overflow: "ellipsis" }} />);
     expect(container.firstElementChild).toHaveStyle({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
   });
+  it("forces nowrap when ellipsis is combined with wrap word", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "word", overflow: "ellipsis" }} />);
+    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
+  });
+  it("keeps wrap word behavior for clip overflow", () => {
+    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "word", overflow: "clip" }} />);
+    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "normal", overflowWrap: "anywhere", overflow: "hidden" });
+  });
   it("falls back for invalid numeric policy values", () => {
     const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello\n\nWorld\n- One\n- Two" }, leading: 0 as unknown as number, blockGap: -1 as unknown as number, listGap: -1 as unknown as number }} />);
     const root = container.firstElementChild as HTMLElement;

@@ -102,7 +102,7 @@ function policyStyle(policy: TextPolicy): React.CSSProperties {
   const wrapStyle: Record<MachinaTextWrap, React.CSSProperties> = { word: { whiteSpace: "normal", overflowWrap: "anywhere" }, none: { whiteSpace: "nowrap" } };
   const overflowStyle: Record<MachinaTextOverflow, React.CSSProperties> = {
     clip: { overflow: "hidden" },
-    ellipsis: { overflow: "hidden", textOverflow: "ellipsis" },
+    ellipsis: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
     scroll: { overflow: "auto" },
   };
   const alignStyle: Record<MachinaTextAlign, React.CSSProperties> = { start: { textAlign: "left" }, center: { textAlign: "center" }, end: { textAlign: "right" } };

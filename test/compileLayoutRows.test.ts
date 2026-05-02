@@ -93,9 +93,12 @@ describe("compileLayoutRows", () => {
   it("rejects FillFrame on root", () => {
     expectCode([{ id: "root", frame: { kind: "fill" } }], "FillFrameWithoutArranger");
   });
+  it("rejects FixedFrame on root", () => {
+    expectCode([{ id: "root", frame: { kind: "fixed", width: 10, height: 10 } }], "FixedFrameWithoutArranger");
+  });
   it("builds parent-child map", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 10, height: 10 } },
+      { id: "root", frame: { kind: "root" } },
       { id: "header", parent: "root", frame: { kind: "fixed", width: 10, height: 3 } },
       { id: "sidebar", parent: "root", frame: { kind: "fixed", width: 2, height: 7 } },
       { id: "main", parent: "root", frame: { kind: "fixed", width: 8, height: 7 } },
@@ -111,7 +114,7 @@ describe("compileLayoutRows", () => {
 
   it("sorts siblings by order then row index", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "root", frame: { kind: "root" } },
       { id: "a", parent: "root", order: 2, frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "b", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "c", parent: "root", order: 1, frame: { kind: "fixed", width: 1, height: 1 } },
@@ -125,7 +128,7 @@ describe("compileLayoutRows", () => {
 
   it("treats undefined order as zero and keeps stable index tie-break", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "root", frame: { kind: "root" } },
       { id: "a", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "b", parent: "root", order: 0, frame: { kind: "fixed", width: 1, height: 1 } },
     ];
@@ -135,7 +138,7 @@ describe("compileLayoutRows", () => {
 
   it("allows negative order", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "root", frame: { kind: "root" } },
       { id: "a", parent: "root", order: 0, frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "b", parent: "root", order: -1, frame: { kind: "fixed", width: 1, height: 1 } },
     ];
@@ -147,7 +150,7 @@ describe("compileLayoutRows", () => {
     for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
       expectCode(
         [
-          { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+          { id: "root", frame: { kind: "root" } },
           { id: "child", parent: "root", order: value, frame: { kind: "fixed", width: 1, height: 1 } },
         ],
         "NonFiniteNumber"
@@ -167,7 +170,7 @@ describe("compileLayoutRows", () => {
   it("rejects duplicate ids", () => {
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "root", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "DuplicateId"
@@ -197,7 +200,7 @@ describe("compileLayoutRows", () => {
   it("rejects unknown parent", () => {
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "missing", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "UnknownParent"
@@ -207,7 +210,7 @@ describe("compileLayoutRows", () => {
   it("rejects self-parent", () => {
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "a", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "SelfParent"
@@ -217,7 +220,7 @@ describe("compileLayoutRows", () => {
   it("rejects cycle with one root", () => {
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "b", frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "b", parent: "a", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
@@ -233,7 +236,7 @@ describe("compileLayoutRows", () => {
 
   it("does not mutate input rows", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 100, height: 100 } },
+      { id: "root", frame: { kind: "root" } },
       {
         id: "child",
         parent: "root",
@@ -251,7 +254,7 @@ describe("compileLayoutRows", () => {
 
   it("preserves z metadata", () => {
     const doc = compileLayoutRows([
-      { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+      { id: "root", frame: { kind: "root" } },
       { id: "a", parent: "root", z: 3, frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "b", parent: "root", z: -2, frame: { kind: "fixed", width: 1, height: 1 } },
       { id: "c", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
@@ -265,7 +268,7 @@ describe("compileLayoutRows", () => {
   it("validates z range", () => {
     expect(() =>
       compileLayoutRows([
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: -5, frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "b", parent: "root", z: 5, frame: { kind: "fixed", width: 1, height: 1 } },
       ])
@@ -273,7 +276,7 @@ describe("compileLayoutRows", () => {
 
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: -6, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "InvalidZ"
@@ -281,7 +284,7 @@ describe("compileLayoutRows", () => {
 
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: 6, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "InvalidZ"
@@ -291,7 +294,7 @@ describe("compileLayoutRows", () => {
   it("validates z integer", () => {
     expectCode(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: 1.5, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
       "InvalidZ"
@@ -302,7 +305,7 @@ describe("compileLayoutRows", () => {
     for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
       expectCode(
         [
-          { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+          { id: "root", frame: { kind: "root" } },
           { id: "a", parent: "root", z: value, frame: { kind: "fixed", width: 1, height: 1 } },
         ],
         "NonFiniteNumber"

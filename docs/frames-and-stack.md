@@ -42,6 +42,7 @@ Fixed frame is size-only.
 
 - It cannot resolve by itself.
 - It is valid as a direct child of `StackArrange`.
+- It is invalid on the root row (same compile-time rejection code as non-arranged fixed usage): `FixedFrameWithoutArranger`.
 - Otherwise resolution fails with `FixedFrameWithoutArranger`.
 
 ## `StackArrange`
@@ -94,6 +95,8 @@ Stack computes positions by arithmetic over order, fixed sizes, gap, and padding
 - Root geometry is still copied from `rootRect` passed by the caller.
 - `resolveFrame(parent, { kind: "root" })` throws `RootFrameWithoutRoot`.
 - Non-root rows with `RootFrame` are rejected during compile with `RootFrameNotRoot`.
+- Root should use `RootFrame`; legacy root `AbsoluteFrame` and `AnchorFrame` remain accepted for compatibility.
+- Root `FixedFrame` and root `FillFrame` are invalid because both require arranger/stack context.
 
 
 ## `FillFrame`
@@ -123,8 +126,9 @@ Notes:
 - no string percentages
 - no CSS `calc`
 - fractional pixels are preserved
-- negative offsets are allowed
+- negative `left/right/top/bottom` positional constraints are deliberately allowed for intentional overflow/bleed
 - explicit negative width/height are rejected
+- derived negative size from `left+right` or `top+bottom` is rejected
 
 ## Node offsets (M1d)
 

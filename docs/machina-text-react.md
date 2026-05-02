@@ -53,3 +53,16 @@ No routing, dispatch, or action semantics are implemented.
 Parsing diagnostics never throw. Best-effort content still renders.
 
 Set `showDiagnostics` to render parser diagnostics for development.
+
+
+## Overflow ellipsis policy (M3a)
+
+`overflow: "ellipsis"` is defined as **single-line ellipsis** in M3.
+
+When `overflow` is `ellipsis`, renderer normalization forces:
+
+- `white-space: nowrap`
+- `overflow: hidden`
+- `text-overflow: ellipsis`
+
+This overrides `wrap` for deterministic behavior. Multi-line ellipsis / line clamp is not supported.

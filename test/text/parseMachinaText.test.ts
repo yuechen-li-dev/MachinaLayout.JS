@@ -116,4 +116,40 @@ describe("parseMachinaText", () => {
     expect(d?.column).toBe(1);
     expect(d?.index).toBe("Line one\n".length);
   });
+
+  it("supports literal escapes and prevents inline marker parsing", () => {
+    const result = parseMachinaText("\\*literal\\* and \\`literal\\` and \\[label\\]\\(href\\) and \\\\");
+    expect(result.diagnostics).toEqual([]);
+    const text = collectText(result);
+    expect(text).toContain("*literal*");
+    expect(text).toContain("`literal`");
+    expect(text).toContain("[label](href)");
+    expect(text).toContain("\\");
+  });
+
+  it("supports escaped bullet marker at line start as literal text", () => {
+    const result = parseMachinaText(String.raw`\- item`);
+    expect(result.document.blocks[0]?.kind).toBe("paragraph");
+    expect(collectText(result)).toContain("- item");
+  });
+
+  it("emits invalid_escape for unsupported and dangling escapes", () => {
+    const unsupported = parseMachinaText(String.raw`\q`);
+    expect(unsupported.diagnostics.some((d) => d.code === "invalid_escape")).toBe(true);
+    expect(collectText(unsupported)).toContain("q");
+
+    const dangling = parseMachinaText("dangling\\");
+    expect(dangling.diagnostics.some((d) => d.code === "invalid_escape")).toBe(true);
+    expect(collectText(dangling)).toContain("dangling\\");
+  });
+
+  it("does not process escapes inside code spans", () => {
+    const result = parseMachinaText("`\\*not strong\\*`");
+    const block = result.document.blocks[0];
+    expect(block.kind).toBe("paragraph");
+    if (block.kind === "paragraph") {
+      const code = block.inline.find((i) => i.kind === "code");
+      expect(code && code.kind === "code" ? code.text : "").toBe(String.raw`\*not strong\*`);
+    }
+  });
 });
