@@ -138,6 +138,14 @@ describe("resolveFrame anchor", () => {
     const rect = resolveFrame(parent, { kind: "anchor", left: -8, right: -8, top: -4, bottom: -4 });
     expect(rect).toEqual({ x: 92, y: 196, width: 816, height: 608 });
   });
+  it("allows negative positional anchors with explicit width", () => {
+    const leftWidth = resolveFrame(parent, { kind: "anchor", left: -10, width: 100, top: 0, height: 20 });
+    expect(leftWidth).toEqual({ x: 90, y: 200, width: 100, height: 20 });
+    const leftUiWidth = resolveFrame(parent, { kind: "anchor", left: { unit: "ui", value: -0.1 }, width: 100, top: 0, height: 20 });
+    expect(leftUiWidth).toEqual({ x: 20, y: 200, width: 100, height: 20 });
+    const rightWidth = resolveFrame(parent, { kind: "anchor", right: -10, width: 100, top: 0, height: 20 });
+    expect(rightWidth).toEqual({ x: 810, y: 200, width: 100, height: 20 });
+  });
 });
 
 describe("resolveFrame errors", () => {

@@ -71,3 +71,12 @@ This keeps compile and resolve deterministic.
 | toolbar-button-1 | toolbar | 0     | fixed `{w:120,h:40}`                | —       | `toolbarButton` | 0 |
 
 - `offset`: optional post-placement local translation (`OffsetSpec` using `UiLength`), not margin and does not affect siblings.
+
+
+## Root row frame guidance (M3a)
+
+Use `RootFrame` on the root row. Root geometry is sourced from caller `rootRect`, not from row frame numbers.
+
+- Root `FillFrame` is invalid (`FillFrameWithoutArranger`).
+- Root `FixedFrame` is invalid (`FixedFrameWithoutArranger`).
+- Root `AbsoluteFrame` and `AnchorFrame` remain accepted for compatibility, but `RootFrame` is preferred.

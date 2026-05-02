@@ -158,7 +158,7 @@ describe("resolved tree helpers", () => {
   it("integration smoke with resolveLayoutRows", () => {
     const resolved = resolveLayoutRows(
       [
-        { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
+        { id: "root", frame: { kind: "root" } },
         { id: "panel", parent: "root", frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 } },
         { id: "button", parent: "panel", frame: { kind: "absolute", x: 5, y: 6, width: 30, height: 10 } },
       ],

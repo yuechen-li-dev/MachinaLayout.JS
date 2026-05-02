@@ -284,7 +284,7 @@ describe("MachinaReactView", () => {
 
   it("integrates with resolveLayoutRows output", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "fixed", width: 300, height: 200 }, arrange: { kind: "stack", axis: "horizontal", gap: 8 } },
+      { id: "root", frame: { kind: "root" }, arrange: { kind: "stack", axis: "horizontal", gap: 8 } },
       { id: "sidebar", parent: "root", frame: { kind: "fixed", width: 50, height: 50 }, slot: "Sidebar" },
     ];
     const resolved = resolveLayoutRows(rows, { x: 100, y: 200, width: 300, height: 200 });

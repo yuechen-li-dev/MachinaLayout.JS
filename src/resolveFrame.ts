@@ -22,6 +22,9 @@ function resolveAnchor(parent: Rect, frame: AnchorFrame): Rect {
   const hasWidth = hasLength(frame.width);
   const hasHeight = hasLength(frame.height);
 
+  // Positional anchor constraints (left/right/top/bottom) intentionally allow negative values.
+  // This permits deliberate overflow/bleed outside the parent. Width/height are size
+  // constraints and remain non-negative; derived negative sizes are rejected after resolution.
   const left = hasLeft ? resolveUiLength(frame.left!, parent.width, "frame.left") : undefined;
   const right = hasRight ? resolveUiLength(frame.right!, parent.width, "frame.right") : undefined;
   const top = hasTop ? resolveUiLength(frame.top!, parent.height, "frame.top") : undefined;

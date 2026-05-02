@@ -73,6 +73,9 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
   if (nodes[rootId].frame.kind === "fill") {
     throw new MachinaLayoutError("FillFrameWithoutArranger", "FillFrame cannot be used as the root frame.");
   }
+  if (nodes[rootId].frame.kind === "fixed") {
+    throw new MachinaLayoutError("FixedFrameWithoutArranger", "FixedFrame cannot be used as the root frame.");
+  }
   const childrenEntries = new Map<NodeId, ChildEntry[]>();
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
