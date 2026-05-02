@@ -116,8 +116,9 @@ function Vinyl({ playing, trackId }) {
 
 /* ─── slot components ─── */
 
-const TrackListSlot = memo(({ data }) => {
-  const { tracks, activeId, onSelect } = data;
+const TrackListSlot = memo(({ viewData }) => {
+  const data = viewData ?? {};
+  const { tracks = [], activeId, onSelect = () => {} } = data;
   return (
     <div style={{ width:"100%", height:"100%", background:C.panel,
       borderRight:`1px solid ${C.border}`, display:"flex", flexDirection:"column",
@@ -164,8 +165,9 @@ const TrackListSlot = memo(({ data }) => {
   );
 });
 
-const PlayerSlot = memo(({ data }) => {
-  const { track, playing, progress, onPlayPause, onSeek } = data;
+const PlayerSlot = memo(({ viewData }) => {
+  const data = viewData ?? {};
+  const { track = TRACKS[0], playing = false, progress = 0, onPlayPause, onSeek = () => {} } = data;
   return (
     <div style={{ width:"100%", height:"100%", background:C.bg,
       display:"flex", flexDirection:"column", fontFamily:F,
@@ -212,8 +214,9 @@ const PlayerSlot = memo(({ data }) => {
   );
 });
 
-const ControlsSlot = memo(({ data }) => {
-  const { playing, onPlayPause, onPrev, onNext } = data;
+const ControlsSlot = memo(({ viewData }) => {
+  const data = viewData ?? {};
+  const { playing = false, onPlayPause = () => {}, onPrev = () => {}, onNext = () => {} } = data;
   return (
     <div style={{ width:"100%", height:"100%", background:C.card,
       borderTop:`1px solid ${C.border}`,
