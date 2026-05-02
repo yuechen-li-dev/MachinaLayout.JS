@@ -1,5 +1,9 @@
 # MachinaText M2a Planning & Audit
 
+## Status note (M2c.1)
+
+M2c.1 is implemented in React renderer scope: explicit `leading`, `blockGap`, `listGap`, and `valign` policy fields now control vertical rhythm inside owned rectangles without changing layout resolver APIs or parser syntax.
+
 ## 1) Executive summary
 
 MachinaText should be introduced as a **small, explicit text-content model** for authoring predictable text structures inside already-resolved Machina rectangles, without turning Machina into a document engine, Markdown engine, or font/layout measurement system.

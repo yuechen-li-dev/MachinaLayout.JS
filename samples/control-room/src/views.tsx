@@ -36,14 +36,14 @@ export function createViews(layout: ResolvedLayoutDocument, inspector: Inspector
     MainShell: () => <div className="slot-main" />,
     ToolbarShell: () => <div className="slot-toolbar" />,
     Header: () => (
-      <Card><div className="slot-header"><div><h1>Machina Control Room</h1><MachinaTextView text="Edit **rows**. Resolve `rects`. Render views." style={{ height: "auto" }} /></div><Badge>M0 Demo</Badge></div></Card>
+      <Card><div className="slot-header"><div><h1>Machina Control Room</h1><MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Edit **rows**. Resolve `rects`. Render views." }, variant: "caption", leading: "tight", valign: "center" }} style={{ height: "auto" }} /></div><Badge>M0 Demo</Badge></div></Card>
     ),
     Sidebar: () => (
       <Card><h3>Layout Nodes</h3><ul className="mono">{["root","header","sidebar","main","toolbar","preview","inspector","floating-action"].map((id)=><li key={id}>{id}</li>)}</ul><Separator /><p className="mono">z -5 background · z 0 default · z 5 top</p></Card>
     ),
     RunButton: () => <Button>Run</Button>,
     InspectButton: () => <Button>Inspect</Button>,
-    ToolbarStatus: () => <Card><MachinaTextView text="Status: **FillFrame** consumes remaining toolbar width" className="mono" style={{ height: "auto" }} /></Card>,
+    ToolbarStatus: () => <Card><MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Status: **FillFrame** consumes remaining toolbar width" }, variant: "mono", wrap: "none", overflow: "ellipsis", leading: "tight", valign: "center" }} style={{ height: "auto" }} /></Card>,
     ResetButton: () => <Button onClick={inspector.reset}>Reset</Button>,
     Preview: () => (
       <Card><h3>Resolved Rectangles</h3><table className="mono"><thead><tr><th>id</th><th>rect</th><th>z</th></tr></thead><tbody>{["header","sidebar","main","toolbar","preview","inspector","floating-action","debug-badge"].map((id)=>{const n=layout.nodes[id];return <tr key={id}><td>{id}</td><td>{n ? formatRect(n.rect) : "-"}</td><td>{n?.z ?? 0}</td></tr>;})}</tbody></table></Card>
