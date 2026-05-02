@@ -2,6 +2,12 @@
 
 MachinaLayout is a framework-independent, machine-native layout system that resolves flat typed layout records into deterministic rectangles.
 
+## Install
+
+```bash
+npm install machinalayout
+```
+
 ## Core principles
 
 - **Layout is data.**
