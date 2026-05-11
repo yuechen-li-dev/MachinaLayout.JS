@@ -20,12 +20,15 @@
     "react-test-renderer": "^19.2.6",
     "tsup": "^8.5.1",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "vue": "^3.5.22",
+    "@vue/test-utils": "^2.4.6"
   },
   "peerDependencies": {
     "react": ">=18 <20",
     "react-dom": ">=18 <20",
-    "react-native": ">=0.72 <1"
+    "react-native": ">=0.72 <1",
+    "vue": ">=3.4 <4"
   },
   "description": "Machine-native layout and text primitives for deterministic app UI records.",
   "license": "MIT",
@@ -71,6 +74,10 @@
     "./react-native": {
       "types": "./dist/react-native/index.d.ts",
       "import": "./dist/react-native/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
     }
   },
   "files": [
@@ -82,6 +89,9 @@
   "sideEffects": false,
   "peerDependenciesMeta": {
     "react-native": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   }
