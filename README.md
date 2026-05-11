@@ -140,6 +140,7 @@ M0 does **not** support:
 - [React adapter boundary](docs/react-adapter.md)
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Forbidden concepts](docs/forbidden-concepts.md)
+- [Layout interpolation](docs/layout-interpolation.md)
 
 
 ## M1c typed UI lengths

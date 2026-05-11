@@ -25,7 +25,8 @@ export type MachinaLayoutErrorCode =
   | "StackContentNegative"
   | "StackOverflow"
   | "RootFrameNotRoot"
-  | "RootFrameWithoutRoot";
+  | "RootFrameWithoutRoot"
+  | "IncompatibleLayouts";
 
 export class MachinaLayoutError extends Error {
   readonly code: MachinaLayoutErrorCode;
