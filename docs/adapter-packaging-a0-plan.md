@@ -256,6 +256,8 @@ Docs guidance:
 - Show subpath imports for framework adapters.
 - Keep compatibility notes for root React imports during `0.x`.
 - Explicitly state optional peer policy for non-default adapters.
+- Keep adapter docs aligned to one conceptual model: Machina records author geometry, adapters render resolved rectangles in host primitives.
+- Reinforce stable component registries (`views`) plus dynamic `viewData`/`nodeData` channels across React, React Native, and Vue.
 
 ## 11) Migration / compatibility notes
 
