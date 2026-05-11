@@ -1045,6 +1045,88 @@ function MachinaTextView(props) {
     props.showDiagnostics && normalized.diagnostics.length > 0 ? /* @__PURE__ */ jsx2("pre", { style: { margin: `${normalized.policy.blockGap}px 0 0 0`, padding: "0.5em", fontSize: "11px", fontFamily: INLINE_CODE_FONT, whiteSpace: "pre-wrap", background: "rgba(127, 127, 127, 0.12)" }, children: normalized.diagnostics.map((d) => `${d.code} (${d.line}:${d.column}) ${d.message}`).join("\n") }) : null
   ] }) });
 }
+
+// src/lerp.ts
+function assertFiniteNumber2(value) {
+  if (!Number.isFinite(value)) {
+    throw new MachinaLayoutError("NonFiniteNumber", `Expected finite number, got ${String(value)}.`);
+  }
+}
+function sameStringArray(a, b) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+function assertCompatibleResolvedLayouts(a, b) {
+  if (a.rootId !== b.rootId) {
+    throw new MachinaLayoutError("IncompatibleLayouts", `Layout roots differ: ${a.rootId} !== ${b.rootId}.`);
+  }
+  if (!(a.rootId in a.nodes) || !(b.rootId in b.nodes)) {
+    throw new MachinaLayoutError("IncompatibleLayouts", `Root id ${a.rootId} must exist in both node maps.`);
+  }
+  const aNodeIds = Object.keys(a.nodes).sort();
+  const bNodeIds = Object.keys(b.nodes).sort();
+  if (!sameStringArray(aNodeIds, bNodeIds)) {
+    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same node ids.");
+  }
+  const aParentIds = Object.keys(a.children).sort();
+  const bParentIds = Object.keys(b.children).sort();
+  if (!sameStringArray(aParentIds, bParentIds)) {
+    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same parent-child map.");
+  }
+  for (const parentId of aParentIds) {
+    const aChildren = a.children[parentId] ?? [];
+    const bChildren = b.children[parentId] ?? [];
+    if (!sameStringArray(aChildren, bChildren)) {
+      throw new MachinaLayoutError("IncompatibleLayouts", `Child order differs for parent ${parentId}.`);
+    }
+  }
+}
+function copyChildren(children) {
+  const copied = {};
+  for (const [parentId, childIds] of Object.entries(children)) {
+    copied[parentId] = [...childIds];
+  }
+  return copied;
+}
+function lerpNumber(a, b, t) {
+  assertFiniteNumber2(a);
+  assertFiniteNumber2(b);
+  assertFiniteNumber2(t);
+  return a + (b - a) * t;
+}
+function lerpRect(a, b, t) {
+  return {
+    x: lerpNumber(a.x, b.x, t),
+    y: lerpNumber(a.y, b.y, t),
+    width: lerpNumber(a.width, b.width, t),
+    height: lerpNumber(a.height, b.height, t)
+  };
+}
+function lerpResolvedLayouts(a, b, t) {
+  assertFiniteNumber2(t);
+  assertCompatibleResolvedLayouts(a, b);
+  const nodes = {};
+  for (const id of Object.keys(b.nodes)) {
+    const aNode = a.nodes[id];
+    const bNode = b.nodes[id];
+    nodes[id] = {
+      ...bNode,
+      rect: lerpRect(aNode.rect, bNode.rect, t)
+    };
+  }
+  return {
+    rootId: b.rootId,
+    nodes,
+    children: copyChildren(b.children)
+  };
+}
 export {
   MachinaLayoutError,
   MachinaReactView,
@@ -1057,6 +1139,9 @@ export {
   compileLayoutRows,
   flattenResolvedTree,
   formatRect,
+  lerpNumber,
+  lerpRect,
+  lerpResolvedLayouts,
   normalizePadding,
   parseMachinaText,
   parseMachinaTextInline,
