@@ -206,6 +206,10 @@ describe("resolveFrame errors", () => {
     expectErrorCode(() => resolveFrame(parent, { kind: "fill" }), "FillFrameWithoutArranger");
   });
 
+  it("rejects direct cell frame resolution", () => {
+    expectErrorCode(() => resolveFrame(parent, { kind: "cell", row: 0, col: 0 }), "CellFrameWithoutGrid");
+  });
+
   it("rejects invalid ui length units", () => {
     expectErrorCode(() => resolveFrame(parent, { kind: "anchor", left: { unit: "percent", value: 0.2 } as never, width: 1, top: 0, height: 1 }), "InvalidLengthUnit");
   });

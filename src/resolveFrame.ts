@@ -104,5 +104,7 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
     }
     case "fill":
       throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
+    case "cell":
+      throw new MachinaLayoutError("CellFrameWithoutGrid", "Cell frames require a grid arranger to determine placement.");
   }
 }
