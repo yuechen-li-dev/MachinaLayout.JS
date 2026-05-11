@@ -1,14 +1,16 @@
 import {
-  MachinaLayoutError,
-  MachinaReactView,
-  toResolvedTree
-} from "./chunk-KDRPEFF7.js";
+  MachinaReactView
+} from "./chunk-TG7XRQTQ.js";
 import "./chunk-LWCGS2T6.js";
 import {
   MachinaTextView,
   parseMachinaText,
   parseMachinaTextInline
 } from "./chunk-AME4I4UN.js";
+import {
+  MachinaLayoutError,
+  toResolvedTree
+} from "./chunk-LTYAYHGT.js";
 
 // src/validation.ts
 function assertFiniteNumber(value, fieldName) {

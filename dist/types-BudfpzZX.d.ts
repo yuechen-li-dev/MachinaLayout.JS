@@ -1,5 +1,3 @@
-import React from 'react';
-
 type NodeId = string;
 type LayerName = string;
 type Rect = {
@@ -183,33 +181,4 @@ type ResolvedLayoutTree = {
     children: ResolvedLayoutTree[];
 };
 
-type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
-    id: NodeId;
-    rect: Rect;
-    debugLabel?: string;
-    node: ResolvedLayoutNode;
-    viewKey?: string;
-    viewData?: TViewData;
-    nodeData?: TNodeData;
-};
-type MachinaRenderLayer = {
-    z: number;
-};
-type MachinaReactViewProps = {
-    layout: ResolvedLayoutDocument;
-    views?: Record<string, React.ComponentType<MachinaSlotProps>>;
-    viewData?: Record<string, unknown>;
-    nodeData?: Record<NodeId, unknown>;
-    className?: string;
-    style?: React.CSSProperties;
-    nodeClassName?: string;
-    debug?: boolean;
-    nodeContainment?: "none" | "layout-paint" | "strict";
-    nodeContentVisibility?: "none" | "auto";
-    nodeContainIntrinsicSize?: string;
-    layers?: Record<string, MachinaRenderLayer>;
-    defaultLayer?: string;
-};
-declare function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element;
-
-export { type AbsoluteFrame as A, type CellFrame as C, type EdgeInsets as E, type FrameSpec as F, type GridArrange as G, type LayoutRow as L, MachinaReactView as M, type NodeId as N, type OffsetSpec as O, type Rect as R, type StackAlign as S, type UiLength as U, type LayoutDocument as a, type ResolvedLayoutDocument as b, type ResolvedLayoutTree as c, type ResolvedLayoutNode as d, type AnchorFrame as e, type ArrangeSpec as f, type EdgeRef as g, type FillFrame as h, type FixedFrame as i, type GridTrack as j, type GuideFrame as k, type GuideLength as l, type LayerName as m, type LayoutNode as n, type LayoutRowVariant as o, type LayoutVariantCondition as p, type MachinaReactViewProps as q, type MachinaSlotProps as r, type RectEdge as s, type RootFrame as t, type StackArrange as u, type StackAxis as v, type StackJustify as w };
+export type { AbsoluteFrame as A, CellFrame as C, EdgeInsets as E, FrameSpec as F, GridArrange as G, LayoutRow as L, NodeId as N, OffsetSpec as O, Rect as R, StackAlign as S, UiLength as U, ResolvedLayoutNode as a, ResolvedLayoutDocument as b, LayoutDocument as c, ResolvedLayoutTree as d, AnchorFrame as e, ArrangeSpec as f, EdgeRef as g, FillFrame as h, FixedFrame as i, GridTrack as j, GuideFrame as k, GuideLength as l, LayerName as m, LayoutNode as n, LayoutRowVariant as o, LayoutVariantCondition as p, RectEdge as q, RootFrame as r, StackArrange as s, StackAxis as t, StackJustify as u };
