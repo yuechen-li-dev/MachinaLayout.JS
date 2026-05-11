@@ -392,6 +392,8 @@ function resolveFrame(parent, frame) {
     }
     case "fill":
       throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
+    case "cell":
+      throw new MachinaLayoutError("CellFrameWithoutGrid", "Cell frames require a grid arranger to determine placement.");
   }
 }
 
@@ -521,6 +523,67 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
   });
   return rects;
 }
+function validateGridTrack(track, axis, index) {
+  if (track.kind === "fixed") {
+    if (!Number.isFinite(track.size) || track.size < 0) {
+      throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}].size must be finite and non-negative`);
+    }
+    return;
+  }
+  if (track.kind === "fill") {
+    const weight = track.weight ?? 1;
+    if (!Number.isFinite(weight) || weight <= 0) {
+      throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}].weight must be finite and greater than 0`);
+    }
+    return;
+  }
+  throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}] has unknown track kind`);
+}
+function resolveGridTracks(contentAxisSize, tracks, gap, axis) {
+  if (!Number.isFinite(gap) || gap < 0 || tracks.length === 0) {
+    throw new MachinaLayoutError("InvalidGridTrack", `invalid ${axis} configuration`);
+  }
+  tracks.forEach((track, index) => validateGridTrack(track, axis, index));
+  const fixedTotal = tracks.reduce((sum, track) => sum + (track.kind === "fixed" ? track.size : 0), 0);
+  const gapTotal = gap * Math.max(0, tracks.length - 1);
+  const remaining = contentAxisSize - fixedTotal - gapTotal;
+  if (remaining < 0) {
+    throw new MachinaLayoutError("GridOverflow", `grid ${axis} overflow`);
+  }
+  const totalWeight = tracks.reduce((sum, track) => sum + (track.kind === "fill" ? track.weight ?? 1 : 0), 0);
+  const sizes = tracks.map((track) => {
+    if (track.kind === "fixed") return track.size;
+    if (totalWeight <= 0) return 0;
+    return remaining * (track.weight ?? 1) / totalWeight;
+  });
+  let current = 0;
+  return sizes.map((size) => {
+    const resolved = { start: current, size };
+    current += size + gap;
+    return resolved;
+  });
+}
+function resolveGridChildRect(parentRect, childNode, columns, rows, columnGap, rowGap, content) {
+  if (childNode.frame.kind !== "cell") {
+    throw new MachinaLayoutError("GridChildMustBeCell", `grid child must use cell frame: ${childNode.id}`);
+  }
+  const { row, col } = childNode.frame;
+  const rowSpan = childNode.frame.rowSpan ?? 1;
+  const colSpan = childNode.frame.colSpan ?? 1;
+  if (!Number.isInteger(row) || row < 0 || !Number.isInteger(col) || col < 0 || !Number.isInteger(rowSpan) || rowSpan <= 0 || !Number.isInteger(colSpan) || colSpan <= 0) {
+    throw new MachinaLayoutError("InvalidGridCell", `invalid cell coordinates/spans for node ${childNode.id}`);
+  }
+  if (row + rowSpan > rows.length || col + colSpan > columns.length) {
+    throw new MachinaLayoutError("InvalidGridCell", `cell exceeds grid bounds for node ${childNode.id}`);
+  }
+  const x = content.x + columns[col].start;
+  const y = content.y + rows[row].start;
+  let width = columnGap * (colSpan - 1);
+  for (let i = col; i < col + colSpan; i += 1) width += columns[i].size;
+  let height = rowGap * (rowSpan - 1);
+  for (let i = row; i < row + rowSpan; i += 1) height += rows[i].size;
+  return { x, y, width, height };
+}
 function resolveLayoutDocument(document, rootRect) {
   validateRootRect2(rootRect);
   const rootNode = document.nodes[document.rootId];
@@ -558,7 +621,33 @@ function resolveLayoutDocument(document, rootRect) {
     };
     const childIds = document.children[nodeId] ?? [];
     resolvedChildren[nodeId] = [...childIds];
-    const childRects = node.arrange?.kind === "stack" ? resolveStackChildRects(rect, node.arrange, childIds, document) : void 0;
+    let childRects;
+    if (node.arrange?.kind === "stack") {
+      childRects = resolveStackChildRects(rect, node.arrange, childIds, document);
+    } else if (node.arrange?.kind === "grid") {
+      const columnGap = node.arrange.columnGap ?? 0;
+      const rowGap = node.arrange.rowGap ?? 0;
+      const padding = normalizePadding(node.arrange.padding);
+      const content = {
+        x: rect.x + padding.left,
+        y: rect.y + padding.top,
+        width: rect.width - padding.left - padding.right,
+        height: rect.height - padding.top - padding.bottom
+      };
+      if (content.width < 0 || content.height < 0) {
+        throw new MachinaLayoutError("GridContentNegative", "grid content size cannot be negative after applying padding");
+      }
+      const columns = resolveGridTracks(content.width, node.arrange.columns, columnGap, "columns");
+      const rows = resolveGridTracks(content.height, node.arrange.rows, rowGap, "rows");
+      childRects = {};
+      for (const childId of childIds) {
+        const childNode = document.nodes[childId];
+        if (!childNode) {
+          throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by ${nodeId} is missing`);
+        }
+        childRects[childId] = resolveGridChildRect(rect, childNode, columns, rows, columnGap, rowGap, content);
+      }
+    }
     for (const childId of childIds) {
       const childNode = document.nodes[childId];
       if (!childNode) {

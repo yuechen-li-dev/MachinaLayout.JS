@@ -143,6 +143,7 @@ M0 does **not** support:
 - [Layout interpolation](docs/layout-interpolation.md)
 - [Responsive variants](docs/responsive-variants.md)
 - [GridArrange design contract (M5a)](docs/grid-arrange-m5a-contract.md)
+- [GridArrange runtime guide (M5b)](docs/grid-arrange.md)
 
 
 ## M1c typed UI lengths

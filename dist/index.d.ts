@@ -47,7 +47,14 @@ type FillFrame = {
     weight?: number;
     cross?: number | "fill";
 };
-type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame | FillFrame;
+type CellFrame = {
+    kind: "cell";
+    col: number;
+    row: number;
+    colSpan?: number;
+    rowSpan?: number;
+};
+type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame | FillFrame | CellFrame;
 type StackAxis = "horizontal" | "vertical";
 type StackJustify = "start" | "center" | "end" | "space-between";
 type StackAlign = "start" | "center" | "end";
@@ -65,7 +72,22 @@ type StackArrange = {
     justify?: StackJustify;
     align?: StackAlign;
 };
-type ArrangeSpec = StackArrange;
+type GridTrack = {
+    kind: "fixed";
+    size: number;
+} | {
+    kind: "fill";
+    weight?: number;
+};
+type GridArrange = {
+    kind: "grid";
+    columns: GridTrack[];
+    rows: GridTrack[];
+    columnGap?: number;
+    rowGap?: number;
+    padding?: number | EdgeInsets;
+};
+type ArrangeSpec = StackArrange | GridArrange;
 type LayoutVariantCondition = {
     minWidth?: number;
     maxWidth?: number;
@@ -139,7 +161,7 @@ type ResolvedLayoutTree = {
     children: ResolvedLayoutTree[];
 };
 
-type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts";
+type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts";
 declare class MachinaLayoutError extends Error {
     readonly code: MachinaLayoutErrorCode;
     constructor(code: MachinaLayoutErrorCode, message: string);
@@ -289,4 +311,4 @@ declare function lerpNumber(a: number, b: number, t: number): number;
 declare function lerpRect(a: Rect, b: Rect, t: number): Rect;
 declare function lerpResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument, t: number): ResolvedLayoutDocument;
 
-export { type AbsoluteFrame, type AnchorFrame, type ArrangeSpec, type EdgeInsets, type FillFrame, type FixedFrame, type FrameSpec, type LayoutDocument, type LayoutNode, type LayoutRow, type LayoutRowVariant, type LayoutVariantCondition, type MachinaBulletItem, type MachinaInline, MachinaLayoutError, type MachinaLayoutErrorCode, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps, type MachinaTextAlign, type MachinaTextBlock, type MachinaTextDiagnostic, type MachinaTextDiagnosticCode, type MachinaTextDiagnosticLevel, type MachinaTextDocument, type MachinaTextLeading, type MachinaTextOverflow, type MachinaTextSource, type MachinaTextSpec, type MachinaTextVariant, type MachinaTextVerticalAlign, MachinaTextView, type MachinaTextViewProps, type MachinaTextWrap, type NodeId, type OffsetSpec, type ParseMachinaTextResult, type Rect, type ResolvedLayoutDocument, type ResolvedLayoutNode, type ResolvedLayoutTree, type RootFrame, type StackAlign, type StackArrange, type StackAxis, type StackJustify, type UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, parseMachinaText, parseMachinaTextInline, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };
+export { type AbsoluteFrame, type AnchorFrame, type ArrangeSpec, type CellFrame, type EdgeInsets, type FillFrame, type FixedFrame, type FrameSpec, type GridArrange, type GridTrack, type LayoutDocument, type LayoutNode, type LayoutRow, type LayoutRowVariant, type LayoutVariantCondition, type MachinaBulletItem, type MachinaInline, MachinaLayoutError, type MachinaLayoutErrorCode, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps, type MachinaTextAlign, type MachinaTextBlock, type MachinaTextDiagnostic, type MachinaTextDiagnosticCode, type MachinaTextDiagnosticLevel, type MachinaTextDocument, type MachinaTextLeading, type MachinaTextOverflow, type MachinaTextSource, type MachinaTextSpec, type MachinaTextVariant, type MachinaTextVerticalAlign, MachinaTextView, type MachinaTextViewProps, type MachinaTextWrap, type NodeId, type OffsetSpec, type ParseMachinaTextResult, type Rect, type ResolvedLayoutDocument, type ResolvedLayoutNode, type ResolvedLayoutTree, type RootFrame, type StackAlign, type StackArrange, type StackAxis, type StackJustify, type UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, parseMachinaText, parseMachinaTextInline, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };

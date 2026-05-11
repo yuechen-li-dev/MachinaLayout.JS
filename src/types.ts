@@ -48,7 +48,15 @@ export type FillFrame = {
   cross?: number | "fill";
 };
 
-export type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame | FillFrame;
+export type CellFrame = {
+  kind: "cell";
+  col: number;
+  row: number;
+  colSpan?: number;
+  rowSpan?: number;
+};
+
+export type FrameSpec = RootFrame | AbsoluteFrame | AnchorFrame | FixedFrame | FillFrame | CellFrame;
 
 export type StackAxis = "horizontal" | "vertical";
 
@@ -72,7 +80,20 @@ export type StackArrange = {
   align?: StackAlign;
 };
 
-export type ArrangeSpec = StackArrange;
+export type GridTrack =
+  | { kind: "fixed"; size: number }
+  | { kind: "fill"; weight?: number };
+
+export type GridArrange = {
+  kind: "grid";
+  columns: GridTrack[];
+  rows: GridTrack[];
+  columnGap?: number;
+  rowGap?: number;
+  padding?: number | EdgeInsets;
+};
+
+export type ArrangeSpec = StackArrange | GridArrange;
 
 export type LayoutVariantCondition = {
   minWidth?: number;

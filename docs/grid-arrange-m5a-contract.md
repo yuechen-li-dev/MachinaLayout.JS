@@ -4,6 +4,8 @@
 
 This document defines the **design contract** for a future `GridArrange` runtime implementation in M5b.
 
+> Status (May 11, 2026): M5b runtime implementation is now available in core.
+
 `GridArrange` is introduced as an explicit, deterministic 2D arranger that fits the existing Machina model:
 
 - rows are still authored as flat `LayoutRow[]`,
