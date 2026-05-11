@@ -12,6 +12,7 @@ export type MachinaLayoutErrorCode =
   | "NonFiniteNumber"
   | "InvalidLengthUnit"
   | "InvalidZ"
+  | "InvalidVariantCondition"
   | "NegativeSize"
   | "NegativeGap"
   | "NegativePadding"

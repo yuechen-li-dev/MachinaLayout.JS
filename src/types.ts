@@ -74,6 +74,24 @@ export type StackArrange = {
 
 export type ArrangeSpec = StackArrange;
 
+export type LayoutVariantCondition = {
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+};
+
+export type LayoutRowVariant = {
+  when: LayoutVariantCondition;
+  frame?: FrameSpec;
+  arrange?: ArrangeSpec;
+  offset?: OffsetSpec;
+  z?: number;
+  view?: string;
+  slot?: string;
+  debugLabel?: string;
+};
+
 export type LayoutRow = {
   id: NodeId;
   parent?: NodeId;
@@ -85,6 +103,7 @@ export type LayoutRow = {
   slot?: string;
   debugLabel?: string;
   offset?: OffsetSpec;
+  variants?: LayoutRowVariant[];
 };
 
 export type LayoutNode = {

@@ -141,6 +141,7 @@ M0 does **not** support:
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Forbidden concepts](docs/forbidden-concepts.md)
 - [Layout interpolation](docs/layout-interpolation.md)
+- [Responsive variants](docs/responsive-variants.md)
 
 
 ## M1c typed UI lengths
