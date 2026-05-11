@@ -233,6 +233,79 @@ function compileLayoutRows(rows) {
   return { rootId, nodes, children };
 }
 
+// src/selectLayoutRowsForRoot.ts
+function validateRootRect(rootRect) {
+  assertFiniteNumber(rootRect.x, "rootRect.x");
+  assertFiniteNumber(rootRect.y, "rootRect.y");
+  assertNonNegativeSize(rootRect.width, "rootRect.width");
+  assertNonNegativeSize(rootRect.height, "rootRect.height");
+}
+function validateCondition(condition, rowIndex, variantIndex) {
+  if (condition.minWidth !== void 0) {
+    assertFiniteNumber(condition.minWidth, `rows[${rowIndex}].variants[${variantIndex}].when.minWidth`);
+  }
+  if (condition.maxWidth !== void 0) {
+    assertFiniteNumber(condition.maxWidth, `rows[${rowIndex}].variants[${variantIndex}].when.maxWidth`);
+  }
+  if (condition.minHeight !== void 0) {
+    assertFiniteNumber(condition.minHeight, `rows[${rowIndex}].variants[${variantIndex}].when.minHeight`);
+  }
+  if (condition.maxHeight !== void 0) {
+    assertFiniteNumber(condition.maxHeight, `rows[${rowIndex}].variants[${variantIndex}].when.maxHeight`);
+  }
+  if (condition.minWidth !== void 0 && condition.maxWidth !== void 0 && condition.minWidth > condition.maxWidth) {
+    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minWidth > maxWidth`);
+  }
+  if (condition.minHeight !== void 0 && condition.maxHeight !== void 0 && condition.minHeight > condition.maxHeight) {
+    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minHeight > maxHeight`);
+  }
+}
+function conditionMatches(condition, rootRect) {
+  if (condition.minWidth !== void 0 && rootRect.width < condition.minWidth) return false;
+  if (condition.maxWidth !== void 0 && rootRect.width > condition.maxWidth) return false;
+  if (condition.minHeight !== void 0 && rootRect.height < condition.minHeight) return false;
+  if (condition.maxHeight !== void 0 && rootRect.height > condition.maxHeight) return false;
+  return true;
+}
+function validateVariantZ(variant, rowIndex, variantIndex) {
+  if (variant.z === void 0) return;
+  assertFiniteNumber(variant.z, `rows[${rowIndex}].variants[${variantIndex}].z`);
+  if (!Number.isInteger(variant.z) || variant.z < -5 || variant.z > 5) {
+    throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].variants[${variantIndex}].z must be an integer in range -5..5`);
+  }
+}
+function selectLayoutRowsForRoot(rows, rootRect) {
+  validateRootRect(rootRect);
+  return rows.map((row, rowIndex) => {
+    const baseRow = { ...row };
+    delete baseRow.variants;
+    const variants = row.variants;
+    if (!variants || variants.length === 0) {
+      return baseRow;
+    }
+    for (let variantIndex = 0; variantIndex < variants.length; variantIndex += 1) {
+      const variant = variants[variantIndex];
+      validateCondition(variant.when, rowIndex, variantIndex);
+      validateVariantZ(variant, rowIndex, variantIndex);
+      if (!conditionMatches(variant.when, rootRect)) {
+        continue;
+      }
+      const selected = {
+        ...baseRow,
+        frame: variant.frame ?? baseRow.frame,
+        arrange: variant.arrange ?? baseRow.arrange,
+        offset: variant.offset ?? baseRow.offset,
+        z: variant.z ?? baseRow.z,
+        view: variant.view ?? baseRow.view,
+        slot: variant.slot ?? baseRow.slot,
+        debugLabel: variant.debugLabel ?? baseRow.debugLabel
+      };
+      return selected;
+    }
+    return baseRow;
+  });
+}
+
 // src/resolveFrame.ts
 function validateParentRect(parent) {
   assertFiniteNumber(parent.x, "parent.x");
@@ -323,7 +396,7 @@ function resolveFrame(parent, frame) {
 }
 
 // src/resolveLayoutDocument.ts
-function validateRootRect(rootRect) {
+function validateRootRect2(rootRect) {
   assertFiniteNumber(rootRect.x, "rootRect.x");
   assertFiniteNumber(rootRect.y, "rootRect.y");
   assertNonNegativeSize(rootRect.width, "rootRect.width");
@@ -449,7 +522,7 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
   return rects;
 }
 function resolveLayoutDocument(document, rootRect) {
-  validateRootRect(rootRect);
+  validateRootRect2(rootRect);
   const rootNode = document.nodes[document.rootId];
   if (!rootNode) {
     throw new MachinaLayoutError("MissingRoot", `root node not found for id: ${document.rootId}`);
@@ -510,7 +583,8 @@ function resolveLayoutDocument(document, rootRect) {
 
 // src/resolveLayoutRows.ts
 function resolveLayoutRows(rows, rootRect) {
-  const document = compileLayoutRows(rows);
+  const selectedRows = selectLayoutRowsForRoot(rows, rootRect);
+  const document = compileLayoutRows(selectedRows);
   return resolveLayoutDocument(document, rootRect);
 }
 
@@ -1149,5 +1223,6 @@ export {
   resolveLayoutDocument,
   resolveLayoutRows,
   resolveUiLength,
+  selectLayoutRowsForRoot,
   toResolvedTree
 };

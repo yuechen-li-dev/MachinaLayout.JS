@@ -6,6 +6,7 @@ export * from "./length";
 export * from "./offset";
 
 export * from "./compileLayoutRows";
+export * from "./selectLayoutRowsForRoot";
 
 export * from "./resolveFrame";
 
