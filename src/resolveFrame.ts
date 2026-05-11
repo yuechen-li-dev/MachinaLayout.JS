@@ -106,5 +106,7 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
       throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
     case "cell":
       throw new MachinaLayoutError("CellFrameWithoutGrid", "Cell frames require a grid arranger to determine placement.");
+    case "guide":
+      throw new MachinaLayoutError("GuideTargetUnresolved", "Guide frames require document-level dependency resolution and cannot be resolved directly.");
   }
 }

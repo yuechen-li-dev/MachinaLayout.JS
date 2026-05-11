@@ -378,3 +378,7 @@ Planned tests:
 - **M7b recommendation:** `GuideFrame` only.
 - **Deferred:** `AttachFrame` and named guides.
 - **Invariant preserved:** one parent per node; references are read-only alignment inputs.
+
+
+## M7b runtime status
+GuideFrame runtime dependency resolution, validation, and errors are implemented in core resolver.
