@@ -33,7 +33,14 @@ export type MachinaLayoutErrorCode =
   | "GridOverflow"
   | "RootFrameNotRoot"
   | "RootFrameWithoutRoot"
-  | "IncompatibleLayouts";
+  | "IncompatibleLayouts"
+  | "GuideTargetNotFound"
+  | "GuideSelfReference"
+  | "GuideReferenceCycle"
+  | "GuideInvalidEdgeForAxis"
+  | "GuideTooManyReferencesPerAxis"
+  | "InvalidGuideFrame"
+  | "GuideTargetUnresolved";
 
 export class MachinaLayoutError extends Error {
   readonly code: MachinaLayoutErrorCode;

@@ -162,3 +162,5 @@ Example: `left: { unit: "ui", value: 0.25 }`.
 
 ## Docs
 - [Named layers (M6a)](docs/named-layers.md)
+
+- `docs/reference-alignment.md` — GuideFrame reference alignment runtime behavior.
