@@ -38,6 +38,7 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset,
       children,
     };

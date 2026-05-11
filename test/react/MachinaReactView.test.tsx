@@ -417,3 +417,48 @@ describe("MachinaReactView", () => {
     expect(screen.getByText("Button")).toBeInTheDocument();
   });
 });
+
+it("applies data-machina-layer and layer-banded zIndex", () => {
+  const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+  layout.nodes.child.layer = "overlay";
+  layout.nodes.child.z = 3;
+  const { container } = render(<MachinaReactView layout={layout} layers={{ base: { z: 0 }, overlay: { z: 4 } }} defaultLayer="base" />);
+  const child = container.querySelector('[data-machina-node-id="child"]') as HTMLElement;
+  expect(child).toHaveAttribute("data-machina-layer", "overlay");
+  expect(child.getAttribute("style")).toContain("z-index: 403");
+});
+
+it("sorts siblings by layer z, then node z, then sibling order", () => {
+  const layout: ResolvedLayoutDocument = {
+    rootId: "root",
+    nodes: {
+      root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
+      a: { id: "a", layer: "overlay", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      b: { id: "b", layer: "background", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      c: { id: "c", layer: "base", z: 5, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      d: { id: "d", layer: "overlay", z: -1, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+    },
+    children: { root: ["a", "b", "c", "d"], a: [], b: [], c: [], d: [] },
+  };
+  const { container } = render(<MachinaReactView layout={layout} layers={{ background: { z: -2 }, base: { z: 0 }, overlay: { z: 4 } }} />);
+  const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
+  const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+  expect(directIds).toEqual(["b", "c", "d", "a"]);
+});
+
+it("unknown or invalid layer z falls back to 0", () => {
+  const layout: ResolvedLayoutDocument = {
+    rootId: "root",
+    nodes: {
+      root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
+      a: { id: "a", layer: "typo", z: 1, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      b: { id: "b", layer: "bad", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+    },
+    children: { root: ["b", "a"], a: [], b: [] },
+  };
+  const { container } = render(<MachinaReactView layout={layout} layers={{ base: { z: 0 }, bad: { z: 99 as any } }} />);
+  const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
+  const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+  expect(directIds).toEqual(["b", "a"]);
+  expect(container.querySelector('[data-machina-node-id="a"]')).toHaveAttribute("data-machina-layer", "typo");
+});

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MachinaLayoutError,
+  compileLayoutRows,
   resolveLayoutDocument,
   type LayoutDocument,
   type MachinaLayoutErrorCode,
@@ -243,4 +244,11 @@ it("allows offsets outside parent and reports length errors", () => {
   expect(r.nodes.child.rect).toEqual({ x: -1000, y: 1000, width: 10, height: 10 });
   expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: Number.NaN } } } }, { x: 0, y: 0, width: 100, height: 100 }), "NonFiniteNumber");
   expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: { unit: "bad" as never, value: 1 } } } } }, { x: 0, y: 0, width: 100, height: 100 }), "InvalidLengthUnit");
+});
+
+
+it("preserves layer metadata", () => {
+  const compiled = compileLayoutRows([{ id:"root", frame:{kind:"root"} },{ id:"child", parent:"root", frame:{kind:"absolute", x:1,y:2,width:3,height:4}, layer:"overlay" }]);
+  const resolved = resolveLayoutDocument(compiled, { x:0,y:0,width:100,height:100 });
+  expect(resolved.nodes.child.layer).toBe("overlay");
 });

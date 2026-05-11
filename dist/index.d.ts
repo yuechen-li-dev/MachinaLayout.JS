@@ -1,6 +1,7 @@
 import React from 'react';
 
 type NodeId = string;
+type LayerName = string;
 type Rect = {
     x: number;
     y: number;
@@ -103,6 +104,7 @@ type LayoutRowVariant = {
     view?: string;
     slot?: string;
     debugLabel?: string;
+    layer?: LayerName;
 };
 type LayoutRow = {
     id: NodeId;
@@ -114,6 +116,7 @@ type LayoutRow = {
     view?: string;
     slot?: string;
     debugLabel?: string;
+    layer?: LayerName;
     offset?: OffsetSpec;
     variants?: LayoutRowVariant[];
 };
@@ -125,6 +128,7 @@ type LayoutNode = {
     view?: string;
     slot?: string;
     debugLabel?: string;
+    layer?: LayerName;
     offset?: OffsetSpec;
 };
 type LayoutDocument = {
@@ -141,6 +145,7 @@ type ResolvedLayoutNode = {
     view?: string;
     slot?: string;
     debugLabel?: string;
+    layer?: LayerName;
     offset?: OffsetSpec;
 };
 type ResolvedLayoutDocument = {
@@ -157,6 +162,7 @@ type ResolvedLayoutTree = {
     view?: string;
     slot?: string;
     debugLabel?: string;
+    layer?: LayerName;
     offset?: OffsetSpec;
     children: ResolvedLayoutTree[];
 };
@@ -203,6 +209,9 @@ type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
     viewData?: TViewData;
     nodeData?: TNodeData;
 };
+type MachinaRenderLayer = {
+    z: number;
+};
 type MachinaReactViewProps = {
     layout: ResolvedLayoutDocument;
     views?: Record<string, React.ComponentType<MachinaSlotProps>>;
@@ -215,6 +224,8 @@ type MachinaReactViewProps = {
     nodeContainment?: "none" | "layout-paint" | "strict";
     nodeContentVisibility?: "none" | "auto";
     nodeContainIntrinsicSize?: string;
+    layers?: Record<string, MachinaRenderLayer>;
+    defaultLayer?: string;
 };
 declare function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element;
 
@@ -311,4 +322,4 @@ declare function lerpNumber(a: number, b: number, t: number): number;
 declare function lerpRect(a: Rect, b: Rect, t: number): Rect;
 declare function lerpResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument, t: number): ResolvedLayoutDocument;
 
-export { type AbsoluteFrame, type AnchorFrame, type ArrangeSpec, type CellFrame, type EdgeInsets, type FillFrame, type FixedFrame, type FrameSpec, type GridArrange, type GridTrack, type LayoutDocument, type LayoutNode, type LayoutRow, type LayoutRowVariant, type LayoutVariantCondition, type MachinaBulletItem, type MachinaInline, MachinaLayoutError, type MachinaLayoutErrorCode, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps, type MachinaTextAlign, type MachinaTextBlock, type MachinaTextDiagnostic, type MachinaTextDiagnosticCode, type MachinaTextDiagnosticLevel, type MachinaTextDocument, type MachinaTextLeading, type MachinaTextOverflow, type MachinaTextSource, type MachinaTextSpec, type MachinaTextVariant, type MachinaTextVerticalAlign, MachinaTextView, type MachinaTextViewProps, type MachinaTextWrap, type NodeId, type OffsetSpec, type ParseMachinaTextResult, type Rect, type ResolvedLayoutDocument, type ResolvedLayoutNode, type ResolvedLayoutTree, type RootFrame, type StackAlign, type StackArrange, type StackAxis, type StackJustify, type UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, parseMachinaText, parseMachinaTextInline, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };
+export { type AbsoluteFrame, type AnchorFrame, type ArrangeSpec, type CellFrame, type EdgeInsets, type FillFrame, type FixedFrame, type FrameSpec, type GridArrange, type GridTrack, type LayerName, type LayoutDocument, type LayoutNode, type LayoutRow, type LayoutRowVariant, type LayoutVariantCondition, type MachinaBulletItem, type MachinaInline, MachinaLayoutError, type MachinaLayoutErrorCode, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps, type MachinaTextAlign, type MachinaTextBlock, type MachinaTextDiagnostic, type MachinaTextDiagnosticCode, type MachinaTextDiagnosticLevel, type MachinaTextDocument, type MachinaTextLeading, type MachinaTextOverflow, type MachinaTextSource, type MachinaTextSpec, type MachinaTextVariant, type MachinaTextVerticalAlign, MachinaTextView, type MachinaTextViewProps, type MachinaTextWrap, type NodeId, type OffsetSpec, type ParseMachinaTextResult, type Rect, type ResolvedLayoutDocument, type ResolvedLayoutNode, type ResolvedLayoutTree, type RootFrame, type StackAlign, type StackArrange, type StackAxis, type StackJustify, type UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, parseMachinaText, parseMachinaTextInline, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };

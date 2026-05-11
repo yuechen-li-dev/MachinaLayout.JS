@@ -135,6 +135,7 @@ function compileLayoutRows(rows) {
       view: row.view,
       slot: row.slot,
       debugLabel: row.debugLabel,
+      layer: row.layer,
       offset: row.offset
     };
     if (row.parent === void 0) {
@@ -298,7 +299,8 @@ function selectLayoutRowsForRoot(rows, rootRect) {
         z: variant.z ?? baseRow.z,
         view: variant.view ?? baseRow.view,
         slot: variant.slot ?? baseRow.slot,
-        debugLabel: variant.debugLabel ?? baseRow.debugLabel
+        debugLabel: variant.debugLabel ?? baseRow.debugLabel,
+        layer: variant.layer ?? baseRow.layer
       };
       return selected;
     }
@@ -617,6 +619,7 @@ function resolveLayoutDocument(document, rootRect) {
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset
     };
     const childIds = document.children[nodeId] ?? [];
@@ -709,6 +712,7 @@ function toResolvedTree(document) {
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset,
       children
     };
@@ -735,6 +739,7 @@ function flattenResolvedTree(tree) {
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset
     });
     for (const child of node.children) {
@@ -753,13 +758,28 @@ function formatRect(rect) {
 // src/react/MachinaReactView.tsx
 import React from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
-function renderNode(node, parentRect, views, viewData, nodeData, nodeClassName, debug, nodeContainment, nodeContentVisibility, nodeContainIntrinsicSize, nodesById) {
+function normalizeLayerZ(value) {
+  if (value === void 0 || !Number.isFinite(value) || !Number.isInteger(value) || value < -5 || value > 5) {
+    return 0;
+  }
+  return value;
+}
+function getEffectiveLayer(node, defaultLayer) {
+  return node.layer ?? defaultLayer;
+}
+function getEffectiveLayerZ(node, layers, defaultLayer) {
+  const layerName = getEffectiveLayer(node, defaultLayer);
+  return normalizeLayerZ(layers[layerName]?.z);
+}
+function renderNode(node, parentRect, views, viewData, nodeData, nodeClassName, debug, nodeContainment, nodeContentVisibility, nodeContainIntrinsicSize, nodesById, layers, defaultLayer) {
   const viewKey = node.view ?? node.slot;
   const View = viewKey ? views[viewKey] : void 0;
   const selectedViewData = viewKey ? viewData?.[viewKey] : void 0;
   const selectedNodeData = nodeData?.[node.id];
   const left = node.rect.x - parentRect.x;
   const top = node.rect.y - parentRect.y;
+  const effectiveLayer = getEffectiveLayer(node, defaultLayer);
+  const effectiveLayerZ = getEffectiveLayerZ(node, layers, defaultLayer);
   const style = {
     position: "absolute",
     left,
@@ -767,7 +787,7 @@ function renderNode(node, parentRect, views, viewData, nodeData, nodeClassName, 
     width: node.rect.width,
     height: node.rect.height,
     boxSizing: "border-box",
-    zIndex: node.z ?? 0,
+    zIndex: effectiveLayerZ * 100 + (node.z ?? 0),
     ...nodeContainment === "layout-paint" ? { contain: "layout paint" } : null,
     ...nodeContainment === "strict" ? { contain: "strict" } : null,
     ...nodeContentVisibility === "auto" ? { contentVisibility: "auto" } : null,
@@ -793,10 +813,13 @@ function renderNode(node, parentRect, views, viewData, nodeData, nodeClassName, 
       "data-machina-slot": node.slot,
       "data-machina-view": viewKey,
       "data-machina-debug-label": node.debugLabel,
+      "data-machina-layer": effectiveLayer,
       children: [
         debug ? /* @__PURE__ */ jsx("small", { children: node.debugLabel ?? node.id }) : null,
         renderedSlot,
-        [...node.children].map((child, index) => ({ child, index })).sort((a, b) => (a.child.z ?? 0) - (b.child.z ?? 0) || a.index - b.index).map(
+        [...node.children].map((child, index) => ({ child, index })).sort(
+          (a, b) => getEffectiveLayerZ(a.child, layers, defaultLayer) - getEffectiveLayerZ(b.child, layers, defaultLayer) || (a.child.z ?? 0) - (b.child.z ?? 0) || a.index - b.index
+        ).map(
           ({ child }) => renderNode(
             child,
             node.rect,
@@ -808,7 +831,9 @@ function renderNode(node, parentRect, views, viewData, nodeData, nodeClassName, 
             nodeContainment,
             nodeContentVisibility,
             nodeContainIntrinsicSize,
-            nodesById
+            nodesById,
+            layers,
+            defaultLayer
           )
         )
       ]
@@ -828,7 +853,9 @@ function MachinaReactView(props) {
     debug,
     nodeContainment = "layout-paint",
     nodeContentVisibility = "none",
-    nodeContainIntrinsicSize
+    nodeContainIntrinsicSize,
+    layers = { base: { z: 0 } },
+    defaultLayer = "base"
   } = props;
   const tree = toResolvedTree(layout);
   const wrapperStyle = {
@@ -848,7 +875,9 @@ function MachinaReactView(props) {
     nodeContainment,
     nodeContentVisibility,
     nodeContainIntrinsicSize,
-    layout.nodes
+    layout.nodes,
+    layers,
+    defaultLayer
   ) });
 }
 

@@ -279,6 +279,7 @@ export function resolveLayoutDocument(document: LayoutDocument, rootRect: Rect):
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset,
     };
 
