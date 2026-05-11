@@ -48,7 +48,20 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./text": {
+      "types": "./dist/text/index.d.ts",
+      "import": "./dist/text/index.js"
+    },
+    "./text/react": {
+      "types": "./dist/text/react/index.d.ts",
+      "import": "./dist/text/react/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

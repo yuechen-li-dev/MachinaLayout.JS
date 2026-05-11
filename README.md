@@ -129,9 +129,13 @@ const resolved = resolveLayoutRows(rows, rootRect);
 ## React adapter quick example
 
 ```tsx
-import { MachinaReactView, resolveLayoutRows } from "machinalayout";
+import { resolveLayoutRows } from "machinalayout";
+import { MachinaReactView } from "machinalayout/react";
+import { parseMachinaText } from "machinalayout/text";
+import { MachinaTextView } from "machinalayout/text/react";
 
 const resolved = resolveLayoutRows(rows, rootRect);
+const textAst = parseMachinaText("Hello");
 
 const views = {
   header: HeaderView,
@@ -143,6 +147,9 @@ export function App() {
   return <MachinaReactView layout={resolved} views={views} viewData={{ sidebar: { collapsed: false } }} />;
 }
 ```
+
+
+Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/text`, `machinalayout/text/react`). Root imports remain valid for compatibility during `0.x`.
 
 ## Public API index
 

@@ -286,6 +286,8 @@ Prereqs from A0:
 
 - Multi-entry build/export plumbing.
 
+Status note (A1a, 2026-05-11): multi-entry dist output and subpath exports for existing modules (`./react`, `./text`, `./text/react`) are now being implemented while preserving root-import compatibility during `0.x`.
+
 ### A2 — React Native text renderer
 
 Scope:
