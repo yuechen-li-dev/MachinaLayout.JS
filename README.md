@@ -142,6 +142,7 @@ M0 does **not** support:
 - [Forbidden concepts](docs/forbidden-concepts.md)
 - [Layout interpolation](docs/layout-interpolation.md)
 - [Responsive variants](docs/responsive-variants.md)
+- [GridArrange design contract (M5a)](docs/grid-arrange-m5a-contract.md)
 
 
 ## M1c typed UI lengths
