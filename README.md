@@ -50,6 +50,15 @@ npm install machinalayout
 - named layer paint ordering
 - containment/content-visibility options
 
+### Vue
+
+- `MachinaVueView`
+- same resolved-layout rectangle rendering model as React DOM
+- effective render key: `view ?? slot`
+- `viewData` / `nodeData`
+- named layer paint ordering
+- containment/content-visibility options
+
 ### Text
 
 - MachinaText parser
@@ -149,9 +158,9 @@ export function App() {
 ```
 
 
-Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/text`, `machinalayout/text/react`).
+Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/vue`, `machinalayout/text`, `machinalayout/text/react`).
 
-`machinalayout/react-native` requires the `react-native` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
+`machinalayout/react-native` requires the `react-native` peer dependency in your app, and `machinalayout/vue` requires the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
 
 ## Public API index
 
@@ -252,6 +261,7 @@ npm run dev
 
 - [React adapter boundary](docs/react-adapter.md)
 - [React Native adapter](docs/react-native-adapter.md)
+- [Vue adapter](docs/vue-adapter.md)
 - [MachinaText parser](docs/machina-text-parser.md)
 - [MachinaText React renderer](docs/machina-text-react.md)
 
