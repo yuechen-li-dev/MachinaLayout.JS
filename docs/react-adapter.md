@@ -1,26 +1,50 @@
-# React Adapter
+# React adapter (`machinalayout/react`)
 
-## Boundary
+## Shared model boundary
 
-- Core layout resolution has no React dependency.
-- The React adapter consumes a `ResolvedLayoutDocument`.
-- The adapter renders absolutely positioned wrappers.
-- Slot components render inside those wrappers.
+- Layout geometry is authored and resolved by Machina core (`LayoutRow[]` -> resolved rectangles).
+- React supplies components that render inside those resolved rectangles.
+- The adapter does not introduce a React-specific layout model.
+- Preferred import path is `machinalayout/react`.
+- Root import compatibility remains during `0.x`.
 
 ## Basic usage
 
 ```tsx
-import { MachinaReactView, resolveLayoutRows } from "machinalayout";
+import { resolveLayoutRows } from "machinalayout";
+import { MachinaReactView } from "machinalayout/react";
 
-const resolved = resolveLayoutRows(rows, rootRect);
+const layout = resolveLayoutRows(rows, rootRect);
+const views = { Header, Sidebar, Inspector };
 
+<MachinaReactView layout={layout} views={views} />;
+```
+
+Effective render key is `view ?? slot`.
+
+## Stable view registry and data channels
+
+`views` should hold stable component references. Pass dynamic values through data channels.
+
+Good:
+
+```tsx
+const views = { Inspector };
+
+<MachinaReactView
+  layout={layout}
+  views={views}
+  viewData={{ Inspector: inspectorData }}
+  nodeData={{ sidebar: sidebarData }}
+/>;
+```
+
+Bad (new component identity every render):
+
+```tsx
 const views = {
-  header: HeaderView,
-  sidebar: SidebarView,
-  toolbarButton: ToolbarButtonView,
+  Inspector: () => <Inspector value={value} />,
 };
-
-<MachinaReactView layout={resolved} views={views} />;
 ```
 
 ## Slot props
@@ -31,33 +55,24 @@ Slot views receive:
 - `rect`
 - `debugLabel`
 - `node`
+- `viewKey`
+- `viewData`
+- `nodeData`
 
 ## Coordinate normalization
 
-Core resolved rects are global/root-space coordinates.
+Core resolved rectangles are root-space coordinates.
 
-The React adapter renders nested absolutely positioned DOM wrappers, so each node
-wrapper is positioned in its parent-local DOM coordinate space:
+The adapter renders nested absolutely positioned DOM wrappers in parent-local space:
 
 - `left = node.rect.x - parent.rect.x`
 - `top = node.rect.y - parent.rect.y`
 
-The outer wrapper represents the root coordinate space and uses the resolved root
-width/height. The root node itself renders at local `left: 0` and `top: 0`.
+The outer wrapper represents root coordinate space; the root node itself renders at local `left: 0`, `top: 0`.
 
-Examples:
+## DOM renderer policy boundary
 
-- root rect `{ x: 100, y: 200, width: 800, height: 600 }`
-- child rect `{ x: 116, y: 212, width: 100, height: 50 }`
-- rendered child CSS `left: 16px; top: 12px;`
-
-Nested example:
-
-- parent rect `{ x: 268, y: 88, width: 816, height: 616 }`
-- child rect `{ x: 284, y: 104, width: 784, height: 48 }`
-- rendered child CSS `left: 16px; top: 16px;`
-
-## CSS boundary
+Containment/content-visibility are DOM renderer policies implemented by the adapter layer.
 
 Allowed for Machina wrappers:
 
@@ -66,45 +81,12 @@ Allowed for Machina wrappers:
 - `box-sizing`
 - `z-index`
 - containment/content-visibility
-- cosmetic/debug styles
+- optional debug/cosmetic wrapper styles
 
-Not allowed as Machina geometry authority:
+Not used as geometry authority:
 
-- flexbox
-- grid
-- margins
-- transforms
-- DOM measurement
-- CSS classes determining geometry
+- flexbox/grid/margins/transforms
+- DOM measurement for layout solving
+- CSS classes determining solved geometry
 
-Slot internals may use normal React/CSS/shadcn-style components. Machina controls only the outer rectangle.
-
-## Stable view registry and data channels
-
-`views` should be a stable registry of component types, not inline factories recreated from state.
-
-Bad (new component identity each render):
-
-```tsx
-const views = {
-  Inspector: () => <Inspector sidebarLeft={sidebarLeft} />,
-};
-```
-
-Good (stable component type + dynamic data):
-
-```tsx
-const views = { Inspector };
-
-<MachinaReactView
-  layout={resolved}
-  views={views}
-  viewData={{ Inspector: { sidebarLeft } }}
-/>
-```
-
-Use adapter data channels for changing values:
-
-- `viewData`: keyed by effective `view ?? slot` key.
-- `nodeData`: keyed by concrete node id.
-- slot props include `viewKey`, `viewData`, and `nodeData`.
+React components render payload UI inside adapter-owned rectangles; React does not own outer layout geometry.

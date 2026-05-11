@@ -23,6 +23,19 @@ npm install machinalayout
 9. Text renders inside owned rectangles.
 10. CSS paints; Machina places.
 
+## Adapter philosophy
+
+Machina adapters ask you to learn one layout model: Machina records. The framework adapter only asks for components in that framework.
+
+- Machina adapters do not introduce a new layout model per framework.
+- Layout stays framework-independent: author rows, resolve rectangles, render through adapters.
+- Frameworks supply components; Machina supplies geometry.
+- Users should not need framework-specific layout ceremony to place boxes.
+- If you know TypeScript and what a component looks like in your renderer, that is enough.
+- Adapter-specific details stay inside adapter internals.
+
+**CSS paints; Machina places; adapters translate.**
+
 ## Current capability summary
 
 ### Core
@@ -162,6 +175,65 @@ Subpath imports are the preferred path for adapters (`machinalayout/react`, `mac
 
 `machinalayout/react-native` requires the `react-native` peer dependency in your app, and `machinalayout/vue` requires the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
 
+## Unified adapter usage pattern
+
+```ts
+import { resolveLayoutRows, type LayoutRow } from "machinalayout";
+
+const rows: LayoutRow[] = [
+  { id: "root", frame: { kind: "root" } },
+  {
+    id: "sidebar",
+    parent: "root",
+    frame: { kind: "anchor", left: 0, top: 0, bottom: 0, width: 240 },
+    view: "Sidebar",
+  },
+];
+
+const layout = resolveLayoutRows(rows, { x: 0, y: 0, width: 1200, height: 800 });
+```
+
+```tsx
+import { MachinaReactView } from "machinalayout/react";
+const views = { Sidebar };
+<MachinaReactView layout={layout} views={views} />;
+```
+
+```tsx
+import { MachinaReactNativeView } from "machinalayout/react-native";
+const views = { Sidebar };
+<MachinaReactNativeView layout={layout} views={views} />;
+```
+
+```vue
+<script setup lang="ts">
+import { MachinaVueView } from "machinalayout/vue";
+const views = { Sidebar };
+</script>
+
+<template>
+  <MachinaVueView :layout="layout" :views="views" />
+</template>
+```
+
+Keep `views` stable (component references), and send changing data through `viewData` / `nodeData`:
+
+```tsx
+const views = { Inspector };
+
+<MachinaReactView
+  layout={layout}
+  views={views}
+  viewData={{ Inspector: inspectorData }}
+/>;
+```
+
+```tsx
+const views = {
+  Inspector: () => <Inspector value={value} />,
+};
+```
+
 ## Public API index
 
 ### Core authoring/types
@@ -259,9 +331,11 @@ npm run dev
 
 ### Adapters and text
 
+- [Adapter overview](docs/adapters.md)
 - [React adapter boundary](docs/react-adapter.md)
 - [React Native adapter](docs/react-native-adapter.md)
 - [Vue adapter](docs/vue-adapter.md)
+- [A0 adapter packaging plan](docs/adapter-packaging-a0-plan.md)
 - [MachinaText parser](docs/machina-text-parser.md)
 - [MachinaText React renderer](docs/machina-text-react.md)
 

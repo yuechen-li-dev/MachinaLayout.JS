@@ -1,6 +1,12 @@
-# React Native adapter
+# React Native adapter (`machinalayout/react-native`)
 
 `MachinaReactNativeView` renders a `ResolvedLayoutDocument` into nested React Native `View` wrappers.
+
+## Shared model boundary
+
+- Uses the same Machina records and resolved rectangles as web/React/Vue adapters.
+- The adapter maps resolved rectangles into React Native style objects.
+- React Native components are the view payloads rendered inside those rectangles.
 
 ## Import
 
@@ -15,34 +21,36 @@ Install React Native in your app. `machinalayout` declares `react-native` as an 
 ## Basic example
 
 ```tsx
+const views = { Panel: PanelView };
+
 <MachinaReactNativeView
   layout={layout}
-  views={{ Panel: PanelView }}
+  views={views}
   viewData={{ Panel: { title: "Now Playing" } }}
   nodeData={{ sidebar: { selected: true } }}
-  layers={{ base: { z: 0 }, overlay: { z: 2 } }}
-  debug={false}
-/>
+/>;
 ```
+
+## Stable view registry guidance
+
+Keep `views` stable (component references). Send changing values through `viewData` and `nodeData`, not by recreating inline component functions.
 
 ## Supported concepts
 
-- `view`/`slot` lookup (`view` wins over `slot`)
-- `viewData`/`nodeData`
+- `view ?? slot` lookup
+- `viewData` / `nodeData`
 - layer + node z sorting
 - parent-local coordinate normalization
-- optional debug borders/labels
+- optional debug wrappers
 
-## Differences vs React DOM adapter
+## Host renderer differences vs DOM adapters
 
-- uses React Native `View`/`Text`
-- numeric style values
-- no `className`
-- no DOM data attributes
-- no containment/content-visibility
+- Uses React Native `View` wrappers and numeric style values.
+- No DOM attributes/class hooks.
+- No DOM containment/content-visibility behavior because RN is not DOM.
 
 ## Not included
 
-- text renderer
-- portals
+- text renderer (not implemented yet)
+- portals/reparenting
 - DOM-only features
