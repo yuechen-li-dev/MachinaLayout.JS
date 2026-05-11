@@ -6,10 +6,11 @@ export default defineConfig({
     "react/index": "src/react/index.ts",
     "text/index": "src/text/index.ts",
     "text/react/index": "src/text/react/index.ts",
+    "react-native/index": "src/react-native/index.ts",
   },
   format: ["esm"],
   dts: true,
   clean: true,
   sourcemap: false,
-  external: ["react", "react-dom", "react/jsx-runtime"],
+  external: ["react", "react-dom", "react-native", "react/jsx-runtime"],
 });

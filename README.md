@@ -149,7 +149,9 @@ export function App() {
 ```
 
 
-Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/text`, `machinalayout/text/react`). Root imports remain valid for compatibility during `0.x`.
+Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/text`, `machinalayout/text/react`).
+
+`machinalayout/react-native` requires the `react-native` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
 
 ## Public API index
 
@@ -249,6 +251,7 @@ npm run dev
 ### Adapters and text
 
 - [React adapter boundary](docs/react-adapter.md)
+- [React Native adapter](docs/react-native-adapter.md)
 - [MachinaText parser](docs/machina-text-parser.md)
 - [MachinaText React renderer](docs/machina-text-react.md)
 
