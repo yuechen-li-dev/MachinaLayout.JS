@@ -176,3 +176,10 @@ describe("lerpResolvedLayouts", () => {
     expect(mid.nodes.sidebar.rect.width).toBe(250);
   });
 });
+
+
+it("takes layer from B", () => {
+  const a = { rootId:"root", nodes:{ root:{id:"root", rect:{x:0,y:0,width:10,height:10}, frame:{kind:"absolute",x:0,y:0,width:10,height:10}}, n:{id:"n", rect:{x:0,y:0,width:1,height:1}, frame:{kind:"absolute",x:0,y:0,width:1,height:1}, layer:"base"}}, children:{root:["n"], n:[]} } as any;
+  const b = { rootId:"root", nodes:{ root:{id:"root", rect:{x:0,y:0,width:10,height:10}, frame:{kind:"absolute",x:0,y:0,width:10,height:10}}, n:{id:"n", rect:{x:10,y:10,width:1,height:1}, frame:{kind:"absolute",x:0,y:0,width:1,height:1}, layer:"overlay"}}, children:{root:["n"], n:[]} } as any;
+  expect(lerpResolvedLayouts(a,b,0.3).nodes.n.layer).toBe("overlay");
+});

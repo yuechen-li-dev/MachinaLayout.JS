@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { resolveUiLength } from "../src";
-import type { CellFrame, FillFrame, GridArrange, GridTrack, LayoutNode, LayoutRow, OffsetSpec, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame, UiLength } from "../src";
+import type { CellFrame, FillFrame, GridArrange, GridTrack, LayerName, LayoutNode, LayoutRow, OffsetSpec, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame, UiLength } from "../src";
 import { normalizePadding } from "../src";
 
 describe("public API", () => {
   it("imports from index and types a LayoutRow", () => {
     const rootFrame: RootFrame = { kind: "root" };
     const offset: OffsetSpec = { x: 2, y: { unit: "ui", value: 0.1 } };
+    const layer: LayerName = "overlay";
     const row: LayoutRow = {
       id: "root",
       z: 1,
       frame: rootFrame,
       offset,
       view: "RootView",
+      layer,
     };
 
     const fillFrame: FillFrame = { kind: "fill", weight: 1 };

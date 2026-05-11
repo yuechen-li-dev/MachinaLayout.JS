@@ -198,3 +198,10 @@ describe("responsive variants integration", () => {
     expect(resolved.nodes.right.rect.width).toBe(300);
   });
 });
+
+
+it("variant can override layer", () => {
+  const rows: LayoutRow[] = [{ id:"root", frame:{kind:"root"} },{ id:"child", parent:"root", frame:{kind:"absolute", x:0,y:0,width:10,height:10}, layer:"base", variants:[{ when:{ maxWidth: 600 }, layer:"overlay"}] }];
+  expect(selectLayoutRowsForRoot(rows, { x:0,y:0,width:500,height:500 }).find(r=>r.id==="child")?.layer).toBe("overlay");
+  expect(selectLayoutRowsForRoot(rows, { x:0,y:0,width:800,height:500 }).find(r=>r.id==="child")?.layer).toBe("base");
+});

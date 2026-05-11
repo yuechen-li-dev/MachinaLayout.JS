@@ -196,3 +196,11 @@ describe("resolved tree helpers", () => {
     expect(flat[1].view).toBe("Header");
   });
 });
+
+
+it("preserves layer in tree and flatten", () => {
+  const doc = { rootId:"root", nodes:{ root:{id:"root", rect:{x:0,y:0,width:10,height:10}, frame:{kind:"absolute",x:0,y:0,width:10,height:10}}, child:{id:"child", rect:{x:1,y:1,width:2,height:2}, frame:{kind:"absolute",x:1,y:1,width:2,height:2}, layer:"overlay"}}, children:{root:["child"], child:[]} } as any;
+  const tree = toResolvedTree(doc);
+  expect(tree.children[0].layer).toBe("overlay");
+  expect(flattenResolvedTree(tree).find(n=>n.id==="child")?.layer).toBe("overlay");
+});

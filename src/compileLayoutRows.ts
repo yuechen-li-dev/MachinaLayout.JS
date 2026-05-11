@@ -52,6 +52,7 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
       view: row.view,
       slot: row.slot,
       debugLabel: row.debugLabel,
+      layer: row.layer,
       offset: row.offset,
     };
 

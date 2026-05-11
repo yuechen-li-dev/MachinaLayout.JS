@@ -1,5 +1,7 @@
 export type NodeId = string;
 
+export type LayerName = string;
+
 export type Rect = {
   x: number;
   y: number;
@@ -111,6 +113,7 @@ export type LayoutRowVariant = {
   view?: string;
   slot?: string;
   debugLabel?: string;
+  layer?: LayerName;
 };
 
 export type LayoutRow = {
@@ -123,6 +126,7 @@ export type LayoutRow = {
   view?: string;
   slot?: string;
   debugLabel?: string;
+  layer?: LayerName;
   offset?: OffsetSpec;
   variants?: LayoutRowVariant[];
 };
@@ -135,6 +139,7 @@ export type LayoutNode = {
   view?: string;
   slot?: string;
   debugLabel?: string;
+  layer?: LayerName;
   offset?: OffsetSpec;
 };
 
@@ -153,6 +158,7 @@ export type ResolvedLayoutNode = {
   view?: string;
   slot?: string;
   debugLabel?: string;
+  layer?: LayerName;
   offset?: OffsetSpec;
 };
 
@@ -172,6 +178,7 @@ export type ResolvedLayoutTree = {
   view?: string;
   slot?: string;
   debugLabel?: string;
+  layer?: LayerName;
   offset?: OffsetSpec;
   children: ResolvedLayoutTree[];
 };

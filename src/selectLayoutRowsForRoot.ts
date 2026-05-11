@@ -78,6 +78,7 @@ export function selectLayoutRowsForRoot(rows: LayoutRow[], rootRect: Rect): Layo
         view: variant.view ?? baseRow.view,
         slot: variant.slot ?? baseRow.slot,
         debugLabel: variant.debugLabel ?? baseRow.debugLabel,
+        layer: variant.layer ?? baseRow.layer,
       };
       return selected;
     }

@@ -324,3 +324,12 @@ describe("compileLayoutRows", () => {
     expect(doc.nodes.child.slot).toBe("HeaderSlot");
   });
 });
+
+
+it("preserves layer metadata on compiled nodes", () => {
+  const doc = compileLayoutRows([
+    { id: "root", frame: { kind: "root" } },
+    { id: "child", parent: "root", frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 }, layer: "overlay" },
+  ]);
+  expect(doc.nodes.child.layer).toBe("overlay");
+});
