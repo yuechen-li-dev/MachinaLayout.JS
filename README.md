@@ -144,6 +144,7 @@ M0 does **not** support:
 - [Responsive variants](docs/responsive-variants.md)
 - [GridArrange design contract (M5a)](docs/grid-arrange-m5a-contract.md)
 - [GridArrange runtime guide (M5b)](docs/grid-arrange.md)
+- [Reference alignment design contract (M7a)](docs/reference-alignment-m7a-contract.md)
 
 
 ## M1c typed UI lengths
