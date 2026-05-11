@@ -227,6 +227,7 @@ npm run dev
 - [M5a GridArrange design contract](docs/grid-arrange-m5a-contract.md)
 - [M7a reference alignment design contract](docs/reference-alignment-m7a-contract.md)
 - [M8 API coherence audit](docs/api-coherence-m8-audit.md)
+- [A0 adapter packaging plan](docs/adapter-packaging-a0-plan.md)
 
 ### Core layout model
 
