@@ -87,6 +87,10 @@
     "./text/react-native": {
       "types": "./dist/text/react-native/index.d.ts",
       "import": "./dist/text/react-native/index.js"
+    },
+    "./text/vue": {
+      "types": "./dist/text/vue/index.d.ts",
+      "import": "./dist/text/vue/index.js"
     }
   },
   "files": [

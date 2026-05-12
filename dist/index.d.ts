@@ -4,7 +4,9 @@ export { MachinaReactView, MachinaReactViewProps, MachinaSlotProps } from './rea
 export { c as MachinaBulletItem, d as MachinaInline, e as MachinaTextAlign, f as MachinaTextBlock, g as MachinaTextDiagnostic, h as MachinaTextDiagnosticCode, i as MachinaTextDiagnosticLevel, b as MachinaTextDocument, j as MachinaTextLeading, k as MachinaTextOverflow, a as MachinaTextSource, M as MachinaTextSpec, l as MachinaTextVariant, m as MachinaTextVerticalAlign, n as MachinaTextWrap, P as ParseMachinaTextResult } from './types-C4poVJpR.js';
 export { parseMachinaText, parseMachinaTextInline } from './text/index.js';
 export { MachinaTextView, MachinaTextViewProps } from './text/react/index.js';
+export { MachinaVueTextView, MachinaVueTextViewProps } from './text/vue/index.js';
 import 'react';
+import 'vue';
 
 type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts" | "GuideTargetNotFound" | "GuideSelfReference" | "GuideReferenceCycle" | "GuideInvalidEdgeForAxis" | "GuideTooManyReferencesPerAxis" | "InvalidGuideFrame" | "GuideTargetUnresolved";
 declare class MachinaLayoutError extends Error {

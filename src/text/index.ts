@@ -20,3 +20,5 @@ export type {
 export { parseMachinaText, parseMachinaTextInline } from "./parseMachinaText";
 
 export * from "./react";
+
+export * from "./vue";
