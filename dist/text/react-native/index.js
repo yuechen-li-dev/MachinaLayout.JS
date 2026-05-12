@@ -6,7 +6,16 @@ import {
 import React from "react";
 import { Text, View } from "react-native";
 import { jsx, jsxs } from "react/jsx-runtime";
-var DEFAULT_POLICY = { variant: "body", wrap: "word", overflow: "clip", align: "start", leading: "normal", blockGap: 8, listGap: 2, valign: "top" };
+var DEFAULT_POLICY = {
+  variant: "body",
+  wrap: "word",
+  overflow: "clip",
+  align: "start",
+  leading: "normal",
+  blockGap: 8,
+  listGap: 2,
+  valign: "top"
+};
 var VARIANT_STYLE = {
   body: { fontSize: 14, fontWeight: "400" },
   label: { fontSize: 12, fontWeight: "500" },
@@ -40,7 +49,16 @@ function normalizeText(text) {
     return {
       document: result2.document,
       diagnostics: result2.diagnostics,
-      policy: { variant: text.variant ?? DEFAULT_POLICY.variant, wrap: text.wrap ?? DEFAULT_POLICY.wrap, overflow: text.overflow ?? DEFAULT_POLICY.overflow, align: text.align ?? DEFAULT_POLICY.align, leading: normalizeLeading(text.leading), blockGap: normalizeNonNegative(text.blockGap, DEFAULT_POLICY.blockGap), listGap: normalizeNonNegative(text.listGap, DEFAULT_POLICY.listGap), valign: text.valign ?? DEFAULT_POLICY.valign }
+      policy: {
+        variant: text.variant ?? DEFAULT_POLICY.variant,
+        wrap: text.wrap ?? DEFAULT_POLICY.wrap,
+        overflow: text.overflow ?? DEFAULT_POLICY.overflow,
+        align: text.align ?? DEFAULT_POLICY.align,
+        leading: normalizeLeading(text.leading),
+        blockGap: normalizeNonNegative(text.blockGap, DEFAULT_POLICY.blockGap),
+        listGap: normalizeNonNegative(text.listGap, DEFAULT_POLICY.listGap),
+        valign: text.valign ?? DEFAULT_POLICY.valign
+      }
     };
   }
   const result = parseMachinaText(typeof text === "string" ? { kind: "machina-text", text } : text);
@@ -49,7 +67,11 @@ function normalizeText(text) {
 function textStyle(policy) {
   const base = VARIANT_STYLE[policy.variant];
   const fontSize = base.fontSize ?? 14;
-  return { ...base, lineHeight: fontSize * resolveLeadingMultiplier(policy), textAlign: policy.align === "center" ? "center" : policy.align === "end" ? "right" : "left" };
+  return {
+    ...base,
+    lineHeight: fontSize * resolveLeadingMultiplier(policy),
+    textAlign: policy.align === "center" ? "center" : policy.align === "end" ? "right" : "left"
+  };
 }
 var pProps = (policy) => policy.overflow === "ellipsis" ? { numberOfLines: 1, ellipsizeMode: "tail" } : policy.wrap === "none" ? { numberOfLines: 1 } : {};
 function renderInline(inline, key, props) {
@@ -63,7 +85,15 @@ function renderInline(inline, key, props) {
     case "code":
       return /* @__PURE__ */ jsx(Text, { style: [{ fontFamily: "monospace" }, props.codeStyle], children: inline.text }, key);
     case "link":
-      return /* @__PURE__ */ jsx(Text, { style: [{ textDecorationLine: "underline", color: "#2563eb" }, props.linkStyle], onPress: () => props.onLinkPress?.(inline.href), children: inline.children.map((c, i) => renderInline(c, `${key}-l-${i}`, props)) }, key);
+      return /* @__PURE__ */ jsx(
+        Text,
+        {
+          style: [{ textDecorationLine: "underline", color: "#2563eb" }, props.linkStyle],
+          onPress: () => props.onLinkPress?.(inline.href),
+          children: inline.children.map((c, i) => renderInline(c, `${key}-l-${i}`, props))
+        },
+        key
+      );
   }
 }
 function renderBullet(item, path, props, policy, depth) {
@@ -72,15 +102,52 @@ function renderBullet(item, path, props, policy, depth) {
       /* @__PURE__ */ jsx(Text, { style: textStyle(policy), children: "\u2022 " }),
       /* @__PURE__ */ jsx(Text, { style: [{ flexShrink: 1 }, textStyle(policy)], ...pProps(policy), children: item.inline.map((i, idx) => renderInline(i, `${path}-i-${idx}`, props)) })
     ] }),
-    item.children?.map((child, idx) => renderBullet(child, `${path}-c-${idx}`, props, policy, depth + 1))
+    item.children?.map(
+      (child, idx) => renderBullet(child, `${path}-c-${idx}`, props, policy, depth + 1)
+    )
   ] }, path);
 }
 function MachinaNativeTextView(props) {
   const normalized = normalizeText(props.text);
   const justifyContent = normalized.policy.valign === "center" ? "center" : normalized.policy.valign === "bottom" ? "flex-end" : "flex-start";
   return /* @__PURE__ */ jsx(View, { style: [{ width: "100%", height: "100%", justifyContent }, props.contentStyle], children: /* @__PURE__ */ jsxs(View, { style: { minWidth: 0 }, children: [
-    normalized.document.blocks.map((block, idx) => block.kind === "paragraph" ? /* @__PURE__ */ jsx(Text, { style: [textStyle(normalized.policy), idx === normalized.document.blocks.length - 1 ? void 0 : { marginBottom: normalized.policy.blockGap }, props.style], ...pProps(normalized.policy), children: block.inline.map((i, iIdx) => renderInline(i, `b-${idx}-${iIdx}`, props)) }, `b-${idx}`) : /* @__PURE__ */ jsx(View, { style: idx === normalized.document.blocks.length - 1 ? void 0 : { marginBottom: normalized.policy.blockGap }, children: block.items.map((item, itemIdx) => renderBullet(item, `b-${idx}-item-${itemIdx}`, props, normalized.policy, 0)) }, `b-${idx}`)),
-    props.showDiagnostics && normalized.diagnostics.length > 0 ? /* @__PURE__ */ jsx(Text, { style: { marginTop: normalized.policy.blockGap, padding: 8, fontSize: 11, fontFamily: "monospace", backgroundColor: "rgba(127, 127, 127, 0.12)" }, children: normalized.diagnostics.map((d) => `${d.code} (${d.line}:${d.column}) ${d.message}`).join("\n") }) : null
+    normalized.document.blocks.map(
+      (block, idx) => block.kind === "paragraph" ? /* @__PURE__ */ jsx(
+        Text,
+        {
+          style: [
+            textStyle(normalized.policy),
+            idx === normalized.document.blocks.length - 1 ? void 0 : { marginBottom: normalized.policy.blockGap },
+            props.style
+          ],
+          ...pProps(normalized.policy),
+          children: block.inline.map((i, iIdx) => renderInline(i, `b-${idx}-${iIdx}`, props))
+        },
+        `b-${idx}`
+      ) : /* @__PURE__ */ jsx(
+        View,
+        {
+          style: idx === normalized.document.blocks.length - 1 ? void 0 : { marginBottom: normalized.policy.blockGap },
+          children: block.items.map(
+            (item, itemIdx) => renderBullet(item, `b-${idx}-item-${itemIdx}`, props, normalized.policy, 0)
+          )
+        },
+        `b-${idx}`
+      )
+    ),
+    props.showDiagnostics && normalized.diagnostics.length > 0 ? /* @__PURE__ */ jsx(
+      Text,
+      {
+        style: {
+          marginTop: normalized.policy.blockGap,
+          padding: 8,
+          fontSize: 11,
+          fontFamily: "monospace",
+          backgroundColor: "rgba(127, 127, 127, 0.12)"
+        },
+        children: normalized.diagnostics.map((d) => `${d.code} (${d.line}:${d.column}) ${d.message}`).join("\n")
+      }
+    ) : null
   ] }) });
 }
 export {

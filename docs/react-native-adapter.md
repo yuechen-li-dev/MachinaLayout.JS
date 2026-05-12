@@ -51,6 +51,6 @@ Keep `views` stable (component references). Send changing values through `viewDa
 
 ## Not included
 
-- text renderer (not implemented yet)
+- this package only renders layout boxes; text rendering is provided separately by `machinalayout/text/react-native`
 - portals/reparenting
 - DOM-only features
