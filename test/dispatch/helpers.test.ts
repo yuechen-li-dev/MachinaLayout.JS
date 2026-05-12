@@ -8,7 +8,9 @@ describe("dispatch helpers", () => {
   });
 
   it("resolveEventValue validates shape", () => {
-    expect(() => resolveEventValue("a", { events: ["a", "b"], values: [1] })).toThrowError(MachinaDispatchError);
+    expect(() => resolveEventValue("a", { events: ["a", "b"], values: [1] })).toThrowError(
+      MachinaDispatchError,
+    );
   });
 
   it("matchEventPrefix behavior", () => {
@@ -18,6 +20,8 @@ describe("dispatch helpers", () => {
   });
 
   it("matchEventPrefix invalid event input", () => {
-    expect(() => matchEventPrefix(123 as unknown as string, "x")).toThrowError(MachinaDispatchError);
+    expect(() => matchEventPrefix(123 as unknown as string, "x")).toThrowError(
+      MachinaDispatchError,
+    );
   });
 });
