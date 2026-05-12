@@ -15,11 +15,18 @@ import {
 
 describe("dispatch public api", () => {
   it("exports runtime members and accepts table types", () => {
-    const set: SetDispatchTable<{ route: string }> = { events: ["e"], fields: ["route"], values: ["home"] };
+    const set: SetDispatchTable<{ route: string }> = {
+      events: ["e"],
+      fields: ["route"],
+      values: ["home"],
+    };
     const toggle: ToggleDispatchTable<{ on: boolean }> = { events: ["e"], fields: ["on"] };
     const increment: IncrementDispatchTable<{ n: number }> = { events: ["e"], fields: ["n"] };
     const setSuffix: PrefixSetDispatchTable<{ id: string }> = { prefixes: ["p."], fields: ["id"] };
-    const incrementSuffix: PrefixIncrementDispatchTable<{ n: number }> = { prefixes: ["p."], fields: ["n"] };
+    const incrementSuffix: PrefixIncrementDispatchTable<{ n: number }> = {
+      prefixes: ["p."],
+      fields: ["n"],
+    };
     const all: MachinaDispatchTables<{ route: string }> = { set };
     expect(typeof defineDispatchTables).toBe("function");
     expect(typeof dispatchEvent).toBe("function");

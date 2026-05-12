@@ -28,7 +28,8 @@ export function dispatchEvent<TState extends Record<string, unknown>>(
     for (let i = 0; i < tables.set.events.length; i += 1) {
       if (tables.set.events[i] !== event) continue;
       const field = tables.set.fields[i];
-      if (!hasOwn(base, field)) throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
+      if (!hasOwn(base, field))
+        throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
       const nextValue = tables.set.values[i];
       if (Object.is(base[field as string], nextValue)) return state;
       return { ...state, [field]: nextValue };
@@ -40,9 +41,14 @@ export function dispatchEvent<TState extends Record<string, unknown>>(
     for (let i = 0; i < tables.toggle.events.length; i += 1) {
       if (tables.toggle.events[i] !== event) continue;
       const field = tables.toggle.fields[i];
-      if (!hasOwn(base, field)) throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
+      if (!hasOwn(base, field))
+        throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
       const current = base[field as string];
-      if (typeof current !== "boolean") throw new MachinaDispatchError("InvalidDispatchValue", `field must be boolean: ${String(field)}`);
+      if (typeof current !== "boolean")
+        throw new MachinaDispatchError(
+          "InvalidDispatchValue",
+          `field must be boolean: ${String(field)}`,
+        );
       return { ...state, [field]: !current };
     }
   }
@@ -52,11 +58,17 @@ export function dispatchEvent<TState extends Record<string, unknown>>(
     for (let i = 0; i < tables.increment.events.length; i += 1) {
       if (tables.increment.events[i] !== event) continue;
       const field = tables.increment.fields[i];
-      if (!hasOwn(base, field)) throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
+      if (!hasOwn(base, field))
+        throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
       const current = base[field as string];
-      if (typeof current !== "number") throw new MachinaDispatchError("InvalidDispatchValue", `field must be number: ${String(field)}`);
+      if (typeof current !== "number")
+        throw new MachinaDispatchError(
+          "InvalidDispatchValue",
+          `field must be number: ${String(field)}`,
+        );
       const delta = tables.increment.by?.[i] ?? 1;
-      if (!Number.isFinite(delta)) throw new MachinaDispatchError("InvalidDispatchValue", "increment delta must be finite");
+      if (!Number.isFinite(delta))
+        throw new MachinaDispatchError("InvalidDispatchValue", "increment delta must be finite");
       return { ...state, [field]: current + delta };
     }
   }
@@ -64,10 +76,15 @@ export function dispatchEvent<TState extends Record<string, unknown>>(
   if (tables.setSuffix) {
     validatePrefixSetTable(tables.setSuffix);
     for (let i = 0; i < tables.setSuffix.prefixes.length; i += 1) {
-      const suffix = matchEventPrefix(event, tables.setSuffix.prefixes[i], tables.setSuffix.allowedSuffixes?.[i]);
+      const suffix = matchEventPrefix(
+        event,
+        tables.setSuffix.prefixes[i],
+        tables.setSuffix.allowedSuffixes?.[i],
+      );
       if (suffix === undefined) continue;
       const field = tables.setSuffix.fields[i];
-      if (!hasOwn(base, field)) throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
+      if (!hasOwn(base, field))
+        throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
       if (Object.is(base[field as string], suffix)) return state;
       return { ...state, [field]: suffix };
     }
@@ -83,11 +100,17 @@ export function dispatchEvent<TState extends Record<string, unknown>>(
       );
       if (suffix === undefined) continue;
       const field = tables.incrementSuffix.fields[i];
-      if (!hasOwn(base, field)) throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
+      if (!hasOwn(base, field))
+        throw new MachinaDispatchError("InvalidDispatchField", `missing field: ${String(field)}`);
       const current = base[field as string];
-      if (typeof current !== "number") throw new MachinaDispatchError("InvalidDispatchValue", `field must be number: ${String(field)}`);
+      if (typeof current !== "number")
+        throw new MachinaDispatchError(
+          "InvalidDispatchValue",
+          `field must be number: ${String(field)}`,
+        );
       const delta = tables.incrementSuffix.by?.[i] ?? 1;
-      if (!Number.isFinite(delta)) throw new MachinaDispatchError("InvalidDispatchValue", "increment delta must be finite");
+      if (!Number.isFinite(delta))
+        throw new MachinaDispatchError("InvalidDispatchValue", "increment delta must be finite");
       return { ...state, [field]: current + delta };
     }
   }
