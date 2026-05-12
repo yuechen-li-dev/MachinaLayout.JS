@@ -1,3 +1,5 @@
+> D1 status (2026-05-12): Implemented in `src/dispatch` with subpath export `machinalayout/dispatch`.
+
 # MachinaDispatch D0 Contract
 
 ## 1. Executive summary

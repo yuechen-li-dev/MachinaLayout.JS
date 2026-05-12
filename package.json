@@ -91,6 +91,10 @@
     "./text/vue": {
       "types": "./dist/text/vue/index.d.ts",
       "import": "./dist/text/vue/index.js"
+    },
+    "./dispatch": {
+      "types": "./dist/dispatch/index.d.ts",
+      "import": "./dist/dispatch/index.js"
     }
   },
   "files": [
