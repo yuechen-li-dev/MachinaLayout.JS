@@ -1,5 +1,10 @@
 import { MachinaLayoutError } from "./errors";
-import type { ResolvedLayoutDocument, ResolvedLayoutTree, ResolvedLayoutNode, NodeId } from "./types";
+import type {
+  ResolvedLayoutDocument,
+  ResolvedLayoutTree,
+  ResolvedLayoutNode,
+  NodeId,
+} from "./types";
 
 export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayoutTree {
   const root = document.nodes[document.rootId];
@@ -22,7 +27,10 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
     const children = childIds.map((childId) => {
       const child = document.nodes[childId];
       if (!child) {
-        throw new MachinaLayoutError("UnknownParent", `missing child node '${childId}' referenced by '${node.id}'`);
+        throw new MachinaLayoutError(
+          "UnknownParent",
+          `missing child node '${childId}' referenced by '${node.id}'`,
+        );
       }
       return build(child);
     });
@@ -38,6 +46,7 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
       view: node.view,
       slot: node.slot,
       debugLabel: node.debugLabel,
+      layer: node.layer,
       offset: node.offset,
       children,
     };
@@ -47,7 +56,10 @@ export function toResolvedTree(document: ResolvedLayoutDocument): ResolvedLayout
 
   for (const nodeId of Object.keys(document.nodes)) {
     if (!visited.has(nodeId)) {
-      throw new MachinaLayoutError("UnreachableNode", `node '${nodeId}' is unreachable from root '${document.rootId}'`);
+      throw new MachinaLayoutError(
+        "UnreachableNode",
+        `node '${nodeId}' is unreachable from root '${document.rootId}'`,
+      );
     }
   }
 

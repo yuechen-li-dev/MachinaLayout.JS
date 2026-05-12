@@ -25,7 +25,14 @@ describe("resolved tree helpers", () => {
     const document: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 1, y: 2, width: 3, height: 4 }, frame: { kind: "root" }, view: "AppView", slot: "app", debugLabel: "Root" },
+        root: {
+          id: "root",
+          rect: { x: 1, y: 2, width: 3, height: 4 },
+          frame: { kind: "root" },
+          view: "AppView",
+          slot: "app",
+          debugLabel: "Root",
+        },
       },
       children: { root: [] },
     };
@@ -46,11 +53,37 @@ describe("resolved tree helpers", () => {
     const document: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "fixed", width: 1, height: 1 }, debugLabel: "r" },
-        b: { id: "b", z: -5, rect: { x: 2, y: 2, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
-        a: { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "panel", offset: { x: 3 } },
-        c: { id: "c", z: 0, rect: { x: 3, y: 3, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 } },
-        a1: { id: "a1", rect: { x: 11, y: 11, width: 2, height: 2 }, frame: { kind: "absolute", x: 1, y: 1, width: 2, height: 2 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          frame: { kind: "fixed", width: 1, height: 1 },
+          debugLabel: "r",
+        },
+        b: {
+          id: "b",
+          z: -5,
+          rect: { x: 2, y: 2, width: 10, height: 10 },
+          frame: { kind: "fixed", width: 10, height: 10 },
+        },
+        a: {
+          id: "a",
+          z: 5,
+          rect: { x: 1, y: 1, width: 10, height: 10 },
+          frame: { kind: "fixed", width: 10, height: 10 },
+          slot: "panel",
+          offset: { x: 3 },
+        },
+        c: {
+          id: "c",
+          z: 0,
+          rect: { x: 3, y: 3, width: 10, height: 10 },
+          frame: { kind: "fixed", width: 10, height: 10 },
+        },
+        a1: {
+          id: "a1",
+          rect: { x: 11, y: 11, width: 2, height: 2 },
+          frame: { kind: "absolute", x: 1, y: 1, width: 2, height: 2 },
+        },
       },
       children: { root: ["b", "a", "c"], a: ["a1"] },
     };
@@ -77,10 +110,16 @@ describe("resolved tree helpers", () => {
       () =>
         toResolvedTree({
           rootId: "root",
-          nodes: { root: { id: "root", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } } },
+          nodes: {
+            root: {
+              id: "root",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
+          },
           children: { root: ["missing"] },
         }),
-      "UnknownParent"
+      "UnknownParent",
     );
 
     expectCode(
@@ -88,13 +127,25 @@ describe("resolved tree helpers", () => {
         toResolvedTree({
           rootId: "root",
           nodes: {
-            root: { id: "root", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } },
-            a: { id: "a", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } },
-            b: { id: "b", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } },
+            root: {
+              id: "root",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
+            a: {
+              id: "a",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
+            b: {
+              id: "b",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
           },
           children: { root: ["a"], a: ["b"], b: ["a"] },
         }),
-      "Cycle"
+      "Cycle",
     );
 
     expectCode(
@@ -102,12 +153,20 @@ describe("resolved tree helpers", () => {
         toResolvedTree({
           rootId: "root",
           nodes: {
-            root: { id: "root", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } },
-            orphan: { id: "orphan", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "fixed", width: 1, height: 1 } },
+            root: {
+              id: "root",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
+            orphan: {
+              id: "orphan",
+              rect: { x: 0, y: 0, width: 1, height: 1 },
+              frame: { kind: "fixed", width: 1, height: 1 },
+            },
           },
           children: {},
         }),
-      "UnreachableNode"
+      "UnreachableNode",
     );
   });
 
@@ -117,8 +176,28 @@ describe("resolved tree helpers", () => {
       rect: { x: 0, y: 0, width: 100, height: 100 },
       frame: { kind: "fixed", width: 1, height: 1 },
       children: [
-        { id: "a", z: 5, rect: { x: 1, y: 1, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, slot: "s", children: [{ id: "a1", rect: { x: 2, y: 2, width: 3, height: 3 }, frame: { kind: "fixed", width: 3, height: 3 }, children: [] }] },
-        { id: "b", z: -5, rect: { x: 4, y: 4, width: 10, height: 10 }, frame: { kind: "fixed", width: 10, height: 10 }, children: [] },
+        {
+          id: "a",
+          z: 5,
+          rect: { x: 1, y: 1, width: 10, height: 10 },
+          frame: { kind: "fixed", width: 10, height: 10 },
+          slot: "s",
+          children: [
+            {
+              id: "a1",
+              rect: { x: 2, y: 2, width: 3, height: 3 },
+              frame: { kind: "fixed", width: 3, height: 3 },
+              children: [],
+            },
+          ],
+        },
+        {
+          id: "b",
+          z: -5,
+          rect: { x: 4, y: 4, width: 10, height: 10 },
+          frame: { kind: "fixed", width: 10, height: 10 },
+          children: [],
+        },
       ],
     };
     const before = JSON.stringify(tree);
@@ -134,14 +213,23 @@ describe("resolved tree helpers", () => {
     expect(JSON.stringify(tree)).toBe(before);
   });
 
-
   it("preserves UiLength metadata in tree and flattened output", () => {
     const resolved = resolveLayoutRows(
       [
         { id: "root", frame: { kind: "root" } },
-        { id: "child", parent: "root", frame: { kind: "anchor", left: { unit: "ui", value: 0.25 }, width: { unit: "px", value: 120 }, top: 10, height: 20 } },
+        {
+          id: "child",
+          parent: "root",
+          frame: {
+            kind: "anchor",
+            left: { unit: "ui", value: 0.25 },
+            width: { unit: "px", value: 120 },
+            top: 10,
+            height: 20,
+          },
+        },
       ],
-      { x: 0, y: 0, width: 800, height: 600 }
+      { x: 0, y: 0, width: 800, height: 600 },
     );
     const tree = toResolvedTree(resolved);
     const flat = flattenResolvedTree(tree);
@@ -159,10 +247,18 @@ describe("resolved tree helpers", () => {
     const resolved = resolveLayoutRows(
       [
         { id: "root", frame: { kind: "root" } },
-        { id: "panel", parent: "root", frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 } },
-        { id: "button", parent: "panel", frame: { kind: "absolute", x: 5, y: 6, width: 30, height: 10 } },
+        {
+          id: "panel",
+          parent: "root",
+          frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 },
+        },
+        {
+          id: "button",
+          parent: "panel",
+          frame: { kind: "absolute", x: 5, y: 6, width: 30, height: 10 },
+        },
       ],
-      { x: 0, y: 0, width: 500, height: 300 }
+      { x: 0, y: 0, width: 500, height: 300 },
     );
 
     const tree = toResolvedTree(resolved);
@@ -174,7 +270,6 @@ describe("resolved tree helpers", () => {
     expect(flat[1].rect).toEqual({ x: 10, y: 20, width: 100, height: 50 });
     expect(flat[2].rect).toEqual({ x: 15, y: 26, width: 30, height: 10 });
   });
-
 
   it("flattenResolvedTree preserves view", () => {
     const tree: ResolvedLayoutTree = {
@@ -195,4 +290,27 @@ describe("resolved tree helpers", () => {
     const flat = flattenResolvedTree(tree);
     expect(flat[1].view).toBe("Header");
   });
+});
+
+it("preserves layer in tree and flatten", () => {
+  const doc = {
+    rootId: "root",
+    nodes: {
+      root: {
+        id: "root",
+        rect: { x: 0, y: 0, width: 10, height: 10 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+      },
+      child: {
+        id: "child",
+        rect: { x: 1, y: 1, width: 2, height: 2 },
+        frame: { kind: "absolute", x: 1, y: 1, width: 2, height: 2 },
+        layer: "overlay",
+      },
+    },
+    children: { root: ["child"], child: [] },
+  } as any;
+  const tree = toResolvedTree(doc);
+  expect(tree.children[0].layer).toBe("overlay");
+  expect(flattenResolvedTree(tree).find((n) => n.id === "child")?.layer).toBe("overlay");
 });

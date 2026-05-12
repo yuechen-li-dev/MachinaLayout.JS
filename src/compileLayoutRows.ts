@@ -33,13 +33,19 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
     }
 
     if (row.frame.kind === "root" && row.parent !== undefined) {
-      throw new MachinaLayoutError("RootFrameNotRoot", `row ${row.id} uses RootFrame but is not a root row.`);
+      throw new MachinaLayoutError(
+        "RootFrameNotRoot",
+        `row ${row.id} uses RootFrame but is not a root row.`,
+      );
     }
 
     if (row.z !== undefined) {
       assertFiniteNumber(row.z, `rows[${rowIndex}].z`);
       if (!Number.isInteger(row.z) || row.z < -5 || row.z > 5) {
-        throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].z must be an integer in range -5..5`);
+        throw new MachinaLayoutError(
+          "InvalidZ",
+          `rows[${rowIndex}].z must be an integer in range -5..5`,
+        );
       }
     }
 
@@ -52,6 +58,7 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
       view: row.view,
       slot: row.slot,
       debugLabel: row.debugLabel,
+      layer: row.layer,
       offset: row.offset,
     };
 
@@ -71,10 +78,16 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
   const rootId = rootCandidates[0];
 
   if (nodes[rootId].frame.kind === "fill") {
-    throw new MachinaLayoutError("FillFrameWithoutArranger", "FillFrame cannot be used as the root frame.");
+    throw new MachinaLayoutError(
+      "FillFrameWithoutArranger",
+      "FillFrame cannot be used as the root frame.",
+    );
   }
   if (nodes[rootId].frame.kind === "fixed") {
-    throw new MachinaLayoutError("FixedFrameWithoutArranger", "FixedFrame cannot be used as the root frame.");
+    throw new MachinaLayoutError(
+      "FixedFrameWithoutArranger",
+      "FixedFrame cannot be used as the root frame.",
+    );
   }
   const childrenEntries = new Map<NodeId, ChildEntry[]>();
 
@@ -89,7 +102,10 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
     }
 
     if (!rowById.has(row.parent) || row.parent.trim().length === 0) {
-      throw new MachinaLayoutError("UnknownParent", `node ${row.id} references unknown parent: ${row.parent}`);
+      throw new MachinaLayoutError(
+        "UnknownParent",
+        `node ${row.id} references unknown parent: ${row.parent}`,
+      );
     }
 
     const entry: ChildEntry = {
@@ -167,7 +183,7 @@ export function compileLayoutRows(rows: LayoutRow[]): LayoutDocument {
   if (visitedCount !== rows.length) {
     throw new MachinaLayoutError(
       "UnreachableNode",
-      "one or more nodes are unreachable from the root."
+      "one or more nodes are unreachable from the root.",
     );
   }
 

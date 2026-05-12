@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { parseMachinaText } from "../../src";
-import type { MachinaInline, MachinaTextDocument, MachinaTextLeading, MachinaTextSource, MachinaTextSpec, MachinaTextVerticalAlign } from "../../src";
+import type {
+  MachinaInline,
+  MachinaTextDocument,
+  MachinaTextLeading,
+  MachinaTextSource,
+  MachinaTextSpec,
+  MachinaTextVerticalAlign,
+} from "../../src";
 
 describe("text public API", () => {
   it("exports key MachinaText types and parser", () => {

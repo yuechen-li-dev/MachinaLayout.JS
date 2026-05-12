@@ -12,6 +12,7 @@ export type MachinaLayoutErrorCode =
   | "NonFiniteNumber"
   | "InvalidLengthUnit"
   | "InvalidZ"
+  | "InvalidVariantCondition"
   | "NegativeSize"
   | "NegativeGap"
   | "NegativePadding"
@@ -24,8 +25,22 @@ export type MachinaLayoutErrorCode =
   | "StackChildMustBeFixed"
   | "StackContentNegative"
   | "StackOverflow"
+  | "CellFrameWithoutGrid"
+  | "GridChildMustBeCell"
+  | "InvalidGridTrack"
+  | "InvalidGridCell"
+  | "GridContentNegative"
+  | "GridOverflow"
   | "RootFrameNotRoot"
-  | "RootFrameWithoutRoot";
+  | "RootFrameWithoutRoot"
+  | "IncompatibleLayouts"
+  | "GuideTargetNotFound"
+  | "GuideSelfReference"
+  | "GuideReferenceCycle"
+  | "GuideInvalidEdgeForAxis"
+  | "GuideTooManyReferencesPerAxis"
+  | "InvalidGuideFrame"
+  | "GuideTargetUnresolved";
 
 export class MachinaLayoutError extends Error {
   readonly code: MachinaLayoutErrorCode;

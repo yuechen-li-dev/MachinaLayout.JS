@@ -1,7 +1,13 @@
 import React from "react";
 
 import { toResolvedTree } from "../toResolvedTree";
-import type { NodeId, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree } from "../types";
+import type {
+  NodeId,
+  Rect,
+  ResolvedLayoutDocument,
+  ResolvedLayoutNode,
+  ResolvedLayoutTree,
+} from "../types";
 
 export type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
   id: NodeId;
@@ -11,6 +17,10 @@ export type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
   viewKey?: string;
   viewData?: TViewData;
   nodeData?: TNodeData;
+};
+
+export type MachinaRenderLayer = {
+  z: number;
 };
 
 export type MachinaReactViewProps = {
@@ -25,7 +35,35 @@ export type MachinaReactViewProps = {
   nodeContainment?: "none" | "layout-paint" | "strict";
   nodeContentVisibility?: "none" | "auto";
   nodeContainIntrinsicSize?: string;
+  layers?: Record<string, MachinaRenderLayer>;
+  defaultLayer?: string;
 };
+
+function normalizeLayerZ(value: number | undefined): number {
+  if (
+    value === undefined ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < -5 ||
+    value > 5
+  ) {
+    return 0;
+  }
+  return value;
+}
+
+function getEffectiveLayer(node: ResolvedLayoutTree, defaultLayer: string): string {
+  return node.layer ?? defaultLayer;
+}
+
+function getEffectiveLayerZ(
+  node: ResolvedLayoutTree,
+  layers: Record<string, MachinaRenderLayer>,
+  defaultLayer: string,
+): number {
+  const layerName = getEffectiveLayer(node, defaultLayer);
+  return normalizeLayerZ(layers[layerName]?.z);
+}
 
 function renderNode(
   node: ResolvedLayoutTree,
@@ -39,6 +77,8 @@ function renderNode(
   nodeContentVisibility: "none" | "auto",
   nodeContainIntrinsicSize: string | undefined,
   nodesById: ResolvedLayoutDocument["nodes"],
+  layers: Record<string, MachinaRenderLayer>,
+  defaultLayer: string,
 ): React.ReactElement {
   const viewKey = node.view ?? node.slot;
   const View = viewKey ? views[viewKey] : undefined;
@@ -47,6 +87,8 @@ function renderNode(
   const left = node.rect.x - parentRect.x;
   const top = node.rect.y - parentRect.y;
 
+  const effectiveLayer = getEffectiveLayer(node, defaultLayer);
+  const effectiveLayerZ = getEffectiveLayerZ(node, layers, defaultLayer);
   const style: React.CSSProperties = {
     position: "absolute",
     left,
@@ -54,11 +96,13 @@ function renderNode(
     width: node.rect.width,
     height: node.rect.height,
     boxSizing: "border-box",
-    zIndex: node.z ?? 0,
+    zIndex: effectiveLayerZ * 100 + (node.z ?? 0),
     ...(nodeContainment === "layout-paint" ? { contain: "layout paint" } : null),
     ...(nodeContainment === "strict" ? { contain: "strict" } : null),
     ...(nodeContentVisibility === "auto" ? { contentVisibility: "auto" } : null),
-    ...(nodeContainIntrinsicSize !== undefined ? { containIntrinsicSize: nodeContainIntrinsicSize } : null),
+    ...(nodeContainIntrinsicSize !== undefined
+      ? { containIntrinsicSize: nodeContainIntrinsicSize }
+      : null),
     ...(debug ? { outline: "1px dashed rgba(59, 130, 246, 0.9)" } : null),
   };
 
@@ -85,12 +129,19 @@ function renderNode(
       data-machina-slot={node.slot}
       data-machina-view={viewKey}
       data-machina-debug-label={node.debugLabel}
+      data-machina-layer={effectiveLayer}
     >
       {debug ? <small>{node.debugLabel ?? node.id}</small> : null}
       {renderedSlot}
       {[...node.children]
         .map((child, index) => ({ child, index }))
-        .sort((a, b) => (a.child.z ?? 0) - (b.child.z ?? 0) || a.index - b.index)
+        .sort(
+          (a, b) =>
+            getEffectiveLayerZ(a.child, layers, defaultLayer) -
+              getEffectiveLayerZ(b.child, layers, defaultLayer) ||
+            (a.child.z ?? 0) - (b.child.z ?? 0) ||
+            a.index - b.index,
+        )
         .map(({ child }) =>
           renderNode(
             child,
@@ -103,8 +154,10 @@ function renderNode(
             nodeContainment,
             nodeContentVisibility,
             nodeContainIntrinsicSize,
-            nodesById
-          )
+            nodesById,
+            layers,
+            defaultLayer,
+          ),
         )}
     </div>
   );
@@ -123,6 +176,8 @@ export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Elemen
     nodeContainment = "layout-paint",
     nodeContentVisibility = "none",
     nodeContainIntrinsicSize,
+    layers = { base: { z: 0 } },
+    defaultLayer = "base",
   } = props;
   const tree = toResolvedTree(layout);
 
@@ -146,7 +201,9 @@ export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Elemen
         nodeContainment,
         nodeContentVisibility,
         nodeContainIntrinsicSize,
-        layout.nodes
+        layout.nodes,
+        layers,
+        defaultLayer,
       )}
     </div>
   );

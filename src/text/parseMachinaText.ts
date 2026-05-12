@@ -10,7 +10,14 @@ import type {
 
 type LineInfo = { text: string; index: number; line: number };
 
-function makeDiagnostic(code: MachinaTextDiagnosticCode, message: string, index: number, length: number, line: number, column: number): MachinaTextDiagnostic {
+function makeDiagnostic(
+  code: MachinaTextDiagnosticCode,
+  message: string,
+  index: number,
+  length: number,
+  line: number,
+  column: number,
+): MachinaTextDiagnostic {
   return { code, message, index, length, line, column, level: "error" };
 }
 
@@ -31,7 +38,11 @@ function toLines(source: string): LineInfo[] {
   return lines;
 }
 
-function parseInline(text: string, lineIndex: number, line: number): { inline: MachinaInline[]; diagnostics: MachinaTextDiagnostic[] } {
+function parseInline(
+  text: string,
+  lineIndex: number,
+  line: number,
+): { inline: MachinaInline[]; diagnostics: MachinaTextDiagnostic[] } {
   const diagnostics: MachinaTextDiagnostic[] = [];
   const inline: MachinaInline[] = [];
   let cursor = 0;
@@ -46,7 +57,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
   const consumeEscape = (): boolean => {
     if (text[cursor] !== "\\") return false;
     if (cursor === text.length - 1) {
-      diagnostics.push(makeDiagnostic("invalid_escape", "Dangling escape sequence.", lineIndex + cursor, 1, line, cursor + 1));
+      diagnostics.push(
+        makeDiagnostic(
+          "invalid_escape",
+          "Dangling escape sequence.",
+          lineIndex + cursor,
+          1,
+          line,
+          cursor + 1,
+        ),
+      );
       pushText("\\");
       cursor += 1;
       return true;
@@ -57,7 +77,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
       cursor += 2;
       return true;
     }
-    diagnostics.push(makeDiagnostic("invalid_escape", `Unsupported escape sequence: \\${escaped}`, lineIndex + cursor, 2, line, cursor + 1));
+    diagnostics.push(
+      makeDiagnostic(
+        "invalid_escape",
+        `Unsupported escape sequence: \\${escaped}`,
+        lineIndex + cursor,
+        2,
+        line,
+        cursor + 1,
+      ),
+    );
     pushText(escaped);
     cursor += 2;
     return true;
@@ -67,7 +96,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (consumeEscape()) continue;
 
     if (text.startsWith("![", cursor)) {
-      diagnostics.push(makeDiagnostic("unsupported_syntax", "Images are not supported.", lineIndex + cursor, 2, line, cursor + 1));
+      diagnostics.push(
+        makeDiagnostic(
+          "unsupported_syntax",
+          "Images are not supported.",
+          lineIndex + cursor,
+          2,
+          line,
+          cursor + 1,
+        ),
+      );
       pushText("![");
       cursor += 2;
       continue;
@@ -76,7 +114,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (text[cursor] === "`") {
       const close = text.indexOf("`", cursor + 1);
       if (close < 0) {
-        diagnostics.push(makeDiagnostic("unclosed_inline", "Unclosed inline code marker.", lineIndex + cursor, text.length - cursor, line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "unclosed_inline",
+            "Unclosed inline code marker.",
+            lineIndex + cursor,
+            text.length - cursor,
+            line,
+            cursor + 1,
+          ),
+        );
         pushText(text.slice(cursor));
         break;
       }
@@ -88,7 +135,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (text.startsWith("**", cursor)) {
       const close = text.indexOf("**", cursor + 2);
       if (close < 0) {
-        diagnostics.push(makeDiagnostic("unclosed_inline", "Unclosed strong marker.", lineIndex + cursor, text.length - cursor, line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "unclosed_inline",
+            "Unclosed strong marker.",
+            lineIndex + cursor,
+            text.length - cursor,
+            line,
+            cursor + 1,
+          ),
+        );
         pushText(text.slice(cursor));
         break;
       }
@@ -102,7 +158,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (text[cursor] === "*") {
       const close = text.indexOf("*", cursor + 1);
       if (close < 0) {
-        diagnostics.push(makeDiagnostic("unclosed_inline", "Unclosed emphasis marker.", lineIndex + cursor, text.length - cursor, line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "unclosed_inline",
+            "Unclosed emphasis marker.",
+            lineIndex + cursor,
+            text.length - cursor,
+            line,
+            cursor + 1,
+          ),
+        );
         pushText(text.slice(cursor));
         break;
       }
@@ -116,14 +181,32 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
     if (text[cursor] === "[") {
       const closeBracket = text.indexOf("]", cursor + 1);
       if (closeBracket < 0 || text[closeBracket + 1] !== "(") {
-        diagnostics.push(makeDiagnostic("malformed_link", "Malformed link syntax.", lineIndex + cursor, Math.max(1, text.length - cursor), line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "malformed_link",
+            "Malformed link syntax.",
+            lineIndex + cursor,
+            Math.max(1, text.length - cursor),
+            line,
+            cursor + 1,
+          ),
+        );
         pushText("[");
         cursor += 1;
         continue;
       }
       const closeParen = text.indexOf(")", closeBracket + 2);
       if (closeParen < 0) {
-        diagnostics.push(makeDiagnostic("malformed_link", "Malformed link syntax.", lineIndex + cursor, text.length - cursor, line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "malformed_link",
+            "Malformed link syntax.",
+            lineIndex + cursor,
+            text.length - cursor,
+            line,
+            cursor + 1,
+          ),
+        );
         pushText(text.slice(cursor));
         break;
       }
@@ -131,7 +214,16 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
       const label = text.slice(cursor + 1, closeBracket);
       const href = text.slice(closeBracket + 2, closeParen);
       if (label.length === 0) {
-        diagnostics.push(makeDiagnostic("malformed_link", "Link label cannot be empty.", lineIndex + cursor, closeParen - cursor + 1, line, cursor + 1));
+        diagnostics.push(
+          makeDiagnostic(
+            "malformed_link",
+            "Link label cannot be empty.",
+            lineIndex + cursor,
+            closeParen - cursor + 1,
+            line,
+            cursor + 1,
+          ),
+        );
         pushText(text.slice(cursor, closeParen + 1));
         cursor = closeParen + 1;
         continue;
@@ -162,7 +254,6 @@ function parseInline(text: string, lineIndex: number, line: number): { inline: M
   return { inline, diagnostics };
 }
 
-
 function classifyForbiddenBlock(line: string): MachinaTextDiagnosticCode | undefined {
   if (/^#{1,6}\s+/.test(line)) return "heading_forbidden";
   if (/^\d+\.\s+/.test(line)) return "unsupported_syntax";
@@ -181,15 +272,26 @@ function parseBulletLine(line: string): { depth: number; text: string } | undefi
   return undefined;
 }
 
-export function parseMachinaTextInline(text: string): { inline: MachinaInline[]; diagnostics: MachinaTextDiagnostic[] } {
+export function parseMachinaTextInline(text: string): {
+  inline: MachinaInline[];
+  diagnostics: MachinaTextDiagnostic[];
+} {
   return parseInline(text, 0, 1);
 }
 
 export function parseMachinaText(source: MachinaTextSource | string): ParseMachinaTextResult {
-  const src: MachinaTextSource = typeof source === "string" ? { kind: "machina-text", text: source } : source;
+  const src: MachinaTextSource =
+    typeof source === "string" ? { kind: "machina-text", text: source } : source;
 
   if (src?.kind !== "plain" && src?.kind !== "machina-text") {
-    const diagnostic = makeDiagnostic("unsupported_syntax", "Unsupported MachinaText source kind.", 0, 0, 1, 1);
+    const diagnostic = makeDiagnostic(
+      "unsupported_syntax",
+      "Unsupported MachinaText source kind.",
+      0,
+      0,
+      1,
+      1,
+    );
     return { ok: false, document: { blocks: [] }, diagnostics: [diagnostic] };
   }
 
@@ -218,7 +320,16 @@ export function parseMachinaText(source: MachinaTextSource | string): ParseMachi
 
     if (forbiddenCode) {
       const code = forbiddenCode;
-      diagnostics.push(makeDiagnostic(code, "Unsupported block syntax.", lineInfo.index, lineInfo.text.length || 1, lineInfo.line, 1));
+      diagnostics.push(
+        makeDiagnostic(
+          code,
+          "Unsupported block syntax.",
+          lineInfo.index,
+          lineInfo.text.length || 1,
+          lineInfo.line,
+          1,
+        ),
+      );
       blocks.push({ kind: "paragraph", inline: [{ kind: "text", text: lineInfo.text }] });
       i += 1;
       continue;
@@ -235,19 +346,48 @@ export function parseMachinaText(source: MachinaTextSource | string): ParseMachi
         if (!currentBullet) break;
 
         if (/^\s*-\s+\[[ xX]\]\s+/.test(current.text)) {
-          diagnostics.push(makeDiagnostic("unsupported_syntax", "Task lists are not supported.", current.index, current.text.length || 1, current.line, 1));
+          diagnostics.push(
+            makeDiagnostic(
+              "unsupported_syntax",
+              "Task lists are not supported.",
+              current.index,
+              current.text.length || 1,
+              current.line,
+              1,
+            ),
+          );
         }
 
         if (currentBullet.depth > 2) {
-          diagnostics.push(makeDiagnostic("max_list_depth_exceeded", "Maximum bullet depth is 2.", current.index, current.text.length || 1, current.line, 1));
-          const parsed = parseInline(current.text.trim(), current.index + (current.text.length - current.text.trimStart().length), current.line);
+          diagnostics.push(
+            makeDiagnostic(
+              "max_list_depth_exceeded",
+              "Maximum bullet depth is 2.",
+              current.index,
+              current.text.length || 1,
+              current.line,
+              1,
+            ),
+          );
+          const parsed = parseInline(
+            current.text.trim(),
+            current.index + (current.text.length - current.text.trimStart().length),
+            current.line,
+          );
           diagnostics.push(...parsed.diagnostics);
-          blocks.push({ kind: "paragraph", inline: parsed.inline.length ? parsed.inline : [{ kind: "text", text: current.text }] });
+          blocks.push({
+            kind: "paragraph",
+            inline: parsed.inline.length ? parsed.inline : [{ kind: "text", text: current.text }],
+          });
           i += 1;
           continue;
         }
 
-        const parsed = parseInline(currentBullet.text, current.index + (currentBullet.depth === 1 ? 2 : 4), current.line);
+        const parsed = parseInline(
+          currentBullet.text,
+          current.index + (currentBullet.depth === 1 ? 2 : 4),
+          current.line,
+        );
         diagnostics.push(...parsed.diagnostics);
         const item: MachinaBulletItem = { inline: parsed.inline };
         if (currentBullet.depth === 1) {
@@ -257,7 +397,16 @@ export function parseMachinaText(source: MachinaTextSource | string): ParseMachi
           if (!lastTop.children) lastTop.children = [];
           lastTop.children.push(item);
         } else {
-          diagnostics.push(makeDiagnostic("unsupported_syntax", "Nested bullet requires a parent bullet.", current.index, current.text.length || 1, current.line, 1));
+          diagnostics.push(
+            makeDiagnostic(
+              "unsupported_syntax",
+              "Nested bullet requires a parent bullet.",
+              current.index,
+              current.text.length || 1,
+              current.line,
+              1,
+            ),
+          );
           blocks.push({ kind: "paragraph", inline: [{ kind: "text", text: current.text }] });
         }
 
@@ -269,7 +418,12 @@ export function parseMachinaText(source: MachinaTextSource | string): ParseMachi
     }
 
     const paragraphLines: LineInfo[] = [];
-    while (i < lines.length && lines[i].text.trim().length > 0 && !parseBulletLine(lines[i].text) && !classifyForbiddenBlock(lines[i].text)) {
+    while (
+      i < lines.length &&
+      lines[i].text.trim().length > 0 &&
+      !parseBulletLine(lines[i].text) &&
+      !classifyForbiddenBlock(lines[i].text)
+    ) {
       paragraphLines.push(lines[i]);
       i += 1;
     }

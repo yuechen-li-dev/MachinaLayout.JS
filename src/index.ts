@@ -6,6 +6,7 @@ export * from "./length";
 export * from "./offset";
 
 export * from "./compileLayoutRows";
+export * from "./selectLayoutRowsForRoot";
 
 export * from "./resolveFrame";
 
@@ -19,3 +20,5 @@ export * from "./formatRect";
 export * from "./react";
 
 export * from "./text";
+
+export * from "./lerp";

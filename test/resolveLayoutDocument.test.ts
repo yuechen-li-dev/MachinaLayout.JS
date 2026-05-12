@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MachinaLayoutError,
+  compileLayoutRows,
   resolveLayoutDocument,
   type LayoutDocument,
   type MachinaLayoutErrorCode,
@@ -42,7 +43,10 @@ describe("resolveLayoutDocument", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-        panel: { id: "panel", frame: { kind: "absolute", x: 100, y: 100, width: 300, height: 200 } },
+        panel: {
+          id: "panel",
+          frame: { kind: "absolute", x: 100, y: 100, width: 300, height: 200 },
+        },
         button: { id: "button", frame: { kind: "absolute", x: 10, y: 20, width: 50, height: 30 } },
       },
       children: { root: ["panel"], panel: ["button"] },
@@ -102,7 +106,11 @@ describe("resolveLayoutDocument", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-        parent: { id: "parent", frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 100 }, arrange: { kind: "stack", axis: "horizontal" } },
+        parent: {
+          id: "parent",
+          frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 100 },
+          arrange: { kind: "stack", axis: "horizontal" },
+        },
         child: { id: "child", frame: { kind: "fixed", width: 10, height: 20 } },
       },
       children: { root: ["parent"], parent: ["child"] },
@@ -112,21 +120,46 @@ describe("resolveLayoutDocument", () => {
   });
 
   it("validates root rect numeric rules", () => {
-    const doc: LayoutDocument = { rootId: "root", nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } } }, children: {} };
-    expectCode(() => resolveLayoutDocument(doc, { x: Number.NaN, y: 0, width: 1, height: 1 }), "NonFiniteNumber");
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: Number.POSITIVE_INFINITY, width: 1, height: 1 }), "NonFiniteNumber");
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: 0, width: Number.NEGATIVE_INFINITY, height: 1 }), "NonFiniteNumber");
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: 0, width: 1, height: Number.NaN }), "NonFiniteNumber");
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: 0, width: -1, height: 1 }), "NegativeSize");
-    expectCode(() => resolveLayoutDocument(doc, { x: 0, y: 0, width: 1, height: -1 }), "NegativeSize");
+    const doc: LayoutDocument = {
+      rootId: "root",
+      nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } } },
+      children: {},
+    };
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: Number.NaN, y: 0, width: 1, height: 1 }),
+      "NonFiniteNumber",
+    );
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: 0, y: Number.POSITIVE_INFINITY, width: 1, height: 1 }),
+      "NonFiniteNumber",
+    );
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: 0, y: 0, width: Number.NEGATIVE_INFINITY, height: 1 }),
+      "NonFiniteNumber",
+    );
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: 0, y: 0, width: 1, height: Number.NaN }),
+      "NonFiniteNumber",
+    );
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: 0, y: 0, width: -1, height: 1 }),
+      "NegativeSize",
+    );
+    expectCode(
+      () => resolveLayoutDocument(doc, { x: 0, y: 0, width: 1, height: -1 }),
+      "NegativeSize",
+    );
     expect(() => resolveLayoutDocument(doc, { x: -10, y: -20, width: 1, height: 1 })).not.toThrow();
   });
 
   it("fails malformed documents clearly", () => {
     expectCode(
       () =>
-        resolveLayoutDocument({ rootId: "missing", nodes: {}, children: {} }, { x: 0, y: 0, width: 1, height: 1 }),
-      "MissingRoot"
+        resolveLayoutDocument(
+          { rootId: "missing", nodes: {}, children: {} },
+          { x: 0, y: 0, width: 1, height: 1 },
+        ),
+      "MissingRoot",
     );
 
     expectCode(
@@ -137,9 +170,9 @@ describe("resolveLayoutDocument", () => {
             nodes: { root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } } },
             children: { root: ["missingChild"] },
           },
-          { x: 0, y: 0, width: 1, height: 1 }
+          { x: 0, y: 0, width: 1, height: 1 },
         ),
-      "UnknownParent"
+      "UnknownParent",
     );
 
     expectCode(
@@ -154,9 +187,9 @@ describe("resolveLayoutDocument", () => {
             },
             children: { root: ["a"], a: ["b"], b: ["a"] },
           },
-          { x: 0, y: 0, width: 10, height: 10 }
+          { x: 0, y: 0, width: 10, height: 10 },
         ),
-      "Cycle"
+      "Cycle",
     );
 
     expectCode(
@@ -166,13 +199,16 @@ describe("resolveLayoutDocument", () => {
             rootId: "root",
             nodes: {
               root: { id: "root", frame: { kind: "fixed", width: 1, height: 1 } },
-              orphan: { id: "orphan", frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+              orphan: {
+                id: "orphan",
+                frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+              },
             },
             children: {},
           },
-          { x: 0, y: 0, width: 10, height: 10 }
+          { x: 0, y: 0, width: 10, height: 10 },
         ),
-      "UnreachableNode"
+      "UnreachableNode",
     );
   });
 
@@ -181,7 +217,12 @@ describe("resolveLayoutDocument", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", frame: { kind: "root" } },
-        child: { id: "child", frame: { kind: "absolute", x: 1, y: 2, width: 3, height: 4 }, view: "Header", slot: "HeaderSlot" },
+        child: {
+          id: "child",
+          frame: { kind: "absolute", x: 1, y: 2, width: 3, height: 4 },
+          view: "Header",
+          slot: "HeaderSlot",
+        },
       },
       children: { root: ["child"] },
     };
@@ -218,8 +259,16 @@ it("applies offset to absolute/anchor and ignores root offset", () => {
     rootId: "root",
     nodes: {
       root: { id: "root", frame: { kind: "root" }, offset: { x: 100, y: 100 } },
-      abs: { id: "abs", frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 }, offset: { x: 5, y: -2 } },
-      anc: { id: "anc", frame: { kind: "anchor", left: 10, width: 100, top: 20, height: 50 }, offset: { x: { unit: "ui", value: 0.1 }, y: { unit: "ui", value: -0.05 } } },
+      abs: {
+        id: "abs",
+        frame: { kind: "absolute", x: 10, y: 20, width: 100, height: 50 },
+        offset: { x: 5, y: -2 },
+      },
+      anc: {
+        id: "anc",
+        frame: { kind: "anchor", left: 10, width: 100, top: 20, height: 50 },
+        offset: { x: { unit: "ui", value: 0.1 }, y: { unit: "ui", value: -0.05 } },
+      },
     },
     children: { root: ["abs", "anc"] },
   };
@@ -235,12 +284,53 @@ it("allows offsets outside parent and reports length errors", () => {
     rootId: "root",
     nodes: {
       root: { id: "root", frame: { kind: "root" } },
-      child: { id: "child", frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 }, offset: { x: -1000, y: 1000 } },
+      child: {
+        id: "child",
+        frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+        offset: { x: -1000, y: 1000 },
+      },
     },
     children: { root: ["child"] },
   };
   const r = resolveLayoutDocument(doc, { x: 0, y: 0, width: 100, height: 100 });
   expect(r.nodes.child.rect).toEqual({ x: -1000, y: 1000, width: 10, height: 10 });
-  expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: Number.NaN } } } }, { x: 0, y: 0, width: 100, height: 100 }), "NonFiniteNumber");
-  expectCode(() => resolveLayoutDocument({ ...doc, nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: { unit: "bad" as never, value: 1 } } } } }, { x: 0, y: 0, width: 100, height: 100 }), "InvalidLengthUnit");
+  expectCode(
+    () =>
+      resolveLayoutDocument(
+        {
+          ...doc,
+          nodes: { ...doc.nodes, child: { ...doc.nodes.child, offset: { x: Number.NaN } } },
+        },
+        { x: 0, y: 0, width: 100, height: 100 },
+      ),
+    "NonFiniteNumber",
+  );
+  expectCode(
+    () =>
+      resolveLayoutDocument(
+        {
+          ...doc,
+          nodes: {
+            ...doc.nodes,
+            child: { ...doc.nodes.child, offset: { x: { unit: "bad" as never, value: 1 } } },
+          },
+        },
+        { x: 0, y: 0, width: 100, height: 100 },
+      ),
+    "InvalidLengthUnit",
+  );
+});
+
+it("preserves layer metadata", () => {
+  const compiled = compileLayoutRows([
+    { id: "root", frame: { kind: "root" } },
+    {
+      id: "child",
+      parent: "root",
+      frame: { kind: "absolute", x: 1, y: 2, width: 3, height: 4 },
+      layer: "overlay",
+    },
+  ]);
+  const resolved = resolveLayoutDocument(compiled, { x: 0, y: 0, width: 100, height: 100 });
+  expect(resolved.nodes.child.layer).toBe("overlay");
 });

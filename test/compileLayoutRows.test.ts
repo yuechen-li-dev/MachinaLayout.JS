@@ -34,8 +34,6 @@ describe("compileLayoutRows", () => {
     expect(doc.children).toEqual({});
   });
 
-
-
   it("accepts RootFrame on root", () => {
     const doc = compileLayoutRows([{ id: "root", frame: { kind: "root" } }]);
     expect(doc.nodes.root.frame.kind).toBe("root");
@@ -47,25 +45,36 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "child", parent: "root", frame: { kind: "root" } },
       ],
-      "RootFrameNotRoot"
+      "RootFrameNotRoot",
     );
   });
 
   it("still accepts legacy root frames", () => {
-    expect(() => compileLayoutRows([{ id: "root", frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } }])).not.toThrow();
-    expect(() => compileLayoutRows([{ id: "root", frame: { kind: "anchor", left: 0, width: 1, top: 0, height: 1 } }])).not.toThrow();
+    expect(() =>
+      compileLayoutRows([
+        { id: "root", frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      ]),
+    ).not.toThrow();
+    expect(() =>
+      compileLayoutRows([
+        { id: "root", frame: { kind: "anchor", left: 0, width: 1, top: 0, height: 1 } },
+      ]),
+    ).not.toThrow();
   });
-
 
   it("preserves FillFrame children", () => {
     const doc = compileLayoutRows([
       { id: "root", frame: { kind: "root" } },
-      { id: "stack", parent: "root", frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 40 }, arrange: { kind: "stack", axis: "horizontal" } },
+      {
+        id: "stack",
+        parent: "root",
+        frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 40 },
+        arrange: { kind: "stack", axis: "horizontal" },
+      },
       { id: "fill", parent: "stack", frame: { kind: "fill", weight: 2, cross: "fill" } },
     ]);
     expect(doc.nodes.fill.frame).toEqual({ kind: "fill", weight: 2, cross: "fill" });
   });
-
 
   it("preserves UiLength objects without resolving", () => {
     const left = { unit: "ui", value: 0.25 } as const;
@@ -80,7 +89,6 @@ describe("compileLayoutRows", () => {
     expect((frame as any).width).toBe(width);
   });
 
-
   it("preserves offset metadata without resolving", () => {
     const offset = { x: 2, y: { unit: "ui", value: 0.1 } as const };
     const doc = compileLayoutRows([
@@ -94,7 +102,10 @@ describe("compileLayoutRows", () => {
     expectCode([{ id: "root", frame: { kind: "fill" } }], "FillFrameWithoutArranger");
   });
   it("rejects FixedFrame on root", () => {
-    expectCode([{ id: "root", frame: { kind: "fixed", width: 10, height: 10 } }], "FixedFrameWithoutArranger");
+    expectCode(
+      [{ id: "root", frame: { kind: "fixed", width: 10, height: 10 } }],
+      "FixedFrameWithoutArranger",
+    );
   });
   it("builds parent-child map", () => {
     const rows: LayoutRow[] = [
@@ -151,9 +162,14 @@ describe("compileLayoutRows", () => {
       expectCode(
         [
           { id: "root", frame: { kind: "root" } },
-          { id: "child", parent: "root", order: value, frame: { kind: "fixed", width: 1, height: 1 } },
+          {
+            id: "child",
+            parent: "root",
+            order: value,
+            frame: { kind: "fixed", width: 1, height: 1 },
+          },
         ],
-        "NonFiniteNumber"
+        "NonFiniteNumber",
       );
     }
   });
@@ -173,7 +189,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "root", parent: "root", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "DuplicateId"
+      "DuplicateId",
     );
   });
 
@@ -183,7 +199,7 @@ describe("compileLayoutRows", () => {
         { id: "a", parent: "b", frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "b", parent: "a", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "MissingRoot"
+      "MissingRoot",
     );
   });
 
@@ -193,7 +209,7 @@ describe("compileLayoutRows", () => {
         { id: "root1", frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "root2", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "MultipleRoots"
+      "MultipleRoots",
     );
   });
 
@@ -203,7 +219,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "missing", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "UnknownParent"
+      "UnknownParent",
     );
   });
 
@@ -213,7 +229,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "a", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "SelfParent"
+      "SelfParent",
     );
   });
 
@@ -224,7 +240,7 @@ describe("compileLayoutRows", () => {
         { id: "a", parent: "b", frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "b", parent: "a", frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "Cycle"
+      "Cycle",
     );
   });
 
@@ -271,7 +287,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: -5, frame: { kind: "fixed", width: 1, height: 1 } },
         { id: "b", parent: "root", z: 5, frame: { kind: "fixed", width: 1, height: 1 } },
-      ])
+      ]),
     ).not.toThrow();
 
     expectCode(
@@ -279,7 +295,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: -6, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "InvalidZ"
+      "InvalidZ",
     );
 
     expectCode(
@@ -287,7 +303,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: 6, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "InvalidZ"
+      "InvalidZ",
     );
   });
 
@@ -297,7 +313,7 @@ describe("compileLayoutRows", () => {
         { id: "root", frame: { kind: "root" } },
         { id: "a", parent: "root", z: 1.5, frame: { kind: "fixed", width: 1, height: 1 } },
       ],
-      "InvalidZ"
+      "InvalidZ",
     );
   });
 
@@ -308,19 +324,37 @@ describe("compileLayoutRows", () => {
           { id: "root", frame: { kind: "root" } },
           { id: "a", parent: "root", z: value, frame: { kind: "fixed", width: 1, height: 1 } },
         ],
-        "NonFiniteNumber"
+        "NonFiniteNumber",
       );
     }
   });
 
-
   it("preserves view while keeping slot support", () => {
     const doc = compileLayoutRows([
       { id: "root", frame: { kind: "root" } },
-      { id: "child", parent: "root", frame: { kind: "fixed", width: 10, height: 10 }, view: "Header", slot: "HeaderSlot" },
+      {
+        id: "child",
+        parent: "root",
+        frame: { kind: "fixed", width: 10, height: 10 },
+        view: "Header",
+        slot: "HeaderSlot",
+      },
     ]);
 
     expect(doc.nodes.child.view).toBe("Header");
     expect(doc.nodes.child.slot).toBe("HeaderSlot");
   });
+});
+
+it("preserves layer metadata on compiled nodes", () => {
+  const doc = compileLayoutRows([
+    { id: "root", frame: { kind: "root" } },
+    {
+      id: "child",
+      parent: "root",
+      frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+      layer: "overlay",
+    },
+  ]);
+  expect(doc.nodes.child.layer).toBe("overlay");
 });

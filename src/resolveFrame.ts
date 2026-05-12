@@ -28,21 +28,33 @@ function resolveAnchor(parent: Rect, frame: AnchorFrame): Rect {
   const left = hasLeft ? resolveUiLength(frame.left!, parent.width, "frame.left") : undefined;
   const right = hasRight ? resolveUiLength(frame.right!, parent.width, "frame.right") : undefined;
   const top = hasTop ? resolveUiLength(frame.top!, parent.height, "frame.top") : undefined;
-  const bottom = hasBottom ? resolveUiLength(frame.bottom!, parent.height, "frame.bottom") : undefined;
-  const explicitWidth = hasWidth ? resolveUiLength(frame.width!, parent.width, "frame.width") : undefined;
-  const explicitHeight = hasHeight ? resolveUiLength(frame.height!, parent.height, "frame.height") : undefined;
+  const bottom = hasBottom
+    ? resolveUiLength(frame.bottom!, parent.height, "frame.bottom")
+    : undefined;
+  const explicitWidth = hasWidth
+    ? resolveUiLength(frame.width!, parent.width, "frame.width")
+    : undefined;
+  const explicitHeight = hasHeight
+    ? resolveUiLength(frame.height!, parent.height, "frame.height")
+    : undefined;
 
   if (hasWidth) assertNonNegativeSize(explicitWidth as number, "frame.width");
   if (hasHeight) assertNonNegativeSize(explicitHeight as number, "frame.height");
 
   const horizontalCount = Number(hasLeft) + Number(hasRight) + Number(hasWidth);
   if (horizontalCount !== 2) {
-    throw new MachinaLayoutError("InvalidAnchorHorizontal", "Anchor frame must specify exactly two horizontal constraints: left, right, width.");
+    throw new MachinaLayoutError(
+      "InvalidAnchorHorizontal",
+      "Anchor frame must specify exactly two horizontal constraints: left, right, width.",
+    );
   }
 
   const verticalCount = Number(hasTop) + Number(hasBottom) + Number(hasHeight);
   if (verticalCount !== 2) {
-    throw new MachinaLayoutError("InvalidAnchorVertical", "Anchor frame must specify exactly two vertical constraints: top, bottom, height.");
+    throw new MachinaLayoutError(
+      "InvalidAnchorVertical",
+      "Anchor frame must specify exactly two vertical constraints: top, bottom, height.",
+    );
   }
 
   let x: number;
@@ -74,7 +86,7 @@ function resolveAnchor(parent: Rect, frame: AnchorFrame): Rect {
   if (width < 0 || height < 0) {
     throw new MachinaLayoutError(
       "NegativeResolvedSize",
-      `Resolved anchor frame size must be non-negative. Received width=${width}, height=${height}.`
+      `Resolved anchor frame size must be non-negative. Received width=${width}, height=${height}.`,
     );
   }
 
@@ -91,18 +103,42 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
 
-      return { x: parent.x + frame.x, y: parent.y + frame.y, width: frame.width, height: frame.height };
+      return {
+        x: parent.x + frame.x,
+        y: parent.y + frame.y,
+        width: frame.width,
+        height: frame.height,
+      };
     }
     case "anchor":
       return resolveAnchor(parent, frame);
     case "root":
-      throw new MachinaLayoutError("RootFrameWithoutRoot", "RootFrame can only be declared on the root row.");
+      throw new MachinaLayoutError(
+        "RootFrameWithoutRoot",
+        "RootFrame can only be declared on the root row.",
+      );
     case "fixed": {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
-      throw new MachinaLayoutError("FixedFrameWithoutArranger", "Fixed frames require an arranger to determine placement.");
+      throw new MachinaLayoutError(
+        "FixedFrameWithoutArranger",
+        "Fixed frames require an arranger to determine placement.",
+      );
     }
     case "fill":
-      throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
+      throw new MachinaLayoutError(
+        "FillFrameWithoutArranger",
+        "Fill frames require a stack arranger to determine placement.",
+      );
+    case "cell":
+      throw new MachinaLayoutError(
+        "CellFrameWithoutGrid",
+        "Cell frames require a grid arranger to determine placement.",
+      );
+    case "guide":
+      throw new MachinaLayoutError(
+        "GuideTargetUnresolved",
+        "Guide frames require document-level dependency resolution and cannot be resolved directly.",
+      );
   }
 }

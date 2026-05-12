@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { MachinaLayoutError, resolveUiLength, type UiLength } from "../src";
 
 function expectCode(run: () => unknown, code: string): void {
-  try { run(); throw new Error('expected throw'); } catch (error) {
+  try {
+    run();
+    throw new Error("expected throw");
+  } catch (error) {
     expect(error).toBeInstanceOf(MachinaLayoutError);
     expect((error as MachinaLayoutError).code).toBe(code);
   }
@@ -30,9 +33,18 @@ describe("resolveUiLength", () => {
   });
 
   it("rejects invalid units and malformed objects", () => {
-    expectCode(() => resolveUiLength({ unit: "percent", value: 0.5 } as unknown as UiLength, 100), "InvalidLengthUnit");
-    expectCode(() => resolveUiLength({ unit: "ui" } as unknown as UiLength, 100), "InvalidLengthUnit");
-    expectCode(() => resolveUiLength({ value: 0.5 } as unknown as UiLength, 100), "InvalidLengthUnit");
+    expectCode(
+      () => resolveUiLength({ unit: "percent", value: 0.5 } as unknown as UiLength, 100),
+      "InvalidLengthUnit",
+    );
+    expectCode(
+      () => resolveUiLength({ unit: "ui" } as unknown as UiLength, 100),
+      "InvalidLengthUnit",
+    );
+    expectCode(
+      () => resolveUiLength({ value: 0.5 } as unknown as UiLength, 100),
+      "InvalidLengthUnit",
+    );
     expectCode(() => resolveUiLength({} as unknown as UiLength, 100), "InvalidLengthUnit");
   });
 });
