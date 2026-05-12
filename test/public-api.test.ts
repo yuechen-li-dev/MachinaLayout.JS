@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { resolveUiLength } from "../src";
-import type { CellFrame, FillFrame, GridArrange, GridTrack, LayerName, LayoutNode, LayoutRow, OffsetSpec, ResolvedLayoutNode, ResolvedLayoutTree, RootFrame, UiLength } from "../src";
+import type {
+  CellFrame,
+  FillFrame,
+  GridArrange,
+  GridTrack,
+  LayerName,
+  LayoutNode,
+  LayoutRow,
+  OffsetSpec,
+  ResolvedLayoutNode,
+  ResolvedLayoutTree,
+  RootFrame,
+  UiLength,
+} from "../src";
 import { normalizePadding } from "../src";
 
 describe("public API", () => {
@@ -18,7 +31,12 @@ describe("public API", () => {
     };
 
     const fillFrame: FillFrame = { kind: "fill", weight: 1 };
-    const node: LayoutNode = { id: "n", z: -1, frame: { kind: "fixed", width: 10, height: 10 }, view: "NodeView" };
+    const node: LayoutNode = {
+      id: "n",
+      z: -1,
+      frame: { kind: "fixed", width: 10, height: 10 },
+      view: "NodeView",
+    };
     const resolvedNode: ResolvedLayoutNode = {
       id: "rn",
       z: 2,
@@ -49,7 +67,11 @@ describe("public API", () => {
     expect(tree.z).toBe(0);
     const uiLeft: UiLength = { unit: "ui", value: 0.25 };
     const pxWidth: UiLength = { unit: "px", value: 100 };
-    const anchorRow: LayoutRow = { id: "anchor", parent: "root", frame: { kind: "anchor", left: uiLeft, width: pxWidth, top: 0, height: 10 } };
+    const anchorRow: LayoutRow = {
+      id: "anchor",
+      parent: "root",
+      frame: { kind: "anchor", left: uiLeft, width: pxWidth, top: 0, height: 10 },
+    };
 
     expect(anchorRow.frame.kind).toBe("anchor");
     expect(gridRow.arrange?.kind).toBe("grid");

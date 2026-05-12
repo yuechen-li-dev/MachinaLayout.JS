@@ -15,7 +15,7 @@ describe("assertFiniteNumber", () => {
   it("rejects NaN and infinities with NonFiniteNumber", () => {
     for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
       expect(() => assertFiniteNumber(bad, "value")).toThrowError(
-        expect.objectContaining({ code: "NonFiniteNumber" })
+        expect.objectContaining({ code: "NonFiniteNumber" }),
       );
     }
   });
@@ -29,13 +29,13 @@ describe("assertNonNegativeSize", () => {
 
   it("rejects negative values with NegativeSize", () => {
     expect(() => assertNonNegativeSize(-1, "size")).toThrowError(
-      expect.objectContaining({ code: "NegativeSize" })
+      expect.objectContaining({ code: "NegativeSize" }),
     );
   });
 
   it("rejects non-finite values with NonFiniteNumber", () => {
     expect(() => assertNonNegativeSize(Number.NaN, "size")).toThrowError(
-      expect.objectContaining({ code: "NonFiniteNumber" })
+      expect.objectContaining({ code: "NonFiniteNumber" }),
     );
   });
 });
@@ -48,13 +48,13 @@ describe("assertNonNegativeGap", () => {
 
   it("rejects negative values with NegativeGap", () => {
     expect(() => assertNonNegativeGap(-1)).toThrowError(
-      expect.objectContaining({ code: "NegativeGap" })
+      expect.objectContaining({ code: "NegativeGap" }),
     );
   });
 
   it("rejects non-finite values with NonFiniteNumber", () => {
     expect(() => assertNonNegativeGap(Number.POSITIVE_INFINITY)).toThrowError(
-      expect.objectContaining({ code: "NonFiniteNumber" })
+      expect.objectContaining({ code: "NonFiniteNumber" }),
     );
   });
 });
@@ -67,13 +67,13 @@ describe("assertNonNegativePadding", () => {
 
   it("rejects negative values with NegativePadding", () => {
     expect(() => assertNonNegativePadding(-1)).toThrowError(
-      expect.objectContaining({ code: "NegativePadding" })
+      expect.objectContaining({ code: "NegativePadding" }),
     );
   });
 
   it("rejects non-finite values with NonFiniteNumber", () => {
     expect(() => assertNonNegativePadding(Number.NEGATIVE_INFINITY)).toThrowError(
-      expect.objectContaining({ code: "NonFiniteNumber" })
+      expect.objectContaining({ code: "NonFiniteNumber" }),
     );
   });
 });

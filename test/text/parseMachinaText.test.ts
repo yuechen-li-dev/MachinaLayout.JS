@@ -12,7 +12,8 @@ function collectText(result: ReturnType<typeof parseMachinaText>): string {
     if (block.kind === "bulletList") {
       for (const item of block.items) {
         for (const inline of item.inline) if (inline.kind === "text") pieces.push(inline.text);
-        for (const child of item.children ?? []) for (const inline of child.inline) if (inline.kind === "text") pieces.push(inline.text);
+        for (const child of item.children ?? [])
+          for (const inline of child.inline) if (inline.kind === "text") pieces.push(inline.text);
       }
     }
   }
@@ -27,14 +28,16 @@ describe("parseMachinaText", () => {
     expect(result.document.blocks).toHaveLength(1);
     const block = result.document.blocks[0];
     expect(block.kind).toBe("paragraph");
-    if (block.kind === "paragraph") expect(block.inline).toEqual([{ kind: "text", text: "Hello **not bold**" }]);
+    if (block.kind === "paragraph")
+      expect(block.inline).toEqual([{ kind: "text", text: "Hello **not bold**" }]);
   });
 
   it("treats string input as machina-text", () => {
     const result = parseMachinaText("Hello **bold**");
     const block = result.document.blocks[0];
     expect(block.kind).toBe("paragraph");
-    if (block.kind === "paragraph") expect(block.inline.some((i) => i.kind === "strong")).toBe(true);
+    if (block.kind === "paragraph")
+      expect(block.inline.some((i) => i.kind === "strong")).toBe(true);
   });
 
   it("parses paragraphs", () => {
@@ -48,7 +51,15 @@ describe("parseMachinaText", () => {
     const p = result.document.blocks[0];
     expect(p.kind).toBe("paragraph");
     if (p.kind === "paragraph") {
-      expect(p.inline.map((i) => i.kind)).toEqual(["text", "strong", "text", "emphasis", "text", "code", "text"]);
+      expect(p.inline.map((i) => i.kind)).toEqual([
+        "text",
+        "strong",
+        "text",
+        "emphasis",
+        "text",
+        "code",
+        "text",
+      ]);
     }
   });
 
@@ -63,8 +74,24 @@ describe("parseMachinaText", () => {
   });
 
   it("diagnoses forbidden syntax and preserves text", () => {
-    const samples = ["![alt](image.png)", "# Title", "1. First", "- [ ] Todo", "> quote", "<div>Hello</div>", "```ts\nconst x = 1;"];
-    const expected = ["unsupported_syntax", "heading_forbidden", "unsupported_syntax", "unsupported_syntax", "unsupported_syntax", "unsupported_syntax", "unsupported_syntax"];
+    const samples = [
+      "![alt](image.png)",
+      "# Title",
+      "1. First",
+      "- [ ] Todo",
+      "> quote",
+      "<div>Hello</div>",
+      "```ts\nconst x = 1;",
+    ];
+    const expected = [
+      "unsupported_syntax",
+      "heading_forbidden",
+      "unsupported_syntax",
+      "unsupported_syntax",
+      "unsupported_syntax",
+      "unsupported_syntax",
+      "unsupported_syntax",
+    ];
     samples.forEach((sample, idx) => {
       const result = parseMachinaText(sample);
       expect(result.ok).toBe(false);
@@ -74,7 +101,9 @@ describe("parseMachinaText", () => {
   });
 
   it("parses bullet lists and nested bullets", () => {
-    const result = parseMachinaText("- Build rows\n- Resolve rectangles\n  - Preserve order\n  - Apply z\n- Render views");
+    const result = parseMachinaText(
+      "- Build rows\n- Resolve rectangles\n  - Preserve order\n  - Apply z\n- Render views",
+    );
     expect(result.document.blocks).toHaveLength(1);
     const block = result.document.blocks[0];
     expect(block.kind).toBe("bulletList");
@@ -118,7 +147,9 @@ describe("parseMachinaText", () => {
   });
 
   it("supports literal escapes and prevents inline marker parsing", () => {
-    const result = parseMachinaText("\\*literal\\* and \\`literal\\` and \\[label\\]\\(href\\) and \\\\");
+    const result = parseMachinaText(
+      "\\*literal\\* and \\`literal\\` and \\[label\\]\\(href\\) and \\\\",
+    );
     expect(result.diagnostics).toEqual([]);
     const text = collectText(result);
     expect(text).toContain("*literal*");

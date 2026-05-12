@@ -5,14 +5,20 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "biome check ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-test-renderer": "^19.1.0",
+    "@vue/test-utils": "^2.4.6",
     "jsdom": "^29.1.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -21,8 +27,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8",
-    "vue": "^3.5.22",
-    "@vue/test-utils": "^2.4.6"
+    "vue": "^3.5.22"
   },
   "peerDependencies": {
     "react": ">=18 <20",

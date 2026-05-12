@@ -26,7 +26,10 @@ function toResolvedTree(document) {
     const children = childIds.map((childId) => {
       const child = document.nodes[childId];
       if (!child) {
-        throw new MachinaLayoutError("UnknownParent", `missing child node '${childId}' referenced by '${node.id}'`);
+        throw new MachinaLayoutError(
+          "UnknownParent",
+          `missing child node '${childId}' referenced by '${node.id}'`
+        );
       }
       return build(child);
     });
@@ -48,7 +51,10 @@ function toResolvedTree(document) {
   const tree = build(root);
   for (const nodeId of Object.keys(document.nodes)) {
     if (!visited.has(nodeId)) {
-      throw new MachinaLayoutError("UnreachableNode", `node '${nodeId}' is unreachable from root '${document.rootId}'`);
+      throw new MachinaLayoutError(
+        "UnreachableNode",
+        `node '${nodeId}' is unreachable from root '${document.rootId}'`
+      );
     }
   }
   return tree;

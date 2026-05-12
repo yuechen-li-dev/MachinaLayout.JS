@@ -34,10 +34,24 @@ type TextPolicy = {
   listGap: number;
   valign: MachinaTextVerticalAlign;
 };
-type NormalizedText = { document: MachinaTextDocument; diagnostics: MachinaTextDiagnostic[]; policy: TextPolicy };
+type NormalizedText = {
+  document: MachinaTextDocument;
+  diagnostics: MachinaTextDiagnostic[];
+  policy: TextPolicy;
+};
 
-const DEFAULT_POLICY: TextPolicy = { variant: "body", wrap: "word", overflow: "clip", align: "start", leading: "normal", blockGap: 8, listGap: 2, valign: "top" };
-const INLINE_CODE_FONT = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+const DEFAULT_POLICY: TextPolicy = {
+  variant: "body",
+  wrap: "word",
+  overflow: "clip",
+  align: "start",
+  leading: "normal",
+  blockGap: 8,
+  listGap: 2,
+  valign: "top",
+};
+const INLINE_CODE_FONT =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
 
 const VARIANT_STYLE: Record<MachinaTextVariant, React.CSSProperties> = {
   body: { fontSize: "14px", fontWeight: 400, lineHeight: 1.4 },
@@ -82,10 +96,15 @@ function normalizeSpecPolicy(spec: MachinaTextSpec): TextPolicy {
 }
 
 function normalizeText(text: MachinaTextViewProps["text"]): NormalizedText {
-  if (isMachinaTextDocument(text)) return { document: text, diagnostics: [], policy: DEFAULT_POLICY };
+  if (isMachinaTextDocument(text))
+    return { document: text, diagnostics: [], policy: DEFAULT_POLICY };
   if (isMachinaTextSpec(text)) {
     const result = parseMachinaText(text.source);
-    return { document: result.document, diagnostics: result.diagnostics, policy: normalizeSpecPolicy(text) };
+    return {
+      document: result.document,
+      diagnostics: result.diagnostics,
+      policy: normalizeSpecPolicy(text),
+    };
   }
   const result = parseMachinaText(typeof text === "string" ? { kind: "machina-text", text } : text);
   return { document: result.document, diagnostics: result.diagnostics, policy: DEFAULT_POLICY };
@@ -99,13 +118,20 @@ function resolveLineHeight(policy: TextPolicy): number {
 }
 
 function policyStyle(policy: TextPolicy): React.CSSProperties {
-  const wrapStyle: Record<MachinaTextWrap, React.CSSProperties> = { word: { whiteSpace: "normal", overflowWrap: "anywhere" }, none: { whiteSpace: "nowrap" } };
+  const wrapStyle: Record<MachinaTextWrap, React.CSSProperties> = {
+    word: { whiteSpace: "normal", overflowWrap: "anywhere" },
+    none: { whiteSpace: "nowrap" },
+  };
   const overflowStyle: Record<MachinaTextOverflow, React.CSSProperties> = {
     clip: { overflow: "hidden" },
     ellipsis: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
     scroll: { overflow: "auto" },
   };
-  const alignStyle: Record<MachinaTextAlign, React.CSSProperties> = { start: { textAlign: "left" }, center: { textAlign: "center" }, end: { textAlign: "right" } };
+  const alignStyle: Record<MachinaTextAlign, React.CSSProperties> = {
+    start: { textAlign: "left" },
+    center: { textAlign: "center" },
+    end: { textAlign: "right" },
+  };
   const justifyContent: Record<MachinaTextVerticalAlign, React.CSSProperties["justifyContent"]> = {
     top: "flex-start",
     center: "center",
@@ -127,34 +153,131 @@ function policyStyle(policy: TextPolicy): React.CSSProperties {
   };
 }
 
-function renderInline(inline: MachinaInline, key: string, props: MachinaTextViewProps): React.ReactNode { /* unchanged */
+function renderInline(
+  inline: MachinaInline,
+  key: string,
+  props: MachinaTextViewProps,
+): React.ReactNode {
+  /* unchanged */
   switch (inline.kind) {
-    case "text": return <React.Fragment key={key}>{inline.text}</React.Fragment>;
-    case "strong": return <strong key={key}>{inline.children.map((c, i) => renderInline(c, `${key}-s-${i}`, props))}</strong>;
-    case "emphasis": return <em key={key}>{inline.children.map((c, i) => renderInline(c, `${key}-e-${i}`, props))}</em>;
-    case "code": return <code key={key} style={{ fontFamily: INLINE_CODE_FONT, backgroundColor: "rgba(127, 127, 127, 0.15)", borderRadius: 3, padding: "0 0.25em" }}>{inline.text}</code>;
+    case "text":
+      return <React.Fragment key={key}>{inline.text}</React.Fragment>;
+    case "strong":
+      return (
+        <strong key={key}>
+          {inline.children.map((c, i) => renderInline(c, `${key}-s-${i}`, props))}
+        </strong>
+      );
+    case "emphasis":
+      return (
+        <em key={key}>{inline.children.map((c, i) => renderInline(c, `${key}-e-${i}`, props))}</em>
+      );
+    case "code":
+      return (
+        <code
+          key={key}
+          style={{
+            fontFamily: INLINE_CODE_FONT,
+            backgroundColor: "rgba(127, 127, 127, 0.15)",
+            borderRadius: 3,
+            padding: "0 0.25em",
+          }}
+        >
+          {inline.text}
+        </code>
+      );
     case "link": {
       const rel = props.linkTarget === "_blank" ? "noreferrer noopener" : undefined;
-      return <a key={key} href={inline.href} target={props.linkTarget} rel={rel} onClick={(event) => props.onLinkClick?.(inline.href, event)}>{inline.children.map((c, i) => renderInline(c, `${key}-l-${i}`, props))}</a>;
+      return (
+        <a
+          key={key}
+          href={inline.href}
+          target={props.linkTarget}
+          rel={rel}
+          onClick={(event) => props.onLinkClick?.(inline.href, event)}
+        >
+          {inline.children.map((c, i) => renderInline(c, `${key}-l-${i}`, props))}
+        </a>
+      );
     }
   }
 }
 
-function renderBulletItem(item: MachinaBulletItem, path: string, props: MachinaTextViewProps, listGap: number): React.ReactNode {
-  return <li key={path} style={{ marginBottom: listGap }}>
-    {item.inline.map((i, idx) => renderInline(i, `${path}-i-${idx}`, props))}
-    {item.children?.length ? <ul style={{ margin: "0.25em 0 0 0", paddingLeft: "1.25em" }}>{item.children.map((c, idx) => renderBulletItem(c, `${path}-c-${idx}`, props, listGap))}</ul> : null}
-  </li>;
+function renderBulletItem(
+  item: MachinaBulletItem,
+  path: string,
+  props: MachinaTextViewProps,
+  listGap: number,
+): React.ReactNode {
+  return (
+    <li key={path} style={{ marginBottom: listGap }}>
+      {item.inline.map((i, idx) => renderInline(i, `${path}-i-${idx}`, props))}
+      {item.children?.length ? (
+        <ul style={{ margin: "0.25em 0 0 0", paddingLeft: "1.25em" }}>
+          {item.children.map((c, idx) => renderBulletItem(c, `${path}-c-${idx}`, props, listGap))}
+        </ul>
+      ) : null}
+    </li>
+  );
 }
 
 export function MachinaTextView(props: MachinaTextViewProps): React.JSX.Element {
   const normalized = normalizeText(props.text);
-  return <div className={props.className} style={{ ...policyStyle(normalized.policy), ...props.style }}>
-    <div style={{ minWidth: 0 }}>
-      {normalized.document.blocks.map((block, index) => block.kind === "paragraph"
-        ? <p key={`b-${index}`} style={{ margin: index === normalized.document.blocks.length - 1 ? "0" : `0 0 ${normalized.policy.blockGap}px 0` }}>{block.inline.map((i, idx) => renderInline(i, `b-${index}-${idx}`, props))}</p>
-        : <ul key={`b-${index}`} style={{ margin: index === normalized.document.blocks.length - 1 ? "0" : `0 0 ${normalized.policy.blockGap}px 0`, paddingLeft: "1.25em" }}>{block.items.map((item, itemIndex) => renderBulletItem(item, `b-${index}-item-${itemIndex}`, props, normalized.policy.listGap))}</ul>)}
-      {props.showDiagnostics && normalized.diagnostics.length > 0 ? <pre style={{ margin: `${normalized.policy.blockGap}px 0 0 0`, padding: "0.5em", fontSize: "11px", fontFamily: INLINE_CODE_FONT, whiteSpace: "pre-wrap", background: "rgba(127, 127, 127, 0.12)" }}>{normalized.diagnostics.map((d) => `${d.code} (${d.line}:${d.column}) ${d.message}`).join("\n")}</pre> : null}
+  return (
+    <div className={props.className} style={{ ...policyStyle(normalized.policy), ...props.style }}>
+      <div style={{ minWidth: 0 }}>
+        {normalized.document.blocks.map((block, index) =>
+          block.kind === "paragraph" ? (
+            <p
+              key={`b-${index}`}
+              style={{
+                margin:
+                  index === normalized.document.blocks.length - 1
+                    ? "0"
+                    : `0 0 ${normalized.policy.blockGap}px 0`,
+              }}
+            >
+              {block.inline.map((i, idx) => renderInline(i, `b-${index}-${idx}`, props))}
+            </p>
+          ) : (
+            <ul
+              key={`b-${index}`}
+              style={{
+                margin:
+                  index === normalized.document.blocks.length - 1
+                    ? "0"
+                    : `0 0 ${normalized.policy.blockGap}px 0`,
+                paddingLeft: "1.25em",
+              }}
+            >
+              {block.items.map((item, itemIndex) =>
+                renderBulletItem(
+                  item,
+                  `b-${index}-item-${itemIndex}`,
+                  props,
+                  normalized.policy.listGap,
+                ),
+              )}
+            </ul>
+          ),
+        )}
+        {props.showDiagnostics && normalized.diagnostics.length > 0 ? (
+          <pre
+            style={{
+              margin: `${normalized.policy.blockGap}px 0 0 0`,
+              padding: "0.5em",
+              fontSize: "11px",
+              fontFamily: INLINE_CODE_FONT,
+              whiteSpace: "pre-wrap",
+              background: "rgba(127, 127, 127, 0.12)",
+            }}
+          >
+            {normalized.diagnostics
+              .map((d) => `${d.code} (${d.line}:${d.column}) ${d.message}`)
+              .join("\n")}
+          </pre>
+        ) : null}
+      </div>
     </div>
-  </div>;
+  );
 }

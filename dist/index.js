@@ -1,16 +1,16 @@
 import {
   MachinaReactView
-} from "./chunk-TG7XRQTQ.js";
+} from "./chunk-HU6XYOH7.js";
 import "./chunk-LWCGS2T6.js";
 import {
   MachinaTextView,
   parseMachinaText,
   parseMachinaTextInline
-} from "./chunk-AME4I4UN.js";
+} from "./chunk-U3H4442R.js";
 import {
   MachinaLayoutError,
   toResolvedTree
-} from "./chunk-LTYAYHGT.js";
+} from "./chunk-TR24ERZT.js";
 
 // src/validation.ts
 function assertFiniteNumber(value, fieldName) {
@@ -87,7 +87,10 @@ function resolveUiLength(length, axisSize, fieldName = "length") {
   if (unit === "ui") {
     return value * axisSize;
   }
-  throw new MachinaLayoutError("InvalidLengthUnit", `Invalid UiLength unit for ${fieldName}: ${String(unit)}.`);
+  throw new MachinaLayoutError(
+    "InvalidLengthUnit",
+    `Invalid UiLength unit for ${fieldName}: ${String(unit)}.`
+  );
 }
 
 // src/offset.ts
@@ -122,12 +125,18 @@ function compileLayoutRows(rows) {
       assertFiniteNumber(row.order, `rows[${rowIndex}].order`);
     }
     if (row.frame.kind === "root" && row.parent !== void 0) {
-      throw new MachinaLayoutError("RootFrameNotRoot", `row ${row.id} uses RootFrame but is not a root row.`);
+      throw new MachinaLayoutError(
+        "RootFrameNotRoot",
+        `row ${row.id} uses RootFrame but is not a root row.`
+      );
     }
     if (row.z !== void 0) {
       assertFiniteNumber(row.z, `rows[${rowIndex}].z`);
       if (!Number.isInteger(row.z) || row.z < -5 || row.z > 5) {
-        throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].z must be an integer in range -5..5`);
+        throw new MachinaLayoutError(
+          "InvalidZ",
+          `rows[${rowIndex}].z must be an integer in range -5..5`
+        );
       }
     }
     rowById.set(row.id, row);
@@ -154,10 +163,16 @@ function compileLayoutRows(rows) {
   }
   const rootId = rootCandidates[0];
   if (nodes[rootId].frame.kind === "fill") {
-    throw new MachinaLayoutError("FillFrameWithoutArranger", "FillFrame cannot be used as the root frame.");
+    throw new MachinaLayoutError(
+      "FillFrameWithoutArranger",
+      "FillFrame cannot be used as the root frame."
+    );
   }
   if (nodes[rootId].frame.kind === "fixed") {
-    throw new MachinaLayoutError("FixedFrameWithoutArranger", "FixedFrame cannot be used as the root frame.");
+    throw new MachinaLayoutError(
+      "FixedFrameWithoutArranger",
+      "FixedFrame cannot be used as the root frame."
+    );
   }
   const childrenEntries = /* @__PURE__ */ new Map();
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
@@ -169,7 +184,10 @@ function compileLayoutRows(rows) {
       throw new MachinaLayoutError("SelfParent", `node ${row.id} cannot parent itself.`);
     }
     if (!rowById.has(row.parent) || row.parent.trim().length === 0) {
-      throw new MachinaLayoutError("UnknownParent", `node ${row.id} references unknown parent: ${row.parent}`);
+      throw new MachinaLayoutError(
+        "UnknownParent",
+        `node ${row.id} references unknown parent: ${row.parent}`
+      );
     }
     const entry = {
       childId: row.id,
@@ -247,22 +265,40 @@ function validateRootRect(rootRect) {
 }
 function validateCondition(condition, rowIndex, variantIndex) {
   if (condition.minWidth !== void 0) {
-    assertFiniteNumber(condition.minWidth, `rows[${rowIndex}].variants[${variantIndex}].when.minWidth`);
+    assertFiniteNumber(
+      condition.minWidth,
+      `rows[${rowIndex}].variants[${variantIndex}].when.minWidth`
+    );
   }
   if (condition.maxWidth !== void 0) {
-    assertFiniteNumber(condition.maxWidth, `rows[${rowIndex}].variants[${variantIndex}].when.maxWidth`);
+    assertFiniteNumber(
+      condition.maxWidth,
+      `rows[${rowIndex}].variants[${variantIndex}].when.maxWidth`
+    );
   }
   if (condition.minHeight !== void 0) {
-    assertFiniteNumber(condition.minHeight, `rows[${rowIndex}].variants[${variantIndex}].when.minHeight`);
+    assertFiniteNumber(
+      condition.minHeight,
+      `rows[${rowIndex}].variants[${variantIndex}].when.minHeight`
+    );
   }
   if (condition.maxHeight !== void 0) {
-    assertFiniteNumber(condition.maxHeight, `rows[${rowIndex}].variants[${variantIndex}].when.maxHeight`);
+    assertFiniteNumber(
+      condition.maxHeight,
+      `rows[${rowIndex}].variants[${variantIndex}].when.maxHeight`
+    );
   }
   if (condition.minWidth !== void 0 && condition.maxWidth !== void 0 && condition.minWidth > condition.maxWidth) {
-    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minWidth > maxWidth`);
+    throw new MachinaLayoutError(
+      "InvalidVariantCondition",
+      `rows[${rowIndex}].variants[${variantIndex}].when has minWidth > maxWidth`
+    );
   }
   if (condition.minHeight !== void 0 && condition.maxHeight !== void 0 && condition.minHeight > condition.maxHeight) {
-    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minHeight > maxHeight`);
+    throw new MachinaLayoutError(
+      "InvalidVariantCondition",
+      `rows[${rowIndex}].variants[${variantIndex}].when has minHeight > maxHeight`
+    );
   }
 }
 function conditionMatches(condition, rootRect) {
@@ -276,7 +312,10 @@ function validateVariantZ(variant, rowIndex, variantIndex) {
   if (variant.z === void 0) return;
   assertFiniteNumber(variant.z, `rows[${rowIndex}].variants[${variantIndex}].z`);
   if (!Number.isInteger(variant.z) || variant.z < -5 || variant.z > 5) {
-    throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].variants[${variantIndex}].z must be an integer in range -5..5`);
+    throw new MachinaLayoutError(
+      "InvalidZ",
+      `rows[${rowIndex}].variants[${variantIndex}].z must be an integer in range -5..5`
+    );
   }
 }
 function selectLayoutRowsForRoot(rows, rootRect) {
@@ -339,11 +378,17 @@ function resolveAnchor(parent, frame) {
   if (hasHeight) assertNonNegativeSize(explicitHeight, "frame.height");
   const horizontalCount = Number(hasLeft) + Number(hasRight) + Number(hasWidth);
   if (horizontalCount !== 2) {
-    throw new MachinaLayoutError("InvalidAnchorHorizontal", "Anchor frame must specify exactly two horizontal constraints: left, right, width.");
+    throw new MachinaLayoutError(
+      "InvalidAnchorHorizontal",
+      "Anchor frame must specify exactly two horizontal constraints: left, right, width."
+    );
   }
   const verticalCount = Number(hasTop) + Number(hasBottom) + Number(hasHeight);
   if (verticalCount !== 2) {
-    throw new MachinaLayoutError("InvalidAnchorVertical", "Anchor frame must specify exactly two vertical constraints: top, bottom, height.");
+    throw new MachinaLayoutError(
+      "InvalidAnchorVertical",
+      "Anchor frame must specify exactly two vertical constraints: top, bottom, height."
+    );
   }
   let x;
   let width;
@@ -385,23 +430,43 @@ function resolveFrame(parent, frame) {
       assertFiniteNumber(frame.y, "frame.y");
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
-      return { x: parent.x + frame.x, y: parent.y + frame.y, width: frame.width, height: frame.height };
+      return {
+        x: parent.x + frame.x,
+        y: parent.y + frame.y,
+        width: frame.width,
+        height: frame.height
+      };
     }
     case "anchor":
       return resolveAnchor(parent, frame);
     case "root":
-      throw new MachinaLayoutError("RootFrameWithoutRoot", "RootFrame can only be declared on the root row.");
+      throw new MachinaLayoutError(
+        "RootFrameWithoutRoot",
+        "RootFrame can only be declared on the root row."
+      );
     case "fixed": {
       assertNonNegativeSize(frame.width, "frame.width");
       assertNonNegativeSize(frame.height, "frame.height");
-      throw new MachinaLayoutError("FixedFrameWithoutArranger", "Fixed frames require an arranger to determine placement.");
+      throw new MachinaLayoutError(
+        "FixedFrameWithoutArranger",
+        "Fixed frames require an arranger to determine placement."
+      );
     }
     case "fill":
-      throw new MachinaLayoutError("FillFrameWithoutArranger", "Fill frames require a stack arranger to determine placement.");
+      throw new MachinaLayoutError(
+        "FillFrameWithoutArranger",
+        "Fill frames require a stack arranger to determine placement."
+      );
     case "cell":
-      throw new MachinaLayoutError("CellFrameWithoutGrid", "Cell frames require a grid arranger to determine placement.");
+      throw new MachinaLayoutError(
+        "CellFrameWithoutGrid",
+        "Cell frames require a grid arranger to determine placement."
+      );
     case "guide":
-      throw new MachinaLayoutError("GuideTargetUnresolved", "Guide frames require document-level dependency resolution and cannot be resolved directly.");
+      throw new MachinaLayoutError(
+        "GuideTargetUnresolved",
+        "Guide frames require document-level dependency resolution and cannot be resolved directly."
+      );
   }
 }
 
@@ -437,22 +502,50 @@ function getRectEdgeValue(rect, edge) {
 function validateGuideFrame(nodeId, frame, document) {
   const hCount = Number(frame.left !== void 0) + Number(frame.right !== void 0) + Number(frame.width !== void 0);
   const vCount = Number(frame.top !== void 0) + Number(frame.bottom !== void 0) + Number(frame.height !== void 0);
-  if (hCount !== 2 || vCount !== 2) throw new MachinaLayoutError("InvalidGuideFrame", `guide frame must provide exactly two constraints per axis: ${nodeId}`);
+  if (hCount !== 2 || vCount !== 2)
+    throw new MachinaLayoutError(
+      "InvalidGuideFrame",
+      `guide frame must provide exactly two constraints per axis: ${nodeId}`
+    );
   const hRefs = [frame.left, frame.right].filter(isEdgeRef);
   const vRefs = [frame.top, frame.bottom].filter(isEdgeRef);
-  if (hRefs.length > 1 || vRefs.length > 1) throw new MachinaLayoutError("GuideTooManyReferencesPerAxis", `guide has too many refs on one axis: ${nodeId}`);
+  if (hRefs.length > 1 || vRefs.length > 1)
+    throw new MachinaLayoutError(
+      "GuideTooManyReferencesPerAxis",
+      `guide has too many refs on one axis: ${nodeId}`
+    );
   for (const ref of [...hRefs, ...vRefs]) {
-    if (ref.ref === nodeId) throw new MachinaLayoutError("GuideSelfReference", `guide cannot reference itself: ${nodeId}`);
-    if (!document.nodes[ref.ref]) throw new MachinaLayoutError("GuideTargetNotFound", `guide target not found: ${ref.ref}`);
-    if (!ALL_EDGES.has(ref.edge)) throw new MachinaLayoutError("InvalidGuideFrame", `unknown edge: ${String(ref.edge)}`);
+    if (ref.ref === nodeId)
+      throw new MachinaLayoutError(
+        "GuideSelfReference",
+        `guide cannot reference itself: ${nodeId}`
+      );
+    if (!document.nodes[ref.ref])
+      throw new MachinaLayoutError("GuideTargetNotFound", `guide target not found: ${ref.ref}`);
+    if (!ALL_EDGES.has(ref.edge))
+      throw new MachinaLayoutError("InvalidGuideFrame", `unknown edge: ${String(ref.edge)}`);
   }
-  for (const ref of hRefs) if (!H_EDGES.has(ref.edge)) throw new MachinaLayoutError("GuideInvalidEdgeForAxis", `horizontal guide ref must use horizontal edge: ${nodeId}`);
-  for (const ref of vRefs) if (!V_EDGES.has(ref.edge)) throw new MachinaLayoutError("GuideInvalidEdgeForAxis", `vertical guide ref must use vertical edge: ${nodeId}`);
+  for (const ref of hRefs)
+    if (!H_EDGES.has(ref.edge))
+      throw new MachinaLayoutError(
+        "GuideInvalidEdgeForAxis",
+        `horizontal guide ref must use horizontal edge: ${nodeId}`
+      );
+  for (const ref of vRefs)
+    if (!V_EDGES.has(ref.edge))
+      throw new MachinaLayoutError(
+        "GuideInvalidEdgeForAxis",
+        `vertical guide ref must use vertical edge: ${nodeId}`
+      );
 }
 function resolveGuidePosition(parentRect, side, value, resolvedNodes) {
   if (isEdgeRef(value)) {
     const target = resolvedNodes[value.ref];
-    if (!target) throw new MachinaLayoutError("GuideTargetUnresolved", `guide target unresolved: ${value.ref}`);
+    if (!target)
+      throw new MachinaLayoutError(
+        "GuideTargetUnresolved",
+        `guide target unresolved: ${value.ref}`
+      );
     const axisSize2 = side === "left" || side === "right" ? parentRect.width : parentRect.height;
     const offset = value.offset === void 0 ? 0 : resolveUiLength(value.offset, axisSize2, `frame.${side}.offset`);
     return getRectEdgeValue(target.rect, value.edge) + offset;
@@ -483,7 +576,11 @@ function resolveGuideFrame(parentRect, frame, resolvedNodes) {
   const width = hasWidth ? explicitWidth : right - left;
   const y = hasTop && hasHeight ? top : hasBottom && hasHeight ? bottom - explicitHeight : top;
   const height = hasHeight ? explicitHeight : bottom - top;
-  if (width < 0 || height < 0) throw new MachinaLayoutError("NegativeResolvedSize", `Resolved guide frame size must be non-negative. Received width=${width}, height=${height}.`);
+  if (width < 0 || height < 0)
+    throw new MachinaLayoutError(
+      "NegativeResolvedSize",
+      `Resolved guide frame size must be non-negative. Received width=${width}, height=${height}.`
+    );
   return { x, y, width, height };
 }
 function resolveStackChildRects(parentRect, arrange, childIds, document) {
@@ -492,8 +589,17 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
   const align = arrange.align ?? "start";
   assertNonNegativeGap(gap, "gap");
   const padding = normalizePadding(arrange.padding);
-  const content = { x: parentRect.x + padding.left, y: parentRect.y + padding.top, width: parentRect.width - padding.left - padding.right, height: parentRect.height - padding.top - padding.bottom };
-  if (content.width < 0 || content.height < 0) throw new MachinaLayoutError("StackContentNegative", "stack content size cannot be negative after applying padding");
+  const content = {
+    x: parentRect.x + padding.left,
+    y: parentRect.y + padding.top,
+    width: parentRect.width - padding.left - padding.right,
+    height: parentRect.height - padding.top - padding.bottom
+  };
+  if (content.width < 0 || content.height < 0)
+    throw new MachinaLayoutError(
+      "StackContentNegative",
+      "stack content size cannot be negative after applying padding"
+    );
   const isHorizontal = arrange.axis === "horizontal";
   const contentMain = isHorizontal ? content.width : content.height;
   const contentCross = isHorizontal ? content.height : content.width;
@@ -502,7 +608,11 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
   const fillWeights = [];
   for (const childId of childIds) {
     const childNode = document.nodes[childId];
-    if (!childNode) throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by arranged parent is missing`);
+    if (!childNode)
+      throw new MachinaLayoutError(
+        "UnknownParent",
+        `child id ${childId} referenced by arranged parent is missing`
+      );
     if (childNode.frame.kind === "fixed") {
       assertNonNegativeSize(childNode.frame.width, `${childId}.frame.width`);
       assertNonNegativeSize(childNode.frame.height, `${childId}.frame.height`);
@@ -511,10 +621,18 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
       fillWeights.push(0);
       continue;
     }
-    if (childNode.frame.kind !== "fill") throw new MachinaLayoutError("StackChildMustBeFixed", `stack child must use fixed or fill frame: ${childId}`);
+    if (childNode.frame.kind !== "fill")
+      throw new MachinaLayoutError(
+        "StackChildMustBeFixed",
+        `stack child must use fixed or fill frame: ${childId}`
+      );
     const weight = childNode.frame.weight ?? 1;
     assertFiniteNumber(weight, `${childId}.frame.weight`);
-    if (weight <= 0) throw new MachinaLayoutError("InvalidFillWeight", `${childId}.frame.weight must be greater than 0`);
+    if (weight <= 0)
+      throw new MachinaLayoutError(
+        "InvalidFillWeight",
+        `${childId}.frame.weight must be greater than 0`
+      );
     const cross = childNode.frame.cross ?? "fill";
     let childCross = contentCross;
     if (cross !== "fill") {
@@ -525,15 +643,22 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
     childCrossSizes.push(childCross);
     fillWeights.push(weight);
   }
-  const fixedMainTotal = childIds.reduce((sum, _id, i) => sum + (fillWeights[i] === 0 ? childMainSizes[i] : 0), 0);
+  const fixedMainTotal = childIds.reduce(
+    (sum, _id, i) => sum + (fillWeights[i] === 0 ? childMainSizes[i] : 0),
+    0
+  );
   const totalGap = gap * Math.max(0, childIds.length - 1);
   const remainingMain = contentMain - fixedMainTotal - totalGap;
   if (remainingMain < 0) throw new MachinaLayoutError("StackOverflow", "stack main axis overflow");
   const totalFillWeight = fillWeights.reduce((sum, w) => sum + w, 0);
   if (totalFillWeight > 0) {
-    for (let i = 0; i < childMainSizes.length; i += 1) if (fillWeights[i] > 0) childMainSizes[i] = remainingMain * fillWeights[i] / totalFillWeight;
+    for (let i = 0; i < childMainSizes.length; i += 1)
+      if (fillWeights[i] > 0)
+        childMainSizes[i] = remainingMain * fillWeights[i] / totalFillWeight;
   }
-  for (const childCross of childCrossSizes) if (childCross > contentCross) throw new MachinaLayoutError("StackOverflow", "stack cross axis overflow");
+  for (const childCross of childCrossSizes)
+    if (childCross > contentCross)
+      throw new MachinaLayoutError("StackOverflow", "stack cross axis overflow");
   const occupiedMain = childMainSizes.reduce((sum, size) => sum + size, 0) + totalGap;
   const remainingMainAfterFill = contentMain - occupiedMain;
   let startOffset = 0;
@@ -541,7 +666,8 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
   if (totalFillWeight === 0) {
     if (justify === "center") startOffset = remainingMainAfterFill / 2;
     else if (justify === "end") startOffset = remainingMainAfterFill;
-    else if (justify === "space-between") actualGap = childIds.length <= 1 ? 0 : gap + remainingMainAfterFill / (childIds.length - 1);
+    else if (justify === "space-between")
+      actualGap = childIds.length <= 1 ? 0 : gap + remainingMainAfterFill / (childIds.length - 1);
   }
   const rects = {};
   let currentMain = startOffset;
@@ -551,32 +677,53 @@ function resolveStackChildRects(parentRect, arrange, childIds, document) {
     let crossOffset = 0;
     if (align === "center") crossOffset = (contentCross - childCross) / 2;
     else if (align === "end") crossOffset = contentCross - childCross;
-    rects[childId] = isHorizontal ? { x: content.x + currentMain, y: content.y + crossOffset, width: childMain, height: childCross } : { x: content.x + crossOffset, y: content.y + currentMain, width: childCross, height: childMain };
+    rects[childId] = isHorizontal ? {
+      x: content.x + currentMain,
+      y: content.y + crossOffset,
+      width: childMain,
+      height: childCross
+    } : {
+      x: content.x + crossOffset,
+      y: content.y + currentMain,
+      width: childCross,
+      height: childMain
+    };
     currentMain += childMain + actualGap;
   });
   return rects;
 }
 function validateGridTrack(track, axis, index) {
   if (track.kind === "fixed") {
-    if (!Number.isFinite(track.size) || track.size < 0) throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}].size must be finite and non-negative`);
+    if (!Number.isFinite(track.size) || track.size < 0)
+      throw new MachinaLayoutError(
+        "InvalidGridTrack",
+        `${axis}[${index}].size must be finite and non-negative`
+      );
     return;
   }
   if (track.kind === "fill") {
     const weight = track.weight ?? 1;
-    if (!Number.isFinite(weight) || weight <= 0) throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}].weight must be finite and greater than 0`);
+    if (!Number.isFinite(weight) || weight <= 0)
+      throw new MachinaLayoutError(
+        "InvalidGridTrack",
+        `${axis}[${index}].weight must be finite and greater than 0`
+      );
     return;
   }
   throw new MachinaLayoutError("InvalidGridTrack", `${axis}[${index}] has unknown track kind`);
 }
 function resolveGridTracks(contentAxisSize, tracks, gap, axis) {
-  if (!Number.isFinite(gap) || gap < 0 || tracks.length === 0) throw new MachinaLayoutError("InvalidGridTrack", `invalid ${axis} configuration`);
+  if (!Number.isFinite(gap) || gap < 0 || tracks.length === 0)
+    throw new MachinaLayoutError("InvalidGridTrack", `invalid ${axis} configuration`);
   tracks.forEach((t, i) => validateGridTrack(t, axis, i));
   const fixedTotal = tracks.reduce((s, t) => s + (t.kind === "fixed" ? t.size : 0), 0);
   const gapTotal = gap * Math.max(0, tracks.length - 1);
   const remaining = contentAxisSize - fixedTotal - gapTotal;
   if (remaining < 0) throw new MachinaLayoutError("GridOverflow", `grid ${axis} overflow`);
   const totalWeight = tracks.reduce((s, t) => s + (t.kind === "fill" ? t.weight ?? 1 : 0), 0);
-  const sizes = tracks.map((t) => t.kind === "fixed" ? t.size : totalWeight <= 0 ? 0 : remaining * (t.weight ?? 1) / totalWeight);
+  const sizes = tracks.map(
+    (t) => t.kind === "fixed" ? t.size : totalWeight <= 0 ? 0 : remaining * (t.weight ?? 1) / totalWeight
+  );
   let current = 0;
   return sizes.map((size) => {
     const r = { start: current, size };
@@ -585,12 +732,24 @@ function resolveGridTracks(contentAxisSize, tracks, gap, axis) {
   });
 }
 function resolveGridChildRect(childNode, columns, rows, columnGap, rowGap, content) {
-  if (childNode.frame.kind !== "cell") throw new MachinaLayoutError("GridChildMustBeCell", `grid child must use cell frame: ${childNode.id}`);
+  if (childNode.frame.kind !== "cell")
+    throw new MachinaLayoutError(
+      "GridChildMustBeCell",
+      `grid child must use cell frame: ${childNode.id}`
+    );
   const { row, col } = childNode.frame;
   const rowSpan = childNode.frame.rowSpan ?? 1;
   const colSpan = childNode.frame.colSpan ?? 1;
-  if (!Number.isInteger(row) || row < 0 || !Number.isInteger(col) || col < 0 || !Number.isInteger(rowSpan) || rowSpan <= 0 || !Number.isInteger(colSpan) || colSpan <= 0) throw new MachinaLayoutError("InvalidGridCell", `invalid cell coordinates/spans for node ${childNode.id}`);
-  if (row + rowSpan > rows.length || col + colSpan > columns.length) throw new MachinaLayoutError("InvalidGridCell", `cell exceeds grid bounds for node ${childNode.id}`);
+  if (!Number.isInteger(row) || row < 0 || !Number.isInteger(col) || col < 0 || !Number.isInteger(rowSpan) || rowSpan <= 0 || !Number.isInteger(colSpan) || colSpan <= 0)
+    throw new MachinaLayoutError(
+      "InvalidGridCell",
+      `invalid cell coordinates/spans for node ${childNode.id}`
+    );
+  if (row + rowSpan > rows.length || col + colSpan > columns.length)
+    throw new MachinaLayoutError(
+      "InvalidGridCell",
+      `cell exceeds grid bounds for node ${childNode.id}`
+    );
   const x = content.x + columns[col].start;
   const y = content.y + rows[row].start;
   let width = columnGap * (colSpan - 1);
@@ -602,7 +761,8 @@ function resolveGridChildRect(childNode, columns, rows, columnGap, rowGap, conte
 function resolveLayoutDocument(document, rootRect) {
   validateRootRect2(rootRect);
   const rootNode = document.nodes[document.rootId];
-  if (!rootNode) throw new MachinaLayoutError("MissingRoot", `root node not found for id: ${document.rootId}`);
+  if (!rootNode)
+    throw new MachinaLayoutError("MissingRoot", `root node not found for id: ${document.rootId}`);
   const resolvedNodes = {};
   const resolvedChildren = {};
   const visitState = /* @__PURE__ */ new Map();
@@ -612,31 +772,71 @@ function resolveLayoutDocument(document, rootRect) {
     if (state === 1) throw new MachinaLayoutError("Cycle", `cycle detected at node ${nodeId}`);
     if (state === 2) return;
     const node = document.nodes[nodeId];
-    if (!node) throw new MachinaLayoutError("UnknownParent", `node referenced in children but missing from nodes: ${nodeId}`);
+    if (!node)
+      throw new MachinaLayoutError(
+        "UnknownParent",
+        `node referenced in children but missing from nodes: ${nodeId}`
+      );
     visitState.set(nodeId, 1);
-    resolvedNodes[nodeId] = { id: node.id, z: node.z, rect: { ...rect }, frame: node.frame, arrange: node.arrange, view: node.view, slot: node.slot, debugLabel: node.debugLabel, layer: node.layer, offset: node.offset };
+    resolvedNodes[nodeId] = {
+      id: node.id,
+      z: node.z,
+      rect: { ...rect },
+      frame: node.frame,
+      arrange: node.arrange,
+      view: node.view,
+      slot: node.slot,
+      debugLabel: node.debugLabel,
+      layer: node.layer,
+      offset: node.offset
+    };
     const childIds = document.children[nodeId] ?? [];
     resolvedChildren[nodeId] = [...childIds];
     let childRects;
-    if (node.arrange?.kind === "stack") childRects = resolveStackChildRects(rect, node.arrange, childIds, document);
+    if (node.arrange?.kind === "stack")
+      childRects = resolveStackChildRects(rect, node.arrange, childIds, document);
     else if (node.arrange?.kind === "grid") {
       const columnGap = node.arrange.columnGap ?? 0;
       const rowGap = node.arrange.rowGap ?? 0;
       const padding = normalizePadding(node.arrange.padding);
-      const content = { x: rect.x + padding.left, y: rect.y + padding.top, width: rect.width - padding.left - padding.right, height: rect.height - padding.top - padding.bottom };
-      if (content.width < 0 || content.height < 0) throw new MachinaLayoutError("GridContentNegative", "grid content size cannot be negative after applying padding");
+      const content = {
+        x: rect.x + padding.left,
+        y: rect.y + padding.top,
+        width: rect.width - padding.left - padding.right,
+        height: rect.height - padding.top - padding.bottom
+      };
+      if (content.width < 0 || content.height < 0)
+        throw new MachinaLayoutError(
+          "GridContentNegative",
+          "grid content size cannot be negative after applying padding"
+        );
       const columns = resolveGridTracks(content.width, node.arrange.columns, columnGap, "columns");
       const rows = resolveGridTracks(content.height, node.arrange.rows, rowGap, "rows");
       childRects = {};
       for (const childId of childIds) {
         const childNode = document.nodes[childId];
-        if (!childNode) throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by ${nodeId} is missing`);
-        childRects[childId] = resolveGridChildRect(childNode, columns, rows, columnGap, rowGap, content);
+        if (!childNode)
+          throw new MachinaLayoutError(
+            "UnknownParent",
+            `child id ${childId} referenced by ${nodeId} is missing`
+          );
+        childRects[childId] = resolveGridChildRect(
+          childNode,
+          columns,
+          rows,
+          columnGap,
+          rowGap,
+          content
+        );
       }
     }
     for (const childId of childIds) {
       const childNode = document.nodes[childId];
-      if (!childNode) throw new MachinaLayoutError("UnknownParent", `child id ${childId} referenced by ${nodeId} is missing`);
+      if (!childNode)
+        throw new MachinaLayoutError(
+          "UnknownParent",
+          `child id ${childId} referenced by ${nodeId} is missing`
+        );
       if (childNode.frame.kind === "guide" && !childRects) {
         validateGuideFrame(childId, childNode.frame, document);
         pendingGuides.set(childId, { nodeId: childId, parentId: nodeId });
@@ -654,7 +854,9 @@ function resolveLayoutDocument(document, rootRect) {
         const parentResolved = resolvedNodes[pending.parentId];
         const node = document.nodes[id];
         if (!parentResolved || !node || node.frame.kind !== "guide") continue;
-        const refs = [node.frame.left, node.frame.right, node.frame.top, node.frame.bottom].filter(isEdgeRef);
+        const refs = [node.frame.left, node.frame.right, node.frame.top, node.frame.bottom].filter(
+          isEdgeRef
+        );
         if (refs.some((r) => !resolvedNodes[r.ref])) continue;
         const rect = resolveGuideFrame(parentResolved.rect, node.frame, resolvedNodes);
         resolveNode(id, applyOffset(rect, parentResolved.rect, node.offset));
@@ -672,7 +874,12 @@ function resolveLayoutDocument(document, rootRect) {
         visiting.add(id);
         const node = document.nodes[id];
         if (node?.frame.kind === "guide") {
-          for (const ref of [node.frame.left, node.frame.right, node.frame.top, node.frame.bottom].filter(isEdgeRef)) {
+          for (const ref of [
+            node.frame.left,
+            node.frame.right,
+            node.frame.top,
+            node.frame.bottom
+          ].filter(isEdgeRef)) {
             if (remaining.has(ref.ref) && hasCycle(ref.ref)) return true;
           }
         }
@@ -681,14 +888,22 @@ function resolveLayoutDocument(document, rootRect) {
         return false;
       };
       for (const id of remaining) {
-        if (hasCycle(id)) throw new MachinaLayoutError("GuideReferenceCycle", "guide reference cycle detected");
+        if (hasCycle(id))
+          throw new MachinaLayoutError("GuideReferenceCycle", "guide reference cycle detected");
       }
-      throw new MachinaLayoutError("GuideTargetUnresolved", "one or more guide targets could not be resolved");
+      throw new MachinaLayoutError(
+        "GuideTargetUnresolved",
+        "one or more guide targets could not be resolved"
+      );
     }
   };
   resolveNode(document.rootId, { ...rootRect });
   processPending();
-  if (Object.keys(resolvedNodes).length !== Object.keys(document.nodes).length) throw new MachinaLayoutError("UnreachableNode", "one or more nodes are unreachable from the root.");
+  if (Object.keys(resolvedNodes).length !== Object.keys(document.nodes).length)
+    throw new MachinaLayoutError(
+      "UnreachableNode",
+      "one or more nodes are unreachable from the root."
+    );
   return { rootId: document.rootId, nodes: resolvedNodes, children: resolvedChildren };
 }
 
@@ -731,7 +946,10 @@ function formatRect(rect) {
 // src/lerp.ts
 function assertFiniteNumber2(value) {
   if (!Number.isFinite(value)) {
-    throw new MachinaLayoutError("NonFiniteNumber", `Expected finite number, got ${String(value)}.`);
+    throw new MachinaLayoutError(
+      "NonFiniteNumber",
+      `Expected finite number, got ${String(value)}.`
+    );
   }
 }
 function sameStringArray(a, b) {
@@ -747,26 +965,41 @@ function sameStringArray(a, b) {
 }
 function assertCompatibleResolvedLayouts(a, b) {
   if (a.rootId !== b.rootId) {
-    throw new MachinaLayoutError("IncompatibleLayouts", `Layout roots differ: ${a.rootId} !== ${b.rootId}.`);
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      `Layout roots differ: ${a.rootId} !== ${b.rootId}.`
+    );
   }
   if (!(a.rootId in a.nodes) || !(b.rootId in b.nodes)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", `Root id ${a.rootId} must exist in both node maps.`);
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      `Root id ${a.rootId} must exist in both node maps.`
+    );
   }
   const aNodeIds = Object.keys(a.nodes).sort();
   const bNodeIds = Object.keys(b.nodes).sort();
   if (!sameStringArray(aNodeIds, bNodeIds)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same node ids.");
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      "Resolved layouts must have the same node ids."
+    );
   }
   const aParentIds = Object.keys(a.children).sort();
   const bParentIds = Object.keys(b.children).sort();
   if (!sameStringArray(aParentIds, bParentIds)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same parent-child map.");
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      "Resolved layouts must have the same parent-child map."
+    );
   }
   for (const parentId of aParentIds) {
     const aChildren = a.children[parentId] ?? [];
     const bChildren = b.children[parentId] ?? [];
     if (!sameStringArray(aChildren, bChildren)) {
-      throw new MachinaLayoutError("IncompatibleLayouts", `Child order differs for parent ${parentId}.`);
+      throw new MachinaLayoutError(
+        "IncompatibleLayouts",
+        `Child order differs for parent ${parentId}.`
+      );
     }
   }
 }

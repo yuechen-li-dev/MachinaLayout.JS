@@ -3,7 +3,10 @@ import type { Rect, ResolvedLayoutDocument, ResolvedLayoutNode } from "./types";
 
 function assertFiniteNumber(value: number): void {
   if (!Number.isFinite(value)) {
-    throw new MachinaLayoutError("NonFiniteNumber", `Expected finite number, got ${String(value)}.`);
+    throw new MachinaLayoutError(
+      "NonFiniteNumber",
+      `Expected finite number, got ${String(value)}.`,
+    );
   }
 }
 
@@ -19,37 +22,57 @@ function sameStringArray(a: readonly string[], b: readonly string[]): boolean {
   return true;
 }
 
-function assertCompatibleResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument): void {
+function assertCompatibleResolvedLayouts(
+  a: ResolvedLayoutDocument,
+  b: ResolvedLayoutDocument,
+): void {
   if (a.rootId !== b.rootId) {
-    throw new MachinaLayoutError("IncompatibleLayouts", `Layout roots differ: ${a.rootId} !== ${b.rootId}.`);
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      `Layout roots differ: ${a.rootId} !== ${b.rootId}.`,
+    );
   }
 
   if (!(a.rootId in a.nodes) || !(b.rootId in b.nodes)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", `Root id ${a.rootId} must exist in both node maps.`);
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      `Root id ${a.rootId} must exist in both node maps.`,
+    );
   }
 
   const aNodeIds = Object.keys(a.nodes).sort();
   const bNodeIds = Object.keys(b.nodes).sort();
   if (!sameStringArray(aNodeIds, bNodeIds)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same node ids.");
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      "Resolved layouts must have the same node ids.",
+    );
   }
 
   const aParentIds = Object.keys(a.children).sort();
   const bParentIds = Object.keys(b.children).sort();
   if (!sameStringArray(aParentIds, bParentIds)) {
-    throw new MachinaLayoutError("IncompatibleLayouts", "Resolved layouts must have the same parent-child map.");
+    throw new MachinaLayoutError(
+      "IncompatibleLayouts",
+      "Resolved layouts must have the same parent-child map.",
+    );
   }
 
   for (const parentId of aParentIds) {
     const aChildren = a.children[parentId] ?? [];
     const bChildren = b.children[parentId] ?? [];
     if (!sameStringArray(aChildren, bChildren)) {
-      throw new MachinaLayoutError("IncompatibleLayouts", `Child order differs for parent ${parentId}.`);
+      throw new MachinaLayoutError(
+        "IncompatibleLayouts",
+        `Child order differs for parent ${parentId}.`,
+      );
     }
   }
 }
 
-function copyChildren(children: Readonly<Record<string, readonly string[]>>): Record<string, string[]> {
+function copyChildren(
+  children: Readonly<Record<string, readonly string[]>>,
+): Record<string, string[]> {
   const copied: Record<string, string[]> = {};
   for (const [parentId, childIds] of Object.entries(children)) {
     copied[parentId] = [...childIds];
@@ -73,7 +96,11 @@ export function lerpRect(a: Rect, b: Rect, t: number): Rect {
   };
 }
 
-export function lerpResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument, t: number): ResolvedLayoutDocument {
+export function lerpResolvedLayouts(
+  a: ResolvedLayoutDocument,
+  b: ResolvedLayoutDocument,
+  t: number,
+): ResolvedLayoutDocument {
   assertFiniteNumber(t);
   assertCompatibleResolvedLayouts(a, b);
 

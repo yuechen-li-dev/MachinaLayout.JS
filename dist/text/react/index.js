@@ -1,6 +1,6 @@
 import {
   MachinaTextView
-} from "../../chunk-AME4I4UN.js";
+} from "../../chunk-U3H4442R.js";
 export {
   MachinaTextView
 };

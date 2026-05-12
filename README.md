@@ -305,6 +305,15 @@ npm install
 npm run dev
 ```
 
+## Formatting
+
+This repo uses Biome.
+
+- `npm run format` rewrites files.
+- `npm run format:check` checks formatting.
+- `npm run lint` runs Biome lint rules.
+- Generated `dist/` is ignored by Biome.
+
 ## Documentation
 
 ### Milestones and audits
