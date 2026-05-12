@@ -85,6 +85,59 @@ const layout = resolveLayoutRows(rows, rootRect);
 
 Dispatch and layout remain decoupled.
 
+
+## Smallest useful example
+
+```ts
+type CounterState = {
+  count: number;
+};
+
+const DISPATCH = defineDispatchTables<CounterState>({
+  increment: {
+    events: ["counter.increment"],
+    fields: ["count"],
+    by: [1],
+  },
+});
+
+const next = dispatchEvent({ count: 0 }, "counter.increment", DISPATCH);
+// => { count: 1 }
+```
+
+React usage needs only framework state:
+
+```ts
+const [state, setState] = useState<CounterState>({ count: 0 });
+const send = (event: string) => {
+  setState((s) => dispatchEvent(s, event, DISPATCH));
+};
+```
+
+Vue usage is equally small:
+
+```ts
+const state = ref<CounterState>({ count: 0 });
+const send = (event: string) => {
+  state.value = dispatchEvent(state.value, event, DISPATCH);
+};
+```
+
+No MachinaDispatch hook, provider, router, or store runtime is required.
+
+## When to use MachinaDispatch
+
+Use MachinaDispatch when an event can be expressed as a simple field transition:
+
+- `field = value`
+- `field = !field`
+- `field += n`
+- `field = event suffix`
+
+If behavior needs async effects, timers, retries, guards, hierarchical states, trace/replay, or orchestration, keep that in real app logic (or Dominatus/userland code) and keep MachinaDispatch as the tiny deterministic table layer.
+
+If Dominatus would be overkill, you probably need a table, not a state manager.
+
 ## Non-goals
 
 No hooks, composables, browser history, URL parsing, router trees, middleware, subscriptions, async actions/loaders, or global state runtime.
