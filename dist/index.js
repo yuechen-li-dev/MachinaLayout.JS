@@ -1,13 +1,10 @@
 import {
   MachinaReactView
 } from "./chunk-HU6XYOH7.js";
-import "./chunk-SU2CQZEM.js";
+import "./chunk-RJYRJ3LD.js";
 import {
   MachinaTextView
 } from "./chunk-KYWOCAHK.js";
-import {
-  MachinaVueTextView
-} from "./chunk-EL4VUOAB.js";
 import {
   parseMachinaText,
   parseMachinaTextInline
@@ -1053,7 +1050,6 @@ export {
   MachinaLayoutError,
   MachinaReactView,
   MachinaTextView,
-  MachinaVueTextView,
   applyOffset,
   assertFiniteNumber,
   assertNonNegativeGap,
