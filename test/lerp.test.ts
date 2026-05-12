@@ -60,16 +60,50 @@ function makeDocs(): { a: ResolvedLayoutDocument; b: ResolvedLayoutDocument } {
     a: {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "root" }, view: "AView", slot: "ASlot", debugLabel: "A Root" },
-        child: { id: "child", rect: { x: 0, y: 0, width: 50, height: 50 }, frame: { kind: "absolute", x: 0, y: 0, width: 50, height: 50 }, arrange: { kind: "stack", axis: "horizontal" }, z: 1, offset: { x: 1, y: 2 }, view: "ChildA", slot: "SlotA", debugLabel: "Child A" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          frame: { kind: "root" },
+          view: "AView",
+          slot: "ASlot",
+          debugLabel: "A Root",
+        },
+        child: {
+          id: "child",
+          rect: { x: 0, y: 0, width: 50, height: 50 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 50, height: 50 },
+          arrange: { kind: "stack", axis: "horizontal" },
+          z: 1,
+          offset: { x: 1, y: 2 },
+          view: "ChildA",
+          slot: "SlotA",
+          debugLabel: "Child A",
+        },
       },
       children: { root: ["child"] },
     },
     b: {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 200 }, frame: { kind: "root" }, view: "BView", slot: "BSlot", debugLabel: "B Root" },
-        child: { id: "child", rect: { x: 100, y: 100, width: 100, height: 100 }, frame: { kind: "absolute", x: 100, y: 100, width: 100, height: 100 }, arrange: { kind: "stack", axis: "vertical" }, z: 9, offset: { x: 9, y: 10 }, view: "ChildB", slot: "SlotB", debugLabel: "Child B" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 200 },
+          frame: { kind: "root" },
+          view: "BView",
+          slot: "BSlot",
+          debugLabel: "B Root",
+        },
+        child: {
+          id: "child",
+          rect: { x: 100, y: 100, width: 100, height: 100 },
+          frame: { kind: "absolute", x: 100, y: 100, width: 100, height: 100 },
+          arrange: { kind: "stack", axis: "vertical" },
+          z: 9,
+          offset: { x: 9, y: 10 },
+          view: "ChildB",
+          slot: "SlotB",
+          debugLabel: "Child B",
+        },
       },
       children: { root: ["child"] },
     },
@@ -129,8 +163,14 @@ describe("lerpResolvedLayouts", () => {
   it("rejects missing nodes in either direction", () => {
     const { a, b } = makeDocs();
     const { child: _unused, ...nodesWithoutChild } = b.nodes;
-    expectCode(() => lerpResolvedLayouts(a, { ...b, nodes: nodesWithoutChild }, 0.5), "IncompatibleLayouts");
-    expectCode(() => lerpResolvedLayouts({ ...a, nodes: nodesWithoutChild }, b, 0.5), "IncompatibleLayouts");
+    expectCode(
+      () => lerpResolvedLayouts(a, { ...b, nodes: nodesWithoutChild }, 0.5),
+      "IncompatibleLayouts",
+    );
+    expectCode(
+      () => lerpResolvedLayouts({ ...a, nodes: nodesWithoutChild }, b, 0.5),
+      "IncompatibleLayouts",
+    );
   });
 
   it("rejects different children order", () => {
@@ -138,8 +178,16 @@ describe("lerpResolvedLayouts", () => {
       rootId: "root",
       nodes: {
         root: { id: "root", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "root" } },
-        a: { id: "a", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
-        b: { id: "b", rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+        a: {
+          id: "a",
+          rect: { x: 0, y: 0, width: 1, height: 1 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+        },
+        b: {
+          id: "b",
+          rect: { x: 0, y: 0, width: 1, height: 1 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+        },
       },
       children: { root: ["a", "b"] },
     };
@@ -149,24 +197,41 @@ describe("lerpResolvedLayouts", () => {
 
   it("rejects different parent map", () => {
     const { a, b } = makeDocs();
-    expectCode(() => lerpResolvedLayouts(a, { ...b, children: { root: [] } }, 0.5), "IncompatibleLayouts");
-    expectCode(() => lerpResolvedLayouts(a, { ...b, children: { root: [], other: ["child"] } }, 0.5), "IncompatibleLayouts");
+    expectCode(
+      () => lerpResolvedLayouts(a, { ...b, children: { root: [] } }, 0.5),
+      "IncompatibleLayouts",
+    );
+    expectCode(
+      () => lerpResolvedLayouts(a, { ...b, children: { root: [], other: ["child"] } }, 0.5),
+      "IncompatibleLayouts",
+    );
   });
 
   it("rejects missing root node", () => {
     const { a, b } = makeDocs();
     const { root: _unused, ...nodesWithoutRoot } = b.nodes;
-    expectCode(() => lerpResolvedLayouts(a, { ...b, nodes: nodesWithoutRoot }, 0.5), "IncompatibleLayouts");
+    expectCode(
+      () => lerpResolvedLayouts(a, { ...b, nodes: nodesWithoutRoot }, 0.5),
+      "IncompatibleLayouts",
+    );
   });
 
   it("works with real resolveLayoutRows output", () => {
     const rowsA = [
       { id: "root", frame: { kind: "root" as const } },
-      { id: "sidebar", parent: "root", frame: { kind: "anchor" as const, left: 0, top: 0, bottom: 0, width: 200 } },
+      {
+        id: "sidebar",
+        parent: "root",
+        frame: { kind: "anchor" as const, left: 0, top: 0, bottom: 0, width: 200 },
+      },
     ];
     const rowsB = [
       { id: "root", frame: { kind: "root" as const } },
-      { id: "sidebar", parent: "root", frame: { kind: "anchor" as const, left: 0, top: 0, bottom: 0, width: 300 } },
+      {
+        id: "sidebar",
+        parent: "root",
+        frame: { kind: "anchor" as const, left: 0, top: 0, bottom: 0, width: 300 },
+      },
     ];
     const rootRect = { x: 0, y: 0, width: 1200, height: 800 };
     const resolvedA = resolveLayoutRows(rowsA, rootRect);
@@ -177,9 +242,40 @@ describe("lerpResolvedLayouts", () => {
   });
 });
 
-
 it("takes layer from B", () => {
-  const a = { rootId:"root", nodes:{ root:{id:"root", rect:{x:0,y:0,width:10,height:10}, frame:{kind:"absolute",x:0,y:0,width:10,height:10}}, n:{id:"n", rect:{x:0,y:0,width:1,height:1}, frame:{kind:"absolute",x:0,y:0,width:1,height:1}, layer:"base"}}, children:{root:["n"], n:[]} } as any;
-  const b = { rootId:"root", nodes:{ root:{id:"root", rect:{x:0,y:0,width:10,height:10}, frame:{kind:"absolute",x:0,y:0,width:10,height:10}}, n:{id:"n", rect:{x:10,y:10,width:1,height:1}, frame:{kind:"absolute",x:0,y:0,width:1,height:1}, layer:"overlay"}}, children:{root:["n"], n:[]} } as any;
-  expect(lerpResolvedLayouts(a,b,0.3).nodes.n.layer).toBe("overlay");
+  const a = {
+    rootId: "root",
+    nodes: {
+      root: {
+        id: "root",
+        rect: { x: 0, y: 0, width: 10, height: 10 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+      },
+      n: {
+        id: "n",
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+        layer: "base",
+      },
+    },
+    children: { root: ["n"], n: [] },
+  } as any;
+  const b = {
+    rootId: "root",
+    nodes: {
+      root: {
+        id: "root",
+        rect: { x: 0, y: 0, width: 10, height: 10 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+      },
+      n: {
+        id: "n",
+        rect: { x: 10, y: 10, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+        layer: "overlay",
+      },
+    },
+    children: { root: ["n"], n: [] },
+  } as any;
+  expect(lerpResolvedLayouts(a, b, 0.3).nodes.n.layer).toBe("overlay");
 });

@@ -13,53 +13,126 @@ describe("MachinaTextView", () => {
     expect(container.querySelector("strong")?.textContent).toBe("world");
   });
   it("renders plain source literally", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "plain", text: "Hello **not bold**" }} />);
+    const { container } = render(
+      <MachinaTextView text={{ kind: "plain", text: "Hello **not bold**" }} />,
+    );
     expect(screen.getByText("Hello **not bold**")).toBeInTheDocument();
     expect(container.querySelector("strong")).toBeNull();
   });
   it("renders spec policy", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Title" }, variant: "title", wrap: "none", overflow: "ellipsis", align: "center" }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Title" },
+          variant: "title",
+          wrap: "none",
+          overflow: "ellipsis",
+          align: "center",
+        }}
+      />,
+    );
     const root = container.firstElementChild as HTMLElement;
-    expect(root).toHaveStyle({ fontSize: "18px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textAlign: "center" });
+    expect(root).toHaveStyle({
+      fontSize: "18px",
+      fontWeight: "700",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      textAlign: "center",
+    });
   });
   it("maps leading presets and numeric values", () => {
-    const { container: tight } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "tight" }} />);
+    const { container: tight } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "tight" }}
+      />,
+    );
     expect(tight.firstElementChild).toHaveStyle({ lineHeight: "1.15" });
     cleanup();
-    const { container: loose } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "loose" }} />);
+    const { container: loose } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: "loose" }}
+      />,
+    );
     expect(loose.firstElementChild).toHaveStyle({ lineHeight: "1.6" });
     cleanup();
-    const { container: numeric } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: 2 }} />);
+    const { container: numeric } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, leading: 2 }}
+      />,
+    );
     expect(numeric.firstElementChild).toHaveStyle({ lineHeight: "2" });
   });
   it("leading normal preserves variant default", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello" }, variant: "mono", leading: "normal" }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Hello" },
+          variant: "mono",
+          leading: "normal",
+        }}
+      />,
+    );
     expect(container.firstElementChild).toHaveStyle({ lineHeight: "1.35" });
   });
   it("applies blockGap", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "First\n\nSecond" }, blockGap: 12 }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "First\n\nSecond" },
+          blockGap: 12,
+        }}
+      />,
+    );
     const paragraphs = container.querySelectorAll("p");
     expect(paragraphs[0]).toHaveStyle({ marginBottom: "12px" });
     expect(paragraphs[1]).toHaveStyle({ margin: "0" });
   });
   it("supports blockGap zero", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "First\n\nSecond" }, blockGap: 0 }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "First\n\nSecond" },
+          blockGap: 0,
+        }}
+      />,
+    );
     const paragraphs = container.querySelectorAll("p");
     expect(paragraphs[0]).toHaveStyle({ marginBottom: "0px" });
   });
   it("applies listGap", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "- One\n- Two" }, listGap: 6 }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "- One\n- Two" }, listGap: 6 }}
+      />,
+    );
     const items = container.querySelectorAll("li");
     expect(items[0]).toHaveStyle({ marginBottom: "6px" });
   });
   it("maps vertical alignment", () => {
-    const { container: top } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Top" }, valign: "top" }} />);
+    const { container: top } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Top" }, valign: "top" }}
+      />,
+    );
     expect(top.firstElementChild).toHaveStyle({ justifyContent: "flex-start" });
     cleanup();
-    const { container: center } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Center" }, valign: "center" }} />);
+    const { container: center } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Center" }, valign: "center" }}
+      />,
+    );
     expect(center.firstElementChild).toHaveStyle({ justifyContent: "center" });
     cleanup();
-    const { container: bottom } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Bottom" }, valign: "bottom" }} />);
+    const { container: bottom } = render(
+      <MachinaTextView
+        text={{ kind: "text", source: { kind: "machina-text", text: "Bottom" }, valign: "bottom" }}
+      />,
+    );
     expect(bottom.firstElementChild).toHaveStyle({ justifyContent: "flex-end" });
   });
   it("defaults vertical alignment to top", () => {
@@ -91,7 +164,8 @@ describe("MachinaTextView", () => {
     expect(onLinkClick.mock.calls[0][0]).toBe("https://example.com");
   });
   it("renders bullet list", () => {
-    const text = "- Build rows\n- Resolve rectangles\n  - Preserve order\n  - Apply z\n- Render views";
+    const text =
+      "- Build rows\n- Resolve rectangles\n  - Preserve order\n  - Apply z\n- Render views";
     const { container } = render(<MachinaTextView text={text} />);
     expect(screen.getByText("Build rows")).toBeInTheDocument();
     expect(screen.getByText("Preserve order")).toBeInTheDocument();
@@ -114,30 +188,88 @@ describe("MachinaTextView", () => {
     expect(screen.queryByText("Hello")).toBeNull();
   });
   it("renders pre-parsed document", () => {
-    const doc: MachinaTextDocument = { blocks: [{ kind: "paragraph", inline: [{ kind: "text", text: "Manual" }] }] };
+    const doc: MachinaTextDocument = {
+      blocks: [{ kind: "paragraph", inline: [{ kind: "text", text: "Manual" }] }],
+    };
     render(<MachinaTextView text={doc} />);
     expect(screen.getByText("Manual")).toBeInTheDocument();
   });
   it("fills parent box and merges className/style", () => {
-    const { container } = render(<MachinaTextView text="x" className="marker" style={{ color: "red" }} />);
+    const { container } = render(
+      <MachinaTextView text="x" className="marker" style={{ color: "red" }} />,
+    );
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain("marker");
-    expect(root).toHaveStyle({ width: "100%", height: "100%", boxSizing: "border-box", color: "rgb(255, 0, 0)" });
+    expect(root).toHaveStyle({
+      width: "100%",
+      height: "100%",
+      boxSizing: "border-box",
+      color: "rgb(255, 0, 0)",
+    });
   });
   it("keeps nowrap + ellipsis overflow behavior", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "none", overflow: "ellipsis" }} />);
-    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Long text" },
+          wrap: "none",
+          overflow: "ellipsis",
+        }}
+      />,
+    );
+    expect(container.firstElementChild).toHaveStyle({
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    });
   });
   it("forces nowrap when ellipsis is combined with wrap word", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "word", overflow: "ellipsis" }} />);
-    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Long text" },
+          wrap: "word",
+          overflow: "ellipsis",
+        }}
+      />,
+    );
+    expect(container.firstElementChild).toHaveStyle({
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    });
   });
   it("keeps wrap word behavior for clip overflow", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Long text" }, wrap: "word", overflow: "clip" }} />);
-    expect(container.firstElementChild).toHaveStyle({ whiteSpace: "normal", overflowWrap: "anywhere", overflow: "hidden" });
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Long text" },
+          wrap: "word",
+          overflow: "clip",
+        }}
+      />,
+    );
+    expect(container.firstElementChild).toHaveStyle({
+      whiteSpace: "normal",
+      overflowWrap: "anywhere",
+      overflow: "hidden",
+    });
   });
   it("falls back for invalid numeric policy values", () => {
-    const { container } = render(<MachinaTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello\n\nWorld\n- One\n- Two" }, leading: 0 as unknown as number, blockGap: -1 as unknown as number, listGap: -1 as unknown as number }} />);
+    const { container } = render(
+      <MachinaTextView
+        text={{
+          kind: "text",
+          source: { kind: "machina-text", text: "Hello\n\nWorld\n- One\n- Two" },
+          leading: 0 as unknown as number,
+          blockGap: -1 as unknown as number,
+          listGap: -1 as unknown as number,
+        }}
+      />,
+    );
     const root = container.firstElementChild as HTMLElement;
     expect(root).toHaveStyle({ lineHeight: "1.4" });
     const firstParagraph = container.querySelector("p");

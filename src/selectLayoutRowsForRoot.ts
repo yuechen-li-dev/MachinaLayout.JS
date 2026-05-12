@@ -9,26 +9,56 @@ function validateRootRect(rootRect: Rect): void {
   assertNonNegativeSize(rootRect.height, "rootRect.height");
 }
 
-function validateCondition(condition: LayoutVariantCondition, rowIndex: number, variantIndex: number): void {
+function validateCondition(
+  condition: LayoutVariantCondition,
+  rowIndex: number,
+  variantIndex: number,
+): void {
   if (condition.minWidth !== undefined) {
-    assertFiniteNumber(condition.minWidth, `rows[${rowIndex}].variants[${variantIndex}].when.minWidth`);
+    assertFiniteNumber(
+      condition.minWidth,
+      `rows[${rowIndex}].variants[${variantIndex}].when.minWidth`,
+    );
   }
   if (condition.maxWidth !== undefined) {
-    assertFiniteNumber(condition.maxWidth, `rows[${rowIndex}].variants[${variantIndex}].when.maxWidth`);
+    assertFiniteNumber(
+      condition.maxWidth,
+      `rows[${rowIndex}].variants[${variantIndex}].when.maxWidth`,
+    );
   }
   if (condition.minHeight !== undefined) {
-    assertFiniteNumber(condition.minHeight, `rows[${rowIndex}].variants[${variantIndex}].when.minHeight`);
+    assertFiniteNumber(
+      condition.minHeight,
+      `rows[${rowIndex}].variants[${variantIndex}].when.minHeight`,
+    );
   }
   if (condition.maxHeight !== undefined) {
-    assertFiniteNumber(condition.maxHeight, `rows[${rowIndex}].variants[${variantIndex}].when.maxHeight`);
+    assertFiniteNumber(
+      condition.maxHeight,
+      `rows[${rowIndex}].variants[${variantIndex}].when.maxHeight`,
+    );
   }
 
-  if (condition.minWidth !== undefined && condition.maxWidth !== undefined && condition.minWidth > condition.maxWidth) {
-    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minWidth > maxWidth`);
+  if (
+    condition.minWidth !== undefined &&
+    condition.maxWidth !== undefined &&
+    condition.minWidth > condition.maxWidth
+  ) {
+    throw new MachinaLayoutError(
+      "InvalidVariantCondition",
+      `rows[${rowIndex}].variants[${variantIndex}].when has minWidth > maxWidth`,
+    );
   }
 
-  if (condition.minHeight !== undefined && condition.maxHeight !== undefined && condition.minHeight > condition.maxHeight) {
-    throw new MachinaLayoutError("InvalidVariantCondition", `rows[${rowIndex}].variants[${variantIndex}].when has minHeight > maxHeight`);
+  if (
+    condition.minHeight !== undefined &&
+    condition.maxHeight !== undefined &&
+    condition.minHeight > condition.maxHeight
+  ) {
+    throw new MachinaLayoutError(
+      "InvalidVariantCondition",
+      `rows[${rowIndex}].variants[${variantIndex}].when has minHeight > maxHeight`,
+    );
   }
 }
 
@@ -44,7 +74,10 @@ function validateVariantZ(variant: LayoutRowVariant, rowIndex: number, variantIn
   if (variant.z === undefined) return;
   assertFiniteNumber(variant.z, `rows[${rowIndex}].variants[${variantIndex}].z`);
   if (!Number.isInteger(variant.z) || variant.z < -5 || variant.z > 5) {
-    throw new MachinaLayoutError("InvalidZ", `rows[${rowIndex}].variants[${variantIndex}].z must be an integer in range -5..5`);
+    throw new MachinaLayoutError(
+      "InvalidZ",
+      `rows[${rowIndex}].variants[${variantIndex}].z must be an integer in range -5..5`,
+    );
   }
 }
 

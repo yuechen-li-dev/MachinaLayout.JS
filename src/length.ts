@@ -10,7 +10,7 @@ export function resolveUiLength(length: UiLength, axisSize: number, fieldName = 
     return length;
   }
 
-  if (!length || typeof length !== "object" || !("unit" in length) || !(("value" in length))) {
+  if (!length || typeof length !== "object" || !("unit" in length) || !("value" in length)) {
     throw new MachinaLayoutError("InvalidLengthUnit", `Invalid UiLength for ${fieldName}.`);
   }
 
@@ -25,5 +25,8 @@ export function resolveUiLength(length: UiLength, axisSize: number, fieldName = 
     return value * axisSize;
   }
 
-  throw new MachinaLayoutError("InvalidLengthUnit", `Invalid UiLength unit for ${fieldName}: ${String(unit)}.`);
+  throw new MachinaLayoutError(
+    "InvalidLengthUnit",
+    `Invalid UiLength unit for ${fieldName}: ${String(unit)}.`,
+  );
 }

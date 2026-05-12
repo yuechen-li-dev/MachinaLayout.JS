@@ -1,4 +1,6 @@
-export type MachinaTextSource = { kind: "plain"; text: string } | { kind: "machina-text"; text: string };
+export type MachinaTextSource =
+  | { kind: "plain"; text: string }
+  | { kind: "machina-text"; text: string };
 
 export type MachinaTextVariant = "body" | "label" | "caption" | "title" | "mono";
 export type MachinaTextWrap = "word" | "none";
@@ -24,7 +26,9 @@ export type MachinaTextDocument = {
   blocks: MachinaTextBlock[];
 };
 
-export type MachinaTextBlock = { kind: "paragraph"; inline: MachinaInline[] } | { kind: "bulletList"; items: MachinaBulletItem[] };
+export type MachinaTextBlock =
+  | { kind: "paragraph"; inline: MachinaInline[] }
+  | { kind: "bulletList"; items: MachinaBulletItem[] };
 
 export type MachinaBulletItem = {
   inline: MachinaInline[];

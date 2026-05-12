@@ -21,13 +21,13 @@ describe("normalizePadding", () => {
 
   it("rejects negative edges with NegativePadding", () => {
     expect(() => normalizePadding({ top: -1, right: 0, bottom: 0, left: 0 })).toThrowError(
-      expect.objectContaining({ code: "NegativePadding" })
+      expect.objectContaining({ code: "NegativePadding" }),
     );
   });
 
   it("rejects non-finite edges with NonFiniteNumber", () => {
-    expect(() =>
-      normalizePadding({ top: Number.NaN, right: 0, bottom: 0, left: 0 })
-    ).toThrowError(expect.objectContaining({ code: "NonFiniteNumber" }));
+    expect(() => normalizePadding({ top: Number.NaN, right: 0, bottom: 0, left: 0 })).toThrowError(
+      expect.objectContaining({ code: "NonFiniteNumber" }),
+    );
   });
 });

@@ -6,5 +6,5 @@ import "./index.css";
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Player />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

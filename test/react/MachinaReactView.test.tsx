@@ -13,7 +13,13 @@ function makeLayout(rootRect: Rect, childRect: Rect): ResolvedLayoutDocument {
     rootId: "root",
     nodes: {
       root: { id: "root", rect: rootRect, frame: { kind: "absolute", ...rootRect } },
-      child: { id: "child", rect: childRect, frame: { kind: "absolute", ...childRect }, slot: "Sidebar", debugLabel: "child-label" },
+      child: {
+        id: "child",
+        rect: childRect,
+        frame: { kind: "absolute", ...childRect },
+        slot: "Sidebar",
+        debugLabel: "child-label",
+      },
     },
     children: {
       root: ["child"],
@@ -21,8 +27,6 @@ function makeLayout(rootRect: Rect, childRect: Rect): ResolvedLayoutDocument {
     },
   };
 }
-
-
 
 const StablePanel: React.FC<any> = (props) => {
   React.useEffect(() => {
@@ -33,7 +37,10 @@ const StablePanel: React.FC<any> = (props) => {
 
 describe("MachinaReactView", () => {
   it("renders without crashing", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     const { container } = render(<MachinaReactView layout={layout} />);
 
     expect(container.firstElementChild).toBeInTheDocument();
@@ -41,31 +48,58 @@ describe("MachinaReactView", () => {
   });
 
   it("applies absolute styles from resolved rects", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     render(<MachinaReactView layout={layout} />);
 
     const child = document.querySelector('[data-machina-node-id="child"]');
-    expect(child).toHaveStyle({ position: "absolute", left: "16px", top: "12px", width: "100px", height: "50px", boxSizing: "border-box" });
+    expect(child).toHaveStyle({
+      position: "absolute",
+      left: "16px",
+      top: "12px",
+      width: "100px",
+      height: "50px",
+      boxSizing: "border-box",
+    });
   });
 
   it("normalizes coordinates relative to root origin", () => {
-    const layout = makeLayout({ x: 100, y: 200, width: 800, height: 600 }, { x: 116, y: 212, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 100, y: 200, width: 800, height: 600 },
+      { x: 116, y: 212, width: 100, height: 50 },
+    );
     render(<MachinaReactView layout={layout} />);
 
     const child = document.querySelector('[data-machina-node-id="child"]');
     expect(child).toHaveStyle({ left: "16px", top: "12px" });
   });
 
-
-
   it("normalizes coordinates relative to immediate parent for nested descendants", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 1100, height: 720 }, frame: { kind: "absolute", x: 0, y: 0, width: 1100, height: 720 } },
-        main: { id: "main", rect: { x: 268, y: 88, width: 816, height: 616 }, frame: { kind: "absolute", x: 268, y: 88, width: 816, height: 616 } },
-        toolbar: { id: "toolbar", rect: { x: 284, y: 104, width: 784, height: 48 }, frame: { kind: "absolute", x: 284, y: 104, width: 784, height: 48 } },
-        "tool-run": { id: "tool-run", rect: { x: 292, y: 112, width: 90, height: 32 }, frame: { kind: "absolute", x: 292, y: 112, width: 90, height: 32 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 1100, height: 720 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 1100, height: 720 },
+        },
+        main: {
+          id: "main",
+          rect: { x: 268, y: 88, width: 816, height: 616 },
+          frame: { kind: "absolute", x: 268, y: 88, width: 816, height: 616 },
+        },
+        toolbar: {
+          id: "toolbar",
+          rect: { x: 284, y: 104, width: 784, height: 48 },
+          frame: { kind: "absolute", x: 284, y: 104, width: 784, height: 48 },
+        },
+        "tool-run": {
+          id: "tool-run",
+          rect: { x: 292, y: 112, width: 90, height: 32 },
+          frame: { kind: "absolute", x: 292, y: 112, width: 90, height: 32 },
+        },
       },
       children: {
         root: ["main"],
@@ -77,30 +111,60 @@ describe("MachinaReactView", () => {
 
     const { container } = render(<MachinaReactView layout={layout} />);
 
-    expect(container.querySelector('[data-machina-node-id="main"]')).toHaveStyle({ left: "268px", top: "88px" });
-    expect(container.querySelector('[data-machina-node-id="toolbar"]')).toHaveStyle({ left: "16px", top: "16px" });
-    expect(container.querySelector('[data-machina-node-id="tool-run"]')).toHaveStyle({ left: "8px", top: "8px" });
+    expect(container.querySelector('[data-machina-node-id="main"]')).toHaveStyle({
+      left: "268px",
+      top: "88px",
+    });
+    expect(container.querySelector('[data-machina-node-id="toolbar"]')).toHaveStyle({
+      left: "16px",
+      top: "16px",
+    });
+    expect(container.querySelector('[data-machina-node-id="tool-run"]')).toHaveStyle({
+      left: "8px",
+      top: "8px",
+    });
   });
 
   it("normalizes nested coordinates correctly when root origin is non-zero", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 100, y: 200, width: 800, height: 600 }, frame: { kind: "absolute", x: 100, y: 200, width: 800, height: 600 } },
-        panel: { id: "panel", rect: { x: 150, y: 250, width: 300, height: 200 }, frame: { kind: "absolute", x: 150, y: 250, width: 300, height: 200 } },
-        child: { id: "child", rect: { x: 175, y: 275, width: 50, height: 40 }, frame: { kind: "absolute", x: 175, y: 275, width: 50, height: 40 } },
+        root: {
+          id: "root",
+          rect: { x: 100, y: 200, width: 800, height: 600 },
+          frame: { kind: "absolute", x: 100, y: 200, width: 800, height: 600 },
+        },
+        panel: {
+          id: "panel",
+          rect: { x: 150, y: 250, width: 300, height: 200 },
+          frame: { kind: "absolute", x: 150, y: 250, width: 300, height: 200 },
+        },
+        child: {
+          id: "child",
+          rect: { x: 175, y: 275, width: 50, height: 40 },
+          frame: { kind: "absolute", x: 175, y: 275, width: 50, height: 40 },
+        },
       },
       children: { root: ["panel"], panel: ["child"], child: [] },
     };
 
     const { container } = render(<MachinaReactView layout={layout} />);
 
-    expect(container.querySelector('[data-machina-node-id="panel"]')).toHaveStyle({ left: "50px", top: "50px" });
-    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ left: "25px", top: "25px" });
+    expect(container.querySelector('[data-machina-node-id="panel"]')).toHaveStyle({
+      left: "50px",
+      top: "50px",
+    });
+    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({
+      left: "25px",
+      top: "25px",
+    });
   });
 
   it("outer wrapper uses root size", () => {
-    const layout = makeLayout({ x: 100, y: 200, width: 800, height: 600 }, { x: 116, y: 212, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 100, y: 200, width: 800, height: 600 },
+      { x: 116, y: 212, width: 100, height: 50 },
+    );
     const { container } = render(<MachinaReactView layout={layout} />);
 
     const wrapper = container.firstElementChild;
@@ -108,7 +172,8 @@ describe("MachinaReactView", () => {
   });
 
   it("renders slot component", () => {
-    const received: { id?: string; rect?: Rect; debugLabel?: string; node?: ResolvedLayoutNode } = {};
+    const received: { id?: string; rect?: Rect; debugLabel?: string; node?: ResolvedLayoutNode } =
+      {};
     const Sidebar: React.FC<any> = (props) => {
       received.id = props.id;
       received.rect = props.rect;
@@ -116,7 +181,10 @@ describe("MachinaReactView", () => {
       received.node = props.node;
       return <div>Sidebar slot {props.id}</div>;
     };
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     render(<MachinaReactView layout={layout} views={{ Sidebar }} />);
 
     expect(screen.getByText("Sidebar slot child")).toBeInTheDocument();
@@ -127,7 +195,10 @@ describe("MachinaReactView", () => {
   });
 
   it("missing slot component does not crash", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     expect(() => render(<MachinaReactView layout={layout} views={{}} />)).not.toThrow();
     expect(document.querySelector('[data-machina-node-id="child"]')).toBeInTheDocument();
   });
@@ -136,14 +207,32 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 300, height: 300 }, frame: { kind: "absolute", x: 0, y: 0, width: 300, height: 300 } },
-        parent: { id: "parent", rect: { x: 10, y: 10, width: 100, height: 100 }, frame: { kind: "absolute", x: 10, y: 10, width: 100, height: 100 } },
-        child: { id: "child", rect: { x: 12, y: 12, width: 50, height: 30 }, frame: { kind: "absolute", x: 12, y: 12, width: 50, height: 30 }, slot: "ChildSlot" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 300, height: 300 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 300, height: 300 },
+        },
+        parent: {
+          id: "parent",
+          rect: { x: 10, y: 10, width: 100, height: 100 },
+          frame: { kind: "absolute", x: 10, y: 10, width: 100, height: 100 },
+        },
+        child: {
+          id: "child",
+          rect: { x: 12, y: 12, width: 50, height: 30 },
+          frame: { kind: "absolute", x: 12, y: 12, width: 50, height: 30 },
+          slot: "ChildSlot",
+        },
       },
       children: { root: ["parent"], parent: ["child"], child: [] },
     };
 
-    render(<MachinaReactView layout={layout} views={{ ChildSlot: ({ id }) => <span>slot-{id}</span> }} />);
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ ChildSlot: ({ id }) => <span>slot-{id}</span> }}
+      />,
+    );
     expect(screen.getByText("slot-child")).toBeInTheDocument();
   });
 
@@ -151,41 +240,85 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-        a: { id: "a", rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
-        b: { id: "b", rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
-        c: { id: "c", rect: { x: 20, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 100 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+        },
+        a: {
+          id: "a",
+          rect: { x: 0, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+        },
+        b: {
+          id: "b",
+          rect: { x: 10, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 },
+        },
+        c: {
+          id: "c",
+          rect: { x: 20, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 },
+        },
       },
       children: { root: ["b", "a", "c"], a: [], b: [], c: [] },
     };
 
     const { container } = render(<MachinaReactView layout={layout} />);
     const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
-    const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+    const directIds = Array.from(root.children).map((el) =>
+      el.getAttribute("data-machina-node-id"),
+    );
     expect(directIds).toEqual(["b", "a", "c"]);
   });
 
   it("applies zIndex from node z", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 0, width: 10, height: 10 },
+    );
     layout.nodes.child.z = 4;
     const { container } = render(<MachinaReactView layout={layout} />);
-    expect(container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).toContain("z-index: 4");
+    expect(
+      container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style"),
+    ).toContain("z-index: 4");
   });
 
   it("renders siblings sorted by z ascending", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-        a: { id: "a", z: 5, rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
-        b: { id: "b", z: -5, rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
-        c: { id: "c", z: 0, rect: { x: 20, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 100 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+        },
+        a: {
+          id: "a",
+          z: 5,
+          rect: { x: 0, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+        },
+        b: {
+          id: "b",
+          z: -5,
+          rect: { x: 10, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 },
+        },
+        c: {
+          id: "c",
+          z: 0,
+          rect: { x: 20, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 },
+        },
       },
       children: { root: ["a", "b", "c"], a: [], b: [], c: [] },
     };
     const { container } = render(<MachinaReactView layout={layout} />);
     const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
-    const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+    const directIds = Array.from(root.children).map((el) =>
+      el.getAttribute("data-machina-node-id"),
+    );
     expect(directIds).toEqual(["b", "c", "a"]);
   });
 
@@ -193,16 +326,34 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-        b: { id: "b", rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
-        a: { id: "a", rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
-        c: { id: "c", rect: { x: 20, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 100 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+        },
+        b: {
+          id: "b",
+          rect: { x: 0, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+        },
+        a: {
+          id: "a",
+          rect: { x: 10, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 },
+        },
+        c: {
+          id: "c",
+          rect: { x: 20, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 20, y: 0, width: 10, height: 10 },
+        },
       },
       children: { root: ["b", "a", "c"], a: [], b: [], c: [] },
     };
     const { container } = render(<MachinaReactView layout={layout} />);
     const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
-    const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
+    const directIds = Array.from(root.children).map((el) =>
+      el.getAttribute("data-machina-node-id"),
+    );
     expect(directIds).toEqual(["b", "a", "c"]);
   });
 
@@ -210,9 +361,23 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-        a: { id: "a", z: 5, rect: { x: 0, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 } },
-        b: { id: "b", z: -5, rect: { x: 10, y: 0, width: 10, height: 10 }, frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 } },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 100 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+        },
+        a: {
+          id: "a",
+          z: 5,
+          rect: { x: 0, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 10, height: 10 },
+        },
+        b: {
+          id: "b",
+          z: -5,
+          rect: { x: 10, y: 0, width: 10, height: 10 },
+          frame: { kind: "absolute", x: 10, y: 0, width: 10, height: 10 },
+        },
       },
       children: { root: ["a", "b"], a: [], b: [] },
     };
@@ -221,32 +386,63 @@ describe("MachinaReactView", () => {
   });
 
   it("uses default containment policy", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 0, width: 10, height: 10 },
+    );
     render(<MachinaReactView layout={layout} />);
-    expect(document.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ contain: "layout paint" });
-    expect(document.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).not.toContain("content-visibility");
+    expect(document.querySelector('[data-machina-node-id="child"]')).toHaveStyle({
+      contain: "layout paint",
+    });
+    expect(
+      document.querySelector('[data-machina-node-id="child"]')?.getAttribute("style"),
+    ).not.toContain("content-visibility");
   });
 
   it("supports nodeContainment none and strict", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
-    const { rerender, container } = render(<MachinaReactView layout={layout} nodeContainment="none" />);
-    expect(container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style")).not.toContain("contain:");
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 0, width: 10, height: 10 },
+    );
+    const { rerender, container } = render(
+      <MachinaReactView layout={layout} nodeContainment="none" />,
+    );
+    expect(
+      container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style"),
+    ).not.toContain("contain:");
 
     rerender(<MachinaReactView layout={layout} nodeContainment="strict" />);
-    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({ contain: "strict" });
+    expect(container.querySelector('[data-machina-node-id="child"]')).toHaveStyle({
+      contain: "strict",
+    });
   });
 
   it("supports nodeContentVisibility auto and contain intrinsic size", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
-    const { container } = render(<MachinaReactView layout={layout} nodeContentVisibility="auto" nodeContainIntrinsicSize="auto 300px" />);
-    const styleAttr = container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style") ?? "";
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 0, y: 0, width: 10, height: 10 },
+    );
+    const { container } = render(
+      <MachinaReactView
+        layout={layout}
+        nodeContentVisibility="auto"
+        nodeContainIntrinsicSize="auto 300px"
+      />,
+    );
+    const styleAttr =
+      container.querySelector('[data-machina-node-id="child"]')?.getAttribute("style") ?? "";
     expect(styleAttr).toContain("content-visibility: auto");
     expect(styleAttr).toContain("contain-intrinsic-size: auto 300px");
   });
 
   it("containment policy does not change positioning", () => {
-    const layout = makeLayout({ x: 100, y: 200, width: 800, height: 600 }, { x: 116, y: 212, width: 100, height: 50 });
-    render(<MachinaReactView layout={layout} nodeContainment="strict" nodeContentVisibility="auto" />);
+    const layout = makeLayout(
+      { x: 100, y: 200, width: 800, height: 600 },
+      { x: 116, y: 212, width: 100, height: 50 },
+    );
+    render(
+      <MachinaReactView layout={layout} nodeContainment="strict" nodeContentVisibility="auto" />,
+    );
     expect(document.querySelector('[data-machina-node-id="child"]')).toHaveStyle({
       left: "16px",
       top: "12px",
@@ -256,7 +452,10 @@ describe("MachinaReactView", () => {
   });
 
   it("adds data attributes", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     render(<MachinaReactView layout={layout} />);
 
     const child = document.querySelector('[data-machina-node-id="child"]');
@@ -267,15 +466,28 @@ describe("MachinaReactView", () => {
   });
 
   it("debug mode adds visible affordance", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     render(<MachinaReactView layout={layout} debug />);
 
     expect(screen.getByText("child-label")).toBeInTheDocument();
   });
 
   it("applies className/style/nodeClassName", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
-    const { container } = render(<MachinaReactView layout={layout} className="root-class" style={{ overflow: "hidden" }} nodeClassName="node-class" />);
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
+    const { container } = render(
+      <MachinaReactView
+        layout={layout}
+        className="root-class"
+        style={{ overflow: "hidden" }}
+        nodeClassName="node-class"
+      />,
+    );
 
     expect(container.firstElementChild).toHaveClass("root-class");
     expect(container.firstElementChild).toHaveStyle({ overflow: "hidden" });
@@ -285,7 +497,10 @@ describe("MachinaReactView", () => {
   });
 
   it("does not mutate input layout", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     const snapshot = JSON.stringify(layout);
     render(<MachinaReactView layout={layout} />);
     expect(JSON.stringify(layout)).toBe(snapshot);
@@ -293,8 +508,17 @@ describe("MachinaReactView", () => {
 
   it("integrates with resolveLayoutRows output", () => {
     const rows: LayoutRow[] = [
-      { id: "root", frame: { kind: "root" }, arrange: { kind: "stack", axis: "horizontal", gap: 8 } },
-      { id: "sidebar", parent: "root", frame: { kind: "fixed", width: 50, height: 50 }, slot: "Sidebar" },
+      {
+        id: "root",
+        frame: { kind: "root" },
+        arrange: { kind: "stack", axis: "horizontal", gap: 8 },
+      },
+      {
+        id: "sidebar",
+        parent: "root",
+        frame: { kind: "fixed", width: 50, height: 50 },
+        slot: "Sidebar",
+      },
     ];
     const resolved = resolveLayoutRows(rows, { x: 100, y: 200, width: 300, height: 200 });
     const Sidebar = vi.fn(({ id }: { id: string }) => <div>slot-{id}</div>);
@@ -302,23 +526,37 @@ describe("MachinaReactView", () => {
     render(<MachinaReactView layout={resolved} views={{ Sidebar }} />);
 
     expect(screen.getByText("slot-sidebar")).toBeInTheDocument();
-    expect(document.querySelector('[data-machina-node-id="sidebar"]')).toHaveStyle({ left: "0px", top: "0px" });
+    expect(document.querySelector('[data-machina-node-id="sidebar"]')).toHaveStyle({
+      left: "0px",
+      top: "0px",
+    });
   });
 
-
-
-
   it("passes viewKey to selected view", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { x: 10, y: 10, width: 50, height: 40 },
+    );
     layout.nodes.child.view = "Panel";
-    render(<MachinaReactView layout={layout} views={{ Panel: ({ viewKey }) => <div>{viewKey}</div> }} />);
+    render(
+      <MachinaReactView layout={layout} views={{ Panel: ({ viewKey }) => <div>{viewKey}</div> }} />,
+    );
     expect(screen.getAllByText("Panel").length).toBeGreaterThan(0);
   });
 
   it("passes viewData by effective view key", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { x: 10, y: 10, width: 50, height: 40 },
+    );
     layout.nodes.child.view = "Panel";
-    render(<MachinaReactView layout={layout} views={{ Panel: ({ viewData }) => <div>{(viewData as any)?.message}</div> }} viewData={{ Panel: { message: "hello" } }} />);
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ Panel: ({ viewData }) => <div>{(viewData as any)?.message}</div> }}
+        viewData={{ Panel: { message: "hello" } }}
+      />,
+    );
     expect(screen.getByText("hello")).toBeInTheDocument();
   });
 
@@ -326,49 +564,93 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "root" } },
-        panel: { id: "panel", rect: { x: 10, y: 10, width: 50, height: 40 }, frame: { kind: "absolute", x: 10, y: 10, width: 50, height: 40 }, view: "Panel" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 200, height: 100 },
+          frame: { kind: "root" },
+        },
+        panel: {
+          id: "panel",
+          rect: { x: 10, y: 10, width: 50, height: 40 },
+          frame: { kind: "absolute", x: 10, y: 10, width: 50, height: 40 },
+          view: "Panel",
+        },
       },
       children: { root: ["panel"], panel: [] },
     };
-    render(<MachinaReactView layout={layout} views={{ Panel: ({ nodeData }) => <div>{(nodeData as any)?.count}</div> }} nodeData={{ panel: { count: 3 } }} />);
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ Panel: ({ nodeData }) => <div>{(nodeData as any)?.count}</div> }}
+        nodeData={{ panel: { count: 3 } }}
+      />,
+    );
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("view wins over slot for component and data lookup", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { x: 10, y: 10, width: 50, height: 40 },
+    );
     layout.nodes.child.view = "Preferred";
     layout.nodes.child.slot = "Fallback";
     render(
       <MachinaReactView
         layout={layout}
-        views={{ Preferred: ({ viewData }) => <div>{(viewData as any)?.label}</div>, Fallback: () => <div>fallback</div> }}
+        views={{
+          Preferred: ({ viewData }) => <div>{(viewData as any)?.label}</div>,
+          Fallback: () => <div>fallback</div>,
+        }}
         viewData={{ Preferred: { label: "preferred-data" }, Fallback: { label: "fallback-data" } }}
-      />
+      />,
     );
     expect(screen.getByText("preferred-data")).toBeInTheDocument();
     expect(screen.queryByText("fallback")).not.toBeInTheDocument();
   });
 
   it("slot fallback receives viewKey and viewData", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
-    render(<MachinaReactView layout={layout} views={{ Sidebar: ({ viewKey, viewData }) => <div>{viewKey}-{(viewData as any)?.label}</div> }} viewData={{ Sidebar: { label: "fallback-data" } }} />);
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { x: 10, y: 10, width: 50, height: 40 },
+    );
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{
+          Sidebar: ({ viewKey, viewData }) => (
+            <div>
+              {viewKey}-{(viewData as any)?.label}
+            </div>
+          ),
+        }}
+        viewData={{ Sidebar: { label: "fallback-data" } }}
+      />,
+    );
     expect(screen.getByText("Sidebar-fallback-data")).toBeInTheDocument();
   });
 
   it("stable views do not remount when only viewData changes", () => {
     (globalThis as any).__mountCount = 0;
-    const layout = makeLayout({ x: 0, y: 0, width: 200, height: 100 }, { x: 10, y: 10, width: 50, height: 40 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 200, height: 100 },
+      { x: 10, y: 10, width: 50, height: 40 },
+    );
     layout.nodes.child.view = "Panel";
     const views = { Panel: StablePanel };
-    const { rerender } = render(<MachinaReactView layout={layout} views={views} viewData={{ Panel: { value: 1 } }} />);
+    const { rerender } = render(
+      <MachinaReactView layout={layout} views={views} viewData={{ Panel: { value: 1 } }} />,
+    );
     rerender(<MachinaReactView layout={layout} views={views} viewData={{ Panel: { value: 2 } }} />);
     expect(screen.getByText("2")).toBeInTheDocument();
     expect((globalThis as any).__mountCount).toBe(1);
   });
 
   it("renders preferred view key", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     layout.nodes.child.view = "Header";
     const Header = () => <div>header-view</div>;
 
@@ -377,11 +659,19 @@ describe("MachinaReactView", () => {
   });
 
   it("view wins when both view and slot are provided", () => {
-    const layout = makeLayout({ x: 0, y: 0, width: 800, height: 600 }, { x: 16, y: 12, width: 100, height: 50 });
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 800, height: 600 },
+      { x: 16, y: 12, width: 100, height: 50 },
+    );
     layout.nodes.child.view = "Preferred";
     layout.nodes.child.slot = "Fallback";
 
-    render(<MachinaReactView layout={layout} views={{ Preferred: () => <div>Preferred</div>, Fallback: () => <div>Fallback</div> }} />);
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ Preferred: () => <div>Preferred</div>, Fallback: () => <div>Fallback</div> }}
+      />,
+    );
 
     expect(screen.getByText("Preferred")).toBeInTheDocument();
     expect(screen.queryByText("Fallback")).not.toBeInTheDocument();
@@ -391,13 +681,25 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "root" }, view: "Missing" },
-        child: { id: "child", rect: { x: 0, y: 0, width: 20, height: 20 }, frame: { kind: "absolute", x: 0, y: 0, width: 20, height: 20 }, view: "Child" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          frame: { kind: "root" },
+          view: "Missing",
+        },
+        child: {
+          id: "child",
+          rect: { x: 0, y: 0, width: 20, height: 20 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 20, height: 20 },
+          view: "Child",
+        },
       },
       children: { root: ["child"], child: [] },
     };
 
-    expect(() => render(<MachinaReactView layout={layout} views={{ Child: () => <div>child-view</div> }} />)).not.toThrow();
+    expect(() =>
+      render(<MachinaReactView layout={layout} views={{ Child: () => <div>child-view</div> }} />),
+    ).not.toThrow();
     expect(screen.getByText("child-view")).toBeInTheDocument();
   });
 
@@ -405,24 +707,52 @@ describe("MachinaReactView", () => {
     const layout: ResolvedLayoutDocument = {
       rootId: "root",
       nodes: {
-        root: { id: "root", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "root" } },
-        panel: { id: "panel", rect: { x: 0, y: 0, width: 100, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 100 }, view: "Panel" },
-        button: { id: "button", rect: { x: 2, y: 2, width: 20, height: 10 }, frame: { kind: "absolute", x: 2, y: 2, width: 20, height: 10 }, view: "Button" },
+        root: {
+          id: "root",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          frame: { kind: "root" },
+        },
+        panel: {
+          id: "panel",
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          frame: { kind: "absolute", x: 0, y: 0, width: 100, height: 100 },
+          view: "Panel",
+        },
+        button: {
+          id: "button",
+          rect: { x: 2, y: 2, width: 20, height: 10 },
+          frame: { kind: "absolute", x: 2, y: 2, width: 20, height: 10 },
+          view: "Button",
+        },
       },
       children: { root: ["panel"], panel: ["button"], button: [] },
     };
 
-    render(<MachinaReactView layout={layout} views={{ Panel: () => <div>Panel</div>, Button: () => <div>Button</div> }} />);
+    render(
+      <MachinaReactView
+        layout={layout}
+        views={{ Panel: () => <div>Panel</div>, Button: () => <div>Button</div> }}
+      />,
+    );
     expect(screen.getAllByText("Panel").length).toBeGreaterThan(0);
     expect(screen.getByText("Button")).toBeInTheDocument();
   });
 });
 
 it("applies data-machina-layer and layer-banded zIndex", () => {
-  const layout = makeLayout({ x: 0, y: 0, width: 100, height: 100 }, { x: 0, y: 0, width: 10, height: 10 });
+  const layout = makeLayout(
+    { x: 0, y: 0, width: 100, height: 100 },
+    { x: 0, y: 0, width: 10, height: 10 },
+  );
   layout.nodes.child.layer = "overlay";
   layout.nodes.child.z = 3;
-  const { container } = render(<MachinaReactView layout={layout} layers={{ base: { z: 0 }, overlay: { z: 4 } }} defaultLayer="base" />);
+  const { container } = render(
+    <MachinaReactView
+      layout={layout}
+      layers={{ base: { z: 0 }, overlay: { z: 4 } }}
+      defaultLayer="base"
+    />,
+  );
   const child = container.querySelector('[data-machina-node-id="child"]') as HTMLElement;
   expect(child).toHaveAttribute("data-machina-layer", "overlay");
   expect(child.getAttribute("style")).toContain("z-index: 403");
@@ -432,15 +762,48 @@ it("sorts siblings by layer z, then node z, then sibling order", () => {
   const layout: ResolvedLayoutDocument = {
     rootId: "root",
     nodes: {
-      root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-      a: { id: "a", layer: "overlay", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
-      b: { id: "b", layer: "background", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
-      c: { id: "c", layer: "base", z: 5, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
-      d: { id: "d", layer: "overlay", z: -1, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      root: {
+        id: "root",
+        rect: { x: 0, y: 0, width: 200, height: 100 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+      },
+      a: {
+        id: "a",
+        layer: "overlay",
+        z: 0,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
+      b: {
+        id: "b",
+        layer: "background",
+        z: 0,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
+      c: {
+        id: "c",
+        layer: "base",
+        z: 5,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
+      d: {
+        id: "d",
+        layer: "overlay",
+        z: -1,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
     },
     children: { root: ["a", "b", "c", "d"], a: [], b: [], c: [], d: [] },
   };
-  const { container } = render(<MachinaReactView layout={layout} layers={{ background: { z: -2 }, base: { z: 0 }, overlay: { z: 4 } }} />);
+  const { container } = render(
+    <MachinaReactView
+      layout={layout}
+      layers={{ background: { z: -2 }, base: { z: 0 }, overlay: { z: 4 } }}
+    />,
+  );
   const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
   const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
   expect(directIds).toEqual(["b", "c", "d", "a"]);
@@ -450,15 +813,36 @@ it("unknown or invalid layer z falls back to 0", () => {
   const layout: ResolvedLayoutDocument = {
     rootId: "root",
     nodes: {
-      root: { id: "root", rect: { x: 0, y: 0, width: 200, height: 100 }, frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 } },
-      a: { id: "a", layer: "typo", z: 1, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
-      b: { id: "b", layer: "bad", z: 0, rect: { x: 0, y: 0, width: 1, height: 1 }, frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 } },
+      root: {
+        id: "root",
+        rect: { x: 0, y: 0, width: 200, height: 100 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 200, height: 100 },
+      },
+      a: {
+        id: "a",
+        layer: "typo",
+        z: 1,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
+      b: {
+        id: "b",
+        layer: "bad",
+        z: 0,
+        rect: { x: 0, y: 0, width: 1, height: 1 },
+        frame: { kind: "absolute", x: 0, y: 0, width: 1, height: 1 },
+      },
     },
     children: { root: ["b", "a"], a: [], b: [] },
   };
-  const { container } = render(<MachinaReactView layout={layout} layers={{ base: { z: 0 }, bad: { z: 99 as any } }} />);
+  const { container } = render(
+    <MachinaReactView layout={layout} layers={{ base: { z: 0 }, bad: { z: 99 as any } }} />,
+  );
   const root = container.querySelector('[data-machina-node-id="root"]') as HTMLElement;
   const directIds = Array.from(root.children).map((el) => el.getAttribute("data-machina-node-id"));
   expect(directIds).toEqual(["b", "a"]);
-  expect(container.querySelector('[data-machina-node-id="a"]')).toHaveAttribute("data-machina-layer", "typo");
+  expect(container.querySelector('[data-machina-node-id="a"]')).toHaveAttribute(
+    "data-machina-layer",
+    "typo",
+  );
 });
