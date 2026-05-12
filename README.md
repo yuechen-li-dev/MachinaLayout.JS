@@ -318,9 +318,11 @@ const views = {
 - `MachinaLayoutError`
 - `MachinaLayoutErrorCode`
 
-## Sample demo
+## Sample demos
 
-See [`samples/control-room`](samples/control-room/README.md).
+- [`samples/control-room`](samples/control-room/README.md)
+- [`samples/music-player`](samples/music-player/README.md)
+- [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 
 Run it locally:
 
@@ -381,3 +383,4 @@ This repo uses Biome.
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Error code reference](docs/error-codes.md)
 - [MachinaDispatch runtime guide](docs/machina-dispatch.md)
+- Dispatch sample: [`samples/dispatch-counter`](samples/dispatch-counter/README.md) (uses `machinalayout/dispatch`)
