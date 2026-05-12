@@ -1,5 +1,6 @@
-import { j as MachinaTextSource, P as ParseMachinaTextResult, a as MachinaInline, d as MachinaTextDiagnostic } from '../index-DpsIn6PZ.js';
-export { M as MachinaBulletItem, b as MachinaTextAlign, c as MachinaTextBlock, e as MachinaTextDiagnosticCode, f as MachinaTextDiagnosticLevel, g as MachinaTextDocument, h as MachinaTextLeading, i as MachinaTextOverflow, k as MachinaTextSpec, l as MachinaTextVariant, m as MachinaTextVerticalAlign, n as MachinaTextView, o as MachinaTextViewProps, p as MachinaTextWrap } from '../index-DpsIn6PZ.js';
+import { a as MachinaTextSource, P as ParseMachinaTextResult, d as MachinaInline, g as MachinaTextDiagnostic } from '../types-C4poVJpR.js';
+export { c as MachinaBulletItem, e as MachinaTextAlign, f as MachinaTextBlock, h as MachinaTextDiagnosticCode, i as MachinaTextDiagnosticLevel, b as MachinaTextDocument, j as MachinaTextLeading, k as MachinaTextOverflow, M as MachinaTextSpec, l as MachinaTextVariant, m as MachinaTextVerticalAlign, n as MachinaTextWrap } from '../types-C4poVJpR.js';
+export { MachinaTextView, MachinaTextViewProps } from './react/index.js';
 import 'react';
 
 declare function parseMachinaTextInline(text: string): {

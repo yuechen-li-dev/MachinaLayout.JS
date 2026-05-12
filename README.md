@@ -171,9 +171,9 @@ export function App() {
 ```
 
 
-Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/vue`, `machinalayout/text`, `machinalayout/text/react`).
+Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/vue`, `machinalayout/text`, `machinalayout/text/react`, `machinalayout/text/react-native`).
 
-`machinalayout/react-native` requires the `react-native` peer dependency in your app, and `machinalayout/vue` requires the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
+`machinalayout/react-native` and `machinalayout/text/react-native` require the `react-native` peer dependency in your app, and `machinalayout/vue` requires the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
 
 ## Unified adapter usage pattern
 
@@ -347,6 +347,7 @@ This repo uses Biome.
 - [A0 adapter packaging plan](docs/adapter-packaging-a0-plan.md)
 - [MachinaText parser](docs/machina-text-parser.md)
 - [MachinaText React renderer](docs/machina-text-react.md)
+- [MachinaText React Native renderer](docs/react-native-text-renderer.md)
 
 ### Boundaries and diagnostics
 

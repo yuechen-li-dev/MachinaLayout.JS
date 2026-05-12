@@ -1,5 +1,3 @@
-import React from 'react';
-
 type MachinaTextSource = {
     kind: "plain";
     text: string;
@@ -73,14 +71,4 @@ type ParseMachinaTextResult = {
     diagnostics: MachinaTextDiagnostic[];
 };
 
-type MachinaTextViewProps = {
-    text: MachinaTextSpec | MachinaTextSource | MachinaTextDocument | string;
-    className?: string;
-    style?: React.CSSProperties;
-    linkTarget?: React.HTMLAttributeAnchorTarget;
-    onLinkClick?: (href: string, event: React.MouseEvent<HTMLAnchorElement>) => void;
-    showDiagnostics?: boolean;
-};
-declare function MachinaTextView(props: MachinaTextViewProps): React.JSX.Element;
-
-export { type MachinaBulletItem as M, type ParseMachinaTextResult as P, type MachinaInline as a, type MachinaTextAlign as b, type MachinaTextBlock as c, type MachinaTextDiagnostic as d, type MachinaTextDiagnosticCode as e, type MachinaTextDiagnosticLevel as f, type MachinaTextDocument as g, type MachinaTextLeading as h, type MachinaTextOverflow as i, type MachinaTextSource as j, type MachinaTextSpec as k, type MachinaTextVariant as l, type MachinaTextVerticalAlign as m, MachinaTextView as n, type MachinaTextViewProps as o, type MachinaTextWrap as p };
+export type { MachinaTextSpec as M, ParseMachinaTextResult as P, MachinaTextSource as a, MachinaTextDocument as b, MachinaBulletItem as c, MachinaInline as d, MachinaTextAlign as e, MachinaTextBlock as f, MachinaTextDiagnostic as g, MachinaTextDiagnosticCode as h, MachinaTextDiagnosticLevel as i, MachinaTextLeading as j, MachinaTextOverflow as k, MachinaTextVariant as l, MachinaTextVerticalAlign as m, MachinaTextWrap as n };
