@@ -36,6 +36,31 @@ Machina adapters ask you to learn one layout model: Machina records. The framewo
 
 **CSS paints; Machina places; adapters translate.**
 
+
+## Adapter/text subpath matrix
+
+### Layout adapters
+
+- React DOM: `machinalayout/react`
+- React Native: `machinalayout/react-native`
+- Vue DOM: `machinalayout/vue`
+
+### Text
+
+- Parser/core text: `machinalayout/text`
+
+### Text renderers
+
+- React DOM: `machinalayout/text/react`
+- React Native: `machinalayout/text/react-native`
+- Vue DOM: `machinalayout/text/vue`
+
+Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
+
+Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
+
+Normal users should not need to learn each framework's layout/template box-drawing system: layout is Machina records, framework components are payloads rendered inside resolved rectangles.
+
 ## Current capability summary
 
 ### Core

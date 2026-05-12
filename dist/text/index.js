@@ -4,7 +4,7 @@ import {
 } from "../chunk-KYWOCAHK.js";
 import {
   MachinaVueTextView
-} from "../chunk-BLRQW7JL.js";
+} from "../chunk-EL4VUOAB.js";
 import {
   parseMachinaText,
   parseMachinaTextInline

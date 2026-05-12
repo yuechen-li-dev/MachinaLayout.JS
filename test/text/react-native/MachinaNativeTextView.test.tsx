@@ -21,10 +21,37 @@ describe("MachinaNativeTextView", () => {
     const onLinkPress = vi.fn();
     let tree!: renderer.ReactTestRenderer;
     await act(async () => {
-      tree = renderer.create(<MachinaNativeTextView text={{ kind: "text", source: { kind: "machina-text", text: "Hello **world**\n\nUse `rect`\n\nRead [docs](https://example.com)\n\n- Build rows\n- Resolve rectangles\n  - Preserve order\n- Render views" }, variant: "title", leading: "tight", align: "center", valign: "center", overflow: "ellipsis", wrap: "word", blockGap: 10, listGap: 3 }} onLinkPress={onLinkPress} contentStyle={{ backgroundColor: "black" }} style={{ color: "white" }} linkStyle={{ color: "red" }} codeStyle={{ color: "green" }} />);
+      tree = renderer.create(
+        <MachinaNativeTextView
+          text={{
+            kind: "text",
+            source: {
+              kind: "machina-text",
+              text: "Hello **world**\n\nUse `rect`\n\nRead [docs](https://example.com)\n\n- Build rows\n- Resolve rectangles\n  - Preserve order\n- Render views",
+            },
+            variant: "title",
+            leading: "tight",
+            align: "center",
+            valign: "center",
+            overflow: "ellipsis",
+            wrap: "word",
+            blockGap: 10,
+            listGap: 3,
+          }}
+          onLinkPress={onLinkPress}
+          contentStyle={{ backgroundColor: "black" }}
+          style={{ color: "white" }}
+          linkStyle={{ color: "red" }}
+          codeStyle={{ color: "green" }}
+        />,
+      );
     });
     const root = tree.root.findAllByType("rn-view" as any)[0];
-    expect(root.props.style[0]).toMatchObject({ width: "100%", height: "100%", justifyContent: "center" });
+    expect(root.props.style[0]).toMatchObject({
+      width: "100%",
+      height: "100%",
+      justifyContent: "center",
+    });
 
     const texts = tree.root.findAllByType("rn-text" as any);
     expect(texts.some((n) => String(n.children.join("")).includes("Hello"))).toBe(true);
@@ -44,27 +71,54 @@ describe("MachinaNativeTextView", () => {
   it("plain text and html are literal, diagnostics toggled", async () => {
     let tree!: renderer.ReactTestRenderer;
     await act(async () => {
-      tree = renderer.create(<MachinaNativeTextView text={{ kind: "plain", text: "Hello **not bold** <div>Hello</div>" }} />);
+      tree = renderer.create(
+        <MachinaNativeTextView
+          text={{ kind: "plain", text: "Hello **not bold** <div>Hello</div>" }}
+        />,
+      );
     });
-    expect(tree.root.findAll((n) => (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("**not bold**"))).toHaveLength(1);
+    expect(
+      tree.root.findAll(
+        (n) =>
+          (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("**not bold**"),
+      ),
+    ).toHaveLength(1);
 
     await act(async () => {
       tree.update(<MachinaNativeTextView text="# Forbidden" showDiagnostics />);
     });
-    expect(tree.root.findAll((n) => (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("heading_forbidden"))).toHaveLength(1);
+    expect(
+      tree.root.findAll(
+        (n) =>
+          (n.type as any) === "rn-text" &&
+          String(n.children.join(" ")).includes("heading_forbidden"),
+      ),
+    ).toHaveLength(1);
 
     await act(async () => {
       tree.update(<MachinaNativeTextView text="# Forbidden" />);
     });
-    expect(tree.root.findAll((n) => (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("heading_forbidden"))).toHaveLength(0);
+    expect(
+      tree.root.findAll(
+        (n) =>
+          (n.type as any) === "rn-text" &&
+          String(n.children.join(" ")).includes("heading_forbidden"),
+      ),
+    ).toHaveLength(0);
   });
 
   it("renders pre-parsed document", async () => {
-    const doc: MachinaTextDocument = { blocks: [{ kind: "paragraph", inline: [{ kind: "text", text: "Pre parsed" }] }] };
+    const doc: MachinaTextDocument = {
+      blocks: [{ kind: "paragraph", inline: [{ kind: "text", text: "Pre parsed" }] }],
+    };
     let tree!: renderer.ReactTestRenderer;
     await act(async () => {
       tree = renderer.create(<MachinaNativeTextView text={doc} />);
     });
-    expect(tree.root.findAll((n) => (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("Pre parsed"))).toHaveLength(1);
+    expect(
+      tree.root.findAll(
+        (n) => (n.type as any) === "rn-text" && String(n.children.join(" ")).includes("Pre parsed"),
+      ),
+    ).toHaveLength(1);
   });
 });

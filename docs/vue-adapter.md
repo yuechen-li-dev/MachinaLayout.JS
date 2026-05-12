@@ -50,6 +50,6 @@ To avoid conflicts with Vue fallthrough attrs, root/node styling props are:
 
 ## Not included
 
-- text renderer
+- this package only renders layout boxes; text rendering is provided separately by `machinalayout/text/vue`
 - portals/reparenting
 - router/state abstraction layers
