@@ -5,7 +5,6 @@ import {
   lerpResolvedLayouts,
   resolveLayoutRows,
   toResolvedTree,
-  type LayoutRow,
   type MachinaLayoutErrorCode,
 } from "../src";
 

@@ -318,7 +318,9 @@ function resolveGridTracks(
 ): ResolvedGridTrack[] {
   if (!Number.isFinite(gap) || gap < 0 || tracks.length === 0)
     throw new MachinaLayoutError("InvalidGridTrack", `invalid ${axis} configuration`);
-  tracks.forEach((t, i) => validateGridTrack(t, axis, i));
+  tracks.forEach((t, i) => {
+    validateGridTrack(t, axis, i);
+  });
   const fixedTotal = tracks.reduce((s, t) => s + (t.kind === "fixed" ? t.size : 0), 0);
   const gapTotal = gap * Math.max(0, tracks.length - 1);
   const remaining = contentAxisSize - fixedTotal - gapTotal;

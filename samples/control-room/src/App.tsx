@@ -57,7 +57,7 @@ export function App() {
       Preview: { layout: resolved },
       ResetButton: { reset },
     }),
-    [sidebarLeft, toolbarGap, floatingZ, debug, resolved],
+    [sidebarLeft, toolbarGap, floatingZ, debug, resolved, reset],
   );
 
   const nodeData = useMemo(() => ({ "floating-action": { floatingZ } }), [floatingZ]);

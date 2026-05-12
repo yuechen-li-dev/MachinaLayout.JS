@@ -436,7 +436,10 @@ export default function Player() {
     onSelect(TRACKS[(TRACKS.findIndex((t) => t.id === activeId) + 1) % TRACKS.length].id);
 
   // stable data refs via useMemo keyed on actual values
-  const trackListData = useMemo(() => ({ tracks: TRACKS, activeId, onSelect }), [activeId]);
+  const trackListData = useMemo(
+    () => ({ tracks: TRACKS, activeId, onSelect }),
+    [activeId, onSelect],
+  );
   const playerData = useMemo(
     () => ({
       track,
@@ -449,7 +452,7 @@ export default function Player() {
   );
   const controlsData = useMemo(
     () => ({ playing, onPlayPause: () => setPlaying((p) => !p), onPrev, onNext }),
-    [playing, activeId],
+    [playing, onPrev, onNext],
   );
 
   const rows = useMemo(

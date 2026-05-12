@@ -113,7 +113,7 @@ function matchEventPrefix(event, prefix, allowedSuffixes) {
 }
 
 // src/dispatch/dispatchEvent.ts
-var hasOwn = (state, field) => Object.prototype.hasOwnProperty.call(state, field);
+var hasOwn = (state, field) => Object.hasOwn(state, field);
 function dispatchEvent(state, event, tables) {
   if (typeof event !== "string") {
     throw new MachinaDispatchError("InvalidDispatchEvent", "event must be a string");
