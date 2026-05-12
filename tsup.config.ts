@@ -10,6 +10,7 @@ export default defineConfig({
     "text/vue/index": "src/text/vue/index.ts",
     "react-native/index": "src/react-native/index.ts",
     "vue/index": "src/vue/index.ts",
+    "dispatch/index": "src/dispatch/index.ts",
   },
   format: ["esm"],
   dts: true,

@@ -380,3 +380,4 @@ This repo uses Biome.
 - [Forbidden concepts](docs/forbidden-concepts.md)
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Error code reference](docs/error-codes.md)
+- [MachinaDispatch runtime guide](docs/machina-dispatch.md)
