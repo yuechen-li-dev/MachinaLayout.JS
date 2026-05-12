@@ -7,6 +7,7 @@ export default defineConfig({
     "text/index": "src/text/index.ts",
     "text/react/index": "src/text/react/index.ts",
     "text/react-native/index": "src/text/react-native/index.ts",
+    "text/vue/index": "src/text/vue/index.ts",
     "react-native/index": "src/react-native/index.ts",
     "vue/index": "src/vue/index.ts",
   },
