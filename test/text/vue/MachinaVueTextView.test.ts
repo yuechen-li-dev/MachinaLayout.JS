@@ -2,7 +2,8 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { MachinaVueTextView, type MachinaTextDocument } from "../../../src";
+import type { MachinaTextDocument } from "../../../src/text";
+import { MachinaVueTextView } from "../../../src/text/vue";
 import type { MachinaVueTextViewProps } from "../../../src/text/vue";
 
 describe("MachinaVueTextView", () => {

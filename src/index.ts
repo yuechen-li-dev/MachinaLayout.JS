@@ -20,5 +20,6 @@ export * from "./formatRect";
 export * from "./react";
 
 export * from "./text";
+export * from "./text/react";
 
 export * from "./lerp";
