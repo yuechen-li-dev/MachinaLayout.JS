@@ -124,6 +124,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Frames and stack](docs/frames-and-stack.md)
 - [Grid arrange](docs/grid-arrange.md)
 - [Stack geometry helpers](docs/stack-geometry-helpers.md)
+- [Screen catalog and viewport matrix](docs/screen-catalog-and-viewports.md)
 - [Error codes](docs/error-codes.md)
 
 ## Tiny `LayoutRow[]` example

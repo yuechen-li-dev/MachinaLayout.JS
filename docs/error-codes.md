@@ -68,6 +68,15 @@ This document summarizes public layout and text diagnostic codes.
 - `InvalidGuideFrame` — guide frame declaration is malformed. Typical cause: incomplete or conflicting guide spec.
 - `GuideTargetUnresolved` — guide target exists but was not resolved when needed. Typical cause: invalid dependency order/cycle.
 
+### Screen catalog and viewport matrix
+
+- `InvalidViewport` — viewport metadata is malformed. Typical cause: blank key, non-positive dimensions, invalid `deviceScaleFactor`, or invalid lightweight metadata.
+- `DuplicateViewportKey` — two viewport presets share one key. Typical cause: duplicate matrix entries.
+- `UnknownViewportKey` — a requested or screen-referenced viewport key is absent from the matrix. Typical cause: typo or filtered matrix mismatch.
+- `InvalidScreen` — screen catalog metadata is malformed. Typical cause: blank key, blank route, or invalid lightweight metadata.
+- `DuplicateScreenKey` — two screen definitions share one key. Typical cause: duplicate catalog entries.
+- `UnknownScreenKey` — a requested screen key is absent from the catalog. Typical cause: typo in an expansion filter.
+
 ### Variants
 
 - `InvalidVariantCondition` — variant condition is invalid. Typical cause: unsupported operator/value shape.
