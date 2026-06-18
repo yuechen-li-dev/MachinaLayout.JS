@@ -94,3 +94,22 @@ React components render payload UI inside adapter-owned rectangles; React does n
 ## Inspection handoff surface
 
 React DOM rendering includes the standard Machina `data-machina-*` debug attributes used by the framework-light DOM summary helpers. See [Inspection and handoff bundles](inspection-and-handoff.md) for the `machinalayout/inspect` and `machinalayout/handoff` workflow.
+
+## Debug overlay
+
+`MachinaReactView` accepts an optional controlled `debugOverlay` prop:
+
+```tsx
+<MachinaReactView
+  layout={layout}
+  debugOverlay={{ mode: "nonInteractiveOverlay", labels: true, borders: true }}
+/>
+```
+
+Modes:
+
+- `collapsed`: no overlay labels or borders are rendered and app interactions are not blocked.
+- `nonInteractiveOverlay`: overlay labels and borders render when enabled, do not consume layout space, and use `pointer-events: none`, making the mode suitable for screenshots and browser automation.
+- `interactivePanel`: overlay labels/borders can render with a small panel and `pointer-events: auto` for human inspection.
+
+The prop is controlled. M26 does not add React state management or hooks; DeusMachina provides the standalone behavior helpers used to derive the rendering semantics.

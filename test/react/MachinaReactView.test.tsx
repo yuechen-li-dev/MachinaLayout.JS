@@ -846,3 +846,61 @@ it("unknown or invalid layer z falls back to 0", () => {
     "typo",
   );
 });
+
+describe("MachinaReactView debugOverlay", () => {
+  it("renders no debug overlay when omitted or collapsed", () => {
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 80 },
+      { x: 10, y: 10, width: 20, height: 20 },
+    );
+    const { rerender } = render(<MachinaReactView layout={layout} />);
+    expect(screen.queryByTestId("machina-debug-overlay")).not.toBeInTheDocument();
+    rerender(<MachinaReactView layout={layout} debugOverlay={{ mode: "collapsed" }} />);
+    expect(screen.queryByTestId("machina-debug-overlay")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-machina-node-id="child"]')).toBeInTheDocument();
+  });
+  it("renders nonInteractiveOverlay with pointer-events none", () => {
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 80 },
+      { x: 10, y: 10, width: 20, height: 20 },
+    );
+    const { container } = render(
+      <MachinaReactView layout={layout} debugOverlay={{ mode: "nonInteractiveOverlay" }} />,
+    );
+    expect(container.querySelector('[data-testid="machina-debug-overlay"]')).toHaveStyle({
+      pointerEvents: "none",
+    });
+    expect(
+      container.querySelector('[data-machina-debug-overlay-node-id="child"]'),
+    ).toHaveTextContent("child-label");
+  });
+  it("renders interactivePanel with pointer-events auto and honors flags", () => {
+    const layout = makeLayout(
+      { x: 0, y: 0, width: 100, height: 80 },
+      { x: 10, y: 10, width: 20, height: 20 },
+    );
+    const { container } = render(
+      <MachinaReactView
+        layout={layout}
+        debugOverlay={{
+          mode: "interactivePanel",
+          labels: false,
+          borders: false,
+          selectedNodeId: "child",
+        }}
+      />,
+    );
+    expect(container.querySelector('[data-testid="machina-debug-overlay"]')).toHaveStyle({
+      pointerEvents: "auto",
+    });
+    expect(
+      container.querySelector('[data-testid="machina-debug-overlay-panel"]'),
+    ).toHaveTextContent("child");
+    expect(
+      container.querySelector('[data-machina-debug-overlay-node-id="child"]'),
+    ).not.toHaveTextContent("child-label");
+    expect(container.querySelector('[data-testid="machina-debug-overlay-node-child"]')).toHaveStyle(
+      { borderWidth: "0px" },
+    );
+  });
+});

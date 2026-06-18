@@ -13,6 +13,7 @@ export default defineConfig({
     "dispatch/index": "src/dispatch/index.ts",
     "inspect/index": "src/inspect/index.ts",
     "handoff/index": "src/handoff/index.ts",
+    "deus/index": "src/deus/index.ts",
   },
   format: ["esm"],
   dts: true,
