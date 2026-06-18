@@ -112,4 +112,4 @@ Modes:
 - `nonInteractiveOverlay`: overlay labels and borders render when enabled, do not consume layout space, and use `pointer-events: none`, making the mode suitable for screenshots and browser automation.
 - `interactivePanel`: overlay labels/borders can render with a small panel and `pointer-events: auto` for human inspection.
 
-The prop is controlled. M26 does not add React state management or hooks; DeusMachina provides the standalone behavior helpers used to derive the rendering semantics.
+The prop is controlled. M26 does not add React state management or hooks; DeusMachina provides the standalone behavior helpers used to derive the rendering semantics. In `nonInteractiveOverlay`, overlay artifacts use `pointer-events: none` and do not consume layout space; in `collapsed`, overlay artifacts are not rendered. Labels and borders remain controlled booleans and do not change existing `data-machina-*` attributes on node wrappers.

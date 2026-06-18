@@ -6,7 +6,7 @@ export { parseMachinaText, parseMachinaTextInline } from './text/index.js';
 export { MachinaTextView, MachinaTextViewProps } from './text/react/index.js';
 export { b as MachinaScreen, c as MachinaScreenCatalog, a as MachinaScreenViewportTask, M as MachinaViewport, d as MachinaViewportMatrix, e as createViewportMatrix, f as defineMachinaScreens, g as defineMachinaViewports, h as expandScreenViewportTasks, i as getMachinaViewport, s as slugMachinaArtifactName } from './screenCatalog-ZjonGiOi.js';
 import 'react';
-import './debugOverlay-ae9DqI9R.js';
+import './debugOverlay-pJpj0n5H.js';
 
 type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "ExpectedStackArrange" | "StackQueryInvalidRange" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts" | "GuideTargetNotFound" | "GuideSelfReference" | "GuideReferenceCycle" | "GuideInvalidEdgeForAxis" | "GuideTooManyReferencesPerAxis" | "InvalidGuideFrame" | "GuideTargetUnresolved" | "InvalidViewport" | "DuplicateViewportKey" | "UnknownViewportKey" | "InvalidScreen" | "DuplicateScreenKey" | "UnknownScreenKey";
 declare class MachinaLayoutError extends Error {
