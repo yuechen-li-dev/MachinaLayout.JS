@@ -1,12 +1,14 @@
-import { E as EdgeInsets, U as UiLength, R as Rect, O as OffsetSpec, L as LayoutRow, c as LayoutDocument, F as FrameSpec, b as ResolvedLayoutDocument, d as ResolvedLayoutTree, a as ResolvedLayoutNode } from './types-BudfpzZX.js';
-export { A as AbsoluteFrame, e as AnchorFrame, f as ArrangeSpec, C as CellFrame, g as EdgeRef, h as FillFrame, i as FixedFrame, G as GridArrange, j as GridTrack, k as GuideFrame, l as GuideLength, m as LayerName, n as LayoutNode, o as LayoutRowVariant, p as LayoutVariantCondition, N as NodeId, q as RectEdge, r as RootFrame, S as StackAlign, s as StackArrange, t as StackAxis, u as StackJustify } from './types-BudfpzZX.js';
-export { MachinaReactView, MachinaReactViewProps, MachinaSlotProps } from './react/index.js';
+import { E as EdgeInsets, U as UiLength, R as Rect, O as OffsetSpec, L as LayoutRow, c as LayoutDocument, F as FrameSpec, b as ResolvedLayoutDocument, d as ResolvedLayoutTree, a as ResolvedLayoutNode, N as NodeId, e as LayerName, S as StackAxis, A as ArrangeSpec } from './types-B90jb3RW.js';
+export { f as AbsoluteFrame, g as AnchorFrame, C as CellFrame, h as EdgeRef, i as FillFrame, j as FixedFrame, G as GridArrange, k as GridTrack, l as GuideFrame, m as GuideLength, n as LayoutNode, o as LayoutRowVariant, p as LayoutVariantCondition, q as RectEdge, r as RootFrame, s as StackAlign, t as StackArrange, u as StackJustify } from './types-B90jb3RW.js';
+export { MachinaReactDebugOverlayOptions, MachinaReactView, MachinaReactViewProps, MachinaSlotProps } from './react/index.js';
 export { c as MachinaBulletItem, d as MachinaInline, e as MachinaTextAlign, f as MachinaTextBlock, g as MachinaTextDiagnostic, h as MachinaTextDiagnosticCode, i as MachinaTextDiagnosticLevel, b as MachinaTextDocument, j as MachinaTextLeading, k as MachinaTextOverflow, a as MachinaTextSource, M as MachinaTextSpec, l as MachinaTextVariant, m as MachinaTextVerticalAlign, n as MachinaTextWrap, P as ParseMachinaTextResult } from './types-C4poVJpR.js';
 export { parseMachinaText, parseMachinaTextInline } from './text/index.js';
 export { MachinaTextView, MachinaTextViewProps } from './text/react/index.js';
+export { b as MachinaScreen, c as MachinaScreenCatalog, a as MachinaScreenViewportTask, M as MachinaViewport, d as MachinaViewportMatrix, e as createViewportMatrix, f as defineMachinaScreens, g as defineMachinaViewports, h as expandScreenViewportTasks, i as getMachinaViewport, s as slugMachinaArtifactName } from './screenCatalog-ZjonGiOi.js';
 import 'react';
+import './debugOverlay-pJpj0n5H.js';
 
-type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts" | "GuideTargetNotFound" | "GuideSelfReference" | "GuideReferenceCycle" | "GuideInvalidEdgeForAxis" | "GuideTooManyReferencesPerAxis" | "InvalidGuideFrame" | "GuideTargetUnresolved";
+type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "ExpectedStackArrange" | "StackQueryInvalidRange" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts" | "GuideTargetNotFound" | "GuideSelfReference" | "GuideReferenceCycle" | "GuideInvalidEdgeForAxis" | "GuideTooManyReferencesPerAxis" | "InvalidGuideFrame" | "GuideTargetUnresolved" | "InvalidViewport" | "DuplicateViewportKey" | "UnknownViewportKey" | "InvalidScreen" | "DuplicateScreenKey" | "UnknownScreenKey";
 declare class MachinaLayoutError extends Error {
     readonly code: MachinaLayoutErrorCode;
     constructor(code: MachinaLayoutErrorCode, message: string);
@@ -39,8 +41,47 @@ declare function flattenResolvedTree(tree: ResolvedLayoutTree): ResolvedLayoutNo
 
 declare function formatRect(rect: Rect): string;
 
+type StackChildMetric = {
+    id: NodeId;
+    rect: Rect;
+    mainStart: number;
+    mainEnd: number;
+    mainSize: number;
+    crossStart: number;
+    crossEnd: number;
+    crossSize: number;
+    frameKind: FrameSpec["kind"];
+    z?: number;
+    layer?: LayerName;
+};
+type StackMainAxisMetrics = {
+    parentId: NodeId;
+    axis: StackAxis;
+    parentRect: Rect;
+    contentRect: Rect;
+    padding: EdgeInsets;
+    gap: number;
+    childIds: NodeId[];
+    childMetrics: StackChildMetric[];
+    contentMainSize: number;
+    contentCrossSize: number;
+    totalChildMainSize: number;
+    totalGapSize: number;
+    usedMainSize: number;
+    unusedMainSize: number;
+};
+declare function getArrangeContentRect(parentRect: Rect, arrange?: ArrangeSpec): Rect;
+declare function getStackContentRect(layout: ResolvedLayoutDocument, parentId: NodeId): Rect;
+declare function getStackMainAxisMetrics(layout: ResolvedLayoutDocument, parentId: NodeId): StackMainAxisMetrics;
+declare function getStackChildRects(layout: ResolvedLayoutDocument, parentId: NodeId): Record<NodeId, Rect>;
+declare function getRemainingStackRect(layout: ResolvedLayoutDocument, options: {
+    parentId: NodeId;
+    afterChildren?: NodeId[];
+    beforeChildren?: NodeId[];
+}): Rect;
+
 declare function lerpNumber(a: number, b: number, t: number): number;
 declare function lerpRect(a: Rect, b: Rect, t: number): Rect;
 declare function lerpResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument, t: number): ResolvedLayoutDocument;
 
-export { EdgeInsets, FrameSpec, LayoutDocument, LayoutRow, MachinaLayoutError, type MachinaLayoutErrorCode, OffsetSpec, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree, UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };
+export { ArrangeSpec, EdgeInsets, FrameSpec, LayerName, LayoutDocument, LayoutRow, MachinaLayoutError, type MachinaLayoutErrorCode, NodeId, OffsetSpec, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree, StackAxis, type StackChildMetric, type StackMainAxisMetrics, UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, getArrangeContentRect, getRemainingStackRect, getStackChildRects, getStackContentRect, getStackMainAxisMetrics, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };

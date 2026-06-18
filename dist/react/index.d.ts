@@ -1,5 +1,6 @@
 import React from 'react';
-import { b as ResolvedLayoutDocument, N as NodeId, R as Rect, a as ResolvedLayoutNode } from '../types-BudfpzZX.js';
+import { o as MachinaDebugOverlayMode } from '../debugOverlay-pJpj0n5H.js';
+import { b as ResolvedLayoutDocument, N as NodeId, R as Rect, a as ResolvedLayoutNode } from '../types-B90jb3RW.js';
 
 type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
     id: NodeId;
@@ -12,6 +13,12 @@ type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
 };
 type MachinaRenderLayer = {
     z: number;
+};
+type MachinaReactDebugOverlayOptions = {
+    mode?: MachinaDebugOverlayMode;
+    labels?: boolean;
+    borders?: boolean;
+    selectedNodeId?: string;
 };
 type MachinaReactViewProps = {
     layout: ResolvedLayoutDocument;
@@ -27,7 +34,8 @@ type MachinaReactViewProps = {
     nodeContainIntrinsicSize?: string;
     layers?: Record<string, MachinaRenderLayer>;
     defaultLayer?: string;
+    debugOverlay?: MachinaReactDebugOverlayOptions;
 };
 declare function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element;
 
-export { MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps };
+export { type MachinaReactDebugOverlayOptions, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps };
