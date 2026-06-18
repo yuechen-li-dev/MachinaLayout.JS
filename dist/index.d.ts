@@ -4,6 +4,7 @@ export { MachinaReactView, MachinaReactViewProps, MachinaSlotProps } from './rea
 export { c as MachinaBulletItem, d as MachinaInline, e as MachinaTextAlign, f as MachinaTextBlock, g as MachinaTextDiagnostic, h as MachinaTextDiagnosticCode, i as MachinaTextDiagnosticLevel, b as MachinaTextDocument, j as MachinaTextLeading, k as MachinaTextOverflow, a as MachinaTextSource, M as MachinaTextSpec, l as MachinaTextVariant, m as MachinaTextVerticalAlign, n as MachinaTextWrap, P as ParseMachinaTextResult } from './types-C4poVJpR.js';
 export { parseMachinaText, parseMachinaTextInline } from './text/index.js';
 export { MachinaTextView, MachinaTextViewProps } from './text/react/index.js';
+export { b as MachinaScreen, c as MachinaScreenCatalog, a as MachinaScreenViewportTask, M as MachinaViewport, d as MachinaViewportMatrix, e as createViewportMatrix, f as defineMachinaScreens, g as defineMachinaViewports, h as expandScreenViewportTasks, i as getMachinaViewport, s as slugMachinaArtifactName } from './screenCatalog-ZjonGiOi.js';
 import 'react';
 
 type MachinaLayoutErrorCode = "EmptyRows" | "MissingRoot" | "MultipleRoots" | "DuplicateId" | "InvalidId" | "MissingParent" | "UnknownParent" | "SelfParent" | "Cycle" | "UnreachableNode" | "NonFiniteNumber" | "InvalidLengthUnit" | "InvalidZ" | "InvalidVariantCondition" | "NegativeSize" | "NegativeGap" | "NegativePadding" | "InvalidAnchorHorizontal" | "InvalidAnchorVertical" | "NegativeResolvedSize" | "FixedFrameWithoutArranger" | "FillFrameWithoutArranger" | "InvalidFillWeight" | "StackChildMustBeFixed" | "StackContentNegative" | "StackOverflow" | "ExpectedStackArrange" | "StackQueryInvalidRange" | "CellFrameWithoutGrid" | "GridChildMustBeCell" | "InvalidGridTrack" | "InvalidGridCell" | "GridContentNegative" | "GridOverflow" | "RootFrameNotRoot" | "RootFrameWithoutRoot" | "IncompatibleLayouts" | "GuideTargetNotFound" | "GuideSelfReference" | "GuideReferenceCycle" | "GuideInvalidEdgeForAxis" | "GuideTooManyReferencesPerAxis" | "InvalidGuideFrame" | "GuideTargetUnresolved" | "InvalidViewport" | "DuplicateViewportKey" | "UnknownViewportKey" | "InvalidScreen" | "DuplicateScreenKey" | "UnknownScreenKey";
@@ -82,49 +83,4 @@ declare function lerpNumber(a: number, b: number, t: number): number;
 declare function lerpRect(a: Rect, b: Rect, t: number): Rect;
 declare function lerpResolvedLayouts(a: ResolvedLayoutDocument, b: ResolvedLayoutDocument, t: number): ResolvedLayoutDocument;
 
-type MachinaViewport = {
-    key: string;
-    width: number;
-    height: number;
-    deviceScaleFactor?: number;
-    label?: string;
-    tags?: readonly string[];
-};
-type MachinaViewportMatrix = readonly MachinaViewport[];
-type MachinaScreen = {
-    key: string;
-    route: string;
-    fixture?: string;
-    viewports?: readonly string[];
-    tags?: readonly string[];
-    title?: string;
-    metadata?: Record<string, unknown>;
-};
-type MachinaScreenCatalog = {
-    screens: Record<string, MachinaScreen>;
-    order: string[];
-};
-type MachinaScreenViewportTask = {
-    key: string;
-    screenKey: string;
-    viewportKey: string;
-    route: string;
-    fixture?: string;
-    viewport: MachinaViewport;
-    screen: MachinaScreen;
-    tags: readonly string[];
-    artifactBaseName: string;
-};
-type ExpandOptions = {
-    screenKeys?: readonly string[];
-    viewportKeys?: readonly string[];
-    tags?: readonly string[];
-};
-declare function defineMachinaViewports(viewports: readonly MachinaViewport[]): MachinaViewportMatrix;
-declare function createViewportMatrix(preset?: "standard-responsive" | "desktop-only" | "mobile-first"): MachinaViewportMatrix;
-declare function defineMachinaScreens(screens: readonly MachinaScreen[]): MachinaScreenCatalog;
-declare function slugMachinaArtifactName(input: string): string;
-declare function getMachinaViewport(viewports: MachinaViewportMatrix, key: string): MachinaViewport;
-declare function expandScreenViewportTasks(catalog: MachinaScreenCatalog, viewports: MachinaViewportMatrix, options?: ExpandOptions): MachinaScreenViewportTask[];
-
-export { ArrangeSpec, EdgeInsets, FrameSpec, LayerName, LayoutDocument, LayoutRow, MachinaLayoutError, type MachinaLayoutErrorCode, type MachinaScreen, type MachinaScreenCatalog, type MachinaScreenViewportTask, type MachinaViewport, type MachinaViewportMatrix, NodeId, OffsetSpec, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree, StackAxis, type StackChildMetric, type StackMainAxisMetrics, UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, createViewportMatrix, defineMachinaScreens, defineMachinaViewports, expandScreenViewportTasks, flattenResolvedTree, formatRect, getArrangeContentRect, getMachinaViewport, getRemainingStackRect, getStackChildRects, getStackContentRect, getStackMainAxisMetrics, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, slugMachinaArtifactName, toResolvedTree };
+export { ArrangeSpec, EdgeInsets, FrameSpec, LayerName, LayoutDocument, LayoutRow, MachinaLayoutError, type MachinaLayoutErrorCode, NodeId, OffsetSpec, Rect, ResolvedLayoutDocument, ResolvedLayoutNode, ResolvedLayoutTree, StackAxis, type StackChildMetric, type StackMainAxisMetrics, UiLength, applyOffset, assertFiniteNumber, assertNonNegativeGap, assertNonNegativePadding, assertNonNegativeSize, compileLayoutRows, flattenResolvedTree, formatRect, getArrangeContentRect, getRemainingStackRect, getStackChildRects, getStackContentRect, getStackMainAxisMetrics, lerpNumber, lerpRect, lerpResolvedLayouts, normalizePadding, resolveFrame, resolveLayoutDocument, resolveLayoutRows, resolveUiLength, selectLayoutRowsForRoot, toResolvedTree };

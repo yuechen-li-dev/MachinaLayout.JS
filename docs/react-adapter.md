@@ -90,3 +90,7 @@ Not used as geometry authority:
 - CSS classes determining solved geometry
 
 React components render payload UI inside adapter-owned rectangles; React does not own outer layout geometry.
+
+## Inspection handoff surface
+
+React DOM rendering includes the standard Machina `data-machina-*` debug attributes used by the framework-light DOM summary helpers. See [Inspection and handoff bundles](inspection-and-handoff.md) for the `machinalayout/inspect` and `machinalayout/handoff` workflow.

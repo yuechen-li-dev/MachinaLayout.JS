@@ -55,6 +55,8 @@ Machina adapters ask you to learn one layout model: Machina records. The framewo
 - React Native: `machinalayout/text/react-native`
 - Vue DOM: `machinalayout/text/vue`
 
+Inspection and handoff utilities are available at `machinalayout/inspect` and `machinalayout/handoff`.
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -125,6 +127,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Grid arrange](docs/grid-arrange.md)
 - [Stack geometry helpers](docs/stack-geometry-helpers.md)
 - [Screen catalog and viewport matrix](docs/screen-catalog-and-viewports.md)
+- [Inspection and handoff bundles](docs/inspection-and-handoff.md)
 - [Error codes](docs/error-codes.md)
 
 ## Tiny `LayoutRow[]` example
