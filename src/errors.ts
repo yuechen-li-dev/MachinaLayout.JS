@@ -25,6 +25,8 @@ export type MachinaLayoutErrorCode =
   | "StackChildMustBeFixed"
   | "StackContentNegative"
   | "StackOverflow"
+  | "ExpectedStackArrange"
+  | "StackQueryInvalidRange"
   | "CellFrameWithoutGrid"
   | "GridChildMustBeCell"
   | "InvalidGridTrack"
