@@ -16,6 +16,7 @@ export * from "./resolveLayoutRows";
 export * from "./toResolvedTree";
 export * from "./flattenResolvedTree";
 export * from "./formatRect";
+export * from "./stackGeometry";
 
 export * from "./react";
 

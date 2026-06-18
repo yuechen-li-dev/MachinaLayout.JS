@@ -1,6 +1,6 @@
 import * as vue from 'vue';
 import { PropType, Component, StyleValue } from 'vue';
-import { N as NodeId, R as Rect, a as ResolvedLayoutNode, b as ResolvedLayoutDocument } from '../types-BudfpzZX.js';
+import { N as NodeId, R as Rect, a as ResolvedLayoutNode, b as ResolvedLayoutDocument } from '../types-B90jb3RW.js';
 
 type MachinaVueSlotProps<TViewData = unknown, TNodeData = unknown> = {
     id: NodeId;

@@ -79,6 +79,7 @@ Normal users should not need to learn each framework's layout/template box-drawi
 - bounded `z`
 - named layers
 - layout interpolation helpers
+- stack geometry/content query helpers
 
 ### React
 
@@ -115,6 +116,15 @@ Normal users should not need to learn each framework's layout/template box-drawi
 `GuideFrame` reads other nodes’ resolved geometry as a read-only alignment input. It preserves the one-parent model: parent remains the coordinate owner. `GuideFrame` does not portal, reparent DOM nodes, or escape clipping.
 
 Named layers organize paint order over the existing bounded `z` system. Layers are not portals.
+
+
+## Docs index
+
+- [Row model](docs/row-model.md)
+- [Frames and stack](docs/frames-and-stack.md)
+- [Grid arrange](docs/grid-arrange.md)
+- [Stack geometry helpers](docs/stack-geometry-helpers.md)
+- [Error codes](docs/error-codes.md)
 
 ## Tiny `LayoutRow[]` example
 

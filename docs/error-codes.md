@@ -47,6 +47,8 @@ This document summarizes public layout and text diagnostic codes.
   - Note: this code name is historical and stable; do not rename it.
 - `StackContentNegative` — stack content space became negative. Typical cause: padding/gaps exceed container space.
 - `StackOverflow` — stack children exceed available axis space. Typical cause: fixed sizes + gaps exceed container.
+- `ExpectedStackArrange` — a stack query helper was called on a non-stack node. Typical cause: using stack-only geometry helpers with a plain or grid parent.
+- `StackQueryInvalidRange` — a remaining stack rectangle query produced a negative interval. Typical cause: `afterChildren` resolve after `beforeChildren`.
 
 ### Grid
 
