@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseMachinaText } from "../src/text";
 import { summarizeMachinaDom } from "../src/inspect";
 import { writeMachinaHandoffBundle } from "../src/handoff";
+import { judgeUtility } from "../src/deus";
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
@@ -15,5 +16,9 @@ describe("package export entrypoints", () => {
   it("exposes inspect and handoff subpath utilities", () => {
     expect(summarizeMachinaDom).toBeTypeOf("function");
     expect(writeMachinaHandoffBundle).toBeTypeOf("function");
+  });
+
+  it("exposes deus subpath utilities", () => {
+    expect(judgeUtility).toBeTypeOf("function");
   });
 });

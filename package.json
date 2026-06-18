@@ -71,6 +71,10 @@
       "types": "./dist/handoff/index.d.ts",
       "import": "./dist/handoff/index.js"
     },
+    "./deus": {
+      "types": "./dist/deus/index.d.ts",
+      "import": "./dist/deus/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
