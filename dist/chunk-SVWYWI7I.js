@@ -1,12 +1,6 @@
-// src/errors.ts
-var MachinaLayoutError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.name = "MachinaLayoutError";
-    this.code = code;
-  }
-};
+import {
+  MachinaLayoutError
+} from "./chunk-VREK57S3.js";
 
 // src/toResolvedTree.ts
 function toResolvedTree(document) {
@@ -61,6 +55,5 @@ function toResolvedTree(document) {
 }
 
 export {
-  MachinaLayoutError,
   toResolvedTree
 };

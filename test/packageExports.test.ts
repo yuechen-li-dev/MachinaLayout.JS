@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseMachinaText } from "../src/text";
+import { summarizeMachinaDom } from "../src/inspect";
+import { writeMachinaHandoffBundle } from "../src/handoff";
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
@@ -8,5 +10,10 @@ describe("package export entrypoints", () => {
     expect("MachinaTextView" in textCore).toBe(false);
     expect("MachinaNativeTextView" in textCore).toBe(false);
     expect("MachinaVueTextView" in textCore).toBe(false);
+  });
+
+  it("exposes inspect and handoff subpath utilities", () => {
+    expect(summarizeMachinaDom).toBeTypeOf("function");
+    expect(writeMachinaHandoffBundle).toBeTypeOf("function");
   });
 });

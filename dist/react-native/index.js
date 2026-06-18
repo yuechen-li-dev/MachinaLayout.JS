@@ -1,6 +1,7 @@
 import {
   toResolvedTree
-} from "../chunk-TR24ERZT.js";
+} from "../chunk-SVWYWI7I.js";
+import "../chunk-VREK57S3.js";
 
 // src/react-native/MachinaReactNativeView.tsx
 import React from "react";

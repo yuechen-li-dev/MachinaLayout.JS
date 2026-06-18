@@ -1,6 +1,7 @@
 import {
   toResolvedTree
-} from "../chunk-TR24ERZT.js";
+} from "../chunk-SVWYWI7I.js";
+import "../chunk-VREK57S3.js";
 
 // src/vue/MachinaVueView.ts
 import { computed, defineComponent, h } from "vue";
