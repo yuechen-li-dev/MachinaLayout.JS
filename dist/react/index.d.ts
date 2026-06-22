@@ -1,41 +1,6 @@
-import React from 'react';
-import { o as MachinaDebugOverlayMode } from '../debugOverlay-pJpj0n5H.js';
-import { b as ResolvedLayoutDocument, N as NodeId, R as Rect, a as ResolvedLayoutNode } from '../types-B90jb3RW.js';
-
-type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
-    id: NodeId;
-    rect: Rect;
-    debugLabel?: string;
-    node: ResolvedLayoutNode;
-    viewKey?: string;
-    viewData?: TViewData;
-    nodeData?: TNodeData;
-};
-type MachinaRenderLayer = {
-    z: number;
-};
-type MachinaReactDebugOverlayOptions = {
-    mode?: MachinaDebugOverlayMode;
-    labels?: boolean;
-    borders?: boolean;
-    selectedNodeId?: string;
-};
-type MachinaReactViewProps = {
-    layout: ResolvedLayoutDocument;
-    views?: Record<string, React.ComponentType<MachinaSlotProps>>;
-    viewData?: Record<string, unknown>;
-    nodeData?: Record<NodeId, unknown>;
-    className?: string;
-    style?: React.CSSProperties;
-    nodeClassName?: string;
-    debug?: boolean;
-    nodeContainment?: "none" | "layout-paint" | "strict";
-    nodeContentVisibility?: "none" | "auto";
-    nodeContainIntrinsicSize?: string;
-    layers?: Record<string, MachinaRenderLayer>;
-    defaultLayer?: string;
-    debugOverlay?: MachinaReactDebugOverlayOptions;
-};
-declare function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element;
-
-export { type MachinaReactDebugOverlayOptions, MachinaReactView, type MachinaReactViewProps, type MachinaSlotProps };
+export { U as UseDeusMachineResult, u as useDeusMachine } from '../useDeusMachine-2w2u_dki.js';
+export { M as MachinaReactDebugOverlayOptions, a as MachinaReactView, b as MachinaReactViewProps, c as MachinaSlotProps } from '../MachinaReactView-Bau5bErA.js';
+import '../types-CWaup8Z6.js';
+import 'react';
+import '../debugOverlay-fWLv1cS7.js';
+import '../types-CYgsjDai.js';

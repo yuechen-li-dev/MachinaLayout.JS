@@ -89,37 +89,4 @@ type DeusStepResult<TBoard> = {
     trace: DeusStepTrace;
 };
 
-type MachinaDebugOverlayMode = "collapsed" | "nonInteractiveOverlay" | "interactivePanel";
-type MachinaDebugOverlayBoard = {
-    mode: MachinaDebugOverlayMode;
-    labels: boolean;
-    borders: boolean;
-    selectedNodeId?: string;
-};
-type MachinaDebugOverlayEvent = {
-    type: "showOverlay";
-} | {
-    type: "openPanel";
-    nodeId?: string;
-} | {
-    type: "collapse";
-} | {
-    type: "toggleLabels";
-} | {
-    type: "toggleBorders";
-} | {
-    type: "selectNode";
-    nodeId: string;
-};
-type MachinaDebugOverlayBehavior = {
-    visible: boolean;
-    pointerEvents: "none" | "auto";
-    consumesLayoutSpace: boolean;
-    showPanel: boolean;
-    showLabels: boolean;
-    showBorders: boolean;
-};
-declare function createMachinaDebugOverlayMachine(): DeusMachine<MachinaDebugOverlayBoard, MachinaDebugOverlayEvent>;
-declare function getMachinaDebugOverlayBehavior(board: MachinaDebugOverlayBoard): MachinaDebugOverlayBehavior;
-
-export { type DeusEvent as D, type JudgeUtilityOptions as J, type MachinaDebugOverlayBehavior as M, type UtilityCandidate as U, type UtilityJudgment as a, type DeusMachine as b, type DeusSnapshot as c, type DeusStatePath as d, type DeusStepTrace as e, type DeusStepResult as f, type DeusAction as g, DeusMachinaError as h, type DeusStateRow as i, type DeusTransitionRow as j, type DeusTransitionTrace as k, type DeusUtilityTransitionCandidate as l, type MachinaDebugOverlayBoard as m, type MachinaDebugOverlayEvent as n, type MachinaDebugOverlayMode as o, type UtilityCandidateResult as p, type UtilityScore as q, createMachinaDebugOverlayMachine as r, getMachinaDebugOverlayBehavior as s };
+export { type DeusEvent as D, type JudgeUtilityOptions as J, type UtilityCandidate as U, type DeusSnapshot as a, type DeusStatePath as b, type DeusStepResult as c, type DeusStepTrace as d, type DeusMachine as e, type UtilityJudgment as f, type DeusAction as g, DeusMachinaError as h, type DeusStateRow as i, type DeusTransitionRow as j, type DeusTransitionTrace as k, type DeusUtilityTransitionCandidate as l, type UtilityCandidateResult as m, type UtilityScore as n };

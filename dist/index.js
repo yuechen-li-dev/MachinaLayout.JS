@@ -8,8 +8,7 @@ import {
 } from "./chunk-33CKBEJH.js";
 import {
   MachinaReactView
-} from "./chunk-ZVDE7PX4.js";
-import "./chunk-2ZQ2RFFI.js";
+} from "./chunk-MSTBFD7H.js";
 import "./chunk-RJYRJ3LD.js";
 import {
   MachinaTextView
@@ -18,12 +17,14 @@ import {
   parseMachinaText,
   parseMachinaTextInline
 } from "./chunk-BJOQRPPX.js";
+import "./chunk-ZIGW44D5.js";
 import {
   toResolvedTree
 } from "./chunk-SVWYWI7I.js";
 import {
   MachinaLayoutError
 } from "./chunk-VREK57S3.js";
+import "./chunk-2ZQ2RFFI.js";
 
 // src/validation.ts
 function assertFiniteNumber(value, fieldName) {

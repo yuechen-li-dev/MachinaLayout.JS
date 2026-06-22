@@ -113,3 +113,7 @@ Modes:
 - `interactivePanel`: overlay labels/borders can render with a small panel and `pointer-events: auto` for human inspection.
 
 The prop is controlled. M26 does not add React state management or hooks; DeusMachina provides the standalone behavior helpers used to derive the rendering semantics. In `nonInteractiveOverlay`, overlay artifacts use `pointer-events: none` and do not consume layout space; in `collapsed`, overlay artifacts are not rendered. Labels and borders remain controlled booleans and do not change existing `data-machina-*` attributes on node wrappers.
+
+## DeusMachina hook
+
+`machinalayout/react` exports `useDeusMachine(machine, initialBoard)`. The hook is a thin wrapper around the DeusMachina kernel and returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`. It follows the mutable board contract: actions may mutate the board, while the hook replaces the snapshot object after dispatch so React re-renders. Keep machine definitions stable; changing the machine reference resets the hook snapshot.

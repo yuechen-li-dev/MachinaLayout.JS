@@ -18,7 +18,12 @@ export * from "./flattenResolvedTree";
 export * from "./formatRect";
 export * from "./stackGeometry";
 
-export * from "./react";
+export type {
+  MachinaReactDebugOverlayOptions,
+  MachinaReactViewProps,
+  MachinaSlotProps,
+} from "./react";
+export { MachinaReactView } from "./react";
 
 export * from "./text";
 export * from "./text/react";

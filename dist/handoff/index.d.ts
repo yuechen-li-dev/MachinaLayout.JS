@@ -1,6 +1,6 @@
-import { M as MachinaDomSummary } from '../types-DLYAhNXw.js';
+import { M as MachinaDomSummary } from '../types-bJlg6wno.js';
 import { M as MachinaViewport, a as MachinaScreenViewportTask } from '../screenCatalog-ZjonGiOi.js';
-import '../types-B90jb3RW.js';
+import '../types-CYgsjDai.js';
 
 type MachinaHandoffArtifactPaths = {
     screenshot?: string;
