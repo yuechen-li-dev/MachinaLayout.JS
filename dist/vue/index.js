@@ -2,9 +2,42 @@ import {
   toResolvedTree
 } from "../chunk-SVWYWI7I.js";
 import "../chunk-VREK57S3.js";
+import {
+  createDeusSnapshot,
+  stepDeusMachine
+} from "../chunk-2ZQ2RFFI.js";
+
+// src/vue/useDeusMachine.ts
+import { computed, ref } from "vue";
+function resolveInitialBoard(initialBoard) {
+  return typeof initialBoard === "function" ? initialBoard() : initialBoard;
+}
+function useDeusMachine(machine, initialBoard) {
+  const createSnapshot = (board) => createDeusSnapshot(machine, resolveInitialBoard(board ?? initialBoard));
+  const snapshot = ref(createSnapshot());
+  const lastTrace = ref(null);
+  const dispatch = (event) => {
+    const result = stepDeusMachine(machine, snapshot.value, event);
+    snapshot.value = result.snapshot;
+    lastTrace.value = result.trace;
+    return result;
+  };
+  const reset = (board) => {
+    snapshot.value = createSnapshot(board);
+    lastTrace.value = null;
+  };
+  return {
+    snapshot,
+    board: computed(() => snapshot.value.board),
+    state: computed(() => snapshot.value.state),
+    dispatch,
+    lastTrace,
+    reset
+  };
+}
 
 // src/vue/MachinaVueView.ts
-import { computed, defineComponent, h } from "vue";
+import { computed as computed2, defineComponent, h } from "vue";
 var normalizeLayerZ = (v) => v === void 0 || !Number.isFinite(v) || !Number.isInteger(v) || v < -5 || v > 5 ? 0 : v;
 var getEffectiveLayer = (n, d) => n.layer ?? d;
 var getEffectiveLayerZ = (n, l, d) => normalizeLayerZ(l[getEffectiveLayer(n, d)]?.z);
@@ -33,7 +66,7 @@ var MachinaVueView = defineComponent({
     nodeContainIntrinsicSize: { type: String, default: void 0 }
   },
   setup(props) {
-    const tree = computed(() => toResolvedTree(props.layout));
+    const tree = computed2(() => toResolvedTree(props.layout));
     const renderNode = (node, parentRect) => {
       const viewKey = node.view ?? node.slot;
       const View = viewKey ? props.views[viewKey] : void 0;
@@ -108,5 +141,6 @@ var MachinaVueView = defineComponent({
   }
 });
 export {
-  MachinaVueView
+  MachinaVueView,
+  useDeusMachine
 };

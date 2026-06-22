@@ -1,4 +1,10 @@
-import { describe, expect, it } from "vitest";
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("react-native", () => ({
+  View: ({ children, ...props }: any) => React.createElement("rn-view", props, children),
+  Text: ({ children, ...props }: any) => React.createElement("rn-text", props, children),
+}));
+
 import { parseMachinaText } from "../src/text";
 import { summarizeMachinaDom } from "../src/inspect";
 import { writeMachinaHandoffBundle } from "../src/handoff";
@@ -10,6 +16,9 @@ import {
   judgeUtility,
   stepDeusMachine,
 } from "../src/deus";
+import { useDeusMachine as useReactDeusMachine } from "../src/react";
+import { useDeusMachine as useNativeDeusMachine } from "../src/react-native";
+import { useDeusMachine as useVueDeusMachine } from "../src/vue";
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
@@ -32,5 +41,15 @@ describe("package export entrypoints", () => {
     expect(stepDeusMachine).toBeTypeOf("function");
     expect(createMachinaDebugOverlayMachine).toBeTypeOf("function");
     expect(getMachinaDebugOverlayBehavior).toBeTypeOf("function");
+  });
+
+  it("exposes Deus framework bindings only from adapter subpaths", async () => {
+    const root = await import("../src");
+    const deus = await import("../src/deus");
+    expect(useReactDeusMachine).toBeTypeOf("function");
+    expect(useNativeDeusMachine).toBeTypeOf("function");
+    expect(useVueDeusMachine).toBeTypeOf("function");
+    expect("useDeusMachine" in root).toBe(false);
+    expect("useDeusMachine" in deus).toBe(false);
   });
 });

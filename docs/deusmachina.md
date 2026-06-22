@@ -106,3 +106,86 @@ Labels and borders remain controlled by the board booleans; `false` stays false 
 ## Non-goals
 
 DeusMachina intentionally does not include async workflows, tools, actors, persistence, LLM calls, schedulers, nested authoring syntax, uncontrolled React state, or a visual editor.
+
+## Framework bindings
+
+M26b adds thin framework bindings for the DeusMachina kernel from the existing adapter subpaths:
+
+```ts
+import { useDeusMachine } from "machinalayout/react";
+import { useDeusMachine as useNativeDeusMachine } from "machinalayout/react-native";
+import { useDeusMachine as useVueDeusMachine } from "machinalayout/vue";
+```
+
+The bindings wrap `createDeusSnapshot` and `stepDeusMachine`; `machinalayout/deus` remains framework-free and does not import React, React Native, or Vue. They do not add stores, context providers, async workflows, persistence, actors, or router integration.
+
+All bindings return the current `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`. Deus actions keep the kernel's mutable board convention: user actions may mutate the board in place, and the bindings trigger framework updates by replacing the snapshot wrapper after every dispatch. They do not deep-clone, freeze, proxy, or sandbox the board.
+
+Define machines outside render/setup when possible. The React and React Native hooks reset the snapshot when the `machine` reference changes; the Vue composable expects a stable machine input.
+
+`reset()` recreates the snapshot with `stepIndex: 0` and clears `lastTrace`. Pass a board value or factory to reset to that board; omit the argument to reuse the original initial board/factory.
+
+### React debug overlay example
+
+```tsx
+import {
+  createMachinaDebugOverlayMachine,
+  getMachinaDebugOverlayBehavior,
+  type MachinaDebugOverlayBoard,
+  type MachinaDebugOverlayEvent,
+} from "machinalayout/deus";
+import { useDeusMachine } from "machinalayout/react";
+
+const debugMachine = createMachinaDebugOverlayMachine();
+
+function DebugControls() {
+  const debug = useDeusMachine<MachinaDebugOverlayBoard, MachinaDebugOverlayEvent>(debugMachine, {
+    mode: "collapsed",
+    labels: true,
+    borders: true,
+  });
+  const behavior = getMachinaDebugOverlayBehavior(debug.board);
+
+  return (
+    <>
+      <button onClick={() => debug.dispatch({ type: "showOverlay" })}>Overlay</button>
+      <button onClick={() => debug.dispatch({ type: "openPanel" })}>Panel</button>
+      <button onClick={() => debug.dispatch({ type: "collapse" })}>Collapse</button>
+      <pre>{JSON.stringify(behavior, null, 2)}</pre>
+    </>
+  );
+}
+```
+
+### React Native debug overlay example
+
+```tsx
+import { Button, Text, View } from "react-native";
+import { createMachinaDebugOverlayMachine, getMachinaDebugOverlayBehavior } from "machinalayout/deus";
+import { useDeusMachine } from "machinalayout/react-native";
+
+const debugMachine = createMachinaDebugOverlayMachine();
+
+function NativeDebugControls() {
+  const debug = useDeusMachine(debugMachine, { mode: "collapsed", labels: true, borders: true });
+  const behavior = getMachinaDebugOverlayBehavior(debug.board);
+  return (
+    <View>
+      <Button title="Overlay" onPress={() => debug.dispatch({ type: "showOverlay" })} />
+      <Text>{behavior.visible ? "visible" : "hidden"}</Text>
+    </View>
+  );
+}
+```
+
+### Vue debug overlay example
+
+```ts
+import { computed } from "vue";
+import { createMachinaDebugOverlayMachine, getMachinaDebugOverlayBehavior } from "machinalayout/deus";
+import { useDeusMachine } from "machinalayout/vue";
+
+const debugMachine = createMachinaDebugOverlayMachine();
+const debug = useDeusMachine(debugMachine, { mode: "collapsed", labels: true, borders: true });
+const behavior = computed(() => getMachinaDebugOverlayBehavior(debug.board.value));
+```

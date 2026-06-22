@@ -54,3 +54,7 @@ Keep `views` stable (component references). Send changing values through `viewDa
 - this package only renders layout boxes; text rendering is provided separately by `machinalayout/text/react-native`
 - portals/reparenting
 - DOM-only features
+
+## DeusMachina hook
+
+`machinalayout/react-native` exports the same `useDeusMachine(machine, initialBoard)` contract as the React adapter without importing the DOM adapter. It returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`, and re-renders by replacing the snapshot wrapper while preserving the mutable board convention.

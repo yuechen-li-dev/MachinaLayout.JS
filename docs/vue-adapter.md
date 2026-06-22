@@ -53,3 +53,7 @@ To avoid conflicts with Vue fallthrough attrs, root/node styling props are:
 - this package only renders layout boxes; text rendering is provided separately by `machinalayout/text/vue`
 - portals/reparenting
 - router/state abstraction layers
+
+## DeusMachina composable
+
+`machinalayout/vue` exports `useDeusMachine(machine, initialBoard)`. The composable returns `snapshot` and `lastTrace` refs, computed `board` and `state`, plus `dispatch` and `reset`. It wraps `createDeusSnapshot` and `stepDeusMachine`; board mutations are visible through `debug.board.value` because dispatch assigns a new snapshot object. Keep the machine input stable.

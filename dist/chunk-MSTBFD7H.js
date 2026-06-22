@@ -1,9 +1,9 @@
 import {
-  getMachinaDebugOverlayBehavior
-} from "./chunk-2ZQ2RFFI.js";
-import {
   toResolvedTree
 } from "./chunk-SVWYWI7I.js";
+import {
+  getMachinaDebugOverlayBehavior
+} from "./chunk-2ZQ2RFFI.js";
 
 // src/react/MachinaReactView.tsx
 import React from "react";

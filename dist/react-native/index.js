@@ -1,7 +1,11 @@
 import {
+  useDeusMachine
+} from "../chunk-ZIGW44D5.js";
+import {
   toResolvedTree
 } from "../chunk-SVWYWI7I.js";
 import "../chunk-VREK57S3.js";
+import "../chunk-2ZQ2RFFI.js";
 
 // src/react-native/MachinaReactNativeView.tsx
 import React from "react";
@@ -80,5 +84,6 @@ function MachinaReactNativeView(props) {
   );
 }
 export {
-  MachinaReactNativeView
+  MachinaReactNativeView,
+  useDeusMachine
 };

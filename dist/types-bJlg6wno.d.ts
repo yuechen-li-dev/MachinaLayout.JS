@@ -1,4 +1,4 @@
-import { R as Rect } from './types-B90jb3RW.js';
+import { a as Rect } from './types-CYgsjDai.js';
 
 type MachinaDomSummaryNode = {
     nodeId?: string;

@@ -1,6 +1,18 @@
 import * as vue from 'vue';
-import { PropType, Component, StyleValue } from 'vue';
-import { N as NodeId, R as Rect, a as ResolvedLayoutNode, b as ResolvedLayoutDocument } from '../types-B90jb3RW.js';
+import { Ref, ComputedRef, PropType, Component, StyleValue } from 'vue';
+import { D as DeusEvent, a as DeusSnapshot, b as DeusStatePath, c as DeusStepResult, d as DeusStepTrace, e as DeusMachine } from '../types-CWaup8Z6.js';
+import { N as NodeId, a as Rect, b as ResolvedLayoutNode, R as ResolvedLayoutDocument } from '../types-CYgsjDai.js';
+
+type UseVueDeusMachineResult<TBoard, TEvent extends DeusEvent> = {
+    snapshot: Ref<DeusSnapshot<TBoard>>;
+    board: ComputedRef<TBoard>;
+    state: ComputedRef<DeusStatePath>;
+    dispatch: (event: TEvent) => DeusStepResult<TBoard>;
+    lastTrace: Ref<DeusStepTrace | null>;
+    reset: (board?: TBoard | (() => TBoard)) => void;
+};
+type InitialBoard<TBoard> = TBoard | (() => TBoard);
+declare function useDeusMachine<TBoard, TEvent extends DeusEvent>(machine: DeusMachine<TBoard, TEvent>, initialBoard: InitialBoard<TBoard>): UseVueDeusMachineResult<TBoard, TEvent>;
 
 type MachinaVueSlotProps<TViewData = unknown, TNodeData = unknown> = {
     id: NodeId;
@@ -170,4 +182,4 @@ declare const MachinaVueView: vue.DefineComponent<vue.ExtractPropTypes<{
     nodeContainIntrinsicSize: string;
 }, {}, {}, {}, string, vue.ComponentProvideOptions, true, {}, any>;
 
-export { type MachinaVueLayer, type MachinaVueSlotProps, MachinaVueView, type MachinaVueViewProps };
+export { type MachinaVueLayer, type MachinaVueSlotProps, MachinaVueView, type MachinaVueViewProps, type UseVueDeusMachineResult, useDeusMachine };
