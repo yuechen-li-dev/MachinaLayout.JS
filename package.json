@@ -107,6 +107,10 @@
     "./dispatch": {
       "types": "./dist/dispatch/index.d.ts",
       "import": "./dist/dispatch/index.js"
+    },
+    "./atlas": {
+      "types": "./dist/atlas/index.d.ts",
+      "import": "./dist/atlas/index.js"
     }
   },
   "files": [
