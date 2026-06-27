@@ -11,6 +11,7 @@ export default defineConfig({
     "react-native/index": "src/react-native/index.ts",
     "vue/index": "src/vue/index.ts",
     "dispatch/index": "src/dispatch/index.ts",
+    "atlas/index": "src/atlas/index.ts",
     "inspect/index": "src/inspect/index.ts",
     "handoff/index": "src/handoff/index.ts",
     "deus/index": "src/deus/index.ts",

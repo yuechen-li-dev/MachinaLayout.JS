@@ -129,6 +129,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Screen catalog and viewport matrix](docs/screen-catalog-and-viewports.md)
 - [Inspection and handoff bundles](docs/inspection-and-handoff.md)
 - [Error codes](docs/error-codes.md)
+- [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
 
 ## Tiny `LayoutRow[]` example
 
@@ -399,3 +400,4 @@ This repo uses Biome.
 - [MachinaDispatch runtime guide](docs/machina-dispatch.md)
 - [DeusMachina behavioral kernel and framework bindings](docs/deusmachina.md)
 - Dispatch sample: [`samples/dispatch-counter`](samples/dispatch-counter/README.md) (uses `machinalayout/dispatch`)
+
