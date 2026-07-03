@@ -113,3 +113,81 @@ The summary includes app name, section count, ordered sections, and by default r
 ## Adoption guidance
 
 Do not use MachinaAtlas for tiny one-page apps. Use it when a file intentionally contains multiple related pages, views, or components; when splitting files would reduce useful locality; or when LLMs and humans need stable landmarks for summary, extraction, handoff, and patching.
+
+## Atlas as a living source map
+
+MachinaAtlas is most useful when it stays honest as source changes. Treat it as a living source map for humans and LLM handoff: the Atlas declares which source sections exist, which symbols each section owns, and which section keys it depends on.
+
+Validation keeps that map from silently rotting. It compares an Atlas with a caller-provided source string and checks source markers, ownership declarations, relation references, duplicate ownership, and optional used-symbol declarations.
+
+## `M.section` and `M.atlas`
+
+The authoring surface also exposes light Atlas builders from `machinalayout/machina`:
+
+```ts
+import { M } from "machinalayout/machina";
+
+export const SchedulingAtlas = M.atlas({
+  app: "Scheduling",
+  sections: [
+    M.section("provider-setup", {
+      name: "Provider Setup",
+      kind: "page",
+      marker: "Provider Setup",
+      owns: ["ProviderSetupView"],
+      uses: ["shared-shell"],
+      dependsOn: ["shared-shell"],
+      tags: ["scheduling", "setup"],
+    }),
+  ],
+});
+```
+
+These are convenience builders over the existing Atlas types. They do not replace `defineMachinaAtlas`, and final Atlas shape validation still happens through the Atlas implementation.
+
+## Validation
+
+```ts
+import {
+  formatMachinaAtlasValidationReport,
+  validateMachinaAtlas,
+} from "machinalayout/atlas";
+
+const result = validateMachinaAtlas({
+  atlas: SchedulingAtlas,
+  sourceText,
+  options: {
+    requireSectionMarkers: true,
+    checkOwns: true,
+    checkUses: true,
+    checkRelations: true,
+  },
+});
+
+console.log(formatMachinaAtlasValidationReport(result));
+```
+
+By default, validation requires each Atlas section marker to exist, checks declared owned symbols in the extracted source section, checks `usedBy` and `dependsOn` relation keys, detects duplicate ownership, and uses identifier-aware symbol matching. `checkUses` is off by default because `uses` may mean either a section key or a symbol name; when enabled, entries matching section keys are treated as relations and other entries are checked as symbols.
+
+## What validation checks
+
+- Atlas section markers using `section.marker ?? section.name`.
+- Optional unmapped source markers with `requireAtlasForEveryMarker: true`.
+- Declared `owns` symbols inside their extracted source sections.
+- Optional declared `uses` symbols with `checkUses: true`.
+- `usedBy` and `dependsOn` entries that point to unknown section keys.
+- Duplicate `owns` declarations across sections.
+
+## What validation does not check
+
+Validation is deliberately source-text based. It does not check actual TypeScript imports, alias resolution, barrel exports, JSX runtime semantics, cross-file dependency graphs, semantic ownership, or dead code.
+
+It does not scan directories, read files from disk, parse TypeScript ASTs, generate code, modify source text, or implement routing.
+
+## Recommended LLM handoff workflow
+
+1. Define the Atlas with `defineMachinaAtlas` or the `M.section` / `M.atlas` builders.
+2. Mark source sections with `// @machina-section Section Name`.
+3. Run `validateMachinaAtlas` against the source text.
+4. Extract the relevant section with the existing extraction helpers.
+5. Include the Atlas summary and validation report in the handoff bundle so a human or model can see both the intended map and whether it matches the current source.

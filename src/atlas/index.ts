@@ -10,6 +10,7 @@ export {
 } from "./extract";
 export { formatMachinaAtlasSummary } from "./format";
 export { parseMachinaSectionMarkers } from "./markers";
+export { formatMachinaAtlasValidationReport, validateMachinaAtlas } from "./validate";
 export type {
   MachinaAtlas,
   MachinaAtlasErrorCode,
@@ -19,4 +20,12 @@ export type {
   MachinaExtractedSection,
   MachinaSectionMarker,
 } from "./types";
+export type {
+  MachinaAtlasValidationDiagnostic,
+  MachinaAtlasValidationDiagnosticCode,
+  MachinaAtlasValidationInput,
+  MachinaAtlasValidationOptions,
+  MachinaAtlasValidationResult,
+  MachinaAtlasValidationSeverity,
+} from "./validate";
 export { MachinaAtlasError } from "./types";

@@ -11,6 +11,7 @@ export * from "./text";
 export * from "./layers";
 export * from "./screen";
 export * from "./machine";
+export * from "./atlas";
 
 import { anchor } from "./anchor";
 import { node, root, rows } from "./node";
@@ -23,6 +24,7 @@ import { text } from "./text";
 import { defineLayers, onLayer } from "./layers";
 import { screen } from "./screen";
 import { choose, machine, on, state } from "./machine";
+import { atlas, section } from "./atlas";
 
 export const M = {
   node,
@@ -55,4 +57,6 @@ export const M = {
   state,
   on,
   choose,
+  section,
+  atlas,
 } as const;

@@ -383,3 +383,33 @@ const controller = M.machine<Board, TickEvent>({
 ### M28d design coverage
 
 Claude's Deus helper suggestion is now addressed by `M.machine`, `M.state`, `M.on`, and `M.choose`. Atlas authoring helpers are intentionally deferred to M28e, including Atlas section helper design.
+
+## Atlas authoring and validation
+
+The Machina authoring namespace includes Atlas convenience builders:
+
+```ts
+import { M } from "machinalayout/machina";
+
+export const SchedulingAtlas = M.atlas({
+  app: "Scheduling",
+  sections: [
+    M.section("provider-setup", {
+      name: "Provider Setup",
+      marker: "Provider Setup",
+      owns: ["ProviderSetupView"],
+      uses: ["shared-shell"],
+    }),
+  ],
+});
+```
+
+`M.section` and `M.atlas` are thin authoring helpers. The deeper Atlas APIs, including source-honesty validation, live under `machinalayout/atlas`:
+
+```ts
+import { validateMachinaAtlas } from "machinalayout/atlas";
+
+const result = validateMachinaAtlas({ atlas: SchedulingAtlas, sourceText });
+```
+
+Use validation when the Atlas is part of an LLM or human handoff workflow so marker, ownership, and relation declarations stay aligned with the source text.

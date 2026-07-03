@@ -1,56 +1,5 @@
-type MachinaAtlasSectionKind = "app" | "page" | "screen" | "view" | "component" | "layout" | "behavior" | "fixture" | "data" | "shared" | "test" | "other";
-type MachinaAtlasSection = {
-    key: string;
-    name: string;
-    kind?: MachinaAtlasSectionKind;
-    marker?: string;
-    file?: string;
-    symbol?: string;
-    route?: string;
-    fixture?: string;
-    screen?: string;
-    owns?: readonly string[];
-    uses?: readonly string[];
-    usedBy?: readonly string[];
-    dependsOn?: readonly string[];
-    tags?: readonly string[];
-    notes?: string;
-    metadata?: Record<string, unknown>;
-};
-type MachinaAtlas = {
-    schemaVersion: 1;
-    app: string;
-    sections: readonly MachinaAtlasSection[];
-    tags?: readonly string[];
-    notes?: string;
-    metadata?: Record<string, unknown>;
-};
-type MachinaSectionMarker = {
-    name: string;
-    line: number;
-    column: number;
-    raw: string;
-};
-type MachinaExtractedSection = {
-    name: string;
-    startLine: number;
-    endLine: number;
-    text: string;
-    marker: MachinaSectionMarker;
-};
-type MachinaAtlasSummaryOptions = {
-    includeNotes?: boolean;
-    includeSymbols?: boolean;
-    includeRelations?: boolean;
-    includeRoutes?: boolean;
-    includeFixtures?: boolean;
-    includeTags?: boolean;
-};
-type MachinaAtlasErrorCode = "InvalidAtlas" | "InvalidAtlasSection" | "DuplicateAtlasSectionKey" | "UnknownAtlasSection" | "AmbiguousAtlasSection" | "UnknownSectionMarker" | "AmbiguousSectionMarker";
-declare class MachinaAtlasError extends Error {
-    code: MachinaAtlasErrorCode;
-    constructor(code: MachinaAtlasErrorCode, message: string);
-}
+import { M as MachinaAtlasSection, a as MachinaAtlas, b as MachinaAtlasSectionKind, c as MachinaExtractedSection, d as MachinaAtlasSummaryOptions, e as MachinaSectionMarker } from '../types-CqWMheJe.js';
+export { f as MachinaAtlasError, g as MachinaAtlasErrorCode } from '../types-CqWMheJe.js';
 
 declare function defineMachinaAtlas(atlas: {
     app: string;
@@ -73,4 +22,39 @@ declare function formatMachinaAtlasSummary(atlas: MachinaAtlas, options?: Machin
 
 declare function parseMachinaSectionMarkers(sourceText: string): MachinaSectionMarker[];
 
-export { type MachinaAtlas, MachinaAtlasError, type MachinaAtlasErrorCode, type MachinaAtlasSection, type MachinaAtlasSectionKind, type MachinaAtlasSummaryOptions, type MachinaExtractedSection, type MachinaSectionMarker, defineMachinaAtlas, extractMachinaAtlasSection, extractMachinaSection, extractMachinaSections, formatMachinaAtlasSummary, getMachinaAtlasSection, listMachinaAtlasSections, parseMachinaSectionMarkers };
+type MachinaAtlasValidationSeverity = "error" | "warning";
+type MachinaAtlasValidationDiagnosticCode = "AtlasMarkerMissing" | "AtlasMarkerUnmapped" | "AtlasSectionExtractFailed" | "AtlasOwnedSymbolMissing" | "AtlasUsedSymbolMissing" | "AtlasUnknownRelation" | "AtlasDuplicateOwnership";
+type MachinaAtlasValidationDiagnostic = {
+    code: MachinaAtlasValidationDiagnosticCode;
+    severity: MachinaAtlasValidationSeverity;
+    message: string;
+    sectionKey?: string;
+    sectionName?: string;
+    marker?: string;
+    symbol?: string;
+    relation?: "uses" | "usedBy" | "dependsOn";
+    targetKey?: string;
+    line?: number;
+};
+type MachinaAtlasValidationOptions = {
+    requireSectionMarkers?: boolean;
+    requireAtlasForEveryMarker?: boolean;
+    checkOwns?: boolean;
+    checkUses?: boolean;
+    checkRelations?: boolean;
+    checkDuplicateOwnership?: boolean;
+    symbolMatch?: "identifier" | "substring";
+};
+type MachinaAtlasValidationInput = {
+    atlas: MachinaAtlas;
+    sourceText: string;
+    options?: MachinaAtlasValidationOptions;
+};
+type MachinaAtlasValidationResult = {
+    ok: boolean;
+    diagnostics: MachinaAtlasValidationDiagnostic[];
+};
+declare function validateMachinaAtlas(input: MachinaAtlasValidationInput): MachinaAtlasValidationResult;
+declare function formatMachinaAtlasValidationReport(result: MachinaAtlasValidationResult): string;
+
+export { MachinaAtlas, MachinaAtlasSection, MachinaAtlasSectionKind, MachinaAtlasSummaryOptions, type MachinaAtlasValidationDiagnostic, type MachinaAtlasValidationDiagnosticCode, type MachinaAtlasValidationInput, type MachinaAtlasValidationOptions, type MachinaAtlasValidationResult, type MachinaAtlasValidationSeverity, MachinaExtractedSection, MachinaSectionMarker, defineMachinaAtlas, extractMachinaAtlasSection, extractMachinaSection, extractMachinaSections, formatMachinaAtlasSummary, formatMachinaAtlasValidationReport, getMachinaAtlasSection, listMachinaAtlasSections, parseMachinaSectionMarkers, validateMachinaAtlas };

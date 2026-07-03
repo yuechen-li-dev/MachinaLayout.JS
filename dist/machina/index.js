@@ -1,4 +1,8 @@
 import {
+  MachinaAtlasError,
+  defineMachinaAtlas
+} from "../chunk-PKZM3ZTE.js";
+import {
   defineDeusMachine
 } from "../chunk-2ZQ2RFFI.js";
 
@@ -565,6 +569,49 @@ function machine(definition) {
   return defineDeusMachine(definition);
 }
 
+// src/machina/atlas.ts
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+function copyArray(value) {
+  return value === void 0 ? void 0 : [...value];
+}
+function section(key, options) {
+  if (!isNonEmptyString(key)) {
+    throw new MachinaAtlasError("InvalidAtlasSection", "Machina section key must be non-empty.");
+  }
+  if (!options || !isNonEmptyString(options.name)) {
+    throw new MachinaAtlasError("InvalidAtlasSection", "Machina section name must be non-empty.");
+  }
+  return {
+    key,
+    name: options.name,
+    kind: options.kind,
+    marker: options.marker,
+    file: options.file,
+    symbol: options.symbol,
+    route: options.route,
+    fixture: options.fixture,
+    screen: options.screen,
+    owns: copyArray(options.owns),
+    uses: copyArray(options.uses),
+    usedBy: copyArray(options.usedBy),
+    dependsOn: copyArray(options.dependsOn),
+    tags: copyArray(options.tags),
+    notes: options.notes,
+    metadata: options.metadata
+  };
+}
+function atlas(options) {
+  return defineMachinaAtlas({
+    app: options.app,
+    sections: options.sections === void 0 ? void 0 : [...options.sections],
+    tags: options.tags === void 0 ? void 0 : [...options.tags],
+    notes: options.notes,
+    metadata: options.metadata
+  });
+}
+
 // src/machina/index.ts
 var M = {
   node,
@@ -596,13 +643,16 @@ var M = {
   machine,
   state,
   on,
-  choose
+  choose,
+  section,
+  atlas
 };
 export {
   M,
   MachinaAuthoringError,
   anchor,
   area,
+  atlas,
   cell,
   choose,
   defineLayers,
@@ -622,6 +672,7 @@ export {
   root,
   rows,
   screen,
+  section,
   skip,
   space,
   stackArrange,
