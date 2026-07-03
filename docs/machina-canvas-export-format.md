@@ -370,6 +370,37 @@ The app exposes these generated text artifacts in an Export panel. Users can gen
 
 The serializers preserve the format law: rendered artifacts are output, JSON is the graph/index, TOML is the editable contract, and runtime command payloads stay JSON while editable command recipes are TOML.
 
+## Export Validation
+
+M30e adds browser-local validation for generated export bundles before users or
+LLMs download, copy, or hand off the files. Validation checks the relationship
+between the file list, `document.json`, rendered SVG output, and lightweight
+handoff references.
+
+Validation checks:
+
+- required files such as `document.json`, `render.svg`, and `handoff.toml`
+- whether `document.json` parses as JSON and has the expected graph/index shape
+- whether every layer asset path in `document.json` exists in the generated file list
+- whether every object asset path in `document.json` exists in the generated file list
+- whether `layers[].objectIds[]` point to known object IDs
+- whether extra `objects/*.toml` files lack a matching `document.json` object entry
+- whether `render.svg` includes `data-canvas-object-id` markers for indexed objects
+- whether `handoff.toml` selected `object_id` points to a known object when present
+- whether a command recipe exists when the caller says session commands were expected
+
+Validation does not import a bundle back into the runtime scene. It does not
+parse TOML semantically, add a TOML parser dependency, resolve every object
+field, regenerate SVG, package ZIP files, call a backend, or call an LLM API.
+Only `document.json` is parsed as structured data. TOML checks stay intentionally
+lightweight text checks.
+
+Errors mean the bundle is internally inconsistent enough that validation fails.
+Warnings are advisory and do not make the validation result fail. The
+`render.svg` object ID check is a warning because invisible objects or objects on
+hidden layers may legitimately be omitted from rendered output while still
+remaining indexed in `document.json` and represented by object TOML contracts.
+
 ## Fixture
 
 The M30c fixture lives at:

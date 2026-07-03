@@ -99,7 +99,15 @@ Generated files follow the M30c split:
 - `handoff.toml` is bundle-level handoff metadata
 - `commands/session-commands.toml` is generated when session commands exist
 
-M30d does not add an importer, TOML parser, ZIP export, or raster/PNG rendering.
+M30e validates each generated export bundle in the Export panel. The validation
+report checks required files, `document.json` shape and references, layer and
+object asset paths, SVG object ID markers, handoff selected-object references,
+and expected command recipe presence. The report can be copied for LLM handoff
+alongside the generated files.
+
+Export validation is still one-way. It is not import, round-trip loading, full
+TOML semantic parsing, ZIP export, backend processing, LLM API integration, or
+raster/PNG rendering.
 
 ## Non-Goals
 

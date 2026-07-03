@@ -292,7 +292,7 @@ button {
 
 .export-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -361,6 +361,19 @@ button {
   padding: 10px;
 }
 
+.export-validation-report {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  color: #111111;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  padding: 10px;
+}
+
 .validation-result,
 .last-apply-result,
 .diagnostic {
@@ -388,6 +401,7 @@ button {
 .command-log-entry li,
 .last-apply-result p,
 .diagnostic p,
+.validation-result p,
 .empty-note {
   margin: 0;
   color: #555550;
@@ -408,6 +422,10 @@ button {
 
 .validation-result.is-ok {
   border-color: #6f967c;
+}
+
+.validation-result.is-warning {
+  border-color: #b89b49;
 }
 
 .validation-result.is-error {

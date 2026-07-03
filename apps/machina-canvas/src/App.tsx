@@ -17,6 +17,12 @@ import {
   type CanvasExportFile,
 } from "./canvasExport";
 import {
+  formatCanvasExportValidationReport,
+  validateCanvasExportBundle,
+  type CanvasExportValidationDiagnostic,
+  type CanvasExportValidationResult,
+} from "./canvasExportValidation";
+import {
   applyCanvasCommands,
   type CanvasCommand,
   type CanvasCommandApplyResult,
@@ -79,6 +85,7 @@ type AppViewData = {
   lastApplyResults: CanvasCommandApplyResult[];
   geometryDiagnostics: GeometryDiagnostic[];
   exportBundle: CanvasExportBundle | undefined;
+  exportValidation: CanvasExportValidationResult | undefined;
   selectedExportPath: string | undefined;
   exportStatus: string;
   runCommand: (command: CanvasCommand) => void;
@@ -89,6 +96,7 @@ type AppViewData = {
   generateExport: () => void;
   selectExportFile: (path: string) => void;
   copySelectedExportFile: () => void;
+  copyValidationReport: () => void;
   downloadSelectedExportFile: () => void;
 };
 
@@ -200,6 +208,34 @@ function getSelectedExportFile(
 ): CanvasExportFile | undefined {
   if (!bundle) return undefined;
   return bundle.files.find((file) => file.path === selectedPath) ?? bundle.files[0];
+}
+
+function getExportValidationClass(validation: CanvasExportValidationResult | undefined): string {
+  if (!validation) return "is-pending";
+  if (!validation.ok) return "is-error";
+  if (validation.diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
+    return "is-warning";
+  }
+  return "is-ok";
+}
+
+function getExportValidationLabel(validation: CanvasExportValidationResult | undefined): string {
+  if (!validation) return "Not validated";
+  if (!validation.ok) return "Validation failed";
+  if (validation.diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
+    return "Validation passed with warnings";
+  }
+  return "Validation passed";
+}
+
+function formatExportDiagnosticDetail(diagnostic: CanvasExportValidationDiagnostic): string {
+  const refs = [
+    diagnostic.path ? `path ${diagnostic.path}` : undefined,
+    diagnostic.objectId ? `object ${diagnostic.objectId}` : undefined,
+    diagnostic.layerId ? `layer ${diagnostic.layerId}` : undefined,
+  ].filter(Boolean);
+
+  return refs.length ? `${refs.join(" / ")}: ${diagnostic.message}` : diagnostic.message;
 }
 
 function SceneTree(props: MachinaSlotProps) {
@@ -496,14 +532,19 @@ function GeometryDiagnosticsSection(props: MachinaSlotProps) {
 function ExportPanel(props: MachinaSlotProps) {
   const {
     exportBundle,
+    exportValidation,
     exportStatus,
     selectedExportPath,
     generateExport,
     selectExportFile,
     copySelectedExportFile,
+    copyValidationReport,
     downloadSelectedExportFile,
   } = readViewData(props);
   const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
+  const validationReport = exportValidation
+    ? formatCanvasExportValidationReport(exportValidation)
+    : undefined;
 
   return (
     <InspectorSection title="Export">
@@ -514,11 +555,44 @@ function ExportPanel(props: MachinaSlotProps) {
         <button type="button" onClick={copySelectedExportFile} disabled={!selectedFile}>
           Copy
         </button>
+        <button type="button" onClick={copyValidationReport} disabled={!validationReport}>
+          Copy Report
+        </button>
         <button type="button" onClick={downloadSelectedExportFile} disabled={!selectedFile}>
           Download
         </button>
       </div>
       {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
+      <div className={`validation-result ${getExportValidationClass(exportValidation)}`}>
+        <strong>{getExportValidationLabel(exportValidation)}</strong>
+        {exportValidation ? (
+          <p>
+            {exportValidation.diagnostics.length} diagnostic
+            {exportValidation.diagnostics.length === 1 ? "" : "s"}
+          </p>
+        ) : null}
+        {exportValidation?.diagnostics.length ? (
+          <ul>
+            {exportValidation.diagnostics.map((diagnostic, index) => (
+              <li key={`${diagnostic.code}-${index}`}>
+                <span>
+                  {diagnostic.severity} {diagnostic.code}
+                </span>
+                : {formatExportDiagnosticDetail(diagnostic)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      {validationReport ? (
+        <textarea
+          className="export-validation-report"
+          value={validationReport}
+          readOnly
+          spellCheck={false}
+          aria-label="Canvas export validation report"
+        />
+      ) : null}
       {exportBundle ? (
         <>
           <div className="export-file-list">
@@ -728,6 +802,7 @@ export function App() {
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
   const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
   const [exportBundle, setExportBundle] = useState<CanvasExportBundle>();
+  const [exportValidation, setExportValidation] = useState<CanvasExportValidationResult>();
   const [selectedExportPath, setSelectedExportPath] = useState<string>();
   const [exportStatus, setExportStatus] = useState("");
   const commandLogCounter = useRef(0);
@@ -811,9 +886,17 @@ export function App() {
         summary: summarizeScene(document),
         diagnostics: geometryDiagnostics,
       });
+      const validation = validateCanvasExportBundle(bundle, {
+        expectedCommands: latestCommands !== undefined,
+      });
       setExportBundle(bundle);
+      setExportValidation(validation);
       setSelectedExportPath("handoff.toml");
-      setExportStatus(`${bundle.files.length} files generated in ${bundle.rootName}.`);
+      setExportStatus(
+        `${bundle.files.length} files generated in ${bundle.rootName}. Validation ${
+          validation.ok ? "passed" : "failed"
+        }.`,
+      );
       setLastCommand("export generated");
     };
 
@@ -835,6 +918,20 @@ export function App() {
         .writeText(selectedFile.text)
         .then(() => setExportStatus(`Copied ${selectedFile.path}.`))
         .catch(() => setExportStatus(`Could not copy ${selectedFile.path}.`));
+    };
+
+    const copyValidationReport = () => {
+      if (!exportValidation) return;
+
+      if (!navigator.clipboard?.writeText) {
+        setExportStatus("Clipboard API is unavailable in this browser.");
+        return;
+      }
+
+      navigator.clipboard
+        .writeText(formatCanvasExportValidationReport(exportValidation))
+        .then(() => setExportStatus("Copied validation report."))
+        .catch(() => setExportStatus("Could not copy validation report."));
     };
 
     const downloadSelectedExportFile = () => {
@@ -862,6 +959,7 @@ export function App() {
       lastApplyResults,
       geometryDiagnostics,
       exportBundle,
+      exportValidation,
       selectedExportPath,
       exportStatus,
       runCommand,
@@ -872,6 +970,7 @@ export function App() {
       generateExport,
       selectExportFile,
       copySelectedExportFile,
+      copyValidationReport,
       downloadSelectedExportFile,
     };
   }, [
@@ -883,6 +982,7 @@ export function App() {
     lastApplyResults,
     geometryDiagnostics,
     exportBundle,
+    exportValidation,
     selectedExportPath,
     exportStatus,
   ]);
