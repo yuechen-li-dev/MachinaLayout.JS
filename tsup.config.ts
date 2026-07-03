@@ -15,6 +15,7 @@ export default defineConfig({
     "inspect/index": "src/inspect/index.ts",
     "handoff/index": "src/handoff/index.ts",
     "deus/index": "src/deus/index.ts",
+    "machina/index": "src/machina/index.ts",
   },
   format: ["esm"],
   dts: true,

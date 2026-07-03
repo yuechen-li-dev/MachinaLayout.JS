@@ -358,6 +358,8 @@ This repo uses Biome.
 
 ## Documentation
 
+- [Machina authoring](docs/machina-authoring.md)
+
 ### Milestones and audits
 
 - [M0 contract](docs/m0-contract.md)
