@@ -4,7 +4,9 @@ import {
   defineMachinaAtlas,
   extractMachinaSection,
   formatMachinaAtlasSummary,
+  formatMachinaAtlasValidationReport,
   parseMachinaSectionMarkers,
+  validateMachinaAtlas,
 } from "../../src/atlas";
 
 describe("atlas exports", () => {
@@ -13,6 +15,8 @@ describe("atlas exports", () => {
     expect(formatMachinaAtlasSummary(atlas)).toContain("MachinaAtlas: App");
     expect(parseMachinaSectionMarkers("// @machina-section A")).toHaveLength(1);
     expect(extractMachinaSection("// @machina-section A", "A").name).toBe("A");
+    const validation = validateMachinaAtlas({ atlas, sourceText: "" });
+    expect(formatMachinaAtlasValidationReport(validation)).toContain("MachinaAtlas validation");
   });
 
   it("does not root-export atlas helpers", () => {

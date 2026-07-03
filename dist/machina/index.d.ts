@@ -1,7 +1,8 @@
-import { c as MachinaTextVariant, d as MachinaTextWrap, e as MachinaTextOverflow, f as MachinaTextAlign, g as MachinaTextLeading, h as MachinaTextVerticalAlign, M as MachinaTextSpec } from '../types-DA-InpTh.js';
-import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength, G as GridTrack, E as EdgeInsets, d as RectEdge } from '../types-fqEN29Eg.js';
+import { l as MachinaTextVariant, n as MachinaTextWrap, k as MachinaTextOverflow, e as MachinaTextAlign, j as MachinaTextLeading, m as MachinaTextVerticalAlign, M as MachinaTextSpec } from '../types-C4poVJpR.js';
+import { L as LayoutRow, A as ArrangeSpec, o as LayoutRowVariant, F as FrameSpec, U as UiLength, k as GridTrack, E as EdgeInsets, q as RectEdge } from '../types-CYgsjDai.js';
 import { b as MachinaScreen, M as MachinaViewport } from '../screenCatalog-ZjonGiOi.js';
 import { D as DeusEvent, e as DeusMachine, b as DeusStatePath, g as DeusAction, i as DeusStateRow, j as DeusTransitionRow } from '../types-CWaup8Z6.js';
+import { M as MachinaAtlasSection, a as MachinaAtlas } from '../types-CqWMheJe.js';
 
 type TextOptions = {
     variant?: MachinaTextVariant;
@@ -245,6 +246,17 @@ declare function on<TBoard, TEvent extends DeusEvent>(eventType: TEvent["type"],
 declare function choose<TBoard, TEvent extends DeusEvent>(eventType: TEvent["type"], from: DeusStatePath, to: DeusStatePath | ((board: TBoard, event: TEvent) => DeusStatePath), candidates: readonly MachinaChooseCandidate<TBoard, TEvent>[], options?: MachinaChooseOptions<TBoard, TEvent>): DeusTransitionRow<TBoard, TEvent>;
 declare function machine<TBoard, TEvent extends DeusEvent>(definition: DeusMachine<TBoard, TEvent>): DeusMachine<TBoard, TEvent>;
 
+type MachinaSectionOptions = Omit<MachinaAtlasSection, "key">;
+declare function section(key: string, options: MachinaSectionOptions): MachinaAtlasSection;
+type MachinaAtlasOptions = {
+    app: string;
+    sections?: readonly MachinaAtlasSection[];
+    tags?: readonly string[];
+    notes?: string;
+    metadata?: Record<string, unknown>;
+};
+declare function atlas(options: MachinaAtlasOptions): MachinaAtlas;
+
 declare const M: {
     readonly node: typeof node;
     readonly root: typeof root;
@@ -280,6 +292,8 @@ declare const M: {
     readonly state: typeof state;
     readonly on: typeof on;
     readonly choose: typeof choose;
+    readonly section: typeof section;
+    readonly atlas: typeof atlas;
 };
 
-export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, type GuideOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaChooseCandidate, type MachinaChooseOptions, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaGuideEdgeName, type MachinaGuideEdgeRef, type MachinaLayerMap, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaOnOptions, type MachinaScreenDefinition, type MachinaScreenLayoutBuilder, type MachinaStackAxis, type MachinaStateOptions, type NodeOptions, type RootOptions, type ScreenOptions, type StackContainerOptions, type StackOptions, type TextOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, choose, defineLayers, edge, fill, fixed, grid, gridRows, guide, hstack, machine, makeNode, node, on, onLayer, px, root, rows, screen, skip, space, stackArrange, state, text, trackFill, trackFixed, ui, vstack, when };
+export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, type GuideOptions, M, type MachinaAtlasOptions, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaChooseCandidate, type MachinaChooseOptions, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaGuideEdgeName, type MachinaGuideEdgeRef, type MachinaLayerMap, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaOnOptions, type MachinaScreenDefinition, type MachinaScreenLayoutBuilder, type MachinaSectionOptions, type MachinaStackAxis, type MachinaStateOptions, type NodeOptions, type RootOptions, type ScreenOptions, type StackContainerOptions, type StackOptions, type TextOptions, type VariantCondition, type VariantOverrides, anchor, area, atlas, cell, choose, defineLayers, edge, fill, fixed, grid, gridRows, guide, hstack, machine, makeNode, node, on, onLayer, px, root, rows, screen, section, skip, space, stackArrange, state, text, trackFill, trackFixed, ui, vstack, when };

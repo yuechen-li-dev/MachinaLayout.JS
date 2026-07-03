@@ -1,133 +1,9 @@
-// src/atlas/types.ts
-var MachinaAtlasError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.name = "MachinaAtlasError";
-    this.code = code;
-  }
-};
-
-// src/atlas/defineMachinaAtlas.ts
-var SECTION_KINDS = /* @__PURE__ */ new Set([
-  "app",
-  "page",
-  "screen",
-  "view",
-  "component",
-  "layout",
-  "behavior",
-  "fixture",
-  "data",
-  "shared",
-  "test",
-  "other"
-]);
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-function assertOptionalString(value, field, sectionKey) {
-  if (value !== void 0 && typeof value !== "string") {
-    throw new MachinaAtlasError(
-      "InvalidAtlasSection",
-      `Atlas section ${sectionKey} has invalid ${field}.`
-    );
-  }
-}
-function assertStringArray(value, field, sectionKey) {
-  if (value === void 0) return;
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-    throw new MachinaAtlasError(
-      "InvalidAtlasSection",
-      `Atlas section ${sectionKey} has invalid ${field}.`
-    );
-  }
-}
-function canonicalSection(section) {
-  if (!isNonEmptyString(section.key) || !isNonEmptyString(section.name)) {
-    throw new MachinaAtlasError(
-      "InvalidAtlasSection",
-      "Atlas sections require non-empty key and name."
-    );
-  }
-  if (section.kind !== void 0 && !SECTION_KINDS.has(section.kind)) {
-    throw new MachinaAtlasError(
-      "InvalidAtlasSection",
-      `Atlas section ${section.key} has invalid kind.`
-    );
-  }
-  if (section.marker !== void 0 && !isNonEmptyString(section.marker)) {
-    throw new MachinaAtlasError(
-      "InvalidAtlasSection",
-      `Atlas section ${section.key} has invalid marker.`
-    );
-  }
-  for (const field of ["file", "symbol", "route", "fixture", "screen", "notes"]) {
-    assertOptionalString(section[field], field, section.key);
-  }
-  for (const field of ["owns", "uses", "usedBy", "dependsOn", "tags"]) {
-    assertStringArray(section[field], field, section.key);
-  }
-  return { ...section };
-}
-function defineMachinaAtlas(atlas) {
-  if (!atlas || !isNonEmptyString(atlas.app)) {
-    throw new MachinaAtlasError("InvalidAtlas", "MachinaAtlas app must be a non-empty string.");
-  }
-  assertStringArray(atlas.tags, "tags", "<atlas>");
-  if (atlas.notes !== void 0 && typeof atlas.notes !== "string") {
-    throw new MachinaAtlasError("InvalidAtlas", "MachinaAtlas notes must be a string.");
-  }
-  const seen = /* @__PURE__ */ new Set();
-  const sections = (atlas.sections ?? []).map((section) => {
-    const canonical = canonicalSection(section);
-    if (seen.has(canonical.key)) {
-      throw new MachinaAtlasError(
-        "DuplicateAtlasSectionKey",
-        `Duplicate atlas section key: ${canonical.key}.`
-      );
-    }
-    seen.add(canonical.key);
-    return canonical;
-  });
-  return {
-    schemaVersion: 1,
-    app: atlas.app,
-    sections,
-    tags: atlas.tags,
-    notes: atlas.notes,
-    metadata: atlas.metadata
-  };
-}
-function matches(section, query, insensitive) {
-  const values = [section.key, section.name, section.marker].filter(
-    (value) => value !== void 0
-  );
-  return values.some(
-    (value) => insensitive ? value.toLowerCase() === query.toLowerCase() : value === query
-  );
-}
-function getMachinaAtlasSection(atlas, keyOrName) {
-  const exact = atlas.sections.filter((section) => matches(section, keyOrName, false));
-  if (exact.length === 1) return exact[0];
-  if (exact.length > 1)
-    throw new MachinaAtlasError("AmbiguousAtlasSection", `Ambiguous atlas section: ${keyOrName}.`);
-  const fallback = atlas.sections.filter((section) => matches(section, keyOrName, true));
-  if (fallback.length === 1) return fallback[0];
-  if (fallback.length > 1)
-    throw new MachinaAtlasError("AmbiguousAtlasSection", `Ambiguous atlas section: ${keyOrName}.`);
-  throw new MachinaAtlasError("UnknownAtlasSection", `Unknown atlas section: ${keyOrName}.`);
-}
-function listMachinaAtlasSections(atlas, options) {
-  return atlas.sections.filter((section) => {
-    if (options?.kind !== void 0 && section.kind !== options.kind) return false;
-    if (options?.tags !== void 0) {
-      const sectionTags = new Set(section.tags ?? []);
-      return options.tags.every((tag) => sectionTags.has(tag));
-    }
-    return true;
-  });
-}
+import {
+  MachinaAtlasError,
+  defineMachinaAtlas,
+  getMachinaAtlasSection,
+  listMachinaAtlasSections
+} from "../chunk-PKZM3ZTE.js";
 
 // src/atlas/markers.ts
 var MARKER = "@machina-section";
@@ -228,6 +104,189 @@ function formatMachinaAtlasSummary(atlas, options) {
   });
   return lines.join("\n");
 }
+
+// src/atlas/validate.ts
+var DEFAULT_OPTIONS2 = {
+  requireSectionMarkers: true,
+  requireAtlasForEveryMarker: false,
+  checkOwns: true,
+  checkUses: false,
+  checkRelations: true,
+  checkDuplicateOwnership: true,
+  symbolMatch: "identifier"
+};
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function containsSymbol(source, symbol, mode) {
+  if (symbol.length === 0) return false;
+  if (mode === "substring") return source.includes(symbol);
+  return new RegExp(`(^|[^A-Za-z0-9_$])${escapeRegExp(symbol)}($|[^A-Za-z0-9_$])`).test(source);
+}
+function sectionLabel(sectionKey, sectionName) {
+  return sectionName === void 0 ? sectionKey : `${sectionKey} \u2014 ${sectionName}`;
+}
+function validateMachinaAtlas(input) {
+  if (!input?.atlas || typeof input.sourceText !== "string") {
+    throw new TypeError("validateMachinaAtlas requires an atlas and sourceText string.");
+  }
+  const options = { ...DEFAULT_OPTIONS2, ...input.options };
+  const diagnostics = [];
+  const markers = parseMachinaSectionMarkers(input.sourceText);
+  const markerNames = new Set(markers.map((marker) => marker.name));
+  const extractedSections = extractMachinaSections(input.sourceText);
+  const extractedByMarker = new Map(
+    extractedSections.map((section) => [section.name, section.text])
+  );
+  const sectionKeys = new Set(input.atlas.sections.map((section) => section.key));
+  const expectedMarkers = /* @__PURE__ */ new Set();
+  for (const section of input.atlas.sections) {
+    const marker = section.marker ?? section.name;
+    expectedMarkers.add(marker);
+    if (options.requireSectionMarkers && !markerNames.has(marker)) {
+      diagnostics.push({
+        code: "AtlasMarkerMissing",
+        severity: "error",
+        sectionKey: section.key,
+        sectionName: section.name,
+        marker,
+        message: `Atlas section ${section.key} expects marker "${marker}", but it was not found.`
+      });
+    }
+  }
+  if (options.requireAtlasForEveryMarker) {
+    for (const marker of markers) {
+      if (!expectedMarkers.has(marker.name)) {
+        diagnostics.push({
+          code: "AtlasMarkerUnmapped",
+          severity: "error",
+          marker: marker.name,
+          line: marker.line,
+          message: `Source marker "${marker.name}" at line ${marker.line} is not mapped by any Atlas section.`
+        });
+      }
+    }
+  }
+  const sourceBySectionKey = /* @__PURE__ */ new Map();
+  for (const section of input.atlas.sections) {
+    const marker = section.marker ?? section.name;
+    if (!markerNames.has(marker)) continue;
+    try {
+      sourceBySectionKey.set(section.key, extractMachinaSection(input.sourceText, marker).text);
+    } catch (error) {
+      if (options.requireSectionMarkers) {
+        diagnostics.push({
+          code: "AtlasSectionExtractFailed",
+          severity: "error",
+          sectionKey: section.key,
+          sectionName: section.name,
+          marker,
+          message: `Atlas section ${section.key} marker "${marker}" could not be extracted: ${error instanceof Error ? error.message : String(error)}`
+        });
+      }
+    }
+    if (!sourceBySectionKey.has(section.key) && extractedByMarker.has(marker)) {
+      sourceBySectionKey.set(section.key, extractedByMarker.get(marker) ?? "");
+    }
+  }
+  if (options.checkOwns) {
+    for (const section of input.atlas.sections) {
+      const source = sourceBySectionKey.get(section.key);
+      if (source === void 0) continue;
+      for (const symbol of section.owns ?? []) {
+        if (!containsSymbol(source, symbol, options.symbolMatch)) {
+          diagnostics.push({
+            code: "AtlasOwnedSymbolMissing",
+            severity: "error",
+            sectionKey: section.key,
+            sectionName: section.name,
+            symbol,
+            message: `Section ${section.key} declares owned symbol ${symbol}, but it was not found in the extracted source section.`
+          });
+        }
+      }
+    }
+  }
+  if (options.checkUses) {
+    for (const section of input.atlas.sections) {
+      const source = sourceBySectionKey.get(section.key);
+      if (source === void 0) continue;
+      for (const symbol of section.uses ?? []) {
+        if (sectionKeys.has(symbol)) continue;
+        if (!containsSymbol(source, symbol, options.symbolMatch)) {
+          diagnostics.push({
+            code: "AtlasUsedSymbolMissing",
+            severity: "error",
+            sectionKey: section.key,
+            sectionName: section.name,
+            symbol,
+            message: `Section ${section.key} declares used symbol ${symbol}, but it was not found in the extracted source section.`
+          });
+        }
+      }
+    }
+  }
+  if (options.checkRelations) {
+    for (const section of input.atlas.sections) {
+      for (const relation of ["usedBy", "dependsOn"]) {
+        for (const targetKey of section[relation] ?? []) {
+          if (!sectionKeys.has(targetKey)) {
+            diagnostics.push({
+              code: "AtlasUnknownRelation",
+              severity: "error",
+              sectionKey: section.key,
+              sectionName: section.name,
+              relation,
+              targetKey,
+              message: `Section ${section.key} ${relation} references unknown section key ${targetKey}.`
+            });
+          }
+        }
+      }
+    }
+  }
+  if (options.checkDuplicateOwnership) {
+    const owners = /* @__PURE__ */ new Map();
+    for (const section of input.atlas.sections) {
+      for (const symbol of section.owns ?? []) {
+        const existing = owners.get(symbol);
+        if (existing !== void 0) {
+          diagnostics.push({
+            code: "AtlasDuplicateOwnership",
+            severity: "warning",
+            sectionKey: section.key,
+            sectionName: section.name,
+            symbol,
+            message: `Symbol ${symbol} is owned by both ${existing} and ${section.key}.`
+          });
+        } else {
+          owners.set(symbol, section.key);
+        }
+      }
+    }
+  }
+  return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics };
+}
+function formatMachinaAtlasValidationReport(result) {
+  const status = result.ok ? "ok" : "failed";
+  const lines = [`MachinaAtlas validation: ${status}`, `Diagnostics: ${result.diagnostics.length}`];
+  if (result.diagnostics.length === 0) return lines.join("\n");
+  lines.push("");
+  result.diagnostics.forEach((diagnostic, index) => {
+    lines.push(`${index + 1}. ${diagnostic.severity} ${diagnostic.code}`);
+    if (diagnostic.sectionKey !== void 0) {
+      lines.push(`   section: ${sectionLabel(diagnostic.sectionKey, diagnostic.sectionName)}`);
+    }
+    if (diagnostic.marker !== void 0) lines.push(`   marker: ${diagnostic.marker}`);
+    if (diagnostic.symbol !== void 0) lines.push(`   symbol: ${diagnostic.symbol}`);
+    if (diagnostic.relation !== void 0) lines.push(`   relation: ${diagnostic.relation}`);
+    if (diagnostic.targetKey !== void 0) lines.push(`   target: ${diagnostic.targetKey}`);
+    if (diagnostic.line !== void 0) lines.push(`   line: ${diagnostic.line}`);
+    lines.push(`   message: ${diagnostic.message}`);
+    if (index + 1 < result.diagnostics.length) lines.push("");
+  });
+  return lines.join("\n");
+}
 export {
   MachinaAtlasError,
   defineMachinaAtlas,
@@ -235,7 +294,9 @@ export {
   extractMachinaSection,
   extractMachinaSections,
   formatMachinaAtlasSummary,
+  formatMachinaAtlasValidationReport,
   getMachinaAtlasSection,
   listMachinaAtlasSections,
-  parseMachinaSectionMarkers
+  parseMachinaSectionMarkers,
+  validateMachinaAtlas
 };
