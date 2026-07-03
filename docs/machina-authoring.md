@@ -275,3 +275,111 @@ const providerSetup = M.screen("provider-setup", {
 ### Deferred helpers and non-goals
 
 M28c intentionally does not add Deus sugar, Atlas sugar, JSX/TSX authoring, routing, screen runners, screenshot capture, or handoff capture. Rows remain the MIR and Machina remains the authoring surface.
+
+## DeusMachina authoring helpers
+
+M28d adds thin DeusMachina authoring helpers under the same `M` namespace. They are wrappers over the existing `machinalayout/deus` row objects and runtime. They do not change DeusMachina kernel semantics, transition selection, utility scoring, traces, validation, layout resolution, adapters, or framework bindings.
+
+- `M.machine(definition)` delegates to `defineDeusMachine(definition)`, so validation remains centralized in `machinalayout/deus`.
+- `M.state(path, options?)` creates a `DeusStateRow` and copies the authored path.
+- `M.on(eventType, from, to, action?, options?)` creates an exact-event `DeusTransitionRow`.
+- `M.choose(eventType, from, to, candidates, options?)` creates a utility-scored `DeusTransitionRow` using existing Deus utility semantics.
+- Utility scoring remains opt-in: use `M.on` for ordinary transitions and `M.choose` only when the transition should evaluate utility candidates.
+
+These helpers do not add async transitions, persistence, actors, tools, LLM arbitration, routing, screen runners, or React/Vue/React Native dependencies. The debug overlay machine remains available from `machinalayout/deus`. When using Deus with framework state, use the existing bindings from `machinalayout/react`, `machinalayout/react-native`, or `machinalayout/vue`.
+
+### Scrollbar state machine
+
+```ts
+import { M } from "machinalayout/machina";
+
+type ScrollbarBoard = {
+  captured: boolean;
+  startY: number;
+  offset: number;
+};
+
+type ScrollbarEvent =
+  | { type: "thumb:press"; y: number }
+  | { type: "pointer:move"; y: number }
+  | { type: "pointer:up" };
+
+const scrollbar = M.machine<ScrollbarBoard, ScrollbarEvent>({
+  initial: ["idle"],
+
+  states: [
+    M.state(["idle"], {
+      onEnter: (board) => {
+        board.captured = false;
+      },
+    }),
+    M.state(["dragging"], {
+      onEnter: (board) => {
+        board.captured = true;
+      },
+      onExit: (board) => {
+        board.captured = false;
+      },
+    }),
+  ],
+
+  transitions: [
+    M.on("thumb:press", ["idle"], ["dragging"], (board, event) => {
+      board.startY = event.y;
+    }),
+    M.on("pointer:move", ["dragging"], ["dragging"], (board, event) => {
+      board.offset = event.y - board.startY;
+    }),
+    M.on("pointer:up", ["dragging"], ["idle"]),
+  ],
+});
+```
+
+### Utility choice
+
+```ts
+import { M } from "machinalayout/machina";
+
+type Board = { tempK: number; mode: "heat" | "cool" | "idle" };
+type TickEvent = { type: "tick" };
+
+const controller = M.machine<Board, TickEvent>({
+  initial: ["decide"],
+
+  states: [M.state(["decide"]), M.state(["apply"])],
+
+  transitions: [
+    M.choose("tick", ["decide"], ["apply"], [
+      {
+        key: "heat",
+        when: (board) => board.tempK < 292.15,
+        score: 90,
+        do: (board) => {
+          board.mode = "heat";
+        },
+      },
+      {
+        key: "cool",
+        when: (board) => board.tempK > 299.15,
+        score: 88,
+        do: (board) => {
+          board.mode = "cool";
+        },
+      },
+      {
+        key: "idle",
+        score: 0,
+        do: (board) => {
+          board.mode = "idle";
+        },
+      },
+    ]),
+  ],
+});
+```
+
+`M.choose` uses transition-level targets. Utility candidates choose behavior, scores, reasons, and candidate actions; they do not add candidate-level target paths.
+
+### M28d design coverage
+
+Claude's Deus helper suggestion is now addressed by `M.machine`, `M.state`, `M.on`, and `M.choose`. Atlas authoring helpers are intentionally deferred to M28e, including Atlas section helper design.

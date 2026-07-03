@@ -1,3 +1,7 @@
+import {
+  defineDeusMachine
+} from "../chunk-2ZQ2RFFI.js";
+
 // src/machina/errors.ts
 var MachinaAuthoringError = class extends Error {
   code;
@@ -513,6 +517,54 @@ function screen(key, definition) {
   };
 }
 
+// src/machina/machine.ts
+function copyPath(path) {
+  return [...path];
+}
+function pathKey(path) {
+  return path.join("/");
+}
+function generatedTransitionKey(from, eventType, to, suffix = "") {
+  const target = Array.isArray(to) ? pathKey(to) : "dynamic";
+  return `${pathKey(from)}:${eventType}->${target}${suffix}`;
+}
+function state(path, options = {}) {
+  return {
+    path: copyPath(path),
+    ...options.onEnter ? { onEnter: options.onEnter } : null,
+    ...options.onExit ? { onExit: options.onExit } : null
+  };
+}
+function on(eventType, from, to, action, options = {}) {
+  return {
+    key: options.key ?? generatedTransitionKey(from, eventType, to),
+    event: eventType,
+    from: copyPath(from),
+    to: Array.isArray(to) ? copyPath(to) : to,
+    ...action ? { do: action } : null,
+    ...options.when ? { when: options.when } : null,
+    ...options.score !== void 0 ? { score: options.score } : null,
+    ...options.reason !== void 0 ? { reason: options.reason } : null
+  };
+}
+function choose(eventType, from, to, candidates, options = {}) {
+  return {
+    key: options.key ?? generatedTransitionKey(from, eventType, to, ":utility"),
+    event: eventType,
+    from: copyPath(from),
+    to: Array.isArray(to) ? copyPath(to) : to,
+    utility: candidates.map((candidate) => ({ ...candidate })),
+    ...options.when ? { when: options.when } : null,
+    ...options.score !== void 0 ? { score: options.score } : null,
+    ...options.reason !== void 0 ? { reason: options.reason } : null,
+    ...options.hysteresis ? { hysteresis: options.hysteresis } : null,
+    ...options.do ? { do: options.do } : null
+  };
+}
+function machine(definition) {
+  return defineDeusMachine(definition);
+}
+
 // src/machina/index.ts
 var M = {
   node,
@@ -540,7 +592,11 @@ var M = {
   text,
   onLayer,
   defineLayers,
-  screen
+  screen,
+  machine,
+  state,
+  on,
+  choose
 };
 export {
   M,
@@ -548,6 +604,7 @@ export {
   anchor,
   area,
   cell,
+  choose,
   defineLayers,
   edge,
   fill,
@@ -556,8 +613,10 @@ export {
   gridRows,
   guide,
   hstack,
+  machine,
   makeNode,
   node,
+  on,
   onLayer,
   px,
   root,
@@ -566,6 +625,7 @@ export {
   skip,
   space,
   stackArrange,
+  state,
   text,
   trackFill,
   trackFixed,
