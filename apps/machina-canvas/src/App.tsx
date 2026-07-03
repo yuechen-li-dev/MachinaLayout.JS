@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentType,
   type MouseEvent,
@@ -10,8 +11,15 @@ import type { Rect } from "machinalayout";
 import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { resolveAppLayout } from "./appLayout";
-import { applyCanvasCommand, type CanvasCommand } from "./sceneCommands";
+import {
+  applyCanvasCommands,
+  type CanvasCommand,
+  type CanvasCommandApplyResult,
+  type CanvasCommandValidationResult,
+  validateCanvasCommands,
+} from "./sceneCommands";
 import { initialSceneDocument } from "./sceneDocument";
+import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import type { CanvasDocument, CanvasObject, CanvasObjectKind, TextObject } from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
 
@@ -24,10 +32,52 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   text: "Text",
 });
 
+const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
+  select: "Select",
+  move: "Move",
+  resize: "Resize",
+  setFill: "Set fill",
+  setStroke: "Set stroke",
+  align: "Align",
+  distribute: "Distribute",
+});
+
+const exampleCommandJson = JSON.stringify(
+  [
+    { kind: "align", ids: ["logo", "headline"], axis: "left" },
+    { kind: "move", id: "cta-bg", dx: 0, dy: 16 },
+    { kind: "move", id: "cta-label", dx: 0, dy: 16 },
+    {
+      kind: "distribute",
+      ids: ["feature-chip-1", "feature-chip-2", "feature-chip-3"],
+      axis: "horizontal",
+      gap: 16,
+    },
+  ],
+  null,
+  2,
+);
+
+type CommandLogEntry = {
+  id: string;
+  timestamp: string;
+  commands: CanvasCommand[];
+  results: CanvasCommandApplyResult[];
+};
+
 type AppViewData = {
   document: CanvasDocument;
   lastCommand: string;
+  commandJson: string;
+  commandValidation: CanvasCommandValidationResult | undefined;
+  commandLog: CommandLogEntry[];
+  lastApplyResults: CanvasCommandApplyResult[];
+  geometryDiagnostics: GeometryDiagnostic[];
   runCommand: (command: CanvasCommand) => void;
+  setCommandJson: (commandJson: string) => void;
+  loadExampleCommands: () => void;
+  validateCommandJson: () => void;
+  applyCommandJson: () => void;
 };
 
 function getRootRect(): Rect {
@@ -83,6 +133,49 @@ function getKindShortLabel(object: CanvasObject): string {
     ellipse: () => "OVAL",
     text: () => "TEXT",
   });
+}
+
+function getDiagnosticClass(diagnostic: GeometryDiagnostic): string {
+  return matchEnum(diagnostic.severity, {
+    info: () => "diagnostic-info",
+    warning: () => "diagnostic-warning",
+  });
+}
+
+function makeInvalidJsonResult(message: string): CanvasCommandValidationResult {
+  return {
+    ok: false,
+    diagnostics: [
+      {
+        severity: "error",
+        code: "InvalidJson",
+        message,
+      },
+    ],
+  };
+}
+
+function parseCommandJson(
+  commandJson: string,
+): { ok: true; value: unknown } | { ok: false; validation: CanvasCommandValidationResult } {
+  try {
+    return { ok: true, value: JSON.parse(commandJson) as unknown };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Command JSON could not be parsed.";
+    return { ok: false, validation: makeInvalidJsonResult(message) };
+  }
+}
+
+function normalizeCommands(commands: unknown): CanvasCommand[] {
+  return (Array.isArray(commands) ? commands : [commands]) as CanvasCommand[];
+}
+
+function formatCommandKinds(commands: readonly CanvasCommand[]): string {
+  return commands.map((command) => commandKindLabels[command.kind]).join(", ");
+}
+
+function formatChange(change: CanvasCommandApplyResult["changes"][number]): string {
+  return `${change.objectId}.${change.field}: ${String(change.before)} -> ${String(change.after)}`;
 }
 
 function SceneTree(props: MachinaSlotProps) {
@@ -284,6 +377,98 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function CommandJsonPanel(props: MachinaSlotProps) {
+  const {
+    commandJson,
+    commandValidation,
+    lastApplyResults,
+    setCommandJson,
+    loadExampleCommands,
+    validateCommandJson,
+    applyCommandJson,
+  } = readViewData(props);
+
+  return (
+    <InspectorSection title="Command JSON">
+      <textarea
+        className="command-json-input"
+        value={commandJson}
+        spellCheck={false}
+        onChange={(event) => setCommandJson(event.target.value)}
+        aria-label="Command JSON"
+      />
+      <div className="command-json-actions">
+        <button type="button" onClick={validateCommandJson}>
+          Validate
+        </button>
+        <button type="button" onClick={applyCommandJson}>
+          Apply
+        </button>
+        <button type="button" onClick={loadExampleCommands}>
+          Load example
+        </button>
+      </div>
+      <div className={`validation-result ${commandValidation?.ok ? "is-ok" : "is-error"}`}>
+        <strong>
+          {commandValidation === undefined
+            ? "Not validated"
+            : commandValidation.ok
+              ? "Valid command JSON"
+              : "Command JSON has errors"}
+        </strong>
+        {commandValidation?.diagnostics.length ? (
+          <ul>
+            {commandValidation.diagnostics.map((diagnostic, index) => (
+              <li key={`${diagnostic.code}-${index}`}>
+                <span>{diagnostic.code}</span>
+                {diagnostic.commandIndex !== undefined
+                  ? ` #${diagnostic.commandIndex + 1}: `
+                  : ": "}
+                {diagnostic.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      {lastApplyResults.length > 0 ? (
+        <div className="last-apply-result">
+          <strong>Last applied</strong>
+          {lastApplyResults.map((result, index) => (
+            <p key={`${result.command.kind}-${index}`}>
+              {commandKindLabels[result.command.kind]}: {result.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </InspectorSection>
+  );
+}
+
+function GeometryDiagnosticsSection(props: MachinaSlotProps) {
+  const { geometryDiagnostics } = readViewData(props);
+
+  return (
+    <InspectorSection title="Geometry diagnostics">
+      {geometryDiagnostics.length === 0 ? (
+        <p className="empty-note">No geometry diagnostics.</p>
+      ) : (
+        <div className="diagnostic-list">
+          {geometryDiagnostics.map((diagnostic, index) => (
+            <article
+              className={`diagnostic ${getDiagnosticClass(diagnostic)}`}
+              key={`${diagnostic.code}-${index}`}
+            >
+              <strong>{diagnostic.code}</strong>
+              <p>{diagnostic.message}</p>
+              <small>{diagnostic.objectIds.join(", ")}</small>
+            </article>
+          ))}
+        </div>
+      )}
+    </InspectorSection>
+  );
+}
+
 function Inspector(props: MachinaSlotProps) {
   const { document, runCommand } = readViewData(props);
   const selected = getSelectedObject(document);
@@ -302,6 +487,8 @@ function Inspector(props: MachinaSlotProps) {
           <Field label="Layers" value={document.layers.length} />
           <Field label="Objects" value={Object.keys(document.objects).length} />
         </InspectorSection>
+        <GeometryDiagnosticsSection {...props} />
+        <CommandJsonPanel {...props} />
       </aside>
     );
   }
@@ -350,33 +537,73 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Tags" value={selected.tags?.join(", ") ?? "none"} />
         <Field label="Notes" value={selected.notes ?? "none"} />
       </InspectorSection>
+      <GeometryDiagnosticsSection {...props} />
+      <CommandJsonPanel {...props} />
     </aside>
   );
 }
 
 function SceneSummaryShelf(props: MachinaSlotProps) {
-  const { document, runCommand } = readViewData(props);
+  const { document, runCommand, commandLog } = readViewData(props);
   const objects = Object.values(document.objects).filter((object) =>
     ["logo", "headline", "product-body", "cta-bg", "feature-chip-1"].includes(object.id),
   );
+  const recentLog = commandLog.slice(0, 3);
 
   return (
     <section className="scene-summary panel">
-      <p className="summary-text">{summarizeScene(document)}</p>
-      <div className="object-card-row">
-        {objects.map((object) => (
-          <button
-            className={`object-card ${document.selectedObjectId === object.id ? "is-selected" : ""}`}
-            key={object.id}
-            type="button"
-            onClick={() => runCommand({ kind: "select", id: object.id })}
-          >
-            <span className={`kind-pill ${getKindClass(object)}`}>{getKindShortLabel(object)}</span>
-            <strong>{object.name}</strong>
-            <small>{getObjectBoundsSummary(object)}</small>
-          </button>
-        ))}
+      <div className="summary-main">
+        <p className="summary-text">{summarizeScene(document)}</p>
+        <div className="object-card-row">
+          {objects.map((object) => (
+            <button
+              className={`object-card ${document.selectedObjectId === object.id ? "is-selected" : ""}`}
+              key={object.id}
+              type="button"
+              onClick={() => runCommand({ kind: "select", id: object.id })}
+            >
+              <span className={`kind-pill ${getKindClass(object)}`}>
+                {getKindShortLabel(object)}
+              </span>
+              <strong>{object.name}</strong>
+              <small>{getObjectBoundsSummary(object)}</small>
+            </button>
+          ))}
+        </div>
       </div>
+      <aside className="command-log" aria-label="Command log">
+        <header>
+          <small>Command log</small>
+          <strong>{commandLog.length}</strong>
+        </header>
+        {recentLog.length === 0 ? (
+          <p className="empty-note">No commands applied yet.</p>
+        ) : (
+          recentLog.map((entry) => (
+            <article className="command-log-entry" key={entry.id}>
+              <div>
+                <strong>
+                  {entry.commands.length} command{entry.commands.length === 1 ? "" : "s"}
+                </strong>
+                <small>{entry.timestamp}</small>
+              </div>
+              <p>{formatCommandKinds(entry.commands)}</p>
+              <ul>
+                {entry.results
+                  .flatMap((result) =>
+                    result.changes.length === 0
+                      ? [`${commandKindLabels[result.command.kind]}: no changes`]
+                      : result.changes.slice(0, 3).map(formatChange),
+                  )
+                  .slice(0, 5)
+                  .map((line, index) => (
+                    <li key={`${entry.id}-${index}`}>{line}</li>
+                  ))}
+              </ul>
+            </article>
+          ))
+        )}
+      </aside>
     </section>
   );
 }
@@ -410,21 +637,108 @@ export function App() {
   const layout = useMemo(() => resolveAppLayout(rootRect), [rootRect]);
   const [document, setDocument] = useState(initialSceneDocument);
   const [lastCommand, setLastCommand] = useState("ready");
+  const [commandJson, setCommandJson] = useState(exampleCommandJson);
+  const [commandValidation, setCommandValidation] = useState<
+    CanvasCommandValidationResult | undefined
+  >();
+  const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
+  const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
+  const commandLogCounter = useRef(0);
+  const geometryDiagnostics = useMemo(() => getSceneGeometryDiagnostics(document), [document]);
 
   const viewData = useMemo<AppViewData>(() => {
-    const runCommand = (command: CanvasCommand) => {
-      setDocument((current) => applyCanvasCommand(current, command));
-      setLastCommand(
-        command.kind === "select"
-          ? `select ${command.id ?? "document"}`
-          : command.kind === "move"
-            ? `move ${command.id} by ${command.dx},${command.dy}`
-            : `setFill ${command.id}`,
-      );
+    const recordAppliedCommands = (
+      commands: CanvasCommand[],
+      results: CanvasCommandApplyResult[],
+    ) => {
+      commandLogCounter.current += 1;
+      const logId = `command-${commandLogCounter.current}`;
+      setLastApplyResults(results);
+      setCommandLog((entries) => [
+        {
+          id: logId,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+          commands,
+          results,
+        },
+        ...entries,
+      ]);
+      setLastCommand(`${commands.length} command${commands.length === 1 ? "" : "s"} applied`);
     };
 
-    return { document, lastCommand, runCommand };
-  }, [document, lastCommand]);
+    const runCommand = (command: CanvasCommand) => {
+      const applyResult = applyCanvasCommands(document, [command]);
+      setDocument(applyResult.document);
+      recordAppliedCommands([command], applyResult.results);
+    };
+
+    const loadExampleCommands = () => {
+      setCommandJson(exampleCommandJson);
+      setCommandValidation(undefined);
+      setLastCommand("example command JSON loaded");
+    };
+
+    const validateCommandJson = () => {
+      const parsed = parseCommandJson(commandJson);
+      if (!parsed.ok) {
+        setCommandValidation(parsed.validation);
+        setLastCommand("command JSON invalid");
+        return;
+      }
+
+      const validation = validateCanvasCommands(document, parsed.value);
+      setCommandValidation(validation);
+      setLastCommand(validation.ok ? "command JSON valid" : "command JSON invalid");
+    };
+
+    const applyCommandJson = () => {
+      const parsed = parseCommandJson(commandJson);
+      if (!parsed.ok) {
+        setCommandValidation(parsed.validation);
+        setLastCommand("command JSON invalid");
+        return;
+      }
+
+      const validation = validateCanvasCommands(document, parsed.value);
+      setCommandValidation(validation);
+      if (!validation.ok) {
+        setLastCommand("command JSON invalid");
+        return;
+      }
+
+      const commands = normalizeCommands(parsed.value);
+      const applyResult = applyCanvasCommands(document, commands);
+      setDocument(applyResult.document);
+      recordAppliedCommands(commands, applyResult.results);
+    };
+
+    return {
+      document,
+      lastCommand,
+      commandJson,
+      commandValidation,
+      commandLog,
+      lastApplyResults,
+      geometryDiagnostics,
+      runCommand,
+      setCommandJson,
+      loadExampleCommands,
+      validateCommandJson,
+      applyCommandJson,
+    };
+  }, [
+    document,
+    lastCommand,
+    commandJson,
+    commandValidation,
+    commandLog,
+    lastApplyResults,
+    geometryDiagnostics,
+  ]);
 
   return (
     <MachinaReactView

@@ -65,7 +65,9 @@ button {
 .panel-title small,
 .canvas-heading small,
 .object-card small,
-.tree-layer small {
+.tree-layer small,
+.command-log small,
+.diagnostic small {
   color: #70706a;
   font-size: 10px;
   font-weight: 700;
@@ -81,7 +83,8 @@ button {
 .layer-row,
 .tree-object,
 .object-card,
-.command-row button {
+.command-row button,
+.command-json-actions button {
   border: 0;
   background: transparent;
   color: #111111;
@@ -232,7 +235,8 @@ button {
   padding: 16px 0;
 }
 
-.command-row button {
+.command-row button,
+.command-json-actions button {
   min-height: 34px;
   border: 1px solid #111111;
   background: #ffffff;
@@ -259,6 +263,92 @@ button {
   gap: 7px;
 }
 
+.command-json-input {
+  width: 100%;
+  min-height: 196px;
+  resize: vertical;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  color: #111111;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 10px;
+}
+
+.command-json-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.validation-result,
+.last-apply-result,
+.diagnostic {
+  border: 1px solid #e1e1dc;
+  background: #fbfbfa;
+  padding: 10px;
+}
+
+.validation-result strong,
+.last-apply-result strong,
+.diagnostic strong,
+.command-log-entry strong {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.validation-result ul,
+.command-log-entry ul {
+  margin: 8px 0 0;
+  padding-left: 16px;
+}
+
+.validation-result li,
+.command-log-entry li,
+.last-apply-result p,
+.diagnostic p,
+.empty-note {
+  margin: 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.validation-result li + li,
+.last-apply-result p + p,
+.diagnostic + .diagnostic {
+  margin-top: 6px;
+}
+
+.validation-result li span {
+  color: #111111;
+  font-weight: 740;
+}
+
+.validation-result.is-ok {
+  border-color: #6f967c;
+}
+
+.validation-result.is-error {
+  border-color: #c78373;
+}
+
+.diagnostic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagnostic-warning {
+  border-left: 3px solid #c78373;
+}
+
+.diagnostic-info {
+  border-left: 3px solid #6c8cab;
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 88px minmax(0, 1fr);
@@ -275,10 +365,17 @@ button {
 }
 
 .scene-summary {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 14px;
   padding: 16px 18px;
+}
+
+.summary-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .summary-text {
@@ -319,6 +416,42 @@ button {
 
 .object-card small {
   text-transform: none;
+}
+
+.command-log {
+  min-width: 0;
+  overflow: auto;
+  border-left: 1px solid #e5e5e0;
+  padding-left: 14px;
+}
+
+.command-log header,
+.command-log-entry div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.command-log header {
+  margin-bottom: 8px;
+}
+
+.command-log header strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.command-log-entry {
+  border-top: 1px solid #ededeb;
+  padding: 8px 0;
+}
+
+.command-log-entry p {
+  margin: 5px 0 0;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .breadcrumb {
@@ -364,5 +497,16 @@ button {
   .object-card-row {
     grid-template-columns: repeat(5, minmax(112px, 1fr));
     overflow-x: auto;
+  }
+
+  .scene-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .command-log {
+    border-top: 1px solid #e5e5e0;
+    border-left: 0;
+    padding-top: 10px;
+    padding-left: 0;
   }
 }
