@@ -338,6 +338,7 @@ const views = {
 - [`samples/control-room`](samples/control-room/README.md)
 - [`samples/music-player`](samples/music-player/README.md)
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
+- [`samples/codex-product-page`](samples/codex-product-page/README.md)
 
 Run it locally:
 
