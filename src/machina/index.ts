@@ -10,6 +10,7 @@ export * from "./guide";
 export * from "./text";
 export * from "./layers";
 export * from "./screen";
+export * from "./machine";
 
 import { anchor } from "./anchor";
 import { node, root, rows } from "./node";
@@ -21,6 +22,7 @@ import { edge, guide } from "./guide";
 import { text } from "./text";
 import { defineLayers, onLayer } from "./layers";
 import { screen } from "./screen";
+import { choose, machine, on, state } from "./machine";
 
 export const M = {
   node,
@@ -49,4 +51,8 @@ export const M = {
   onLayer,
   defineLayers,
   screen,
+  machine,
+  state,
+  on,
+  choose,
 } as const;

@@ -1,6 +1,7 @@
 import { c as MachinaTextVariant, d as MachinaTextWrap, e as MachinaTextOverflow, f as MachinaTextAlign, g as MachinaTextLeading, h as MachinaTextVerticalAlign, M as MachinaTextSpec } from '../types-DA-InpTh.js';
 import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength, G as GridTrack, E as EdgeInsets, d as RectEdge } from '../types-fqEN29Eg.js';
 import { b as MachinaScreen, M as MachinaViewport } from '../screenCatalog-ZjonGiOi.js';
+import { D as DeusEvent, e as DeusMachine, b as DeusStatePath, g as DeusAction, i as DeusStateRow, j as DeusTransitionRow } from '../types-CWaup8Z6.js';
 
 type TextOptions = {
     variant?: MachinaTextVariant;
@@ -215,6 +216,35 @@ type MachinaScreenDefinition = MachinaScreen & {
 type ScreenOptions = Omit<MachinaScreenDefinition, "key">;
 declare function screen(key: string, definition: ScreenOptions): MachinaScreenDefinition;
 
+type MachinaStateOptions<TBoard, TEvent extends DeusEvent> = {
+    onEnter?: DeusAction<TBoard, TEvent>;
+    onExit?: DeusAction<TBoard, TEvent>;
+};
+type MachinaOnOptions<TBoard, TEvent extends DeusEvent> = {
+    key?: string;
+    when?: (board: TBoard, event: TEvent) => boolean;
+    score?: number | ((board: TBoard, event: TEvent) => number);
+    reason?: string | ((board: TBoard, event: TEvent) => string);
+};
+type MachinaChooseCandidate<TBoard, TEvent extends DeusEvent> = {
+    key: string;
+    when?: (board: TBoard, event: TEvent) => boolean;
+    score: number | ((board: TBoard, event: TEvent) => number);
+    reason?: string | ((board: TBoard, event: TEvent) => string);
+    do?: DeusAction<TBoard, TEvent>;
+};
+type MachinaChooseOptions<TBoard, TEvent extends DeusEvent> = MachinaOnOptions<TBoard, TEvent> & {
+    hysteresis?: {
+        previous: (board: TBoard) => string | undefined;
+        margin: number;
+    };
+    do?: DeusAction<TBoard, TEvent>;
+};
+declare function state<TBoard, TEvent extends DeusEvent>(path: DeusStatePath, options?: MachinaStateOptions<TBoard, TEvent>): DeusStateRow<TBoard, TEvent>;
+declare function on<TBoard, TEvent extends DeusEvent>(eventType: TEvent["type"], from: DeusStatePath, to: DeusStatePath | ((board: TBoard, event: TEvent) => DeusStatePath), action?: DeusAction<TBoard, TEvent>, options?: MachinaOnOptions<TBoard, TEvent>): DeusTransitionRow<TBoard, TEvent>;
+declare function choose<TBoard, TEvent extends DeusEvent>(eventType: TEvent["type"], from: DeusStatePath, to: DeusStatePath | ((board: TBoard, event: TEvent) => DeusStatePath), candidates: readonly MachinaChooseCandidate<TBoard, TEvent>[], options?: MachinaChooseOptions<TBoard, TEvent>): DeusTransitionRow<TBoard, TEvent>;
+declare function machine<TBoard, TEvent extends DeusEvent>(definition: DeusMachine<TBoard, TEvent>): DeusMachine<TBoard, TEvent>;
+
 declare const M: {
     readonly node: typeof node;
     readonly root: typeof root;
@@ -246,6 +276,10 @@ declare const M: {
     readonly onLayer: typeof onLayer;
     readonly defineLayers: typeof defineLayers;
     readonly screen: typeof screen;
+    readonly machine: typeof machine;
+    readonly state: typeof state;
+    readonly on: typeof on;
+    readonly choose: typeof choose;
 };
 
-export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, type GuideOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaGuideEdgeName, type MachinaGuideEdgeRef, type MachinaLayerMap, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaScreenDefinition, type MachinaScreenLayoutBuilder, type MachinaStackAxis, type NodeOptions, type RootOptions, type ScreenOptions, type StackContainerOptions, type StackOptions, type TextOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, defineLayers, edge, fill, fixed, grid, gridRows, guide, hstack, makeNode, node, onLayer, px, root, rows, screen, skip, space, stackArrange, text, trackFill, trackFixed, ui, vstack, when };
+export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, type GuideOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaChooseCandidate, type MachinaChooseOptions, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaGuideEdgeName, type MachinaGuideEdgeRef, type MachinaLayerMap, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaOnOptions, type MachinaScreenDefinition, type MachinaScreenLayoutBuilder, type MachinaStackAxis, type MachinaStateOptions, type NodeOptions, type RootOptions, type ScreenOptions, type StackContainerOptions, type StackOptions, type TextOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, choose, defineLayers, edge, fill, fixed, grid, gridRows, guide, hstack, machine, makeNode, node, on, onLayer, px, root, rows, screen, skip, space, stackArrange, state, text, trackFill, trackFixed, ui, vstack, when };
