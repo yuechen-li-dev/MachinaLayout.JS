@@ -16,6 +16,7 @@ export default defineConfig({
     "handoff/index": "src/handoff/index.ts",
     "deus/index": "src/deus/index.ts",
     "machina/index": "src/machina/index.ts",
+    "match/index": "src/match/index.ts",
   },
   format: ["esm"],
   dts: true,

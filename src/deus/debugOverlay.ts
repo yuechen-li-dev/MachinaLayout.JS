@@ -1,5 +1,6 @@
 import type { DeusMachine } from "./types";
 import { defineDeusMachine } from "./machine";
+import { matchEnum } from "../match";
 
 export type MachinaDebugOverlayMode = "collapsed" | "nonInteractiveOverlay" | "interactivePanel";
 export type MachinaDebugOverlayBoard = {
@@ -115,30 +116,30 @@ export function createMachinaDebugOverlayMachine(): DeusMachine<
 export function getMachinaDebugOverlayBehavior(
   board: MachinaDebugOverlayBoard,
 ): MachinaDebugOverlayBehavior {
-  if (board.mode === "collapsed")
-    return {
+  return matchEnum<MachinaDebugOverlayMode, MachinaDebugOverlayBehavior>(board.mode, {
+    collapsed: () => ({
       visible: false,
       pointerEvents: "none",
       consumesLayoutSpace: false,
       showPanel: false,
       showLabels: false,
       showBorders: false,
-    };
-  if (board.mode === "nonInteractiveOverlay")
-    return {
+    }),
+    nonInteractiveOverlay: () => ({
       visible: true,
       pointerEvents: "none",
       consumesLayoutSpace: false,
       showPanel: false,
       showLabels: board.labels,
       showBorders: board.borders,
-    };
-  return {
-    visible: true,
-    pointerEvents: "auto",
-    consumesLayoutSpace: true,
-    showPanel: true,
-    showLabels: board.labels,
-    showBorders: board.borders,
-  };
+    }),
+    interactivePanel: () => ({
+      visible: true,
+      pointerEvents: "auto",
+      consumesLayoutSpace: true,
+      showPanel: true,
+      showLabels: board.labels,
+      showBorders: board.borders,
+    }),
+  });
 }

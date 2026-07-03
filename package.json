@@ -75,6 +75,10 @@
       "types": "./dist/deus/index.d.ts",
       "import": "./dist/deus/index.js"
     },
+    "./match": {
+      "types": "./dist/match/index.d.ts",
+      "import": "./dist/match/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

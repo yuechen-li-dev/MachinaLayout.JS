@@ -130,6 +130,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Inspection and handoff bundles](docs/inspection-and-handoff.md)
 - [Error codes](docs/error-codes.md)
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
+- [Exhaustive enum matching](docs/exhaustive-match.md)
 
 ## Tiny `LayoutRow[]` example
 
@@ -400,6 +401,7 @@ This repo uses Biome.
 - [Forbidden concepts](docs/forbidden-concepts.md)
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Error code reference](docs/error-codes.md)
+- [Exhaustive enum matching](docs/exhaustive-match.md)
 - [MachinaDispatch runtime guide](docs/machina-dispatch.md)
 - [DeusMachina behavioral kernel and framework bindings](docs/deusmachina.md)
 - Dispatch sample: [`samples/dispatch-counter`](samples/dispatch-counter/README.md) (uses `machinalayout/dispatch`)
