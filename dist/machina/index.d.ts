@@ -1,4 +1,4 @@
-import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength } from '../types-CnwWk0HF.js';
+import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength, G as GridTrack, E as EdgeInsets } from '../types-CbH83z0c.js';
 
 type MachinaNodeId = string;
 type MachinaStackAxis = "vertical" | "horizontal";
@@ -52,7 +52,7 @@ declare function fixed(id: MachinaNodeId, mainSize: number, viewOrOptions?: stri
 declare function fill(id: MachinaNodeId, weight?: number, viewOrOptions?: string | FillNodeOptions, options?: FillNodeOptions, children?: readonly MachinaNode[]): MachinaNode;
 declare function space(id: MachinaNodeId, weight?: number): MachinaNode;
 
-type MachinaAuthoringErrorCode = "InvalidNodeId" | "DuplicateNodeId" | "InvalidAuthoringTree" | "InvalidStackChild" | "InvalidFixedFrameContext" | "InvalidSpaceNode" | "InvalidAnchorFrame" | "InvalidLength" | "InvalidVariant";
+type MachinaAuthoringErrorCode = "InvalidNodeId" | "DuplicateNodeId" | "InvalidAuthoringTree" | "InvalidStackChild" | "InvalidFixedFrameContext" | "InvalidSpaceNode" | "InvalidAnchorFrame" | "InvalidLength" | "InvalidVariant" | "InvalidGridTrack" | "InvalidGridMatrix" | "GridMatrixOverlap" | "GridMatrixOutOfBounds" | "InvalidGridArea";
 declare class MachinaAuthoringError extends Error {
     readonly code: MachinaAuthoringErrorCode;
     constructor(code: MachinaAuthoringErrorCode, message: string);
@@ -107,6 +107,57 @@ type VariantOverrides = {
 };
 declare function when(condition: VariantCondition, overrides: VariantOverrides): LayoutRowVariant;
 
+type MachinaGridTrack = GridTrack;
+type CellOptions = {
+    colSpan?: number;
+    rowSpan?: number;
+    view?: string;
+    slot?: string;
+    debugLabel?: string;
+    layer?: string;
+    z?: number;
+    arrange?: ArrangeSpec;
+    variants?: readonly LayoutRowVariant[];
+};
+type GridAreaOptions = CellOptions;
+interface MachinaGridArea {
+    readonly kind: "area";
+    readonly id: MachinaNodeId;
+    readonly options: GridAreaOptions;
+    readonly children: readonly MachinaNode[];
+}
+interface MachinaGridSkip {
+    readonly kind: "skip";
+    readonly span?: number;
+}
+type MachinaGridMatrixItem = MachinaGridArea | MachinaGridSkip;
+interface MachinaGridRows {
+    readonly kind: "gridRows";
+    readonly rows: readonly (readonly MachinaGridMatrixItem[])[];
+}
+type GridOptions = {
+    columns: readonly MachinaGridTrack[];
+    rows: readonly MachinaGridTrack[];
+    columnGap?: number;
+    rowGap?: number;
+    padding?: number | Partial<EdgeInsets>;
+    parent?: MachinaNodeId;
+    frame?: FrameSpec;
+    view?: string;
+    slot?: string;
+    debugLabel?: string;
+    layer?: string;
+    z?: number;
+    variants?: readonly LayoutRowVariant[];
+};
+declare function trackFixed(size: number): MachinaGridTrack;
+declare function trackFill(weight?: number): MachinaGridTrack;
+declare function cell(id: MachinaNodeId, col: number, row: number, options?: CellOptions, children?: readonly MachinaNode[]): MachinaNode;
+declare function area(id: MachinaNodeId, options?: GridAreaOptions, children?: readonly MachinaNode[]): MachinaGridArea;
+declare function skip(span?: number): MachinaGridSkip;
+declare function gridRows(rows: readonly (readonly MachinaGridMatrixItem[])[]): MachinaGridRows;
+declare function grid(id: MachinaNodeId, options: GridOptions, children?: MachinaGridRows | readonly MachinaNode[]): MachinaNode;
+
 declare const M: {
     readonly node: typeof node;
     readonly root: typeof root;
@@ -121,6 +172,13 @@ declare const M: {
     readonly ui: typeof ui;
     readonly when: typeof when;
     readonly rows: typeof rows;
+    readonly grid: typeof grid;
+    readonly gridRows: typeof gridRows;
+    readonly area: typeof area;
+    readonly skip: typeof skip;
+    readonly cell: typeof cell;
+    readonly trackFixed: typeof trackFixed;
+    readonly trackFill: typeof trackFill;
 };
 
-export { type AnchorOptions, type FillNodeOptions, type FixedNodeOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaStackAxis, type NodeOptions, type RootOptions, type StackContainerOptions, type StackOptions, type VariantCondition, type VariantOverrides, anchor, fill, fixed, hstack, makeNode, node, px, root, rows, space, stackArrange, ui, vstack, when };
+export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaStackAxis, type NodeOptions, type RootOptions, type StackContainerOptions, type StackOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, fill, fixed, grid, gridRows, hstack, makeNode, node, px, root, rows, skip, space, stackArrange, trackFill, trackFixed, ui, vstack, when };
