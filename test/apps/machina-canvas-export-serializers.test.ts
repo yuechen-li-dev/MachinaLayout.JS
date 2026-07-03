@@ -133,6 +133,9 @@ const commands: CanvasCommand[] = [
   { kind: "setStroke", id: "badge", stroke: "#00ffff" },
   { kind: "align", ids: ["bg", "headline"], axis: "left" },
   { kind: "distribute", ids: ["bg", "headline", "badge"], axis: "horizontal", gap: 12 },
+  { kind: "moveToGrid", id: "headline", ref: "B2.c", anchor: "center" },
+  { kind: "alignToGrid", ids: ["headline", "badge"], axis: "left", ref: "A1.w" },
+  { kind: "resizeToGridSpan", id: "bg", span: "A1-C2" },
 ];
 
 describe("MachinaCanvas export serializers", () => {
@@ -213,6 +216,11 @@ describe("MachinaCanvas export serializers", () => {
     expect(toml).toContain(
       'kind = "distribute"\naxis = "horizontal"\nids = ["bg", "headline", "badge"]\ngap = 12',
     );
+    expect(toml).toContain('kind = "moveToGrid"\nid = "headline"\nref = "B2.c"\nanchor = "center"');
+    expect(toml).toContain(
+      'kind = "alignToGrid"\naxis = "left"\nids = ["headline", "badge"]\nref = "A1.w"',
+    );
+    expect(toml).toContain('kind = "resizeToGridSpan"\nid = "bg"\nspan = "A1-C2"');
   });
 
   it("serializes handoff metadata with selection and diagnostics", () => {

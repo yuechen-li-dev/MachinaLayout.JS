@@ -55,8 +55,26 @@ Supported command kinds:
 - `setStroke`
 - `align`
 - `distribute`
+- `moveToGrid`
+- `alignToGrid`
+- `resizeToGridSpan`
 
-Validation reports diagnostics instead of throwing for normal input failures. It checks command kind, target object IDs, finite numbers, positive sizes, align/distribute object lists, valid axes, and non-negative distribute gaps.
+Grid-aware commands let command JSON target the reference grid instead of raw
+pixels:
+
+```json
+[
+  { "kind": "moveToGrid", "id": "feature-chip-1", "ref": "B4.c", "anchor": "center" },
+  { "kind": "alignToGrid", "ids": ["logo", "headline"], "axis": "left", "ref": "A1.w" },
+  { "kind": "resizeToGridSpan", "id": "product-body", "span": "D2-E4" }
+]
+```
+
+Point refs can use whole cells such as `A1`, subcells such as `D3.ne`, or
+normalized local coordinates such as `B4@0.5,0.25`. Span refs such as `A2-C3`
+cover full cells inclusively.
+
+Validation reports diagnostics instead of throwing for normal input failures. It checks command kind, target object IDs, finite numbers, positive sizes, align/distribute object lists, valid axes, grid refs, grid spans, anchors, and non-negative distribute gaps.
 
 The command log records recent applied commands, result messages, and field-level before/after changes. This is the command substrate an LLM could target, but the app does not call an LLM API yet.
 
@@ -75,9 +93,10 @@ M30f adds a semantic reference grid for object location. The canvas is divided
 into labeled columns and rows, such as `A1`, `B2`, and `D3`, with optional
 subcell references such as `D3.ne` for points inside a cell.
 
-The grid is a locator language, not a layout system. It does not snap objects,
-add grid edit commands, create CAD constraints, or change MachinaLayout resolver
-behavior. It gives humans and LLMs a compact way to refer to geometry:
+M30g makes that locator language actionable through command JSON. The grid is
+still not a layout system: it does not snap objects, add drag editing, create
+CAD constraints, or change MachinaLayout resolver behavior. It gives humans and
+LLMs a compact way to refer to geometry:
 
 ```txt
 feature-chip-1 spans A4-B4 and centers at A4.ne
@@ -87,6 +106,11 @@ The editor renders a faint SVG overlay with border labels, shows selected-object
 references in the inspector, includes spans in scene summaries and object cards,
 and writes reference grid metadata into generated handoff files. Clean
 `render.svg` export output does not include the overlay by default.
+
+Grid-aware commands are deterministic edits against the current scene document:
+`moveToGrid` moves an object's chosen anchor to a point ref, `alignToGrid`
+aligns object edges or centers to a point ref, and `resizeToGridSpan` makes an
+object cover a full-cell span.
 
 ## MachinaCanvas Export Format
 
@@ -128,6 +152,10 @@ alongside the generated files.
 M30f adds reference grid metadata to generated `document.json` and
 `handoff.toml`. This preserves the locator grid used by summaries and inspector
 readouts without baking the overlay into clean rendered SVG output.
+
+M30g command TOML export includes grid-aware command recipes, so handoff bundles
+can preserve edits such as `moveToGrid`, `alignToGrid`, and
+`resizeToGridSpan`. Importing TOML command recipes remains out of scope.
 
 Export validation is still one-way. It is not import, round-trip loading, full
 TOML semantic parsing, ZIP export, backend processing, LLM API integration, or

@@ -7,6 +7,12 @@ axis = "left"
 ids = ["logo", "headline"]
 
 [[command]]
+kind = "moveToGrid"
+id = "feature-chip-1"
+ref = "B4.c"
+anchor = "center"
+
+[[command]]
 kind = "move"
 id = "cta-bg"
 dx = 0

@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -170,8 +170,9 @@ spreadsheet-style labels such as `A`, `B`, `C`; rows use numeric labels such as
 `product-body center D3.c`.
 
 The grid is semantic metadata. It is not a layout grid, snapping system,
-constraint solver, ruler editor, or command language. M30f exports the grid
-definition and uses it in summaries, but does not add grid-based edit commands.
+constraint solver, or ruler editor. M30f exports the grid definition and uses it
+in summaries. M30g adds explicit grid-aware commands that consume refs such as
+`A1`, `D3.ne`, `B4@0.5,0.25`, and spans such as `A2-C3`.
 
 ## Object TOML
 
@@ -320,13 +321,31 @@ kind = "distribute"
 axis = "horizontal"
 ids = ["feature-chip-1", "feature-chip-2", "feature-chip-3"]
 gap = 16
+
+[[command]]
+kind = "moveToGrid"
+id = "feature-chip-1"
+ref = "B4.c"
+anchor = "center"
+
+[[command]]
+kind = "alignToGrid"
+axis = "left"
+ids = ["logo", "headline"]
+ref = "A1.w"
+
+[[command]]
+kind = "resizeToGridSpan"
+id = "product-body"
+span = "D2-E4"
 ```
 
 Rules:
 
 - Runtime command JSON remains useful for API/editor input.
 - TOML command recipes are for editable handoff/project files.
-- M30c does not require a TOML parser or command recipe importer.
+- Grid-aware command recipes use the exported reference grid labels.
+- The format does not require a TOML parser or command recipe importer.
 
 ## `handoff.toml`
 
@@ -401,6 +420,10 @@ The current MachinaCanvas app uses an in-memory scene model. M30d serializers tu
 The app exposes these generated text artifacts in an Export panel. Users can generate the file list, select a file, copy its text, or download that file through browser Blob downloads. The export is one-way; importing a `.mcanvas` bundle back into the runtime remains future work.
 
 The serializers preserve the format law: rendered artifacts are output, JSON is the graph/index, TOML is the editable contract, and runtime command payloads stay JSON while editable command recipes are TOML.
+
+M30g serializers include `moveToGrid`, `alignToGrid`, and
+`resizeToGridSpan` in command TOML. These are command recipes only; exporting a
+recipe does not imply snapping, constraints, drag editing, or import support.
 
 ## Export Validation
 

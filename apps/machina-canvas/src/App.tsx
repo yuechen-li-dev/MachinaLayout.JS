@@ -52,18 +52,29 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   setStroke: "Set stroke",
   align: "Align",
   distribute: "Distribute",
+  moveToGrid: "Move to grid",
+  alignToGrid: "Align to grid",
+  resizeToGridSpan: "Resize to grid span",
 });
 
 const exampleCommandJson = JSON.stringify(
   [
-    { kind: "align", ids: ["logo", "headline"], axis: "left" },
-    { kind: "move", id: "cta-bg", dx: 0, dy: 16 },
-    { kind: "move", id: "cta-label", dx: 0, dy: 16 },
     {
-      kind: "distribute",
-      ids: ["feature-chip-1", "feature-chip-2", "feature-chip-3"],
-      axis: "horizontal",
-      gap: 16,
+      kind: "moveToGrid",
+      id: "feature-chip-1",
+      ref: "B4.c",
+      anchor: "center",
+    },
+    {
+      kind: "alignToGrid",
+      ids: ["logo", "headline"],
+      axis: "left",
+      ref: "A1.w",
+    },
+    {
+      kind: "resizeToGridSpan",
+      id: "product-body",
+      span: "D2-E4",
     },
   ],
   null,
@@ -552,6 +563,9 @@ function CommandJsonPanel(props: MachinaSlotProps) {
           Load example
         </button>
       </div>
+      <p className="empty-note">
+        Commands accept grid refs like A1, D3.ne, B4@0.5,0.25 and spans like A2-C3.
+      </p>
       <div className={`validation-result ${commandValidation?.ok ? "is-ok" : "is-error"}`}>
         <strong>
           {commandValidation === undefined

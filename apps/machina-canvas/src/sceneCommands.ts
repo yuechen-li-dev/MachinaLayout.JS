@@ -1,4 +1,11 @@
 import type { CanvasDocument, CanvasObject } from "./sceneModel";
+import {
+  gridPointRefToCanvasPoint,
+  gridSpanRefToCanvasRect,
+  parseGridPointRef,
+  parseGridSpanRef,
+  type ReferenceGridConfig,
+} from "./referenceGrid";
 
 export type CanvasCommand =
   | { kind: "select"; id?: string }
@@ -16,7 +23,32 @@ export type CanvasCommand =
       ids: string[];
       axis: "horizontal" | "vertical";
       gap?: number;
+    }
+  | {
+      kind: "moveToGrid";
+      id: string;
+      ref: string;
+      anchor?: "topLeft" | "center" | "bottomRight";
+    }
+  | {
+      kind: "alignToGrid";
+      ids: string[];
+      axis: "left" | "centerX" | "right" | "top" | "centerY" | "bottom";
+      ref: string;
+    }
+  | {
+      kind: "resizeToGridSpan";
+      id: string;
+      span: string;
     };
+
+export type CanvasCommandValidationContext = {
+  referenceGrid?: Partial<ReferenceGridConfig>;
+};
+
+export type CanvasCommandApplyContext = {
+  referenceGrid?: Partial<ReferenceGridConfig>;
+};
 
 export type CanvasCommandValidationDiagnostic = {
   severity: "error" | "warning";
@@ -47,7 +79,9 @@ export type CanvasCommandApplyResult = {
 
 const alignAxes = new Set(["left", "centerX", "right", "top", "centerY", "bottom"]);
 const distributeAxes = new Set(["horizontal", "vertical"]);
+const gridAnchors = new Set(["topLeft", "center", "bottomRight"]);
 type AlignAxis = Extract<CanvasCommand, { kind: "align" }>["axis"];
+type GridAnchor = Extract<CanvasCommand, { kind: "moveToGrid" }>["anchor"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -142,12 +176,13 @@ function validateObjectList(
   diagnostics: CanvasCommandValidationDiagnostic[],
   ids: unknown,
   commandIndex: number | undefined,
+  minimumLength = 2,
 ) {
-  if (!Array.isArray(ids) || ids.length < 2 || !ids.every(isString)) {
+  if (!Array.isArray(ids) || ids.length < minimumLength || !ids.every(isString)) {
     addDiagnostic(diagnostics, {
       severity: "error",
       code: "InvalidObjectList",
-      message: "ids must be an array of at least two object IDs.",
+      message: `ids must be an array of at least ${minimumLength} object ID${minimumLength === 1 ? "" : "s"}.`,
       commandIndex,
     });
     return;
@@ -166,10 +201,69 @@ function validateObjectList(
   }
 }
 
+function validateGridRef(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  ref: unknown,
+  commandIndex: number | undefined,
+  context?: CanvasCommandValidationContext,
+) {
+  if (!isString(ref)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGridRef",
+      message: "ref must be a string grid reference.",
+      commandIndex,
+    });
+    return;
+  }
+
+  try {
+    parseGridPointRef(ref, context?.referenceGrid ?? document.referenceGrid);
+  } catch (error) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGridRef",
+      message: error instanceof Error ? error.message : "Invalid grid reference.",
+      commandIndex,
+    });
+  }
+}
+
+function validateGridSpan(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  span: unknown,
+  commandIndex: number | undefined,
+  context?: CanvasCommandValidationContext,
+) {
+  if (!isString(span)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGridSpan",
+      message: "span must be a string grid span.",
+      commandIndex,
+    });
+    return;
+  }
+
+  try {
+    parseGridSpanRef(span, context?.referenceGrid ?? document.referenceGrid);
+  } catch (error) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGridSpan",
+      message: error instanceof Error ? error.message : "Invalid grid span.",
+      commandIndex,
+    });
+  }
+}
+
 export function validateCanvasCommand(
   document: CanvasDocument,
   command: unknown,
   commandIndex?: number,
+  context?: CanvasCommandValidationContext,
 ): CanvasCommandValidationResult {
   const diagnostics: CanvasCommandValidationDiagnostic[] = [];
 
@@ -250,6 +344,37 @@ export function validateCanvasCommand(
         });
       }
       break;
+    case "moveToGrid":
+      validateObjectId(document, diagnostics, command.id, commandIndex);
+      validateGridRef(document, diagnostics, command.ref, commandIndex, context);
+      if (
+        command.anchor !== undefined &&
+        (!isString(command.anchor) || !gridAnchors.has(command.anchor))
+      ) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidAnchor",
+          message: "anchor must be topLeft, center, or bottomRight.",
+          commandIndex,
+        });
+      }
+      break;
+    case "alignToGrid":
+      validateObjectList(document, diagnostics, command.ids, commandIndex, 1);
+      if (!isString(command.axis) || !alignAxes.has(command.axis)) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidAxis",
+          message: "alignToGrid axis must be left, centerX, right, top, centerY, or bottom.",
+          commandIndex,
+        });
+      }
+      validateGridRef(document, diagnostics, command.ref, commandIndex, context);
+      break;
+    case "resizeToGridSpan":
+      validateObjectId(document, diagnostics, command.id, commandIndex);
+      validateGridSpan(document, diagnostics, command.span, commandIndex, context);
+      break;
     default:
       addDiagnostic(diagnostics, {
         severity: "error",
@@ -265,10 +390,11 @@ export function validateCanvasCommand(
 export function validateCanvasCommands(
   document: CanvasDocument,
   commands: unknown,
+  context?: CanvasCommandValidationContext,
 ): CanvasCommandValidationResult {
   const commandList = Array.isArray(commands) ? commands : [commands];
   const diagnostics = commandList.flatMap(
-    (command, index) => validateCanvasCommand(document, command, index).diagnostics,
+    (command, index) => validateCanvasCommand(document, command, index, context).diagnostics,
   );
   return makeResult(diagnostics);
 }
@@ -371,6 +497,31 @@ function applyAlignCommand(
   return nextDocument;
 }
 
+function applyAlignToGridCommand(
+  document: CanvasDocument,
+  command: Extract<CanvasCommand, { kind: "alignToGrid" }>,
+  changes: CanvasCommandChange[],
+  context?: CanvasCommandApplyContext,
+) {
+  const point = gridPointRefToCanvasPoint(
+    command.ref,
+    document.width,
+    document.height,
+    context?.referenceGrid ?? document.referenceGrid,
+  );
+  const target = ["left", "centerX", "right"].includes(command.axis) ? point.x : point.y;
+  let nextDocument = document;
+
+  for (const objectId of command.ids) {
+    const object = nextDocument.objects[objectId];
+    if (object === undefined) continue;
+    const position = getAlignedPosition(object, command.axis, target);
+    nextDocument = applyObjectPosition(nextDocument, changes, object, position.x, position.y);
+  }
+
+  return nextDocument;
+}
+
 function applyDistributeCommand(
   document: CanvasDocument,
   command: Extract<CanvasCommand, { kind: "distribute" }>,
@@ -419,6 +570,15 @@ function applyDistributeCommand(
 
 function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
+  if (command.kind === "moveToGrid") {
+    return `Moved ${command.id} ${command.anchor ?? "center"} to ${command.ref}.`;
+  }
+  if (command.kind === "alignToGrid") {
+    return `Aligned ${command.ids.length} object${command.ids.length === 1 ? "" : "s"} ${command.axis} to ${command.ref}.`;
+  }
+  if (command.kind === "resizeToGridSpan") {
+    return `Resized ${command.id} to span ${command.span}.`;
+  }
   const objectCount = new Set(changes.map((change) => change.objectId)).size;
   return `${command.kind} changed ${changes.length} field${changes.length === 1 ? "" : "s"} on ${objectCount} object${objectCount === 1 ? "" : "s"}.`;
 }
@@ -426,6 +586,7 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
 export function applyCanvasCommand(
   document: CanvasDocument,
   command: CanvasCommand,
+  context?: CanvasCommandApplyContext,
 ): CanvasCommandApplyResult {
   const changes: CanvasCommandChange[] = [];
   let nextDocument = document;
@@ -468,6 +629,11 @@ export function applyCanvasCommand(
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
+  if (command.kind === "alignToGrid") {
+    nextDocument = applyAlignToGridCommand(document, command, changes, context);
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
   const object = document.objects[command.id];
   if (object === undefined) {
     return {
@@ -482,6 +648,27 @@ export function applyCanvasCommand(
     const x = object.x + command.dx;
     const y = object.y + command.dy;
     nextDocument = applyObjectPosition(document, changes, object, x, y);
+  } else if (command.kind === "moveToGrid") {
+    const point = gridPointRefToCanvasPoint(
+      command.ref,
+      document.width,
+      document.height,
+      context?.referenceGrid ?? document.referenceGrid,
+    );
+    const anchor: GridAnchor = command.anchor ?? "center";
+    const x =
+      anchor === "topLeft"
+        ? point.x
+        : anchor === "bottomRight"
+          ? point.x - object.width
+          : point.x - object.width / 2;
+    const y =
+      anchor === "topLeft"
+        ? point.y
+        : anchor === "bottomRight"
+          ? point.y - object.height
+          : point.y - object.height / 2;
+    nextDocument = applyObjectPosition(document, changes, object, x, y);
   } else if (command.kind === "resize") {
     changeField(changes, object, "width", command.width);
     changeField(changes, object, "height", command.height);
@@ -490,6 +677,26 @@ export function applyCanvasCommand(
         ...object,
         width: command.width,
         height: command.height,
+      });
+    }
+  } else if (command.kind === "resizeToGridSpan") {
+    const rect = gridSpanRefToCanvasRect(
+      command.span,
+      document.width,
+      document.height,
+      context?.referenceGrid ?? document.referenceGrid,
+    );
+    changeField(changes, object, "x", rect.x);
+    changeField(changes, object, "y", rect.y);
+    changeField(changes, object, "width", rect.width);
+    changeField(changes, object, "height", rect.height);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, object.id, {
+        ...object,
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
       });
     }
   } else if (command.kind === "setFill") {
@@ -510,6 +717,7 @@ export function applyCanvasCommand(
 export function applyCanvasCommands(
   document: CanvasDocument,
   commands: readonly CanvasCommand[],
+  context?: CanvasCommandApplyContext,
 ): {
   document: CanvasDocument;
   results: CanvasCommandApplyResult[];
@@ -518,7 +726,7 @@ export function applyCanvasCommands(
   let nextDocument = document;
 
   for (const command of commands) {
-    const result = applyCanvasCommand(nextDocument, command);
+    const result = applyCanvasCommand(nextDocument, command, context);
     results.push(result);
     nextDocument = result.document;
   }

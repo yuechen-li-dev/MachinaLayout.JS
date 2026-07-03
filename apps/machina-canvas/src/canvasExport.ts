@@ -260,6 +260,23 @@ export function serializeCanvasCommandsToml(
         );
         if (command.gap !== undefined) lines.push(`gap = ${command.gap}`);
         break;
+      case "moveToGrid":
+        lines.push(`id = ${quoteTomlString(command.id)}`, `ref = ${quoteTomlString(command.ref)}`);
+        if (command.anchor !== undefined) lines.push(`anchor = ${quoteTomlString(command.anchor)}`);
+        break;
+      case "alignToGrid":
+        lines.push(
+          `axis = ${quoteTomlString(command.axis)}`,
+          `ids = ${serializeTomlArray(command.ids)}`,
+          `ref = ${quoteTomlString(command.ref)}`,
+        );
+        break;
+      case "resizeToGridSpan":
+        lines.push(
+          `id = ${quoteTomlString(command.id)}`,
+          `span = ${quoteTomlString(command.span)}`,
+        );
+        break;
     }
   }
 
