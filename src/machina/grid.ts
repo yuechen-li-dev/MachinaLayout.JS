@@ -99,6 +99,15 @@ function validateGaps(options: GridOptions) {
   if (options.rowGap !== undefined)
     validateNonNegative(options.rowGap, "InvalidGridMatrix", "rowGap");
 }
+function normalizeAuthoringPadding(padding: GridOptions["padding"]): GridOptions["padding"] {
+  if (padding === undefined || typeof padding === "number") return padding;
+  const { top = 0, right = 0, bottom = 0, left = 0 } = padding;
+  validateNonNegative(top, "InvalidGridMatrix", "padding.top");
+  validateNonNegative(right, "InvalidGridMatrix", "padding.right");
+  validateNonNegative(bottom, "InvalidGridMatrix", "padding.bottom");
+  validateNonNegative(left, "InvalidGridMatrix", "padding.left");
+  return { top, right, bottom, left };
+}
 
 export function trackFixed(size: number): MachinaGridTrack {
   validateNonNegative(size, "InvalidGridTrack", "size");
@@ -202,6 +211,7 @@ export function grid(
   validateTracks(options.columns, "columns");
   validateTracks(options.rows, "rows");
   validateGaps(options);
+  const padding = normalizeAuthoringPadding(options.padding);
   const childNodes = isGridRows(children) ? undefined : (children ?? []);
   return {
     id,
@@ -221,7 +231,7 @@ export function grid(
           rows: [...options.rows],
           columnGap: options.columnGap,
           rowGap: options.rowGap,
-          padding: options.padding as number | EdgeInsets | undefined,
+          padding: padding as number | EdgeInsets | undefined,
         },
         view: options.view,
         slot: options.slot,

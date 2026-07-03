@@ -60,8 +60,8 @@ export type RootFrame = {
 
 export type FixedFrame = {
   kind: "fixed";
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 };
 
 export type FillFrame = {

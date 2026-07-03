@@ -201,6 +201,28 @@ function resolveStackChildRects(
   const childMainSizes: number[] = [];
   const childCrossSizes: number[] = [];
   const fillWeights: number[] = [];
+  const fixedMainSize = (childId: NodeId, frame: { width?: number; height?: number }): number => {
+    const main = isHorizontal ? (frame.width ?? frame.height) : (frame.height ?? frame.width);
+    if (main === undefined)
+      throw new MachinaLayoutError(
+        "StackChildMustBeFixed",
+        `stack fixed child must provide a main-axis size: ${childId}`,
+      );
+    assertNonNegativeSize(
+      main,
+      isHorizontal ? `${childId}.frame.width` : `${childId}.frame.height`,
+    );
+    return main;
+  };
+  const fixedCrossSize = (childId: NodeId, frame: { width?: number; height?: number }): number => {
+    const cross = isHorizontal ? frame.height : frame.width;
+    if (cross === undefined) return contentCross;
+    assertNonNegativeSize(
+      cross,
+      isHorizontal ? `${childId}.frame.height` : `${childId}.frame.width`,
+    );
+    return cross;
+  };
   for (const childId of childIds) {
     const childNode = document.nodes[childId];
     if (!childNode)
@@ -209,10 +231,8 @@ function resolveStackChildRects(
         `child id ${childId} referenced by arranged parent is missing`,
       );
     if (childNode.frame.kind === "fixed") {
-      assertNonNegativeSize(childNode.frame.width, `${childId}.frame.width`);
-      assertNonNegativeSize(childNode.frame.height, `${childId}.frame.height`);
-      childMainSizes.push(isHorizontal ? childNode.frame.width : childNode.frame.height);
-      childCrossSizes.push(isHorizontal ? childNode.frame.height : childNode.frame.width);
+      childMainSizes.push(fixedMainSize(childId, childNode.frame));
+      childCrossSizes.push(fixedCrossSize(childId, childNode.frame));
       fillWeights.push(0);
       continue;
     }

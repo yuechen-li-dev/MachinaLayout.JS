@@ -16,6 +16,8 @@
 - Gaps are explicit; no justify, no auto-gap expansion.
 - Cell spans include internal gaps.
 - Offset is applied after cell placement using existing `applyOffset` semantics.
+- Machina authoring may use partial object padding, such as `{ left: 8 }`; omitted edges lower to
+  `0` before runtime resolution.
 
 ## Validation / error codes
 

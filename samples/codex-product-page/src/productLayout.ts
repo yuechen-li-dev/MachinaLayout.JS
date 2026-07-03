@@ -22,7 +22,7 @@ const sizeGrid = M.grid(
     rows: [M.trackFixed(30), M.trackFixed(30)],
     columnGap: 6,
     rowGap: 6,
-    padding: { top: 0, right: 0, bottom: 0, left: 8 },
+    padding: { left: 8 },
     frame: { kind: "fill", weight: 0.52 },
   },
   M.gridRows([
@@ -98,8 +98,8 @@ export const productRows: LayoutRow[] = M.rows(
               M.fill("fit-note", 0.34, "FitNote"),
               sizeGrid,
               M.fill("size-guide", 0.28, "SizeGuide"),
-              M.fill("apple-pay", 0.36, "ApplePayButton"),
-              M.fill("add-to-bag", 0.36, "AddToBagButton"),
+              M.fixed("apple-pay", 44, "ApplePayButton"),
+              M.fixed("add-to-bag", 44, "AddToBagButton"),
               M.fill("purchase-copy", 0.55, "PurchaseCopy"),
               M.fill(
                 "detail-rows",

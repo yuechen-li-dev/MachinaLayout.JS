@@ -85,6 +85,10 @@ Deliberate exclusions:
 
 Stack computes positions by arithmetic over order, fixed sizes, gap, and padding.
 
+Fixed stack children may specify only the main-axis dimension. Vertical stacks read `height` first
+and fall back to `width`; horizontal stacks read `width` first and fall back to `height`. Fixed
+frames with both dimensions remain valid and keep using the stack axis as the main size.
+
 > Stack is ordered arithmetic, not Flexbox.
 
 

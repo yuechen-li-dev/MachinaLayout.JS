@@ -37,6 +37,79 @@ function stackDoc(
 }
 
 describe("stack arrange fill", () => {
+  it("accepts axis-specific fixed child main sizes", () => {
+    const vertical = stackDoc(
+      "vertical",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", height: 64 } } },
+    );
+    const verticalResult = resolveLayoutDocument(vertical, { x: 0, y: 0, width: 999, height: 999 });
+    expect(verticalResult.nodes.a.rect).toEqual({ x: 0, y: 0, width: 300, height: 64 });
+
+    const horizontal = stackDoc(
+      "horizontal",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", width: 280 } } },
+    );
+    const horizontalResult = resolveLayoutDocument(horizontal, {
+      x: 0,
+      y: 0,
+      width: 999,
+      height: 999,
+    });
+    expect(horizontalResult.nodes.a.rect).toEqual({ x: 0, y: 0, width: 280, height: 200 });
+  });
+
+  it("prefers axis main size and keeps fallback compatibility for fixed children", () => {
+    const verticalBoth = stackDoc(
+      "vertical",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", width: 123, height: 64 } } },
+    );
+    expect(
+      resolveLayoutDocument(verticalBoth, { x: 0, y: 0, width: 999, height: 999 }).nodes.a.rect,
+    ).toEqual({ x: 0, y: 0, width: 123, height: 64 });
+
+    const horizontalBoth = stackDoc(
+      "horizontal",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", width: 123, height: 64 } } },
+    );
+    expect(
+      resolveLayoutDocument(horizontalBoth, { x: 0, y: 0, width: 999, height: 999 }).nodes.a.rect,
+    ).toEqual({ x: 0, y: 0, width: 123, height: 64 });
+
+    const verticalFallback = stackDoc(
+      "vertical",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", width: 64 } } },
+    );
+    expect(
+      resolveLayoutDocument(verticalFallback, { x: 0, y: 0, width: 999, height: 999 }).nodes.a.rect,
+    ).toEqual({ x: 0, y: 0, width: 64, height: 64 });
+
+    const horizontalFallback = stackDoc(
+      "horizontal",
+      { w: 300, h: 200 },
+      { a: { id: "a", frame: { kind: "fixed", height: 64 } } },
+    );
+    expect(
+      resolveLayoutDocument(horizontalFallback, { x: 0, y: 0, width: 999, height: 999 }).nodes.a
+        .rect,
+    ).toEqual({ x: 0, y: 0, width: 64, height: 64 });
+  });
+
+  it("rejects fixed stack children without any fixed size", () => {
+    expectCode(
+      () =>
+        resolveLayoutDocument(
+          stackDoc("horizontal", { w: 300, h: 200 }, { a: { id: "a", frame: { kind: "fixed" } } }),
+          { x: 0, y: 0, width: 999, height: 999 },
+        ),
+      "StackChildMustBeFixed",
+    );
+  });
+
   it("horizontal fixed+fill distributes remaining width", () => {
     const doc = stackDoc(
       "horizontal",

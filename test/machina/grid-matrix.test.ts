@@ -87,6 +87,30 @@ describe("machina grid matrix", () => {
     expect(rows[1]).toMatchObject({ id: "c", parent: "g", view: "Cell" });
   });
 
+  it("normalizes partial grid padding objects", () => {
+    expect(grid("g", { ...gridOptions, padding: { left: 8 } }, []).rows()[0].arrange).toMatchObject(
+      {
+        kind: "grid",
+        padding: { top: 0, right: 0, bottom: 0, left: 8 },
+      },
+    );
+    expect(
+      grid("g", { ...gridOptions, padding: { top: 1, right: 2, bottom: 3, left: 4 } }, []).rows()[0]
+        .arrange,
+    ).toMatchObject({ padding: { top: 1, right: 2, bottom: 3, left: 4 } });
+    expect(grid("g", { ...gridOptions, padding: 16 }, []).rows()[0].arrange).toMatchObject({
+      padding: 16,
+    });
+  });
+
+  it("rejects invalid grid padding edges", () => {
+    expectCode(
+      () => grid("g", { ...gridOptions, padding: { left: Number.NaN } }, []),
+      "InvalidGridMatrix",
+    );
+    expectCode(() => grid("g", { ...gridOptions, padding: { left: -1 } }, []), "InvalidGridMatrix");
+  });
+
   it("supports rowSpan, skip, empty rows, unoccupied cells, and fresh lowering", () => {
     const layout = grid(
       "g",

@@ -38,9 +38,48 @@ Children composed inside `M.root`, `M.node`, `M.vstack`, `M.hstack`, or `M.ancho
 
 `M.fixed(id, mainSize)` is a stack-child helper. In a vertical stack it lowers to a fixed height. In a horizontal stack it lowers to a fixed width. It does not set both width and height, so the stack axis resolves the main dimension.
 
+The stack resolver accepts that axis-specific MIR directly. A fixed child in a vertical stack may
+provide only `height`, and a fixed child in a horizontal stack may provide only `width`:
+
+```ts
+M.vstack("shell", {}, [M.fixed("header", 64, "Header")]).rows();
+// frame: { kind: "fixed", height: 64 }
+
+M.hstack("shell", {}, [M.fixed("sidebar", 280, "Sidebar")]).rows();
+// frame: { kind: "fixed", width: 280 }
+```
+
+Raw MIR rows that provide both `width` and `height` remain compatible. For backward compatibility,
+vertical stacks use `height` first and fall back to `width`; horizontal stacks use `width` first and
+fall back to `height`. If neither dimension is present, the stack child is invalid.
+
 `M.fill(id, weight)` lowers to a fill frame and may be authored outside a stack; the existing MIR resolver remains responsible for final semantic validation.
 
 `M.space(id, weight)` is deterministic spacer sugar over a fill frame. It always requires an explicit id and never generates random ids.
+
+## Padding authoring
+
+Machina stack and grid helpers accept numeric padding or object padding. Numeric padding is emitted
+as authored. Object padding may omit edges; missing edges lower to `0` before rows are emitted:
+
+```ts
+M.stackArrange("vertical", { padding: { left: 8 } });
+// arrange.padding: { top: 0, right: 0, bottom: 0, left: 8 }
+
+M.grid(
+  "g",
+  {
+    columns: [M.trackFill(1)],
+    rows: [M.trackFill(1)],
+    padding: { left: 8 },
+  },
+  [],
+);
+// arrange.padding: { top: 0, right: 0, bottom: 0, left: 8 }
+```
+
+Padding edge values must be finite and non-negative, matching the resolver's existing padding
+semantics.
 
 ## Anchor example
 

@@ -118,8 +118,8 @@ export function resolveFrame(parent: Rect, frame: FrameSpec): Rect {
         "RootFrame can only be declared on the root row.",
       );
     case "fixed": {
-      assertNonNegativeSize(frame.width, "frame.width");
-      assertNonNegativeSize(frame.height, "frame.height");
+      if (frame.width !== undefined) assertNonNegativeSize(frame.width, "frame.width");
+      if (frame.height !== undefined) assertNonNegativeSize(frame.height, "frame.height");
       throw new MachinaLayoutError(
         "FixedFrameWithoutArranger",
         "Fixed frames require an arranger to determine placement.",

@@ -33,7 +33,23 @@ export type FillNodeOptions = FixedNodeOptions & { cross?: number | "fill" };
 
 export function stackArrange(axis: MachinaStackAxis, options: StackOptions = {}): ArrangeSpec {
   if (options.gap !== undefined) validateFinite(options.gap, "InvalidStackChild", "gap");
-  return { kind: "stack", axis, ...options } as ArrangeSpec;
+  const { padding, ...rest } = options;
+  return {
+    kind: "stack",
+    axis,
+    ...rest,
+    padding: normalizeAuthoringPadding(padding),
+  } as ArrangeSpec;
+}
+
+function normalizeAuthoringPadding(padding: StackOptions["padding"]): StackOptions["padding"] {
+  if (padding === undefined || typeof padding === "number") return padding;
+  const { top = 0, right = 0, bottom = 0, left = 0 } = padding;
+  validateNonNegativeFinite(top, "InvalidLength", "padding.top");
+  validateNonNegativeFinite(right, "InvalidLength", "padding.right");
+  validateNonNegativeFinite(bottom, "InvalidLength", "padding.bottom");
+  validateNonNegativeFinite(left, "InvalidLength", "padding.left");
+  return { top, right, bottom, left };
 }
 
 function stack(
