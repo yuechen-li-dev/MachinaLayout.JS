@@ -148,6 +148,12 @@ describe("MachinaCanvas export serializers", () => {
       height: 180,
       unit: "px",
     });
+    expect(parsed.referenceGrid).toEqual({
+      columns: 6,
+      rows: 4,
+      columnLabels: ["A", "B", "C", "D", "E", "F"],
+      rowLabels: ["1", "2", "3", "4"],
+    });
     expect(parsed.layers[0]).toEqual({
       id: "background",
       asset: "layers/background.toml",
@@ -233,6 +239,9 @@ describe("MachinaCanvas export serializers", () => {
 
     expect(toml).toContain("schema_version = 1");
     expect(toml).toContain('[selected]\nobject_id = "headline"');
+    expect(toml).toContain(
+      '[reference_grid]\ncolumns = 6\nrows = 4\ncolumns_label = "A-F"\nrows_label = "1-4"',
+    );
     expect(toml).toContain('[summary]\ntext = "A small export demo."');
     expect(toml).toContain("[validation]\nok = false\ndiagnostics = 2");
     expect(toml).toContain('object_id = "headline"');
@@ -250,6 +259,7 @@ describe("MachinaCanvas export serializers", () => {
     expect(svg).not.toContain('data-canvas-object-id="hidden-layer-object"');
     expect(svg).not.toContain("selection-box");
     expect(svg).not.toContain("is-selected");
+    expect(svg).not.toContain("reference-grid");
   });
 
   it("assembles a deterministic text-only export bundle without mutating the document", () => {

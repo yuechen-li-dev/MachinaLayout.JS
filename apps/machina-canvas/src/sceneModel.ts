@@ -1,3 +1,5 @@
+import type { ReferenceGridConfig } from "./referenceGrid";
+
 export type CanvasUnit = "px";
 
 export type CanvasDocument = {
@@ -9,6 +11,7 @@ export type CanvasDocument = {
   layers: CanvasLayer[];
   objects: Record<string, CanvasObject>;
   selectedObjectId?: string;
+  referenceGrid?: ReferenceGridConfig;
 };
 
 export type CanvasLayer = {

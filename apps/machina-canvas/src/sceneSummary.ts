@@ -1,7 +1,9 @@
 import type { CanvasDocument, CanvasObject } from "./sceneModel";
+import { objectToGridRef } from "./referenceGrid";
 
-export function getObjectBoundsSummary(object: CanvasObject): string {
-  return `${object.id} (${object.kind}) x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
+export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDocument): string {
+  const grid = document ? `${objectToGridRef(object, document).span}; ` : "";
+  return `${object.id} (${object.kind}) ${grid}x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {
@@ -13,11 +15,11 @@ export function summarizeScene(document: CanvasDocument): string {
     .filter((object) =>
       ["logo", "headline", "product-body", "cta-bg", "feature-chip-1"].includes(object.id),
     )
-    .map((object) => getObjectBoundsSummary(object))
+    .map((object) => getObjectBoundsSummary(object, document))
     .join("; ");
 
   const selectionText = selected
-    ? ` Selected object: ${selected.name} (${getObjectBoundsSummary(selected)}).`
+    ? ` Selected object: ${selected.name} (${getObjectBoundsSummary(selected, document)}; center ${objectToGridRef(selected, document).center.ref}).`
     : " No object selected.";
 
   return `${document.name} is ${document.width}x${document.height}${document.unit} with ${objects.length} objects across ${document.layers.length} layers.${selectionText} Notable geometry: ${notableObjects}.`;

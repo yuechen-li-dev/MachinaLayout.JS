@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 
 type FixtureDocument = {
   schemaVersion: number;
+  referenceGrid?: {
+    columns: number;
+    rows: number;
+    columnLabels: string[];
+    rowLabels: string[];
+  };
   layers: {
     id: string;
     asset: string;
@@ -35,6 +41,12 @@ describe("MachinaCanvas export fixture", () => {
     const document = readFixtureDocument();
 
     expect(document.schemaVersion).toBe(1);
+    expect(document.referenceGrid).toEqual({
+      columns: 6,
+      rows: 4,
+      columnLabels: ["A", "B", "C", "D", "E", "F"],
+      rowLabels: ["1", "2", "3", "4"],
+    });
     expect(existsSync(join(fixtureRoot, "handoff.toml"))).toBe(true);
     expect(existsSync(join(fixtureRoot, "render.svg"))).toBe(true);
 
@@ -53,5 +65,9 @@ describe("MachinaCanvas export fixture", () => {
 
     const renderSvg = readFileSync(join(fixtureRoot, "render.svg"), "utf8");
     expect(renderSvg).toContain("data-canvas-object-id");
+    expect(renderSvg).not.toContain("reference-grid");
+
+    const handoffToml = readFileSync(join(fixtureRoot, "handoff.toml"), "utf8");
+    expect(handoffToml).toContain("[reference_grid]");
   });
 });

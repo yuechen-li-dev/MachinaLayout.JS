@@ -33,6 +33,7 @@ import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import type { CanvasDocument, CanvasObject, CanvasObjectKind, TextObject } from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
+import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
@@ -155,6 +156,10 @@ function getKindShortLabel(object: CanvasObject): string {
   });
 }
 
+function getObjectGridSpan(document: CanvasDocument, object: CanvasObject): string {
+  return objectToGridRef(object, document).span;
+}
+
 function getDiagnosticClass(diagnostic: GeometryDiagnostic): string {
   return matchEnum(diagnostic.severity, {
     info: () => "diagnostic-info",
@@ -273,6 +278,7 @@ function SceneTree(props: MachinaSlotProps) {
                       {getKindShortLabel(object)}
                     </span>
                     <span>{object.name}</span>
+                    <small>{getObjectGridSpan(document, object)}</small>
                   </button>
                 );
               })}
@@ -381,6 +387,83 @@ function SceneObjectSvg({
   );
 }
 
+function ReferenceGridOverlay({ document }: { document: CanvasDocument }) {
+  const config = createReferenceGridConfig(document.referenceGrid);
+  const cellWidth = document.width / config.columns;
+  const cellHeight = document.height / config.rows;
+  const columnLabels = Array.from({ length: config.columns }, (_, index) =>
+    getColumnLabel(index, config.columnStart),
+  );
+  const rowLabels = Array.from({ length: config.rows }, (_, index) =>
+    String((config.rowStart ?? 1) + index),
+  );
+
+  return (
+    <g className="reference-grid-overlay">
+      {config.showBorder ? (
+        <rect
+          className="reference-grid-border"
+          x={0}
+          y={0}
+          width={document.width}
+          height={document.height}
+        />
+      ) : null}
+      {config.showLines
+        ? Array.from({ length: config.columns - 1 }, (_, index) => (
+            <line
+              className="reference-grid-line"
+              key={`col-${index}`}
+              x1={(index + 1) * cellWidth}
+              y1={0}
+              x2={(index + 1) * cellWidth}
+              y2={document.height}
+            />
+          ))
+        : null}
+      {config.showLines
+        ? Array.from({ length: config.rows - 1 }, (_, index) => (
+            <line
+              className="reference-grid-line"
+              key={`row-${index}`}
+              x1={0}
+              y1={(index + 1) * cellHeight}
+              x2={document.width}
+              y2={(index + 1) * cellHeight}
+            />
+          ))
+        : null}
+      {config.showLabels
+        ? columnLabels.map((label, index) => (
+            <text
+              className="reference-grid-label"
+              key={label}
+              x={index * cellWidth + cellWidth / 2}
+              y={18}
+              textAnchor="middle"
+            >
+              {label}
+            </text>
+          ))
+        : null}
+      {config.showLabels
+        ? rowLabels.map((label, index) => (
+            <text
+              className="reference-grid-label"
+              key={label}
+              x={14}
+              y={index * cellHeight + cellHeight / 2}
+              dominantBaseline="middle"
+              textAnchor="middle"
+            >
+              {label}
+            </text>
+          ))
+        : null}
+    </g>
+  );
+}
+
 function CanvasPanel(props: MachinaSlotProps) {
   const { document, runCommand } = readViewData(props);
 
@@ -413,6 +496,7 @@ function CanvasPanel(props: MachinaSlotProps) {
                 onSelect={(id) => runCommand({ kind: "select", id })}
               />
             ))}
+          <ReferenceGridOverlay document={document} />
         </svg>
       </div>
     </main>
@@ -651,6 +735,8 @@ function Inspector(props: MachinaSlotProps) {
   }
 
   const nextFill = selected.fill === "#e34747" ? "#111111" : "#e34747";
+  const selectedGrid = objectToGridRef(selected, document);
+  const topLeftGrid = objectToGridRef({ ...selected, width: 0, height: 0 }, document).center.ref;
 
   return (
     <aside className="inspector panel">
@@ -683,6 +769,11 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Layer" value={layer?.name ?? selected.layerId} />
         <Field label="X / Y" value={`${selected.x} / ${selected.y}`} />
         <Field label="W / H" value={`${selected.width} / ${selected.height}`} />
+      </InspectorSection>
+      <InspectorSection title="Reference">
+        <Field label="Span" value={selectedGrid.span} />
+        <Field label="Center" value={selectedGrid.center.ref} />
+        <Field label="Top-left" value={topLeftGrid} />
       </InspectorSection>
       <InspectorSection title="Style">
         <Field label="Fill" value={selected.fill ?? "none"} />
@@ -724,7 +815,7 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
                 {getKindShortLabel(object)}
               </span>
               <strong>{object.name}</strong>
-              <small>{getObjectBoundsSummary(object)}</small>
+              <small>{getObjectBoundsSummary(object, document)}</small>
             </button>
           ))}
         </div>

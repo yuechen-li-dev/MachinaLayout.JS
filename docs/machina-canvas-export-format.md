@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -84,6 +84,12 @@ Paths inside the bundle are relative to the bundle root.
     "height": 640,
     "unit": "px"
   },
+  "referenceGrid": {
+    "columns": 6,
+    "rows": 4,
+    "columnLabels": ["A", "B", "C", "D", "E", "F"],
+    "rowLabels": ["1", "2", "3", "4"]
+  },
   "layers": [
     {
       "id": "background",
@@ -135,6 +141,9 @@ Fields:
 - `document.name`: human-readable name.
 - `document.width`, `document.height`: canvas dimensions.
 - `document.unit`: coordinate unit, currently `px`.
+- `referenceGrid`: optional locator grid metadata for human/LLM references.
+- `referenceGrid.columns`, `referenceGrid.rows`: grid dimensions.
+- `referenceGrid.columnLabels`, `referenceGrid.rowLabels`: rendered locator labels.
 - `layers`: ordered layer index. Layer order remains here.
 - `layers[].id`: stable layer ID.
 - `layers[].asset`: relative path to layer TOML.
@@ -150,7 +159,19 @@ Rules:
 - Layer entries point to TOML files and list ordered object IDs.
 - Object IDs must be stable.
 - File paths are relative to bundle root.
+- Reference grid metadata describes a locator overlay, not snapping or layout.
 - Do not dump giant editable object blobs into `document.json`.
+
+## Reference Grid
+
+The reference grid gives the canvas a speakable coordinate system. Columns use
+spreadsheet-style labels such as `A`, `B`, `C`; rows use numeric labels such as
+`1`, `2`, `3`. Object summaries can then say `feature-chip-1: A4-B4` or
+`product-body center D3.c`.
+
+The grid is semantic metadata. It is not a layout grid, snapping system,
+constraint solver, ruler editor, or command language. M30f exports the grid
+definition and uses it in summaries, but does not add grid-based edit commands.
 
 ## Object TOML
 
@@ -323,8 +344,14 @@ document_json = "document.json"
 [selected]
 object_id = "feature-chip-1"
 
+[reference_grid]
+columns = 6
+rows = 4
+columns_label = "A-F"
+rows_label = "1-4"
+
 [summary]
-text = "Demo Poster is 960x640px with 12 objects across 3 layers."
+text = "Demo Poster is 960x640px with 12 objects across 3 layers. feature-chip-1 (rect): A4-B4; x:72 y:500 w:138 h:34."
 
 [validation]
 ok = true
@@ -340,6 +367,7 @@ message = "Selected object is Feature chip: IDs."
 Rules:
 
 - Handoff is metadata, not scene graph.
+- `[reference_grid]` preserves the locator labels used by summaries and inspector references.
 - Diagnostics can be TOML array tables.
 - It should be easy to read in a text editor.
 
@@ -354,6 +382,10 @@ Rules:
 `preview.png` is optional and can be omitted when a fixture only needs a lightweight readable artifact.
 
 Rendered artifacts may be regenerated from `document.json` and object TOML specs in a later milestone. M30c does not implement regeneration.
+
+M30f reference grid overlays are UI and handoff aids. Clean `render.svg` output
+does not include the grid overlay by default; the grid definition lives in
+`document.json` and `handoff.toml`.
 
 ## Relationship To The Runtime App
 

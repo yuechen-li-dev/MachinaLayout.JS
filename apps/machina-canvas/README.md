@@ -28,6 +28,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - SVG as a DOM-inspectable scene graph
 - stable object IDs and geometry bounds
 - scene summaries for the first LLM "SEE" layer
+- CAD-style reference grid spans for speakable object locations
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
 - geometry diagnostics for selected-object and scene inspection
@@ -68,6 +69,25 @@ MachinaCanvas reports simple inspectable geometry facts:
 - selected-object near left or center-X alignment with another object
 - negative object sizes if invalid geometry appears
 
+## Reference Grid / CAD Locator Overlay
+
+M30f adds a semantic reference grid for object location. The canvas is divided
+into labeled columns and rows, such as `A1`, `B2`, and `D3`, with optional
+subcell references such as `D3.ne` for points inside a cell.
+
+The grid is a locator language, not a layout system. It does not snap objects,
+add grid edit commands, create CAD constraints, or change MachinaLayout resolver
+behavior. It gives humans and LLMs a compact way to refer to geometry:
+
+```txt
+feature-chip-1 spans A4-B4 and centers at A4.ne
+```
+
+The editor renders a faint SVG overlay with border labels, shows selected-object
+references in the inspector, includes spans in scene summaries and object cards,
+and writes reference grid metadata into generated handoff files. Clean
+`render.svg` export output does not include the overlay by default.
+
 ## MachinaCanvas Export Format
 
 M30c defines the `.mcanvas` export/handoff bundle format in
@@ -104,6 +124,10 @@ report checks required files, `document.json` shape and references, layer and
 object asset paths, SVG object ID markers, handoff selected-object references,
 and expected command recipe presence. The report can be copied for LLM handoff
 alongside the generated files.
+
+M30f adds reference grid metadata to generated `document.json` and
+`handoff.toml`. This preserves the locator grid used by summaries and inspector
+readouts without baking the overlay into clean rendered SVG output.
 
 Export validation is still one-way. It is not import, round-trip loading, full
 TOML semantic parsing, ZIP export, backend processing, LLM API integration, or

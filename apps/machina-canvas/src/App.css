@@ -111,7 +111,7 @@ button {
 
 .tree-object {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   min-height: 30px;
@@ -119,12 +119,19 @@ button {
   text-align: left;
 }
 
-.tree-object span:last-child {
+.tree-object span:nth-child(2) {
   overflow: hidden;
   font-size: 12px;
   font-weight: 610;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tree-object small {
+  color: #70706a;
+  font-size: 10px;
+  font-weight: 760;
+  line-height: 1;
 }
 
 .tree-object.is-selected,
@@ -218,6 +225,37 @@ button {
   stroke-dasharray: 7 5;
   stroke-width: 2;
   pointer-events: none;
+}
+
+.reference-grid-overlay {
+  pointer-events: none;
+}
+
+.reference-grid-border,
+.reference-grid-line {
+  fill: none;
+  stroke: #111111;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.reference-grid-border {
+  opacity: 0.2;
+}
+
+.reference-grid-line {
+  opacity: 0.12;
+}
+
+.reference-grid-label {
+  fill: #111111;
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: 0;
+  opacity: 0.36;
+  paint-order: stroke;
+  stroke: #f4f4f1;
+  stroke-width: 3px;
 }
 
 .inspector {
@@ -581,6 +619,10 @@ button {
     grid-template-columns: 38px minmax(0, 1fr);
     padding-right: 4px;
     padding-left: 4px;
+  }
+
+  .tree-object small {
+    display: none;
   }
 
   .inspector {

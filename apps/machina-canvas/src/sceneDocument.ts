@@ -7,6 +7,15 @@ export const initialSceneDocument: CanvasDocument = {
   height: 640,
   unit: "px",
   selectedObjectId: "headline",
+  referenceGrid: {
+    columns: 6,
+    rows: 4,
+    columnStart: "A",
+    rowStart: 1,
+    showBorder: true,
+    showLines: false,
+    showLabels: true,
+  },
   layers: [
     {
       id: "background",

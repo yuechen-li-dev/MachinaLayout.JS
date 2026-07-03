@@ -2,6 +2,7 @@ import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
 import type { CanvasDocument, CanvasLayer, CanvasObject, TextObject } from "./sceneModel";
 import { summarizeScene } from "./sceneSummary";
+import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 
 export type CanvasExportFile = {
   path: string;
@@ -69,6 +70,29 @@ function getObjectOrder(document: CanvasDocument): string[] {
   return orderedIds;
 }
 
+function getReferenceGridMetadata(document: CanvasDocument) {
+  const config = createReferenceGridConfig(document.referenceGrid);
+  const columnLabels = Array.from({ length: config.columns }, (_, index) =>
+    getColumnLabel(index, config.columnStart),
+  );
+  const rowLabels = Array.from({ length: config.rows }, (_, index) =>
+    String((config.rowStart ?? 1) + index),
+  );
+
+  return {
+    columns: config.columns,
+    rows: config.rows,
+    columnLabels,
+    rowLabels,
+  };
+}
+
+function formatLabelRange(labels: readonly string[]): string {
+  if (labels.length === 0) return "";
+  if (labels.length === 1) return labels[0];
+  return `${labels[0]}-${labels[labels.length - 1]}`;
+}
+
 function pushMetadata(lines: string[], tags?: readonly string[], notes?: string) {
   if (!tags?.length && !notes) return;
 
@@ -118,6 +142,7 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         height: document.height,
         unit: document.unit,
       },
+      referenceGrid: getReferenceGridMetadata(document),
       layers: document.layers.map((layer) => ({
         id: layer.id,
         asset: `layers/${sanitizePathId(layer.id)}.toml`,
@@ -252,6 +277,7 @@ export function serializeCanvasHandoffToml(
 ): string {
   const selectedObjectId = options?.selectedObjectId ?? document.selectedObjectId;
   const diagnostics = options?.diagnostics ?? [];
+  const referenceGrid = getReferenceGridMetadata(document);
   const lines = [
     "schema_version = 1",
     `name = ${quoteTomlString(options?.rootName ?? document.name)}`,
@@ -265,6 +291,15 @@ export function serializeCanvasHandoffToml(
   if (selectedObjectId) {
     lines.push("", "[selected]", `object_id = ${quoteTomlString(selectedObjectId)}`);
   }
+
+  lines.push(
+    "",
+    "[reference_grid]",
+    `columns = ${referenceGrid.columns}`,
+    `rows = ${referenceGrid.rows}`,
+    `columns_label = ${quoteTomlString(formatLabelRange(referenceGrid.columnLabels))}`,
+    `rows_label = ${quoteTomlString(formatLabelRange(referenceGrid.rowLabels))}`,
+  );
 
   lines.push(
     "",

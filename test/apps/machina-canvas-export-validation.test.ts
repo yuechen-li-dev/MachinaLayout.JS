@@ -115,6 +115,14 @@ describe("MachinaCanvas export validation", () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it("accepts document.json with reference grid metadata", () => {
+    const bundle = createBundle();
+    const documentJson = bundle.files.find((file) => file.path === "document.json")?.text ?? "";
+
+    expect(documentJson).toContain('"referenceGrid"');
+    expect(validateCanvasExportBundle(bundle).ok).toBe(true);
+  });
+
   it("fails an empty bundle", () => {
     const result = validateCanvasExportBundle({ rootName: "empty.mcanvas", files: [] });
 

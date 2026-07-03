@@ -9,8 +9,14 @@ document_json = "document.json"
 [selected]
 object_id = "headline"
 
+[reference_grid]
+columns = 6
+rows = 4
+columns_label = "A-F"
+rows_label = "1-4"
+
 [summary]
-text = "Demo Poster is 960x640px with 12 objects across 3 layers."
+text = "Demo Poster is 960x640px with 12 objects across 3 layers. Reference grid A-F by 1-4 locates objects such as headline at A1-C2 and feature-chip-1 at A4-B4."
 
 [validation]
 ok = true
