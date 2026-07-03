@@ -50,7 +50,11 @@ export function validateDuplicateRows(rows: readonly LayoutRow[]): void {
 
 export function validateUiLength(
   length: UiLength | undefined,
-  code: "InvalidLength" | "InvalidAnchorFrame" = "InvalidLength",
+  code:
+    | "InvalidLength"
+    | "InvalidAnchorFrame"
+    | "InvalidGuideFrame"
+    | "InvalidGuideEdge" = "InvalidLength",
 ): void {
   if (length === undefined) return;
   if (typeof length === "number") {

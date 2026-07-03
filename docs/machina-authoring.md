@@ -194,3 +194,84 @@ Grid authoring is not CSS Grid. It does not add named template areas, named line
 implicit rows or columns, or adapter-specific behavior. Raw grid/cell MIR remains available through
 regular rows; `machinalayout/machina` only provides matrix-shaped authoring sugar that lowers to that
 same MIR.
+
+## M28c ordinary helpers
+
+### Guide authoring
+
+`M.edge(ref, edge, offset?)` creates a typed guide edge reference for the existing `GuideFrame` MIR. `M.guide(id, options, children?)` lowers to the existing `{ kind: "guide" }` frame and supports ordinary row metadata such as `view`, `slot`, `debugLabel`, `layer`, `z`, `arrange`, and `variants`.
+
+```ts
+import { M } from "machinalayout/machina";
+
+const dropdown = M.guide("dropdown", {
+  left: M.edge("trigger", "left"),
+  right: M.edge("trigger", "right"),
+  top: M.edge("trigger", "bottom", 4),
+  height: 240,
+  view: "Dropdown",
+  layer: M.onLayer("overlay"),
+  z: 10,
+});
+```
+
+These helpers are authoring sugar only. They do not change guide resolution or solver semantics.
+
+### Text authoring
+
+`M.text`, `M.text.plain`, and `M.text.mono` create existing `MachinaTextSpec` objects without parsing or rendering text.
+
+```ts
+M.text("Hello **world**", { variant: "body", wrap: "word" });
+M.text.plain("Just plain text", { variant: "label" });
+M.text.mono("const x = 1;", { overflow: "scroll" });
+```
+
+`M.text` uses a `machina-text` source, while `M.text.plain` and `M.text.mono` use a plain source. `M.text.mono` defaults `variant` to `"mono"` unless an explicit variant is supplied.
+
+### Layers
+
+`M.onLayer(name)` is readable layer-name sugar for row `layer` fields. `M.defineLayers(map)` validates a layer map and returns a fresh map suitable for adapter layer props.
+
+```ts
+const layers = M.defineLayers({
+  base: { z: 0 },
+  overlay: { z: 10 },
+  tooltip: { z: 20 },
+});
+
+M.anchor("modal", {
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  layer: M.onLayer("overlay"),
+  view: "Modal",
+});
+```
+
+Layer ordering and adapter behavior are unchanged.
+
+### Screen helper
+
+`M.screen(key, definition)` is a light wrapper around screen catalog metadata. It returns `{ key, ...definition }`, copies `tags` and `viewports`, and may colocate an optional `layout(viewport)` builder.
+
+```ts
+const providerSetup = M.screen("provider-setup", {
+  route: "/apps/scheduling/setup",
+  fixture: "provider-setup",
+  tags: ["scheduling", "setup"],
+  viewports: ["desktop", "tablet", "phone"],
+  layout: (viewport) =>
+    M.root("provider-setup-root", { arrange: M.stackArrange("vertical") }, [
+      M.fixed("header", 72, "Header"),
+      M.fill("body", 1, "SetupBody"),
+    ]).rows(),
+});
+```
+
+`M.screen` does not run layouts, create catalogs, route, render, capture screenshots, or write handoff artifacts.
+
+### Deferred helpers and non-goals
+
+M28c intentionally does not add Deus sugar, Atlas sugar, JSX/TSX authoring, routing, screen runners, screenshot capture, or handoff capture. Rows remain the MIR and Machina remains the authoring surface.

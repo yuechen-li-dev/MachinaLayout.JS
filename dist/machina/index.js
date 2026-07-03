@@ -358,6 +358,161 @@ function grid(id, options, children) {
   };
 }
 
+// src/machina/guide.ts
+var EDGE_NAMES = /* @__PURE__ */ new Set([
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "centerX",
+  "centerY"
+]);
+function validateGuideEdgeName(edgeName) {
+  if (typeof edgeName !== "string" || !EDGE_NAMES.has(edgeName)) {
+    throw new MachinaAuthoringError("InvalidGuideEdge", "Guide edge must be a valid edge name.");
+  }
+}
+function edge(ref, edge2, offset) {
+  try {
+    validateNodeId(ref);
+    validateGuideEdgeName(edge2);
+    validateUiLength(offset, "InvalidGuideEdge");
+  } catch (error) {
+    if (error instanceof MachinaAuthoringError && error.code === "InvalidNodeId") {
+      throw new MachinaAuthoringError(
+        "InvalidGuideEdge",
+        "Guide edge ref must be a non-empty string."
+      );
+    }
+    throw error;
+  }
+  return offset === void 0 ? { ref, edge: edge2 } : { ref, edge: edge2, offset };
+}
+function isEdgeRef(value) {
+  return typeof value === "object" && value !== null && "ref" in value && "edge" in value;
+}
+function validateGuideLength(value) {
+  if (isEdgeRef(value)) {
+    edge(value.ref, value.edge, value.offset);
+  } else {
+    validateUiLength(value, "InvalidGuideFrame");
+  }
+}
+function copyGuideLength(value) {
+  if (value === void 0) return void 0;
+  if (!isEdgeRef(value)) return value;
+  const copied = { ref: value.ref, edge: value.edge };
+  if (value.offset !== void 0) copied.offset = value.offset;
+  return copied;
+}
+function guide(id, options, children = []) {
+  validateNodeId(id);
+  validateGuideLength(options.left);
+  validateGuideLength(options.right);
+  validateGuideLength(options.top);
+  validateGuideLength(options.bottom);
+  validateUiLength(options.width, "InvalidGuideFrame");
+  validateUiLength(options.height, "InvalidGuideFrame");
+  const { left, right, top, bottom, width, height, ...rest } = options;
+  return node(
+    id,
+    {
+      ...rest,
+      frame: {
+        kind: "guide",
+        left: copyGuideLength(left),
+        right: copyGuideLength(right),
+        top: copyGuideLength(top),
+        bottom: copyGuideLength(bottom),
+        width,
+        height
+      }
+    },
+    children
+  );
+}
+
+// src/machina/text.ts
+function validateText(content, options = {}) {
+  if (typeof content !== "string") {
+    throw new MachinaAuthoringError("InvalidTextSpec", "Text content must be a string.");
+  }
+  for (const field of ["blockGap", "listGap"]) {
+    if (options[field] !== void 0 && !Number.isFinite(options[field])) {
+      throw new MachinaAuthoringError("InvalidTextSpec", `${field} must be a finite number.`);
+    }
+  }
+}
+function makeText(sourceKind, content, options = {}) {
+  validateText(content, options);
+  return { kind: "text", source: { kind: sourceKind, text: content }, ...options };
+}
+var text = Object.assign(
+  (content, options) => makeText("machina-text", content, options),
+  {
+    plain: (content, options) => makeText("plain", content, options),
+    mono: (content, options) => makeText("plain", content, { variant: "mono", ...options })
+  }
+);
+
+// src/machina/layers.ts
+function validateLayerName(name) {
+  if (typeof name !== "string" || name.trim() === "") {
+    throw new MachinaAuthoringError("InvalidLayer", "Layer name must be a non-empty string.");
+  }
+}
+function onLayer(name) {
+  validateLayerName(name);
+  return name;
+}
+function defineLayers(layers) {
+  if (typeof layers !== "object" || layers === null || Array.isArray(layers)) {
+    throw new MachinaAuthoringError("InvalidLayer", "Layers must be an object.");
+  }
+  const result = {};
+  for (const [name, layer] of Object.entries(layers)) {
+    validateLayerName(name);
+    if (typeof layer !== "object" || layer === null || !Number.isFinite(layer.z)) {
+      throw new MachinaAuthoringError("InvalidLayer", `Layer ${name} z must be a finite number.`);
+    }
+    result[name] = { z: layer.z };
+  }
+  return result;
+}
+
+// src/machina/screen.ts
+function validateStringArray(value, field) {
+  if (value === void 0) return;
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+    throw new MachinaAuthoringError("InvalidScreen", `${field} must be an array of strings.`);
+  }
+}
+function screen(key, definition) {
+  if (typeof key !== "string" || key.trim() === "") {
+    throw new MachinaAuthoringError("InvalidScreen", "Screen key must be a non-empty string.");
+  }
+  if (typeof definition !== "object" || definition === null || Array.isArray(definition)) {
+    throw new MachinaAuthoringError("InvalidScreen", "Screen definition must be an object.");
+  }
+  if (typeof definition.route !== "string" || definition.route.trim() === "") {
+    throw new MachinaAuthoringError("InvalidScreen", "Screen route must be a non-empty string.");
+  }
+  if (definition.fixture !== void 0 && typeof definition.fixture !== "string") {
+    throw new MachinaAuthoringError("InvalidScreen", "Screen fixture must be a string.");
+  }
+  validateStringArray(definition.viewports, "Screen viewports");
+  validateStringArray(definition.tags, "Screen tags");
+  if (definition.layout !== void 0 && typeof definition.layout !== "function") {
+    throw new MachinaAuthoringError("InvalidScreen", "Screen layout must be a function.");
+  }
+  return {
+    ...definition,
+    key,
+    viewports: definition.viewports === void 0 ? void 0 : [...definition.viewports],
+    tags: definition.tags === void 0 ? void 0 : [...definition.tags]
+  };
+}
+
 // src/machina/index.ts
 var M = {
   node,
@@ -379,7 +534,13 @@ var M = {
   skip,
   cell,
   trackFixed,
-  trackFill
+  trackFill,
+  edge,
+  guide,
+  text,
+  onLayer,
+  defineLayers,
+  screen
 };
 export {
   M,
@@ -387,19 +548,25 @@ export {
   anchor,
   area,
   cell,
+  defineLayers,
+  edge,
   fill,
   fixed,
   grid,
   gridRows,
+  guide,
   hstack,
   makeNode,
   node,
+  onLayer,
   px,
   root,
   rows,
+  screen,
   skip,
   space,
   stackArrange,
+  text,
   trackFill,
   trackFixed,
   ui,

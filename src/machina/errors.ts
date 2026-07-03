@@ -12,7 +12,12 @@ export type MachinaAuthoringErrorCode =
   | "InvalidGridMatrix"
   | "GridMatrixOverlap"
   | "GridMatrixOutOfBounds"
-  | "InvalidGridArea";
+  | "InvalidGridArea"
+  | "InvalidGuideFrame"
+  | "InvalidGuideEdge"
+  | "InvalidTextSpec"
+  | "InvalidLayer"
+  | "InvalidScreen";
 
 export class MachinaAuthoringError extends Error {
   readonly code: MachinaAuthoringErrorCode;

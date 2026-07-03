@@ -1,4 +1,23 @@
-import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength, G as GridTrack, E as EdgeInsets } from '../types-CbH83z0c.js';
+import { c as MachinaTextVariant, d as MachinaTextWrap, e as MachinaTextOverflow, f as MachinaTextAlign, g as MachinaTextLeading, h as MachinaTextVerticalAlign, M as MachinaTextSpec } from '../types-DA-InpTh.js';
+import { L as LayoutRow, A as ArrangeSpec, c as LayoutRowVariant, F as FrameSpec, U as UiLength, G as GridTrack, E as EdgeInsets, d as RectEdge } from '../types-fqEN29Eg.js';
+import { b as MachinaScreen, M as MachinaViewport } from '../screenCatalog-ZjonGiOi.js';
+
+type TextOptions = {
+    variant?: MachinaTextVariant;
+    wrap?: MachinaTextWrap;
+    overflow?: MachinaTextOverflow;
+    align?: MachinaTextAlign;
+    leading?: MachinaTextLeading;
+    blockGap?: number;
+    listGap?: number;
+    valign?: MachinaTextVerticalAlign;
+};
+type MachinaTextBuilder = {
+    (content: string, options?: TextOptions): MachinaTextSpec;
+    plain(content: string, options?: TextOptions): MachinaTextSpec;
+    mono(content: string, options?: TextOptions): MachinaTextSpec;
+};
+declare const text: MachinaTextBuilder;
 
 type MachinaNodeId = string;
 type MachinaStackAxis = "vertical" | "horizontal";
@@ -52,7 +71,7 @@ declare function fixed(id: MachinaNodeId, mainSize: number, viewOrOptions?: stri
 declare function fill(id: MachinaNodeId, weight?: number, viewOrOptions?: string | FillNodeOptions, options?: FillNodeOptions, children?: readonly MachinaNode[]): MachinaNode;
 declare function space(id: MachinaNodeId, weight?: number): MachinaNode;
 
-type MachinaAuthoringErrorCode = "InvalidNodeId" | "DuplicateNodeId" | "InvalidAuthoringTree" | "InvalidStackChild" | "InvalidFixedFrameContext" | "InvalidSpaceNode" | "InvalidAnchorFrame" | "InvalidLength" | "InvalidVariant" | "InvalidGridTrack" | "InvalidGridMatrix" | "GridMatrixOverlap" | "GridMatrixOutOfBounds" | "InvalidGridArea";
+type MachinaAuthoringErrorCode = "InvalidNodeId" | "DuplicateNodeId" | "InvalidAuthoringTree" | "InvalidStackChild" | "InvalidFixedFrameContext" | "InvalidSpaceNode" | "InvalidAnchorFrame" | "InvalidLength" | "InvalidVariant" | "InvalidGridTrack" | "InvalidGridMatrix" | "GridMatrixOverlap" | "GridMatrixOutOfBounds" | "InvalidGridArea" | "InvalidGuideFrame" | "InvalidGuideEdge" | "InvalidTextSpec" | "InvalidLayer" | "InvalidScreen";
 declare class MachinaAuthoringError extends Error {
     readonly code: MachinaAuthoringErrorCode;
     constructor(code: MachinaAuthoringErrorCode, message: string);
@@ -158,6 +177,44 @@ declare function skip(span?: number): MachinaGridSkip;
 declare function gridRows(rows: readonly (readonly MachinaGridMatrixItem[])[]): MachinaGridRows;
 declare function grid(id: MachinaNodeId, options: GridOptions, children?: MachinaGridRows | readonly MachinaNode[]): MachinaNode;
 
+type MachinaGuideEdgeName = RectEdge;
+type MachinaGuideEdgeRef = {
+    ref: MachinaNodeId;
+    edge: MachinaGuideEdgeName;
+    offset?: UiLength;
+};
+declare function edge(ref: MachinaNodeId, edge: MachinaGuideEdgeName, offset?: UiLength): MachinaGuideEdgeRef;
+type GuideOptions = {
+    left?: UiLength | MachinaGuideEdgeRef;
+    right?: UiLength | MachinaGuideEdgeRef;
+    top?: UiLength | MachinaGuideEdgeRef;
+    bottom?: UiLength | MachinaGuideEdgeRef;
+    width?: UiLength;
+    height?: UiLength;
+    parent?: MachinaNodeId;
+    view?: string;
+    slot?: string;
+    debugLabel?: string;
+    layer?: string;
+    z?: number;
+    arrange?: ArrangeSpec;
+    variants?: readonly LayoutRowVariant[];
+};
+declare function guide(id: MachinaNodeId, options: GuideOptions, children?: readonly MachinaNode[]): MachinaNode;
+
+type MachinaLayerMap = Record<string, {
+    z: number;
+}>;
+declare function onLayer(name: string): string;
+declare function defineLayers<T extends MachinaLayerMap>(layers: T): T;
+
+type MachinaScreenLayoutBuilder = (viewport: MachinaViewport) => LayoutRow[];
+type MachinaScreenDefinition = MachinaScreen & {
+    layout?: MachinaScreenLayoutBuilder;
+};
+type ScreenOptions = Omit<MachinaScreenDefinition, "key">;
+declare function screen(key: string, definition: ScreenOptions): MachinaScreenDefinition;
+
 declare const M: {
     readonly node: typeof node;
     readonly root: typeof root;
@@ -179,6 +236,16 @@ declare const M: {
     readonly cell: typeof cell;
     readonly trackFixed: typeof trackFixed;
     readonly trackFill: typeof trackFill;
+    readonly edge: typeof edge;
+    readonly guide: typeof guide;
+    readonly text: {
+        (content: string, options?: TextOptions): MachinaTextSpec;
+        plain(content: string, options?: TextOptions): MachinaTextSpec;
+        mono(content: string, options?: TextOptions): MachinaTextSpec;
+    };
+    readonly onLayer: typeof onLayer;
+    readonly defineLayers: typeof defineLayers;
+    readonly screen: typeof screen;
 };
 
-export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaStackAxis, type NodeOptions, type RootOptions, type StackContainerOptions, type StackOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, fill, fixed, grid, gridRows, hstack, makeNode, node, px, root, rows, skip, space, stackArrange, trackFill, trackFixed, ui, vstack, when };
+export { type AnchorOptions, type CellOptions, type FillNodeOptions, type FixedNodeOptions, type GridAreaOptions, type GridOptions, type GuideOptions, M, MachinaAuthoringError, type MachinaAuthoringErrorCode, type MachinaGridArea, type MachinaGridMatrixItem, type MachinaGridRows, type MachinaGridSkip, type MachinaGridTrack, type MachinaGuideEdgeName, type MachinaGuideEdgeRef, type MachinaLayerMap, type MachinaLowerContext, type MachinaNode, type MachinaNodeId, type MachinaScreenDefinition, type MachinaScreenLayoutBuilder, type MachinaStackAxis, type NodeOptions, type RootOptions, type ScreenOptions, type StackContainerOptions, type StackOptions, type TextOptions, type VariantCondition, type VariantOverrides, anchor, area, cell, defineLayers, edge, fill, fixed, grid, gridRows, guide, hstack, makeNode, node, onLayer, px, root, rows, screen, skip, space, stackArrange, text, trackFill, trackFixed, ui, vstack, when };
