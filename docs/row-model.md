@@ -80,3 +80,8 @@ Use `RootFrame` on the root row. Root geometry is sourced from caller `rootRect`
 - Root `FillFrame` is invalid (`FillFrameWithoutArranger`).
 - Root `FixedFrame` is invalid (`FixedFrameWithoutArranger`).
 - Root `AbsoluteFrame` and `AnchorFrame` remain accepted for compatibility, but `RootFrame` is preferred.
+
+
+## Machina authoring surface
+
+Raw `LayoutRow[]` records remain the MIR. The optional `machinalayout/machina` subpath provides the official authoring surface and lowers authored nodes back to rows with `node.rows()` or `M.rows(node)`.

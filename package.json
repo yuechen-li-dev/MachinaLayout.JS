@@ -111,6 +111,10 @@
     "./atlas": {
       "types": "./dist/atlas/index.d.ts",
       "import": "./dist/atlas/index.js"
+    },
+    "./machina": {
+      "types": "./dist/machina/index.d.ts",
+      "import": "./dist/machina/index.js"
     }
   },
   "files": [
