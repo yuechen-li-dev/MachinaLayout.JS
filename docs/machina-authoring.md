@@ -79,3 +79,118 @@ const responsive = M.when({ minWidth: 900 }, { view: "WidePanel" });
 ## Deferred helpers
 
 M28a intentionally does not add grid matrix helpers, guide helpers, text helpers, layer helpers, screen helpers, Deus sugar, Atlas helpers, JSX, TSX, code generation, routing, or state management.
+
+## Grid authoring
+
+Machina grid helpers are authoring sugar for the existing row model. `M.grid(...)` lowers to a
+normal `LayoutRow` with `arrange: { kind: "grid" }`, and each authored grid child lowers to an
+explicit `CellFrame` row. The MIR stays unchanged: rows remain the source of truth, grid children
+still use zero-based `row` and `col`, and spans lower to explicit `rowSpan` and `colSpan` values.
+
+### Tracks
+
+Use `M.trackFixed(size)` for fixed tracks and `M.trackFill(weight)` for fill tracks:
+
+```ts
+const columns = [M.trackFixed(280), M.trackFill(1), M.trackFixed(360)];
+const rows = [M.trackFixed(72), M.trackFill(1), M.trackFixed(52)];
+```
+
+Track sizes and weights must be finite numbers greater than or equal to zero. `M.trackFill()` uses a
+weight of `1` by default.
+
+### Matrix authoring
+
+`M.gridRows(...)` accepts a row-major matrix of `M.area(...)` and `M.skip(...)` items. Areas are
+placed at the next available column in the current matrix row and lower to explicit `M.cell(...)`
+children of the grid.
+
+```ts
+const dashboard = M.grid(
+  "dashboard-grid",
+  {
+    columns: [M.trackFixed(280), M.trackFill(1), M.trackFixed(360)],
+    rows: [M.trackFixed(72), M.trackFill(1), M.trackFixed(52)],
+    columnGap: 16,
+    rowGap: 16,
+    padding: 16,
+  },
+  M.gridRows([
+    [M.area("topbar", { colSpan: 3, view: "Topbar" })],
+    [
+      M.area("nav", { view: "Nav" }),
+      M.area("main", { view: "Main" }),
+      M.area("inspector", { view: "Inspector" }),
+    ],
+    [M.area("footer", { colSpan: 3, view: "Footer" })],
+  ]),
+);
+```
+
+Placement is deterministic:
+
+- the outer array index is the zero-based grid row;
+- each inner row scans left to right;
+- `colSpan` and `rowSpan` reserve occupied cells;
+- a `rowSpan` from an earlier matrix row reserves cells in later rows;
+- `M.skip(span)` reserves explicit empty slots and emits no row;
+- matrix rows may be empty, and unoccupied cells are allowed;
+- no implicit tracks are created, so areas and skips must fit inside declared `columns` and `rows`.
+
+### Shell example
+
+```ts
+const shell = M.grid(
+  "shell",
+  {
+    columns: [M.trackFixed(240), M.trackFill(1)],
+    rows: [M.trackFixed(64), M.trackFill(1), M.trackFixed(48)],
+  },
+  M.gridRows([
+    [M.area("header", { colSpan: 2, view: "Header" })],
+    [M.area("sidebar", { view: "Sidebar" }), M.area("main", { view: "Main" })],
+    [M.area("footer", { colSpan: 2, view: "Footer" })],
+  ]),
+);
+```
+
+### Skip example
+
+```ts
+const spaced = M.grid(
+  "spaced",
+  {
+    columns: [M.trackFill(1), M.trackFill(1), M.trackFill(1)],
+    rows: [M.trackFixed(100)],
+  },
+  M.gridRows([[M.area("left", { view: "Left" }), M.skip(), M.area("right", { view: "Right" })]]),
+);
+```
+
+### Explicit cell escape hatch
+
+Use `M.cell(id, col, row, options, children)` when you want to author the existing MIR coordinates
+directly instead of using a matrix. This is useful for generated layouts or cases where explicit
+coordinates are clearer than row-major placement.
+
+```ts
+const explicit = M.grid(
+  "layout",
+  {
+    columns: [M.trackFill(1), M.trackFixed(332)],
+    rows: [M.trackFixed(64), M.trackFill(1)],
+  },
+  [
+    M.cell("header", 0, 0, { colSpan: 2, view: "Header" }),
+    M.cell("main", 0, 1, { view: "Main" }),
+    M.cell("sidebar", 1, 1, { view: "Sidebar" }),
+  ],
+);
+```
+
+### Non-goals
+
+Grid authoring is not CSS Grid. It does not add named template areas, named lines, subgrid, masonry,
+implicit rows or columns, or adapter-specific behavior. Raw grid/cell MIR remains available through
+regular rows; `machinalayout/machina` only provides matrix-shaped authoring sugar that lowers to that
+same MIR.

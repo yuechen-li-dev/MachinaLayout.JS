@@ -209,6 +209,155 @@ function when(condition, overrides) {
   return { when: { ...condition }, ...overrides };
 }
 
+// src/machina/grid.ts
+function authoringError(code, message) {
+  throw new MachinaAuthoringError(code, message);
+}
+function validateNonNegative(value, code, name) {
+  if (!Number.isFinite(value) || value < 0)
+    authoringError(code, `${name} must be a finite number greater than or equal to 0.`);
+}
+function validatePositiveInteger(value, code, name) {
+  if (value === void 0) return;
+  if (!Number.isInteger(value) || value < 1)
+    authoringError(code, `${name} must be an integer greater than or equal to 1.`);
+}
+function validateCellCoordinate(value, name) {
+  if (!Number.isInteger(value) || value < 0)
+    authoringError("InvalidGridArea", `${name} must be an integer greater than or equal to 0.`);
+}
+function validateTrack(track, name) {
+  if (track?.kind === "fixed") validateNonNegative(track.size, "InvalidGridTrack", `${name}.size`);
+  else if (track?.kind === "fill")
+    validateNonNegative(track.weight ?? 1, "InvalidGridTrack", `${name}.weight`);
+  else authoringError("InvalidGridTrack", `${name} must be a fixed or fill track.`);
+}
+function validateTracks(tracks, name) {
+  if (!Array.isArray(tracks) || tracks.length === 0)
+    authoringError("InvalidGridMatrix", `grid ${name} must include at least one track.`);
+  tracks.forEach((track, index) => {
+    validateTrack(track, `${name}[${index}]`);
+  });
+}
+function validateGaps(options) {
+  if (options.columnGap !== void 0)
+    validateNonNegative(options.columnGap, "InvalidGridMatrix", "columnGap");
+  if (options.rowGap !== void 0)
+    validateNonNegative(options.rowGap, "InvalidGridMatrix", "rowGap");
+}
+function trackFixed(size) {
+  validateNonNegative(size, "InvalidGridTrack", "size");
+  return { kind: "fixed", size };
+}
+function trackFill(weight = 1) {
+  validateNonNegative(weight, "InvalidGridTrack", "weight");
+  return { kind: "fill", weight };
+}
+function cell(id, col, row, options = {}, children = []) {
+  validateNodeId(id);
+  validateCellCoordinate(col, "col");
+  validateCellCoordinate(row, "row");
+  validatePositiveInteger(options.colSpan, "InvalidGridArea", "colSpan");
+  validatePositiveInteger(options.rowSpan, "InvalidGridArea", "rowSpan");
+  const { colSpan, rowSpan, ...rest } = options;
+  return node(id, { ...rest, frame: { kind: "cell", col, row, colSpan, rowSpan } }, children);
+}
+function area(id, options = {}, children = []) {
+  validateNodeId(id);
+  validatePositiveInteger(options.colSpan, "InvalidGridArea", "colSpan");
+  validatePositiveInteger(options.rowSpan, "InvalidGridArea", "rowSpan");
+  return { kind: "area", id, options: { ...options }, children: [...children] };
+}
+function skip(span = 1) {
+  validatePositiveInteger(span, "InvalidGridMatrix", "span");
+  return { kind: "skip", span };
+}
+function gridRows(rows2) {
+  return { kind: "gridRows", rows: rows2.map((row) => [...row]) };
+}
+function isGridRows(children) {
+  return typeof children === "object" && children !== null && !Array.isArray(children) && "kind" in children && children.kind === "gridRows";
+}
+function matrixToCells(matrix, columnCount, rowCount) {
+  if (matrix.rows.length > rowCount)
+    authoringError("GridMatrixOutOfBounds", "gridRows contains more rows than the grid declares.");
+  const occupied = /* @__PURE__ */ new Set();
+  const mark = (col, row, code) => {
+    if (col < 0 || col >= columnCount || row < 0 || row >= rowCount)
+      authoringError("GridMatrixOutOfBounds", "grid matrix item exceeds declared grid bounds.");
+    const key = `${col}:${row}`;
+    if (occupied.has(key)) authoringError(code, "grid matrix item overlaps an occupied cell.");
+    occupied.add(key);
+  };
+  const out = [];
+  matrix.rows.forEach((rowItems, row) => {
+    let cursor = 0;
+    for (const item of rowItems) {
+      while (cursor < columnCount && occupied.has(`${cursor}:${row}`)) cursor += 1;
+      if (item?.kind === "skip") {
+        const span = item.span ?? 1;
+        validatePositiveInteger(span, "InvalidGridMatrix", "span");
+        for (let offset = 0; offset < span; offset++)
+          mark(cursor + offset, row, "GridMatrixOverlap");
+        cursor += span;
+      } else if (item?.kind === "area") {
+        const colSpan = item.options.colSpan ?? 1;
+        const rowSpan = item.options.rowSpan ?? 1;
+        validatePositiveInteger(colSpan, "InvalidGridArea", "colSpan");
+        validatePositiveInteger(rowSpan, "InvalidGridArea", "rowSpan");
+        if (cursor + colSpan > columnCount || row + rowSpan > rowCount)
+          authoringError("GridMatrixOutOfBounds", "grid area exceeds declared grid bounds.");
+        for (let dy = 0; dy < rowSpan; dy++)
+          for (let dx = 0; dx < colSpan; dx++) mark(cursor + dx, row + dy, "GridMatrixOverlap");
+        out.push(cell(item.id, cursor, row, item.options, item.children));
+        cursor += colSpan;
+      } else authoringError("InvalidGridMatrix", "gridRows contains an invalid matrix item.");
+    }
+  });
+  return out;
+}
+function grid(id, options, children) {
+  validateNodeId(id);
+  validateTracks(options.columns, "columns");
+  validateTracks(options.rows, "rows");
+  validateGaps(options);
+  const childNodes = isGridRows(children) ? void 0 : children ?? [];
+  return {
+    id,
+    rows() {
+      const lowered = this.lower();
+      validateDuplicateRows(lowered);
+      return lowered;
+    },
+    lower(context = {}) {
+      const row = copyRow({
+        id,
+        parent: options.parent ?? context.parentId,
+        frame: options.frame ?? { kind: "fill", weight: 1 },
+        arrange: {
+          kind: "grid",
+          columns: [...options.columns],
+          rows: [...options.rows],
+          columnGap: options.columnGap,
+          rowGap: options.rowGap,
+          padding: options.padding
+        },
+        view: options.view,
+        slot: options.slot,
+        debugLabel: options.debugLabel,
+        layer: options.layer,
+        z: options.z,
+        variants: options.variants ? [...options.variants] : void 0
+      });
+      const nodes = isGridRows(children) ? matrixToCells(children, options.columns.length, options.rows.length) : childNodes;
+      const childRows = (nodes ?? []).flatMap(
+        (child) => child.lower({ parentId: id, parentStackAxis: stackAxisFromArrange(row.arrange) })
+      );
+      return [row, ...childRows];
+    }
+  };
+}
+
 // src/machina/index.ts
 var M = {
   node,
@@ -223,22 +372,36 @@ var M = {
   px,
   ui,
   when,
-  rows
+  rows,
+  grid,
+  gridRows,
+  area,
+  skip,
+  cell,
+  trackFixed,
+  trackFill
 };
 export {
   M,
   MachinaAuthoringError,
   anchor,
+  area,
+  cell,
   fill,
   fixed,
+  grid,
+  gridRows,
   hstack,
   makeNode,
   node,
   px,
   root,
   rows,
+  skip,
   space,
   stackArrange,
+  trackFill,
+  trackFixed,
   ui,
   vstack,
   when

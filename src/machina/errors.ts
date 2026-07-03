@@ -7,7 +7,12 @@ export type MachinaAuthoringErrorCode =
   | "InvalidSpaceNode"
   | "InvalidAnchorFrame"
   | "InvalidLength"
-  | "InvalidVariant";
+  | "InvalidVariant"
+  | "InvalidGridTrack"
+  | "InvalidGridMatrix"
+  | "GridMatrixOverlap"
+  | "GridMatrixOutOfBounds"
+  | "InvalidGridArea";
 
 export class MachinaAuthoringError extends Error {
   readonly code: MachinaAuthoringErrorCode;
