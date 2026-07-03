@@ -1,0 +1,20 @@
+id = "product-base-shadow"
+kind = "ellipse"
+name = "Product base shadow"
+layer = "product"
+visible = true
+locked = false
+
+[geometry]
+x = 500
+y = 482
+width = 250
+height = 44
+
+[style]
+fill = "#d8d8d4"
+stroke = "none"
+
+[metadata]
+tags = ["product", "shadow"]
+notes = "Soft base shadow below the product silhouette."

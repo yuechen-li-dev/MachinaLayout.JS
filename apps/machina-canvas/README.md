@@ -68,6 +68,24 @@ MachinaCanvas reports simple inspectable geometry facts:
 - selected-object near left or center-X alignment with another object
 - negative object sizes if invalid geometry appears
 
+## MachinaCanvas Export Format
+
+M30c defines the `.mcanvas` export/handoff bundle format in
+[MachinaCanvas export format](../../docs/machina-canvas-export-format.md).
+
+The format keeps rendered artifacts, graph indexes, and editable contracts in
+separate files:
+
+- rendered artifacts such as `render.svg` are output
+- `document.json` is the scene graph and bundle index
+- object, layer, handoff, and command recipe files are TOML contracts
+
+A checked-in demo fixture lives at
+[`apps/machina-canvas/fixtures/demo-poster.mcanvas`](fixtures/demo-poster.mcanvas).
+It is a readable hand-authored bundle for the current demo poster shape. The
+runtime app still uses its in-memory scene model; M30c does not add import or
+export UI.
+
 ## Non-Goals
 
 - no raster editing yet

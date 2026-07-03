@@ -1,0 +1,23 @@
+id = "cta-bg"
+kind = "rect"
+name = "CTA button background"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 72
+y = 390
+width = 188
+height = 48
+
+[shape]
+radius = 2
+
+[style]
+fill = "#111111"
+stroke = "none"
+
+[metadata]
+tags = ["button", "cta"]
+notes = "Black call-to-action button background."

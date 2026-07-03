@@ -1,0 +1,25 @@
+id = "cta-label"
+kind = "text"
+name = "CTA button label"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 96
+y = 405
+width = 142
+height = 20
+
+[text]
+value = "Inspect scene"
+font_size = 15
+font_weight = 700
+font_family = "Inter, Arial, sans-serif"
+
+[style]
+fill = "#ffffff"
+
+[metadata]
+tags = ["button", "copy"]
+notes = "Label text for the call-to-action button."

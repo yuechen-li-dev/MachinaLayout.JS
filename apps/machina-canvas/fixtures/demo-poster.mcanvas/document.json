@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "id": "demo-poster",
+    "name": "Demo Poster",
+    "width": 960,
+    "height": 640,
+    "unit": "px"
+  },
+  "layers": [
+    {
+      "id": "background",
+      "asset": "layers/background.toml",
+      "objectIds": ["poster-bg"]
+    },
+    {
+      "id": "product",
+      "asset": "layers/product.toml",
+      "objectIds": ["product-base-shadow", "product-silhouette-body", "product-highlight"]
+    },
+    {
+      "id": "foreground",
+      "asset": "layers/foreground.toml",
+      "objectIds": [
+        "logo",
+        "headline",
+        "price-chip",
+        "cta-bg",
+        "cta-label",
+        "feature-chip-1",
+        "feature-chip-2",
+        "feature-chip-3"
+      ]
+    }
+  ],
+  "objects": {
+    "poster-bg": {
+      "kind": "rect",
+      "asset": "objects/poster-bg.toml"
+    },
+    "product-base-shadow": {
+      "kind": "ellipse",
+      "asset": "objects/product-base-shadow.toml"
+    },
+    "product-silhouette-body": {
+      "kind": "rect",
+      "asset": "objects/product-silhouette-body.toml"
+    },
+    "product-highlight": {
+      "kind": "ellipse",
+      "asset": "objects/product-highlight.toml"
+    },
+    "logo": {
+      "kind": "text",
+      "asset": "objects/logo.toml"
+    },
+    "headline": {
+      "kind": "text",
+      "asset": "objects/headline.toml"
+    },
+    "price-chip": {
+      "kind": "rect",
+      "asset": "objects/price-chip.toml"
+    },
+    "cta-bg": {
+      "kind": "rect",
+      "asset": "objects/cta-bg.toml"
+    },
+    "cta-label": {
+      "kind": "text",
+      "asset": "objects/cta-label.toml"
+    },
+    "feature-chip-1": {
+      "kind": "rect",
+      "asset": "objects/feature-chip-1.toml"
+    },
+    "feature-chip-2": {
+      "kind": "rect",
+      "asset": "objects/feature-chip-2.toml"
+    },
+    "feature-chip-3": {
+      "kind": "rect",
+      "asset": "objects/feature-chip-3.toml"
+    }
+  }
+}

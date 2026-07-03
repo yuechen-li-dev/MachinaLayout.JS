@@ -1,0 +1,57 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+type FixtureDocument = {
+  schemaVersion: number;
+  layers: {
+    id: string;
+    asset: string;
+    objectIds: string[];
+  }[];
+  objects: Record<
+    string,
+    {
+      kind: string;
+      asset: string;
+    }
+  >;
+};
+
+const fixtureRoot = join(
+  process.cwd(),
+  "apps",
+  "machina-canvas",
+  "fixtures",
+  "demo-poster.mcanvas",
+);
+
+function readFixtureDocument(): FixtureDocument {
+  return JSON.parse(readFileSync(join(fixtureRoot, "document.json"), "utf8")) as FixtureDocument;
+}
+
+describe("MachinaCanvas export fixture", () => {
+  it("keeps document.json references consistent with checked-in assets", () => {
+    const document = readFixtureDocument();
+
+    expect(document.schemaVersion).toBe(1);
+    expect(existsSync(join(fixtureRoot, "handoff.toml"))).toBe(true);
+    expect(existsSync(join(fixtureRoot, "render.svg"))).toBe(true);
+
+    for (const layer of document.layers) {
+      expect(existsSync(join(fixtureRoot, layer.asset))).toBe(true);
+
+      for (const objectId of layer.objectIds) {
+        expect(document.objects[objectId]).toBeDefined();
+      }
+    }
+
+    for (const [objectId, object] of Object.entries(document.objects)) {
+      expect(object.asset).toBe(`objects/${objectId}.toml`);
+      expect(existsSync(join(fixtureRoot, object.asset))).toBe(true);
+    }
+
+    const renderSvg = readFileSync(join(fixtureRoot, "render.svg"), "utf8");
+    expect(renderSvg).toContain("data-canvas-object-id");
+  });
+});

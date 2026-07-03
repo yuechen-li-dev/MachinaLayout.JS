@@ -1,0 +1,8 @@
+id = "background"
+name = "Background"
+visible = true
+locked = false
+
+[metadata]
+tags = ["poster", "surface"]
+notes = "Document-sized background layer."

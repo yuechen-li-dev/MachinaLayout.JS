@@ -1,0 +1,25 @@
+name = "Align hero text and distribute chips"
+description = "Example command recipe for LLM-assisted geometric edits."
+
+[[command]]
+kind = "align"
+axis = "left"
+ids = ["logo", "headline"]
+
+[[command]]
+kind = "move"
+id = "cta-bg"
+dx = 0
+dy = 16
+
+[[command]]
+kind = "move"
+id = "cta-label"
+dx = 0
+dy = 16
+
+[[command]]
+kind = "distribute"
+axis = "horizontal"
+ids = ["feature-chip-1", "feature-chip-2", "feature-chip-3"]
+gap = 16

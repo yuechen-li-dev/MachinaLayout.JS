@@ -1,0 +1,23 @@
+id = "price-chip"
+kind = "rect"
+name = "Price chip"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 707
+y = 154
+width = 112
+height = 38
+
+[shape]
+radius = 19
+
+[style]
+fill = "#ffffff"
+stroke = "#111111"
+
+[metadata]
+tags = ["badge", "commerce"]
+notes = "A product-page badge preserved as editable geometry."

@@ -1,0 +1,25 @@
+id = "headline"
+kind = "text"
+name = "Hero headline"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 70
+y = 134
+width = 380
+height = 116
+
+[text]
+value = "Inspectable geometry for AI-native design."
+font_size = 36
+font_weight = 680
+font_family = "Inter, Arial, sans-serif"
+
+[style]
+fill = "#101010"
+
+[metadata]
+tags = ["copy", "hero"]
+notes = "Primary thesis line for the demo poster."

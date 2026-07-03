@@ -1,0 +1,25 @@
+id = "logo"
+kind = "text"
+name = "CODEX wordmark"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 72
+y = 64
+width = 180
+height = 36
+
+[text]
+value = "CODEX"
+font_size = 30
+font_weight = 750
+font_family = "Inter, Arial, sans-serif"
+
+[style]
+fill = "#111111"
+
+[metadata]
+tags = ["brand", "wordmark"]
+notes = "Top-left wordmark."

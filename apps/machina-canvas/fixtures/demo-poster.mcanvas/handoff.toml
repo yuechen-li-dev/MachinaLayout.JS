@@ -1,0 +1,23 @@
+schema_version = 1
+name = "Demo Poster"
+created_by = "MachinaCanvas"
+source_app = "apps/machina-canvas"
+
+render_svg = "render.svg"
+document_json = "document.json"
+
+[selected]
+object_id = "headline"
+
+[summary]
+text = "Demo Poster is 960x640px with 12 objects across 3 layers."
+
+[validation]
+ok = true
+diagnostics = 1
+
+[[diagnostic]]
+severity = "info"
+code = "SelectedObject"
+object_id = "headline"
+message = "Selected object is Hero headline."

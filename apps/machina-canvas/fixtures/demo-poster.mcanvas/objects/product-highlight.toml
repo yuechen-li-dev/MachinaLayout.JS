@@ -1,0 +1,21 @@
+id = "product-highlight"
+kind = "ellipse"
+name = "Product highlight"
+layer = "product"
+visible = true
+locked = false
+
+[geometry]
+x = 565
+y = 238
+width = 62
+height = 170
+
+[style]
+fill = "#ffffff"
+stroke = "none"
+opacity = 0.92
+
+[metadata]
+tags = ["product", "lighting"]
+notes = "White ellipse that makes the silhouette read as glossy."

@@ -128,6 +128,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Stack geometry helpers](docs/stack-geometry-helpers.md)
 - [Screen catalog and viewport matrix](docs/screen-catalog-and-viewports.md)
 - [Inspection and handoff bundles](docs/inspection-and-handoff.md)
+- [MachinaCanvas export format](docs/machina-canvas-export-format.md)
 - [Error codes](docs/error-codes.md)
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
 - [Exhaustive enum matching](docs/exhaustive-match.md)
@@ -362,6 +363,10 @@ This repo uses Biome.
 ## Documentation
 
 - [Machina authoring](docs/machina-authoring.md)
+- [MachinaCanvas export format](docs/machina-canvas-export-format.md) documents
+  the `.mcanvas` JSON/TOML/rendered artifact split and the
+  [`demo-poster.mcanvas`](apps/machina-canvas/fixtures/demo-poster.mcanvas)
+  fixture bundle.
 
 ### Milestones and audits
 

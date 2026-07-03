@@ -1,0 +1,8 @@
+id = "foreground"
+name = "Foreground"
+visible = true
+locked = false
+
+[metadata]
+tags = ["text", "interactive"]
+notes = "Foreground text, badge, call-to-action, and feature chips."

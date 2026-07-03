@@ -1,0 +1,23 @@
+id = "poster-bg"
+kind = "rect"
+name = "Poster background"
+layer = "background"
+visible = true
+locked = false
+
+[geometry]
+x = 0
+y = 0
+width = 960
+height = 640
+
+[shape]
+radius = 0
+
+[style]
+fill = "#f4f4f1"
+stroke = "#d7d7d2"
+
+[metadata]
+tags = ["poster", "surface"]
+notes = "Document-sized product-page background panel."

@@ -1,0 +1,23 @@
+id = "feature-chip-1"
+kind = "rect"
+name = "Feature chip: IDs"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 72
+y = 500
+width = 138
+height = 34
+
+[shape]
+radius = 17
+
+[style]
+fill = "#ffffff"
+stroke = "#cfcfca"
+
+[metadata]
+tags = ["feature", "chip"]
+notes = "Feature chip for stable object IDs."
