@@ -12,6 +12,7 @@ export type CanvasExportValidationDiagnosticCode =
   | "MissingRenderObject"
   | "MissingHandoff"
   | "InvalidHandoffReference"
+  | "InvalidUnitSystem"
   | "MissingCommandRecipe"
   | "EmptyExportBundle";
 
@@ -42,6 +43,7 @@ type DocumentIndex = {
     id: string;
     width: number;
     height: number;
+    unitSystem?: unknown;
   };
   layers: Array<{
     id: string;
@@ -110,10 +112,23 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
       id: value.document.id,
       width: value.document.width,
       height: value.document.height,
+      unitSystem: value.document.unitSystem,
     },
     layers,
     objects,
   };
+}
+
+function isValidUnitSystem(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  if (typeof value.unit !== "string") return false;
+  if (typeof value.label !== "string") return false;
+  if (typeof value.pixelsPerUnit !== "number" || value.pixelsPerUnit <= 0) return false;
+  if (typeof value.precision !== "number" || !Number.isInteger(value.precision)) return false;
+  if (value.precision < 0) return false;
+  if (value.unitsPerInch !== undefined && typeof value.unitsPerInch !== "number") return false;
+  return true;
 }
 
 function parseDocumentJson(
@@ -215,6 +230,16 @@ export function validateCanvasExportBundle(
 
   if (documentIndex) {
     const objectIds = new Set(Object.keys(documentIndex.objects));
+
+    if (!isValidUnitSystem(documentIndex.document.unitSystem)) {
+      diagnostics.push({
+        severity: "warning",
+        code: "InvalidUnitSystem",
+        path: "document.json",
+        message:
+          "document.unitSystem is present but does not match the expected unit metadata shape.",
+      });
+    }
 
     for (const layer of documentIndex.layers) {
       if (!hasFile(bundle, layer.asset)) {

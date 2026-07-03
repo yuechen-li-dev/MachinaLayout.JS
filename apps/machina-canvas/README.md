@@ -30,6 +30,8 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - scene summaries for the first LLM "SEE" layer
 - CAD-style reference grid spans for speakable object locations
 - canvas frame intent separate from resolved object geometry
+- document units and formatted measurement readouts
+- inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
 - geometry diagnostics for selected-object and scene inspection
@@ -102,6 +104,24 @@ Supported frame kinds:
 geometry. This is not a full layout solver, snapping system, import path, CAD
 dimension model, or backend/LLM integration.
 
+## Units And Measurements
+
+M30i adds a canvas unit foundation. The current demo remains visually stable and
+uses `px` as its document unit, but the scene model now carries a
+`unitSystem` with a display label, nominal rendered pixels per document unit,
+and formatting precision. Built-in unit systems include `px`, `pt`, `mm`, `cm`,
+`in`, and custom canvas units (`cu`).
+
+MachinaCanvas treats object `x`, `y`, `width`, and `height` as document units.
+The SVG `viewBox` uses those same document coordinates. Browser screen pixels
+are a rendered display concern, and viewport zoom is deliberately separate for a
+future milestone. M30i does not implement zoom, snapping, CAD constraints, or a
+magnifier.
+
+The inspector shows document/unit metadata and selected-object measurements:
+size, position, and center. A small optional SVG label can be toggled for the
+selected object when measurements are useful on the canvas itself.
+
 ## Geometry Diagnostics
 
 MachinaCanvas reports simple inspectable geometry facts:
@@ -130,6 +150,10 @@ The editor renders a faint SVG overlay with border labels, shows selected-object
 references in the inspector, includes spans in scene summaries and object cards,
 and writes reference grid metadata into generated handoff files. Clean
 `render.svg` export output does not include the overlay by default.
+
+Visual aids are situational. The inspector owns toggles for the reference grid,
+internal grid lines, measurement labels, and geometry diagnostics so the canvas
+can stay calm by default.
 
 Grid-aware commands are deterministic edits against the current scene document:
 `moveToGrid` moves an object's chosen anchor to a point ref, `alignToGrid`
@@ -176,6 +200,9 @@ alongside the generated files.
 M30f adds reference grid metadata to generated `document.json` and
 `handoff.toml`. This preserves the locator grid used by summaries and inspector
 readouts without baking the overlay into clean rendered SVG output.
+
+M30i adds unit metadata to generated `document.json` and `handoff.toml`.
+Geometry, frame, and resolved values in object TOML are document units.
 
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and

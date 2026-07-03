@@ -1,4 +1,5 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
+import { createCanvasUnitSystem } from "./canvasUnits";
 import type { CanvasDocument } from "./sceneModel";
 
 const rawInitialSceneDocument: CanvasDocument = {
@@ -7,6 +8,7 @@ const rawInitialSceneDocument: CanvasDocument = {
   width: 960,
   height: 640,
   unit: "px",
+  unitSystem: createCanvasUnitSystem("px"),
   selectedObjectId: "headline",
   referenceGrid: {
     columns: 6,

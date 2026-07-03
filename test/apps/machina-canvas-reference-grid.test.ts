@@ -8,6 +8,7 @@ import {
   objectToGridRef,
   pointToGridRef,
 } from "../../apps/machina-canvas/src/referenceGrid";
+import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import { getObjectBoundsSummary, summarizeScene } from "../../apps/machina-canvas/src/sceneSummary";
 import type { CanvasDocument } from "../../apps/machina-canvas/src/sceneModel";
 
@@ -17,6 +18,7 @@ const document: CanvasDocument = {
   width: 600,
   height: 400,
   unit: "px",
+  unitSystem: createCanvasUnitSystem("px"),
   selectedObjectId: "feature-chip-1",
   referenceGrid: {
     columns: 6,

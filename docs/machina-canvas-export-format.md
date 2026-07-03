@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. It does not implement import, TOML parsing, ZIP packaging, raster rendering, zoom, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -23,10 +23,12 @@ Editable command recipes:
   TOML
 ```
 
-Pixels are the output.
+Document units are the authored coordinates.
+Rendered pixels are the output.
 JSON is the graph.
 TOML is the contract.
 
+Measure document units.
 Render pixels.
 Index trees.
 Edit TOML.
@@ -82,7 +84,13 @@ Paths inside the bundle are relative to the bundle root.
     "name": "Demo Poster",
     "width": 960,
     "height": 640,
-    "unit": "px"
+    "unit": "px",
+    "unitSystem": {
+      "unit": "px",
+      "label": "px",
+      "pixelsPerUnit": 1,
+      "precision": 0
+    }
   },
   "referenceGrid": {
     "columns": 6,
@@ -140,7 +148,12 @@ Fields:
 - `document.id`: stable document ID.
 - `document.name`: human-readable name.
 - `document.width`, `document.height`: canvas dimensions.
-- `document.unit`: coordinate unit, currently `px`.
+- `document.unit`: compatibility mirror of `document.unitSystem.unit`.
+- `document.unitSystem`: authored document unit metadata.
+- `document.unitSystem.unit`: canonical unit ID such as `px`, `pt`, `mm`, `cm`, `in`, or `cu`.
+- `document.unitSystem.label`: label used in summaries and UI.
+- `document.unitSystem.pixelsPerUnit`: nominal rendered CSS pixels per document unit at 100% export scale.
+- `document.unitSystem.precision`: default decimal precision for formatted measurements.
 - `referenceGrid`: optional locator grid metadata for human/LLM references.
 - `referenceGrid.columns`, `referenceGrid.rows`: grid dimensions.
 - `referenceGrid.columnLabels`, `referenceGrid.rowLabels`: rendered locator labels.
@@ -160,6 +173,9 @@ Rules:
 - Object IDs must be stable.
 - File paths are relative to bundle root.
 - Reference grid metadata describes a locator overlay, not snapping or layout.
+- Object geometry, frame, and resolved values are document units.
+- SVG `viewBox` coordinates can use document coordinates directly.
+- Screen pixels and future viewport zoom are separate from document units.
 - Do not dump giant editable object blobs into `document.json`.
 
 ## Reference Grid
@@ -202,6 +218,8 @@ and `[resolved]` for the current render geometry. `[geometry]` remains as a
 compatibility shorthand for current resolved geometry during this app phase.
 Kind-specific blocks hold fields that only apply to some objects, such as
 `[shape]` for rect radius and `[text]` for text content and font settings.
+All geometry, frame, and resolved numbers are document units from
+`document.unitSystem`.
 
 Rect:
 
@@ -414,6 +432,12 @@ document_json = "document.json"
 [selected]
 object_id = "feature-chip-1"
 
+[unit_system]
+unit = "px"
+label = "px"
+pixels_per_unit = 1
+precision = 0
+
 [reference_grid]
 columns = 6
 rows = 4
@@ -421,7 +445,7 @@ columns_label = "A-F"
 rows_label = "1-4"
 
 [summary]
-text = "Demo Poster is 960x640px with 12 objects across 3 layers. feature-chip-1 (rect): A4-B4; x:72 y:500 w:138 h:34."
+text = "Demo Poster is 960 px x 640 px with 12 objects across 3 layers. Selected Feature chip: IDs spans A4-B4; size 138 px x 34 px."
 
 [validation]
 ok = true
@@ -437,6 +461,7 @@ message = "Selected object is Feature chip: IDs."
 Rules:
 
 - Handoff is metadata, not scene graph.
+- `[unit_system]` preserves the document unit metadata used by summaries and measurements.
 - `[reference_grid]` preserves the locator labels used by summaries and inspector references.
 - Diagnostics can be TOML array tables.
 - It should be easy to read in a text editor.
@@ -457,6 +482,10 @@ M30f reference grid overlays are UI and handoff aids. Clean `render.svg` output
 does not include the grid overlay by default; the grid definition lives in
 `document.json` and `handoff.toml`.
 
+M30i measurement labels are UI aids. Clean `render.svg` output does not include
+measurement labels by default; unit metadata lives in `document.json` and
+`handoff.toml`.
+
 ## Relationship To The Runtime App
 
 The current MachinaCanvas app uses an in-memory scene model. M30d serializers turn that current browser-local scene into a `.mcanvas`-shaped file list:
@@ -474,6 +503,8 @@ The serializers preserve the format law: rendered artifacts are output, JSON is 
 
 M30g serializers include `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan` in command TOML. M30h serializers also include `setFrame`.
+M30i serializers include unit metadata in `document.json` and `[unit_system]`
+in `handoff.toml`.
 These are command recipes only; exporting a recipe does not imply snapping,
 constraints, drag editing, or import support.
 
@@ -488,6 +519,7 @@ Validation checks:
 
 - required files such as `document.json`, `render.svg`, and `handoff.toml`
 - whether `document.json` parses as JSON and has the expected graph/index shape
+- whether optional `document.unitSystem` metadata is structurally valid when present
 - whether every layer asset path in `document.json` exists in the generated file list
 - whether every object asset path in `document.json` exists in the generated file list
 - whether `layers[].objectIds[]` point to known object IDs

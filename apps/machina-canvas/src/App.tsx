@@ -16,6 +16,7 @@ import {
   type CanvasExportBundle,
   type CanvasExportFile,
 } from "./canvasExport";
+import { formatCanvasMeasurement, getCanvasUnitSystem } from "./canvasUnits";
 import {
   formatCanvasExportValidationReport,
   validateCanvasExportBundle,
@@ -31,6 +32,7 @@ import {
 } from "./sceneCommands";
 import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
+import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import type {
   CanvasDocument,
   CanvasFrame,
@@ -101,8 +103,16 @@ type CommandLogEntry = {
   results: CanvasCommandApplyResult[];
 };
 
+type CanvasAidToggles = {
+  showReferenceGrid: boolean;
+  showReferenceGridLines: boolean;
+  showMeasurementLabels: boolean;
+  showGeometryDiagnostics: boolean;
+};
+
 type AppViewData = {
   document: CanvasDocument;
+  aidToggles: CanvasAidToggles;
   lastCommand: string;
   commandJson: string;
   commandValidation: CanvasCommandValidationResult | undefined;
@@ -113,6 +123,7 @@ type AppViewData = {
   exportValidation: CanvasExportValidationResult | undefined;
   selectedExportPath: string | undefined;
   exportStatus: string;
+  setAidToggle: (key: keyof CanvasAidToggles, value: boolean) => void;
   runCommand: (command: CanvasCommand) => void;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
@@ -229,6 +240,14 @@ function formatChange(change: CanvasCommandApplyResult["changes"][number]): stri
 
 function formatFileSize(text: string): string {
   return `${text.length.toLocaleString()} chars`;
+}
+
+function formatDocumentSize(document: CanvasDocument): string {
+  const unitSystem = getCanvasUnitSystem(document);
+  return `${formatCanvasMeasurement(document.width, unitSystem)} x ${formatCanvasMeasurement(
+    document.height,
+    unitSystem,
+  )}`;
 }
 
 function formatFrameIntent(frame: CanvasFrame | undefined): string {
@@ -418,7 +437,13 @@ function SceneObjectSvg({
   );
 }
 
-function ReferenceGridOverlay({ document }: { document: CanvasDocument }) {
+function ReferenceGridOverlay({
+  document,
+  showLines,
+}: {
+  document: CanvasDocument;
+  showLines: boolean;
+}) {
   const config = createReferenceGridConfig(document.referenceGrid);
   const cellWidth = document.width / config.columns;
   const cellHeight = document.height / config.rows;
@@ -440,7 +465,7 @@ function ReferenceGridOverlay({ document }: { document: CanvasDocument }) {
           height={document.height}
         />
       ) : null}
-      {config.showLines
+      {showLines
         ? Array.from({ length: config.columns - 1 }, (_, index) => (
             <line
               className="reference-grid-line"
@@ -452,7 +477,7 @@ function ReferenceGridOverlay({ document }: { document: CanvasDocument }) {
             />
           ))
         : null}
-      {config.showLines
+      {showLines
         ? Array.from({ length: config.rows - 1 }, (_, index) => (
             <line
               className="reference-grid-line"
@@ -495,8 +520,31 @@ function ReferenceGridOverlay({ document }: { document: CanvasDocument }) {
   );
 }
 
+function MeasurementLabelsOverlay({ document }: { document: CanvasDocument }) {
+  const selected = getSelectedObject(document);
+  if (!selected) return null;
+
+  const unitSystem = getCanvasUnitSystem(document);
+  const width = formatCanvasMeasurement(selected.width, unitSystem);
+  const height = formatCanvasMeasurement(selected.height, unitSystem);
+  const centerX = formatCanvasMeasurement(selected.x + selected.width / 2, unitSystem);
+  const centerY = formatCanvasMeasurement(selected.y + selected.height / 2, unitSystem);
+  const labelY = Math.max(18, selected.y - 12);
+
+  return (
+    <g className="measurement-label-overlay" pointerEvents="none">
+      <text x={selected.x} y={labelY}>
+        w {width} x h {height}
+      </text>
+      <text x={selected.x} y={selected.y + selected.height + 18}>
+        center {centerX}, {centerY}
+      </text>
+    </g>
+  );
+}
+
 function CanvasPanel(props: MachinaSlotProps) {
-  const { document, runCommand } = readViewData(props);
+  const { document, aidToggles, runCommand } = readViewData(props);
 
   return (
     <main className="canvas-panel panel">
@@ -505,9 +553,7 @@ function CanvasPanel(props: MachinaSlotProps) {
           <small>Canvas / Artboard</small>
           <h1>{document.name}</h1>
         </div>
-        <span>
-          {document.width} x {document.height} {document.unit}
-        </span>
+        <span>{formatDocumentSize(document)}</span>
       </div>
       <div className="artboard-wrap">
         <svg
@@ -527,7 +573,15 @@ function CanvasPanel(props: MachinaSlotProps) {
                 onSelect={(id) => runCommand({ kind: "select", id })}
               />
             ))}
-          <ReferenceGridOverlay document={document} />
+          {aidToggles.showMeasurementLabels ? (
+            <MeasurementLabelsOverlay document={document} />
+          ) : null}
+          {aidToggles.showReferenceGrid ? (
+            <ReferenceGridOverlay
+              document={document}
+              showLines={aidToggles.showReferenceGridLines}
+            />
+          ) : null}
         </svg>
       </div>
     </main>
@@ -549,6 +603,56 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function ToggleField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="toggle-row">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+    </label>
+  );
+}
+
+function ViewAidsSection(props: MachinaSlotProps) {
+  const { aidToggles, setAidToggle } = readViewData(props);
+
+  return (
+    <InspectorSection title="View aids">
+      <ToggleField
+        label="Reference grid"
+        checked={aidToggles.showReferenceGrid}
+        onChange={(checked) => setAidToggle("showReferenceGrid", checked)}
+      />
+      <ToggleField
+        label="Grid lines"
+        checked={aidToggles.showReferenceGridLines}
+        onChange={(checked) => setAidToggle("showReferenceGridLines", checked)}
+      />
+      <ToggleField
+        label="Measurement labels"
+        checked={aidToggles.showMeasurementLabels}
+        onChange={(checked) => setAidToggle("showMeasurementLabels", checked)}
+      />
+      <ToggleField
+        label="Geometry diagnostics"
+        checked={aidToggles.showGeometryDiagnostics}
+        onChange={(checked) => setAidToggle("showGeometryDiagnostics", checked)}
+      />
+    </InspectorSection>
   );
 }
 
@@ -744,9 +848,11 @@ function ExportPanel(props: MachinaSlotProps) {
 }
 
 function Inspector(props: MachinaSlotProps) {
-  const { document, runCommand } = readViewData(props);
+  const { document, aidToggles, runCommand } = readViewData(props);
   const selected = getSelectedObject(document);
   const layer = getObjectLayer(document, selected);
+  const unitSystem = getCanvasUnitSystem(document);
+  const measurements = getSelectedObjectMeasurements(document);
 
   if (!selected) {
     return (
@@ -757,11 +863,19 @@ function Inspector(props: MachinaSlotProps) {
         </header>
         <InspectorSection title="Document">
           <Field label="ID" value={document.id} />
-          <Field label="Size" value={`${document.width} x ${document.height} ${document.unit}`} />
+          <Field label="Size" value={formatDocumentSize(document)} />
+          <Field label="Unit" value={unitSystem.label} />
+          <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
           <Field label="Layers" value={document.layers.length} />
           <Field label="Objects" value={Object.keys(document.objects).length} />
         </InspectorSection>
-        <GeometryDiagnosticsSection {...props} />
+        <ViewAidsSection {...props} />
+        <InspectorSection title="Measurements">
+          {measurements.map((measurement) => (
+            <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+          ))}
+        </InspectorSection>
+        {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
         <ExportPanel {...props} />
         <CommandJsonPanel {...props} />
       </aside>
@@ -806,8 +920,28 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Intent" value={formatFrameIntent(selected.frame)} />
       </InspectorSection>
       <InspectorSection title="Resolved">
-        <Field label="X / Y" value={`${selected.x} / ${selected.y}`} />
-        <Field label="W / H" value={`${selected.width} / ${selected.height}`} />
+        <Field
+          label="X / Y"
+          value={`${formatCanvasMeasurement(selected.x, unitSystem)} / ${formatCanvasMeasurement(
+            selected.y,
+            unitSystem,
+          )}`}
+        />
+        <Field
+          label="W / H"
+          value={`${formatCanvasMeasurement(
+            selected.width,
+            unitSystem,
+          )} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
+        />
+      </InspectorSection>
+      <ViewAidsSection {...props} />
+      <InspectorSection title="Measurements">
+        <Field label="Unit" value={unitSystem.label} />
+        <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
+        {measurements.map((measurement) => (
+          <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+        ))}
       </InspectorSection>
       <InspectorSection title="Reference">
         <Field label="Span" value={selectedGrid.span} />
@@ -824,7 +958,7 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Tags" value={selected.tags?.join(", ") ?? "none"} />
         <Field label="Notes" value={selected.notes ?? "none"} />
       </InspectorSection>
-      <GeometryDiagnosticsSection {...props} />
+      {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
       <ExportPanel {...props} />
       <CommandJsonPanel {...props} />
     </aside>
@@ -930,6 +1064,12 @@ export function App() {
     CanvasCommandValidationResult | undefined
   >();
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
+  const [aidToggles, setAidToggles] = useState<CanvasAidToggles>({
+    showReferenceGrid: true,
+    showReferenceGridLines: false,
+    showMeasurementLabels: false,
+    showGeometryDiagnostics: true,
+  });
   const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
   const [exportBundle, setExportBundle] = useState<CanvasExportBundle>();
   const [exportValidation, setExportValidation] = useState<CanvasExportValidationResult>();
@@ -966,6 +1106,10 @@ export function App() {
       const applyResult = applyCanvasCommands(document, [command]);
       setDocument(applyResult.document);
       recordAppliedCommands([command], applyResult.results);
+    };
+
+    const setAidToggle = (key: keyof CanvasAidToggles, value: boolean) => {
+      setAidToggles((current) => ({ ...current, [key]: value }));
     };
 
     const loadExampleCommands = () => {
@@ -1082,6 +1226,7 @@ export function App() {
 
     return {
       document,
+      aidToggles,
       lastCommand,
       commandJson,
       commandValidation,
@@ -1092,6 +1237,7 @@ export function App() {
       exportValidation,
       selectedExportPath,
       exportStatus,
+      setAidToggle,
       runCommand,
       setCommandJson,
       loadExampleCommands,
@@ -1105,6 +1251,7 @@ export function App() {
     };
   }, [
     document,
+    aidToggles,
     lastCommand,
     commandJson,
     commandValidation,

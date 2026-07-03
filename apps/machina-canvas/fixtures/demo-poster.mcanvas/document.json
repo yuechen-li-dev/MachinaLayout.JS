@@ -5,7 +5,14 @@
     "name": "Demo Poster",
     "width": 960,
     "height": 640,
-    "unit": "px"
+    "unit": "px",
+    "unitSystem": {
+      "unit": "px",
+      "label": "px",
+      "unitsPerInch": 96,
+      "pixelsPerUnit": 1,
+      "precision": 0
+    }
   },
   "referenceGrid": {
     "columns": 6,

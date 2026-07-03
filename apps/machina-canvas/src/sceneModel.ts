@@ -1,13 +1,22 @@
 import type { ReferenceGridConfig } from "./referenceGrid";
 
-export type CanvasUnit = "px";
+export type CanvasUnitName = "px" | "pt" | "mm" | "cm" | "in" | "cu";
+
+export type CanvasUnitSystem = {
+  unit: CanvasUnitName;
+  label: string;
+  unitsPerInch?: number;
+  pixelsPerUnit: number;
+  precision: number;
+};
 
 export type CanvasDocument = {
   id: string;
   name: string;
   width: number;
   height: number;
-  unit: CanvasUnit;
+  unit: CanvasUnitName;
+  unitSystem: CanvasUnitSystem;
   layers: CanvasLayer[];
   objects: Record<string, CanvasObject>;
   selectedObjectId?: string;

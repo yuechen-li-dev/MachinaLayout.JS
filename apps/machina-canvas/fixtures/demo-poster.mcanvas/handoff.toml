@@ -9,6 +9,13 @@ document_json = "document.json"
 [selected]
 object_id = "headline"
 
+[unit_system]
+unit = "px"
+label = "px"
+units_per_inch = 96
+pixels_per_unit = 1
+precision = 0
+
 [reference_grid]
 columns = 6
 rows = 4

@@ -9,6 +9,7 @@ import {
   validateCanvasExportBundle,
   type CanvasExportValidationDiagnosticCode,
 } from "../../apps/machina-canvas/src/canvasExportValidation";
+import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import type { CanvasDocument } from "../../apps/machina-canvas/src/sceneModel";
 
 const document: CanvasDocument = {
@@ -17,6 +18,7 @@ const document: CanvasDocument = {
   width: 320,
   height: 180,
   unit: "px",
+  unitSystem: createCanvasUnitSystem("px"),
   selectedObjectId: "headline",
   layers: [
     {

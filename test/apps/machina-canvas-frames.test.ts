@@ -5,6 +5,7 @@ import {
   resolveCanvasFrame,
   resolveCanvasObjectFrame,
 } from "../../apps/machina-canvas/src/canvasFrames";
+import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import type { CanvasDocument } from "../../apps/machina-canvas/src/sceneModel";
 
 const document: CanvasDocument = {
@@ -13,6 +14,7 @@ const document: CanvasDocument = {
   width: 600,
   height: 400,
   unit: "px",
+  unitSystem: createCanvasUnitSystem("px"),
   referenceGrid: {
     columns: 6,
     rows: 4,

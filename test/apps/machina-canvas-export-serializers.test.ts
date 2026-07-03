@@ -8,6 +8,7 @@ import {
   serializeCanvasObjectToml,
   serializeCanvasRenderSvg,
 } from "../../apps/machina-canvas/src/canvasExport";
+import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import type { CanvasCommand } from "../../apps/machina-canvas/src/sceneCommands";
 import type { GeometryDiagnostic } from "../../apps/machina-canvas/src/sceneGeometry";
 import type { CanvasDocument } from "../../apps/machina-canvas/src/sceneModel";
@@ -18,6 +19,7 @@ const document: CanvasDocument = {
   width: 320,
   height: 180,
   unit: "px",
+  unitSystem: createCanvasUnitSystem("px"),
   selectedObjectId: "headline",
   layers: [
     {
@@ -156,6 +158,13 @@ describe("MachinaCanvas export serializers", () => {
       width: 320,
       height: 180,
       unit: "px",
+      unitSystem: {
+        unit: "px",
+        label: "px",
+        unitsPerInch: 96,
+        pixelsPerUnit: 1,
+        precision: 0,
+      },
     });
     expect(parsed.referenceGrid).toEqual({
       columns: 6,
@@ -264,6 +273,9 @@ describe("MachinaCanvas export serializers", () => {
 
     expect(toml).toContain("schema_version = 1");
     expect(toml).toContain('[selected]\nobject_id = "headline"');
+    expect(toml).toContain(
+      '[unit_system]\nunit = "px"\nlabel = "px"\nunits_per_inch = 96\npixels_per_unit = 1\nprecision = 0',
+    );
     expect(toml).toContain(
       '[reference_grid]\ncolumns = 6\nrows = 4\ncolumns_label = "A-F"\nrows_label = "1-4"',
     );

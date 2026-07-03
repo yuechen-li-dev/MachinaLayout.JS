@@ -1,5 +1,6 @@
 import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
+import { getCanvasUnitSystem } from "./canvasUnits";
 import type {
   CanvasDocument,
   CanvasFrame,
@@ -91,6 +92,34 @@ function getReferenceGridMetadata(document: CanvasDocument) {
     columnLabels,
     rowLabels,
   };
+}
+
+function getUnitSystemMetadata(document: CanvasDocument) {
+  const unitSystem = getCanvasUnitSystem(document);
+  return {
+    unit: unitSystem.unit,
+    label: unitSystem.label,
+    unitsPerInch: unitSystem.unitsPerInch,
+    pixelsPerUnit: unitSystem.pixelsPerUnit,
+    precision: unitSystem.precision,
+  };
+}
+
+function pushUnitSystemToml(lines: string[], document: CanvasDocument) {
+  const unitSystem = getUnitSystemMetadata(document);
+  lines.push(
+    "",
+    "[unit_system]",
+    `unit = ${quoteTomlString(unitSystem.unit)}`,
+    `label = ${quoteTomlString(unitSystem.label)}`,
+  );
+  if (unitSystem.unitsPerInch !== undefined) {
+    lines.push(`units_per_inch = ${unitSystem.unitsPerInch}`);
+  }
+  lines.push(
+    `pixels_per_unit = ${unitSystem.pixelsPerUnit}`,
+    `precision = ${unitSystem.precision}`,
+  );
 }
 
 function formatLabelRange(labels: readonly string[]): string {
@@ -200,7 +229,8 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         name: document.name,
         width: document.width,
         height: document.height,
-        unit: document.unit,
+        unit: getCanvasUnitSystem(document).unit,
+        unitSystem: getUnitSystemMetadata(document),
       },
       referenceGrid: getReferenceGridMetadata(document),
       layers: document.layers.map((layer) => ({
@@ -375,6 +405,8 @@ export function serializeCanvasHandoffToml(
   if (selectedObjectId) {
     lines.push("", "[selected]", `object_id = ${quoteTomlString(selectedObjectId)}`);
   }
+
+  pushUnitSystemToml(lines, document);
 
   lines.push(
     "",
