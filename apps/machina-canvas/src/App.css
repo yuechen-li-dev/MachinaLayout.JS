@@ -1,0 +1,368 @@
+:root {
+  color: #111111;
+  background: #ffffff;
+  font-family:
+    Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 760px;
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+button {
+  font: inherit;
+}
+
+.machina-canvas {
+  overflow: auto;
+  background: #ffffff;
+}
+
+.machina-node {
+  min-width: 0;
+  min-height: 0;
+}
+
+.panel {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-color: #e3e3df;
+  border-style: solid;
+  border-width: 0 1px 1px 0;
+  overflow: hidden;
+}
+
+.scene-tree,
+.inspector {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-wordmark {
+  padding: 24px 22px 20px;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.app-wordmark span {
+  display: block;
+  font-size: 22px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.app-wordmark small,
+.panel-title small,
+.canvas-heading small,
+.object-card small,
+.tree-layer small {
+  color: #70706a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.tree-layer {
+  border-bottom: 1px solid #ededeb;
+}
+
+.layer-row,
+.tree-object,
+.object-card,
+.command-row button {
+  border: 0;
+  background: transparent;
+  color: #111111;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.tree-objects {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 12px;
+}
+
+.tree-object {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 8px;
+  text-align: left;
+}
+
+.tree-object span:last-child {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 610;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-object.is-selected,
+.object-card.is-selected {
+  background: #f1f1ee;
+  outline: 1px solid #111111;
+}
+
+.kind-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 18px;
+  border: 1px solid #d0d0ca;
+  color: #333333;
+  font-size: 9px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.kind-rect {
+  background: #ffffff;
+}
+
+.kind-ellipse {
+  background: #eef6f8;
+}
+
+.kind-text {
+  background: #f8f3e8;
+}
+
+.canvas-panel {
+  display: flex;
+  flex-direction: column;
+  background: #f7f7f5;
+}
+
+.canvas-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 74px;
+  padding: 18px 24px 14px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.canvas-heading h1,
+.panel-title h2 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  font-weight: 720;
+  line-height: 1.1;
+}
+
+.canvas-heading span {
+  color: #555550;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.artboard-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  height: 100%;
+  padding: 26px;
+}
+
+.artboard {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 3 / 2;
+  background: #f4f4f1;
+  border: 1px solid #d7d7d2;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.08);
+}
+
+.canvas-object {
+  cursor: pointer;
+}
+
+.selection-box {
+  fill: none;
+  stroke: #2364d2;
+  stroke-dasharray: 7 5;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.inspector {
+  padding: 22px;
+  overflow: auto;
+}
+
+.panel-title {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e5e5e0;
+}
+
+.command-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.command-row button {
+  min-height: 34px;
+  border: 1px solid #111111;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.inspector-section {
+  padding: 17px 0;
+  border-top: 1px solid #ededeb;
+}
+
+.inspector-section h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.inspector-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  color: #555550;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.field-row strong {
+  color: #111111;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.scene-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.summary-text {
+  margin: 0;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.object-card-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 10px;
+  min-height: 0;
+}
+
+.object-card {
+  display: grid;
+  grid-template-rows: 20px auto auto;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 106px;
+  padding: 10px;
+  border: 1px solid #dfdfd9;
+  text-align: left;
+}
+
+.object-card strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-card small {
+  text-transform: none;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 0 18px;
+  border-top: 1px solid #d7d7d2;
+  background: #111111;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.breadcrumb strong {
+  color: #d8d8d4;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .app-wordmark {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .tree-object {
+    grid-template-columns: 38px minmax(0, 1fr);
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .inspector {
+    padding: 16px;
+  }
+
+  .command-row {
+    grid-template-columns: 1fr;
+  }
+
+  .object-card-row {
+    grid-template-columns: repeat(5, minmax(112px, 1fr));
+    overflow-x: auto;
+  }
+}
