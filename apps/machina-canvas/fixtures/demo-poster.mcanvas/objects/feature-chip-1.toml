@@ -11,6 +11,19 @@ y = 500
 width = 138
 height = 34
 
+[frame]
+kind = "referenceGrid"
+ref = "A4@0.88125,0.23125"
+anchor = "center"
+width = 138
+height = 34
+
+[resolved]
+x = 72
+y = 500
+width = 138
+height = 34
+
 [shape]
 radius = 17
 

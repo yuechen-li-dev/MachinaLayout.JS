@@ -1,9 +1,13 @@
 import type { CanvasDocument, CanvasObject } from "./sceneModel";
 import { objectToGridRef } from "./referenceGrid";
 
+export function getObjectFrameKind(object: CanvasObject): string {
+  return object.frame?.kind ?? "implicit absolute";
+}
+
 export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDocument): string {
   const grid = document ? `${objectToGridRef(object, document).span}; ` : "";
-  return `${object.id} (${object.kind}) ${grid}x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {

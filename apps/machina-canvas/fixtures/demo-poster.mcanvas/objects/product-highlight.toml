@@ -11,6 +11,19 @@ y = 238
 width = 62
 height = 170
 
+[frame]
+kind = "absolute"
+x = 565
+y = 238
+width = 62
+height = 170
+
+[resolved]
+x = 565
+y = 238
+width = 62
+height = 170
+
 [style]
 fill = "#ffffff"
 stroke = "none"

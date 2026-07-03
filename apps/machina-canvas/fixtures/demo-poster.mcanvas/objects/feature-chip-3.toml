@@ -11,6 +11,19 @@ y = 500
 width = 182
 height = 34
 
+[frame]
+kind = "absolute"
+x = 398
+y = 500
+width = 182
+height = 34
+
+[resolved]
+x = 398
+y = 500
+width = 182
+height = 34
+
 [shape]
 radius = 17
 

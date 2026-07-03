@@ -13,6 +13,17 @@ ref = "B4.c"
 anchor = "center"
 
 [[command]]
+kind = "setFrame"
+id = "cta-bg"
+
+[command.frame]
+kind = "anchor"
+left = 72
+top = 390
+width = 188
+height = 48
+
+[[command]]
 kind = "move"
 id = "cta-bg"
 dx = 0

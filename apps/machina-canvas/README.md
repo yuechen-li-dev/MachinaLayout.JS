@@ -29,6 +29,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - stable object IDs and geometry bounds
 - scene summaries for the first LLM "SEE" layer
 - CAD-style reference grid spans for speakable object locations
+- canvas frame intent separate from resolved object geometry
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
 - geometry diagnostics for selected-object and scene inspection
@@ -58,6 +59,7 @@ Supported command kinds:
 - `moveToGrid`
 - `alignToGrid`
 - `resizeToGridSpan`
+- `setFrame`
 
 Grid-aware commands let command JSON target the reference grid instead of raw
 pixels:
@@ -66,7 +68,11 @@ pixels:
 [
   { "kind": "moveToGrid", "id": "feature-chip-1", "ref": "B4.c", "anchor": "center" },
   { "kind": "alignToGrid", "ids": ["logo", "headline"], "axis": "left", "ref": "A1.w" },
-  { "kind": "resizeToGridSpan", "id": "product-body", "span": "D2-E4" }
+  {
+    "kind": "setFrame",
+    "id": "cta-bg",
+    "frame": { "kind": "anchor", "left": 72, "top": 390, "width": 188, "height": 48 }
+  }
 ]
 ```
 
@@ -77,6 +83,24 @@ cover full cells inclusively.
 Validation reports diagnostics instead of throwing for normal input failures. It checks command kind, target object IDs, finite numbers, positive sizes, align/distribute object lists, valid axes, grid refs, grid spans, anchors, and non-negative distribute gaps.
 
 The command log records recent applied commands, result messages, and field-level before/after changes. This is the command substrate an LLM could target, but the app does not call an LLM API yet.
+
+## Canvas Frames
+
+M30h adds a first canvas-side layout vocabulary. MachinaCanvas objects can now
+carry `frame` intent while keeping `x`, `y`, `width`, and `height` as resolved
+geometry for rendering. Rendering still reads the resolved geometry only.
+
+Supported frame kinds:
+
+- `absolute`: explicit `x`, `y`, `width`, and `height`
+- `anchor`: exactly two horizontal constraints from `left`, `right`, `width`
+  and exactly two vertical constraints from `top`, `bottom`, `height`
+- `referenceGrid`: place an explicit-size object at a reference grid point
+- `referenceGridSpan`: fill a full reference grid cell or inclusive cell span
+
+`setFrame` validates and stores frame intent, then immediately updates resolved
+geometry. This is not a full layout solver, snapping system, import path, CAD
+dimension model, or backend/LLM integration.
 
 ## Geometry Diagnostics
 

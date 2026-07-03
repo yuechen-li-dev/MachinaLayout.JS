@@ -31,7 +31,13 @@ import {
 } from "./sceneCommands";
 import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
-import type { CanvasDocument, CanvasObject, CanvasObjectKind, TextObject } from "./sceneModel";
+import type {
+  CanvasDocument,
+  CanvasFrame,
+  CanvasObject,
+  CanvasObjectKind,
+  TextObject,
+} from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
 
@@ -55,6 +61,7 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   moveToGrid: "Move to grid",
   alignToGrid: "Align to grid",
   resizeToGridSpan: "Resize to grid span",
+  setFrame: "Set frame",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -72,9 +79,15 @@ const exampleCommandJson = JSON.stringify(
       ref: "A1.w",
     },
     {
-      kind: "resizeToGridSpan",
-      id: "product-body",
-      span: "D2-E4",
+      kind: "setFrame",
+      id: "cta-bg",
+      frame: {
+        kind: "anchor",
+        left: 72,
+        top: 390,
+        width: 188,
+        height: 48,
+      },
     },
   ],
   null,
@@ -216,6 +229,13 @@ function formatChange(change: CanvasCommandApplyResult["changes"][number]): stri
 
 function formatFileSize(text: string): string {
   return `${text.length.toLocaleString()} chars`;
+}
+
+function formatFrameIntent(frame: CanvasFrame | undefined): string {
+  if (!frame) return "kind: implicit absolute";
+
+  const entries = Object.entries(frame).filter(([, value]) => value !== undefined);
+  return entries.map(([key, value]) => `${key}: ${String(value)}`).join("; ");
 }
 
 function getSelectedExportFile(
@@ -781,6 +801,11 @@ function Inspector(props: MachinaSlotProps) {
       <InspectorSection title="Geometry">
         <Field label="Kind" value={objectKindLabels[selected.kind]} />
         <Field label="Layer" value={layer?.name ?? selected.layerId} />
+      </InspectorSection>
+      <InspectorSection title="Frame">
+        <Field label="Intent" value={formatFrameIntent(selected.frame)} />
+      </InspectorSection>
+      <InspectorSection title="Resolved">
         <Field label="X / Y" value={`${selected.x} / ${selected.y}`} />
         <Field label="W / H" value={`${selected.width} / ${selected.height}`} />
       </InspectorSection>

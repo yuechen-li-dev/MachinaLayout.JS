@@ -1,4 +1,5 @@
-import type { CanvasDocument, CanvasObject } from "./sceneModel";
+import { resolveCanvasFrame } from "./canvasFrames";
+import type { CanvasDocument, CanvasFrame, CanvasObject } from "./sceneModel";
 import {
   gridPointRefToCanvasPoint,
   gridSpanRefToCanvasRect,
@@ -40,6 +41,11 @@ export type CanvasCommand =
       kind: "resizeToGridSpan";
       id: string;
       span: string;
+    }
+  | {
+      kind: "setFrame";
+      id: string;
+      frame: CanvasFrame;
     };
 
 export type CanvasCommandValidationContext = {
@@ -259,6 +265,65 @@ function validateGridSpan(
   }
 }
 
+function validateCanvasFrameValue(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  frame: unknown,
+  commandIndex: number | undefined,
+  context?: CanvasCommandValidationContext,
+) {
+  if (!isRecord(frame) || !isString(frame.kind)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidFrame",
+      message: "frame must be an object with a string kind.",
+      commandIndex,
+    });
+    return;
+  }
+
+  if (!["absolute", "anchor", "referenceGrid", "referenceGridSpan"].includes(frame.kind)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidFrame",
+      message: `Unknown frame kind "${frame.kind}".`,
+      commandIndex,
+    });
+    return;
+  }
+
+  if (
+    frame.kind === "referenceGrid" &&
+    frame.anchor !== undefined &&
+    (!isString(frame.anchor) || !gridAnchors.has(frame.anchor))
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidFrame",
+      message: "referenceGrid frame anchor must be topLeft, center, or bottomRight.",
+      commandIndex,
+    });
+    return;
+  }
+
+  try {
+    resolveCanvasFrame(frame as CanvasFrame, {
+      document,
+      referenceGrid: context?.referenceGrid ?? document.referenceGrid,
+    });
+  } catch (error) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code:
+        frame.kind === "referenceGrid" || frame.kind === "referenceGridSpan"
+          ? "InvalidFrameReference"
+          : "InvalidFrame",
+      message: error instanceof Error ? error.message : "Invalid canvas frame.",
+      commandIndex,
+    });
+  }
+}
+
 export function validateCanvasCommand(
   document: CanvasDocument,
   command: unknown,
@@ -374,6 +439,10 @@ export function validateCanvasCommand(
     case "resizeToGridSpan":
       validateObjectId(document, diagnostics, command.id, commandIndex);
       validateGridSpan(document, diagnostics, command.span, commandIndex, context);
+      break;
+    case "setFrame":
+      validateObjectId(document, diagnostics, command.id, commandIndex);
+      validateCanvasFrameValue(document, diagnostics, command.frame, commandIndex, context);
       break;
     default:
       addDiagnostic(diagnostics, {
@@ -579,6 +648,9 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
   if (command.kind === "resizeToGridSpan") {
     return `Resized ${command.id} to span ${command.span}.`;
   }
+  if (command.kind === "setFrame") {
+    return `Set ${command.id} frame to ${command.frame.kind}.`;
+  }
   const objectCount = new Set(changes.map((change) => change.objectId)).size;
   return `${command.kind} changed ${changes.length} field${changes.length === 1 ? "" : "s"} on ${objectCount} object${objectCount === 1 ? "" : "s"}.`;
 }
@@ -693,6 +765,26 @@ export function applyCanvasCommand(
     if (changes.length > 0) {
       nextDocument = replaceObject(document, object.id, {
         ...object,
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      });
+    }
+  } else if (command.kind === "setFrame") {
+    const rect = resolveCanvasFrame(command.frame, {
+      document,
+      referenceGrid: context?.referenceGrid ?? document.referenceGrid,
+    });
+    changeField(changes, object, "frame", command.frame);
+    changeField(changes, object, "x", rect.x);
+    changeField(changes, object, "y", rect.y);
+    changeField(changes, object, "width", rect.width);
+    changeField(changes, object, "height", rect.height);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, object.id, {
+        ...object,
+        frame: command.frame,
         x: rect.x,
         y: rect.y,
         width: rect.width,

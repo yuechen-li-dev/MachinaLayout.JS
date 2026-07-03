@@ -11,6 +11,19 @@ y = 482
 width = 250
 height = 44
 
+[frame]
+kind = "absolute"
+x = 500
+y = 482
+width = 250
+height = 44
+
+[resolved]
+x = 500
+y = 482
+width = 250
+height = 44
+
 [style]
 fill = "#d8d8d4"
 stroke = "none"

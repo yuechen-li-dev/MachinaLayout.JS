@@ -134,6 +134,11 @@ describe("MachinaCanvas reference grid command refs", () => {
       { kind: "moveToGrid", id: "a", ref: "B2.c" },
       { kind: "alignToGrid", ids: ["a"], axis: "left", ref: "A1.w" },
       { kind: "resizeToGridSpan", id: "b", span: "D2-E3" },
+      {
+        kind: "setFrame",
+        id: "c",
+        frame: { kind: "referenceGrid", ref: "D3.c", width: 40, height: 40 },
+      },
     ];
 
     expect(validateCanvasCommands(document, valid).ok).toBe(true);
@@ -160,6 +165,20 @@ describe("MachinaCanvas reference grid command refs", () => {
       validateCanvasCommands(document, { kind: "resizeToGridSpan", id: "b", span: "A1.ne-B2" })
         .diagnostics,
     ).toContainEqual(expect.objectContaining({ code: "InvalidGridSpan" }));
+    expect(
+      validateCanvasCommands(document, {
+        kind: "setFrame",
+        id: "c",
+        frame: { kind: "anchor", left: 10, width: 20, height: 30 },
+      }).diagnostics,
+    ).toContainEqual(expect.objectContaining({ code: "InvalidFrame" }));
+    expect(
+      validateCanvasCommands(document, {
+        kind: "setFrame",
+        id: "c",
+        frame: { kind: "referenceGrid", ref: "Z1", width: 40, height: 40 },
+      }).diagnostics,
+    ).toContainEqual(expect.objectContaining({ code: "InvalidFrameReference" }));
   });
 
   it("applies moveToGrid without mutating the original document", () => {
@@ -200,5 +219,42 @@ describe("MachinaCanvas reference grid command refs", () => {
       "width",
       "height",
     ]);
+  });
+
+  it("applies setFrame and records frame plus resolved geometry changes", () => {
+    const absolute = applyCanvasCommands(document, [
+      {
+        kind: "setFrame",
+        id: "a",
+        frame: { kind: "absolute", x: 5, y: 6, width: 70, height: 80 },
+      },
+    ]);
+    const anchor = applyCanvasCommands(document, [
+      {
+        kind: "setFrame",
+        id: "a",
+        frame: { kind: "anchor", right: 10, bottom: 20, width: 70, height: 80 },
+      },
+    ]);
+    const grid = applyCanvasCommands(document, [
+      {
+        kind: "setFrame",
+        id: "a",
+        frame: { kind: "referenceGrid", ref: "B2.c", width: 20, height: 10 },
+      },
+    ]);
+
+    expect(absolute.document.objects.a).toMatchObject({ x: 5, y: 6, width: 70, height: 80 });
+    expect(absolute.document.objects.a.frame).toEqual({
+      kind: "absolute",
+      x: 5,
+      y: 6,
+      width: 70,
+      height: 80,
+    });
+    expect(anchor.document.objects.a).toMatchObject({ x: 520, y: 300, width: 70, height: 80 });
+    expect(grid.document.objects.a).toMatchObject({ x: 140, y: 145, width: 20, height: 10 });
+    expect(grid.results[0].changes.map((change) => change.field)).toEqual(["frame", "x", "y"]);
+    expect(grid.results[0].message).toBe("Set a frame to referenceGrid.");
   });
 });

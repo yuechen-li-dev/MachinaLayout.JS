@@ -50,6 +50,7 @@ const document: CanvasDocument = {
       y: 0,
       width: 320,
       height: 180,
+      frame: { kind: "anchor", left: 0, top: 0, right: 0, bottom: 0 },
       fill: "#ffffff",
       stroke: "#dddddd",
       radius: 0,
@@ -136,6 +137,11 @@ const commands: CanvasCommand[] = [
   { kind: "moveToGrid", id: "headline", ref: "B2.c", anchor: "center" },
   { kind: "alignToGrid", ids: ["headline", "badge"], axis: "left", ref: "A1.w" },
   { kind: "resizeToGridSpan", id: "bg", span: "A1-C2" },
+  {
+    kind: "setFrame",
+    id: "badge",
+    frame: { kind: "anchor", right: 24, top: 40, width: 64, height: 36 },
+  },
 ];
 
 describe("MachinaCanvas export serializers", () => {
@@ -182,6 +188,14 @@ describe("MachinaCanvas export serializers", () => {
     const ellipseToml = serializeCanvasObjectToml(document.objects.badge);
 
     expect(rectToml).toContain("[geometry]\nx = 0\ny = 0\nwidth = 320\nheight = 180");
+    expect(rectToml).toContain(
+      '[frame]\nkind = "anchor"\nleft = 0\nright = 0\ntop = 0\nbottom = 0',
+    );
+    expect(rectToml).toContain("[resolved]\nx = 0\ny = 0\nwidth = 320\nheight = 180");
+    expect(textToml).toContain(
+      '[frame]\nkind = "absolute"\nx = 24\ny = 30\nwidth = 140\nheight = 44',
+    );
+    expect(textToml).toContain("[resolved]\nx = 24\ny = 30\nwidth = 140\nheight = 44");
     expect(rectToml).toContain("[shape]\nradius = 0");
     expect(rectToml).toContain('[style]\nfill = "#ffffff"\nstroke = "#dddddd"');
     expect(rectToml).toContain('[metadata]\ntags = ["surface"]\nnotes = "Root panel."');
@@ -221,6 +235,9 @@ describe("MachinaCanvas export serializers", () => {
       'kind = "alignToGrid"\naxis = "left"\nids = ["headline", "badge"]\nref = "A1.w"',
     );
     expect(toml).toContain('kind = "resizeToGridSpan"\nid = "bg"\nspan = "A1-C2"');
+    expect(toml).toContain(
+      'kind = "setFrame"\nid = "badge"\n\n[command.frame]\nkind = "anchor"\nright = 24\ntop = 40\nwidth = 64\nheight = 36',
+    );
   });
 
   it("serializes handoff metadata with selection and diagnostics", () => {

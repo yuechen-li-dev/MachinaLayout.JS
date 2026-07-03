@@ -1,6 +1,7 @@
+import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import type { CanvasDocument } from "./sceneModel";
 
-export const initialSceneDocument: CanvasDocument = {
+const rawInitialSceneDocument: CanvasDocument = {
   id: "demo-poster",
   name: "Demo Poster",
   width: 960,
@@ -56,6 +57,7 @@ export const initialSceneDocument: CanvasDocument = {
       y: 0,
       width: 960,
       height: 640,
+      frame: { kind: "anchor", left: 0, top: 0, right: 0, bottom: 0 },
       fill: "#f4f4f1",
       stroke: "#d7d7d2",
       tags: ["poster", "surface"],
@@ -71,6 +73,7 @@ export const initialSceneDocument: CanvasDocument = {
       y: 64,
       width: 180,
       height: 36,
+      frame: { kind: "absolute", x: 72, y: 64, width: 180, height: 36 },
       fill: "#111111",
       text: "CODEX",
       fontSize: 30,
@@ -87,6 +90,7 @@ export const initialSceneDocument: CanvasDocument = {
       y: 134,
       width: 380,
       height: 116,
+      frame: { kind: "anchor", left: 70, top: 134, width: 380, height: 116 },
       fill: "#101010",
       text: "Inspectable geometry for AI-native design.",
       fontSize: 36,
@@ -117,6 +121,13 @@ export const initialSceneDocument: CanvasDocument = {
       y: 200,
       width: 190,
       height: 284,
+      frame: {
+        kind: "referenceGrid",
+        ref: "D3@0.84375,0.1375",
+        anchor: "center",
+        width: 190,
+        height: 284,
+      },
       fill: "#151515",
       stroke: "#000000",
       radius: 34,
@@ -146,6 +157,7 @@ export const initialSceneDocument: CanvasDocument = {
       y: 390,
       width: 188,
       height: 48,
+      frame: { kind: "anchor", left: 72, top: 390, width: 188, height: 48 },
       fill: "#111111",
       radius: 2,
       tags: ["button", "cta"],
@@ -192,6 +204,13 @@ export const initialSceneDocument: CanvasDocument = {
       y: 500,
       width: 138,
       height: 34,
+      frame: {
+        kind: "referenceGrid",
+        ref: "A4@0.88125,0.23125",
+        anchor: "center",
+        width: 138,
+        height: 34,
+      },
       fill: "#ffffff",
       stroke: "#cfcfca",
       radius: 17,
@@ -229,3 +248,9 @@ export const initialSceneDocument: CanvasDocument = {
     },
   },
 };
+
+export function createInitialCanvasDocument(): CanvasDocument {
+  return resolveCanvasDocumentFrames(rawInitialSceneDocument);
+}
+
+export const initialSceneDocument: CanvasDocument = createInitialCanvasDocument();

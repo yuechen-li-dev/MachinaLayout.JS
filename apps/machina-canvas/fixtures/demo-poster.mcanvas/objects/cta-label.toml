@@ -11,6 +11,19 @@ y = 405
 width = 142
 height = 20
 
+[frame]
+kind = "absolute"
+x = 96
+y = 405
+width = 142
+height = 20
+
+[resolved]
+x = 96
+y = 405
+width = 142
+height = 20
+
 [text]
 value = "Inspect scene"
 font_size = 15

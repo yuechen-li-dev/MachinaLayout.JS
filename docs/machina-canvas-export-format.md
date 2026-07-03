@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -174,11 +174,34 @@ constraint solver, or ruler editor. M30f exports the grid definition and uses it
 in summaries. M30g adds explicit grid-aware commands that consume refs such as
 `A1`, `D3.ne`, `B4@0.5,0.25`, and spans such as `A2-C3`.
 
+## MachinaLayout Vocabulary Carried Into MachinaCanvas
+
+MachinaLayout places interface rectangles. MachinaCanvas places visual objects.
+M30h maps only the layout concepts that make object placement intent explicit.
+
+| MachinaLayout concept | MachinaCanvas equivalent | M30h status |
+| --- | --- | --- |
+| `AbsoluteFrame` | `CanvasAbsoluteFrame` with explicit object bounds | Implemented |
+| `AnchorFrame` | `CanvasAnchorFrame` against document bounds | Implemented |
+| `GridArrange` / `CellFrame` | Reference grid point/span placement | Implemented through existing reference grid refs, not arbitrary nested grids |
+| `GuideFrame` / `EdgeRef` | Future object-edge references for labels, callouts, and relative annotation | Deferred |
+| `FixedFrame` / `FillFrame` | Future size intent for repeated chips, strips, and named regions | Deferred |
+| `StackArrange` | Future repeated object rows, chip groups, and card strips | Deferred |
+| `OffsetSpec` | Future post-placement nudge intent | Deferred |
+| Layers / `z` | Canvas layer order and object order in `document.json` | Existing/exported; documented only |
+| Variants | Future responsive/export variants for canvas documents | Deferred |
+| Resolved rects | Object `x`, `y`, `width`, `height` | Existing and retained as render geometry |
+| Reference grid | Speakable canvas locator grid | Existing from M30f; used by M30h frames |
+
 ## Object TOML
 
 Object TOML is the editable object contract. There is one object per TOML file. These files are meant to be patched by humans and LLMs.
 
-Geometry and style are explicit. Kind-specific blocks hold fields that only apply to some objects, such as `[shape]` for rect radius and `[text]` for text content and font settings.
+Geometry and style are explicit. M30h adds `[frame]` for editable spatial intent
+and `[resolved]` for the current render geometry. `[geometry]` remains as a
+compatibility shorthand for current resolved geometry during this app phase.
+Kind-specific blocks hold fields that only apply to some objects, such as
+`[shape]` for rect radius and `[text]` for text content and font settings.
 
 Rect:
 
@@ -191,6 +214,19 @@ visible = true
 locked = false
 
 [geometry]
+x = 72
+y = 390
+width = 188
+height = 48
+
+[frame]
+kind = "anchor"
+left = 72
+bottom = 202
+width = 188
+height = 48
+
+[resolved]
 x = 72
 y = 390
 width = 188
@@ -265,7 +301,9 @@ Rules:
 
 - One object per TOML file.
 - TOML files are meant to be patched by humans/LLMs.
-- Geometry is explicit.
+- `[frame]` is semantic layout intent.
+- `[resolved]` is current render geometry.
+- `[geometry]` is retained as a compatibility shorthand for current resolved geometry.
 - Style is explicit.
 - Kind-specific blocks exist, including `[shape]` and `[text]`.
 - No giant object JSON blob.
@@ -338,6 +376,17 @@ ref = "A1.w"
 kind = "resizeToGridSpan"
 id = "product-body"
 span = "D2-E4"
+
+[[command]]
+kind = "setFrame"
+id = "cta-bg"
+
+[command.frame]
+kind = "anchor"
+left = 72
+bottom = 96
+width = 188
+height = 48
 ```
 
 Rules:
@@ -345,6 +394,8 @@ Rules:
 - Runtime command JSON remains useful for API/editor input.
 - TOML command recipes are for editable handoff/project files.
 - Grid-aware command recipes use the exported reference grid labels.
+- `setFrame` command recipes can store `absolute`, `anchor`, `referenceGrid`,
+  and `referenceGridSpan` frame intent.
 - The format does not require a TOML parser or command recipe importer.
 
 ## `handoff.toml`
@@ -422,8 +473,9 @@ The app exposes these generated text artifacts in an Export panel. Users can gen
 The serializers preserve the format law: rendered artifacts are output, JSON is the graph/index, TOML is the editable contract, and runtime command payloads stay JSON while editable command recipes are TOML.
 
 M30g serializers include `moveToGrid`, `alignToGrid`, and
-`resizeToGridSpan` in command TOML. These are command recipes only; exporting a
-recipe does not imply snapping, constraints, drag editing, or import support.
+`resizeToGridSpan` in command TOML. M30h serializers also include `setFrame`.
+These are command recipes only; exporting a recipe does not imply snapping,
+constraints, drag editing, or import support.
 
 ## Export Validation
 

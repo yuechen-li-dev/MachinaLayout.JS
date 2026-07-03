@@ -11,6 +11,19 @@ y = 64
 width = 180
 height = 36
 
+[frame]
+kind = "absolute"
+x = 72
+y = 64
+width = 180
+height = 36
+
+[resolved]
+x = 72
+y = 64
+width = 180
+height = 36
+
 [text]
 value = "CODEX"
 font_size = 30

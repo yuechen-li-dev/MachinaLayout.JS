@@ -11,6 +11,19 @@ y = 390
 width = 188
 height = 48
 
+[frame]
+kind = "anchor"
+left = 72
+top = 390
+width = 188
+height = 48
+
+[resolved]
+x = 72
+y = 390
+width = 188
+height = 48
+
 [shape]
 radius = 2
 

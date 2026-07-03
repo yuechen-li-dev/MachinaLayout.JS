@@ -23,6 +23,43 @@ export type CanvasLayer = {
 
 export type CanvasObject = RectObject | EllipseObject | TextObject;
 
+export type CanvasFrame =
+  | CanvasAbsoluteFrame
+  | CanvasAnchorFrame
+  | CanvasReferenceGridFrame
+  | CanvasReferenceGridSpanFrame;
+
+export type CanvasAbsoluteFrame = {
+  kind: "absolute";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type CanvasAnchorFrame = {
+  kind: "anchor";
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+  width?: number;
+  height?: number;
+};
+
+export type CanvasReferenceGridFrame = {
+  kind: "referenceGrid";
+  ref: string;
+  anchor?: "topLeft" | "center" | "bottomRight";
+  width: number;
+  height: number;
+};
+
+export type CanvasReferenceGridSpanFrame = {
+  kind: "referenceGridSpan";
+  span: string;
+};
+
 export type CanvasObjectBase = {
   id: string;
   name: string;
@@ -34,6 +71,7 @@ export type CanvasObjectBase = {
   y: number;
   width: number;
   height: number;
+  frame?: CanvasFrame;
   fill?: string;
   stroke?: string;
   tags?: string[];

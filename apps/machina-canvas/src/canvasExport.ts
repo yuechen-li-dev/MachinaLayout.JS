@@ -1,6 +1,12 @@
 import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
-import type { CanvasDocument, CanvasLayer, CanvasObject, TextObject } from "./sceneModel";
+import type {
+  CanvasDocument,
+  CanvasFrame,
+  CanvasLayer,
+  CanvasObject,
+  TextObject,
+} from "./sceneModel";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 
@@ -101,6 +107,60 @@ function pushMetadata(lines: string[], tags?: readonly string[], notes?: string)
   if (notes) lines.push(`notes = ${quoteTomlString(notes)}`);
 }
 
+function getObjectFrame(object: CanvasObject): CanvasFrame {
+  return (
+    object.frame ?? {
+      kind: "absolute",
+      x: object.x,
+      y: object.y,
+      width: object.width,
+      height: object.height,
+    }
+  );
+}
+
+function pushFrameToml(lines: string[], header: string, frame: CanvasFrame) {
+  lines.push("", header, `kind = ${quoteTomlString(frame.kind)}`);
+
+  switch (frame.kind) {
+    case "absolute":
+      lines.push(
+        `x = ${frame.x}`,
+        `y = ${frame.y}`,
+        `width = ${frame.width}`,
+        `height = ${frame.height}`,
+      );
+      break;
+    case "anchor":
+      if (frame.left !== undefined) lines.push(`left = ${frame.left}`);
+      if (frame.right !== undefined) lines.push(`right = ${frame.right}`);
+      if (frame.top !== undefined) lines.push(`top = ${frame.top}`);
+      if (frame.bottom !== undefined) lines.push(`bottom = ${frame.bottom}`);
+      if (frame.width !== undefined) lines.push(`width = ${frame.width}`);
+      if (frame.height !== undefined) lines.push(`height = ${frame.height}`);
+      break;
+    case "referenceGrid":
+      lines.push(`ref = ${quoteTomlString(frame.ref)}`);
+      if (frame.anchor !== undefined) lines.push(`anchor = ${quoteTomlString(frame.anchor)}`);
+      lines.push(`width = ${frame.width}`, `height = ${frame.height}`);
+      break;
+    case "referenceGridSpan":
+      lines.push(`span = ${quoteTomlString(frame.span)}`);
+      break;
+  }
+}
+
+function pushResolvedToml(lines: string[], object: CanvasObject) {
+  lines.push(
+    "",
+    "[resolved]",
+    `x = ${object.x}`,
+    `y = ${object.y}`,
+    `width = ${object.width}`,
+    `height = ${object.height}`,
+  );
+}
+
 function wrapText(object: TextObject): string[] {
   const maxChars = Math.max(8, Math.floor(object.width / (object.fontSize * 0.48)));
   const words = object.text.split(" ");
@@ -170,6 +230,9 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
     `width = ${object.width}`,
     `height = ${object.height}`,
   ];
+
+  pushFrameToml(lines, "[frame]", getObjectFrame(object));
+  pushResolvedToml(lines, object);
 
   if (object.kind === "rect") {
     lines.push("", "[shape]", `radius = ${object.radius ?? 0}`);
@@ -276,6 +339,10 @@ export function serializeCanvasCommandsToml(
           `id = ${quoteTomlString(command.id)}`,
           `span = ${quoteTomlString(command.span)}`,
         );
+        break;
+      case "setFrame":
+        lines.push(`id = ${quoteTomlString(command.id)}`);
+        pushFrameToml(lines, "[command.frame]", command.frame);
         break;
     }
   }
