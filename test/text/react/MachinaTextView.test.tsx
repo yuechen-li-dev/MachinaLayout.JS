@@ -182,7 +182,7 @@ describe("MachinaTextView", () => {
     expect(screen.getByText("# Forbidden")).toBeInTheDocument();
   });
   it("does not use dangerous html", () => {
-    const { container } = render(<MachinaTextView text="<div>Hello</div>" />);
+    render(<MachinaTextView text="<div>Hello</div>" />);
     expect(screen.getByText("<div>Hello</div>")).toBeInTheDocument();
     expect(screen.queryByText("Hello")).toBeNull();
   });

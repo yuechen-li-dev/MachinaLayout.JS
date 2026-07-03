@@ -72,7 +72,7 @@ function Waveform({ playing, progress }) {
 }
 
 /* ─── vinyl ─── */
-function Vinyl({ playing, trackId }) {
+function Vinyl({ playing }) {
   const rotRef = useRef(0);
   const lastTRef = useRef(null);
   const [rot, setRot] = useState(0);
@@ -247,7 +247,7 @@ const TrackListSlot = memo(({ viewData }) => {
 
 const PlayerSlot = memo(({ viewData }) => {
   const data = viewData ?? {};
-  const { track = TRACKS[0], playing = false, progress = 0, onPlayPause, onSeek = () => {} } = data;
+  const { track = TRACKS[0], playing = false, progress = 0, onSeek = () => {} } = data;
   return (
     <div
       style={{
