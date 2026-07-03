@@ -83,15 +83,31 @@ separate files:
 A checked-in demo fixture lives at
 [`apps/machina-canvas/fixtures/demo-poster.mcanvas`](fixtures/demo-poster.mcanvas).
 It is a readable hand-authored bundle for the current demo poster shape. The
-runtime app still uses its in-memory scene model; M30c does not add import or
-export UI.
+runtime app still uses its in-memory scene model.
+
+M30d adds browser-local one-way export from the current runtime scene. The
+inspector includes an Export panel that generates a `.mcanvas`-shaped file list
+without calling a backend or an LLM API. Users can inspect the generated files,
+copy the selected file text, or download the selected file.
+
+Generated files follow the M30c split:
+
+- `render.svg` is the clean rendered artifact
+- `document.json` is the scene graph and bundle index
+- `layers/*.toml` are editable layer contracts
+- `objects/*.toml` are editable object contracts
+- `handoff.toml` is bundle-level handoff metadata
+- `commands/session-commands.toml` is generated when session commands exist
+
+M30d does not add an importer, TOML parser, ZIP export, or raster/PNG rendering.
 
 ## Non-Goals
 
 - no raster editing yet
 - no LLM API yet
 - no CAD, path, or font outline editing yet
-- no real file import/export yet
+- no file import yet
+- no ZIP export yet
 - no drag editing yet
 
 ## Run

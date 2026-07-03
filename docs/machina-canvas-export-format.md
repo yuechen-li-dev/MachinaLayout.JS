@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. It does not implement importer/exporter UI or regeneration from the bundle.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. It does not implement import, TOML parsing, ZIP packaging, raster rendering, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -357,7 +357,18 @@ Rendered artifacts may be regenerated from `document.json` and object TOML specs
 
 ## Relationship To The Runtime App
 
-The current MachinaCanvas app uses an in-memory scene model. Future export work can serialize that scene into `.mcanvas` bundle files and import a bundle back into the app. M30c only designs the format and adds a fixture bundle corresponding roughly to the current demo poster.
+The current MachinaCanvas app uses an in-memory scene model. M30d serializers turn that current browser-local scene into a `.mcanvas`-shaped file list:
+
+- `render.svg`
+- `document.json`
+- `handoff.toml`
+- `layers/<layer-id>.toml`
+- `objects/<object-id>.toml`
+- `commands/session-commands.toml` when session commands are provided
+
+The app exposes these generated text artifacts in an Export panel. Users can generate the file list, select a file, copy its text, or download that file through browser Blob downloads. The export is one-way; importing a `.mcanvas` bundle back into the runtime remains future work.
+
+The serializers preserve the format law: rendered artifacts are output, JSON is the graph/index, TOML is the editable contract, and runtime command payloads stay JSON while editable command recipes are TOML.
 
 ## Fixture
 
@@ -371,7 +382,9 @@ It includes `render.svg`, `document.json`, `handoff.toml`, layer TOML files, obj
 
 ## Non-Goals
 
-- No full importer/exporter yet.
+- No importer yet.
+- No TOML parser.
+- No ZIP bundle writer.
 - No raster pipeline.
 - No font outline format.
 - No CAD/DXF yet.

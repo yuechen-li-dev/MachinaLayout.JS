@@ -84,7 +84,9 @@ button {
 .tree-object,
 .object-card,
 .command-row button,
-.command-json-actions button {
+.command-json-actions button,
+.export-actions button,
+.export-file-row {
   border: 0;
   background: transparent;
   color: #111111;
@@ -236,13 +238,19 @@ button {
 }
 
 .command-row button,
-.command-json-actions button {
+.command-json-actions button,
+.export-actions button {
   min-height: 34px;
   border: 1px solid #111111;
   background: #ffffff;
   font-size: 10px;
   font-weight: 760;
   text-transform: uppercase;
+}
+
+.export-actions button:disabled {
+  border-color: #d7d7d2;
+  color: #8a8a84;
 }
 
 .inspector-section {
@@ -280,6 +288,77 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.export-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.export-status {
+  margin: 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.export-file-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 210px;
+  overflow: auto;
+  border: 1px solid #d7d7d2;
+}
+
+.export-file-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ededeb;
+  text-align: left;
+}
+
+.export-file-row:last-child {
+  border-bottom: 0;
+}
+
+.export-file-row.is-selected {
+  background: #f1f1ee;
+  outline: 1px solid #111111;
+  outline-offset: -1px;
+}
+
+.export-file-row span {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-file-row small {
+  overflow: hidden;
+  color: #70706a;
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-preview {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  color: #111111;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  padding: 10px;
 }
 
 .validation-result,

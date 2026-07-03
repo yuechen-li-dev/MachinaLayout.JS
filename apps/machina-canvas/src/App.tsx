@@ -12,6 +12,11 @@ import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { resolveAppLayout } from "./appLayout";
 import {
+  createCanvasExportBundle,
+  type CanvasExportBundle,
+  type CanvasExportFile,
+} from "./canvasExport";
+import {
   applyCanvasCommands,
   type CanvasCommand,
   type CanvasCommandApplyResult,
@@ -73,11 +78,18 @@ type AppViewData = {
   commandLog: CommandLogEntry[];
   lastApplyResults: CanvasCommandApplyResult[];
   geometryDiagnostics: GeometryDiagnostic[];
+  exportBundle: CanvasExportBundle | undefined;
+  selectedExportPath: string | undefined;
+  exportStatus: string;
   runCommand: (command: CanvasCommand) => void;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
   validateCommandJson: () => void;
   applyCommandJson: () => void;
+  generateExport: () => void;
+  selectExportFile: (path: string) => void;
+  copySelectedExportFile: () => void;
+  downloadSelectedExportFile: () => void;
 };
 
 function getRootRect(): Rect {
@@ -176,6 +188,18 @@ function formatCommandKinds(commands: readonly CanvasCommand[]): string {
 
 function formatChange(change: CanvasCommandApplyResult["changes"][number]): string {
   return `${change.objectId}.${change.field}: ${String(change.before)} -> ${String(change.after)}`;
+}
+
+function formatFileSize(text: string): string {
+  return `${text.length.toLocaleString()} chars`;
+}
+
+function getSelectedExportFile(
+  bundle: CanvasExportBundle | undefined,
+  selectedPath: string | undefined,
+): CanvasExportFile | undefined {
+  if (!bundle) return undefined;
+  return bundle.files.find((file) => file.path === selectedPath) ?? bundle.files[0];
 }
 
 function SceneTree(props: MachinaSlotProps) {
@@ -469,6 +493,64 @@ function GeometryDiagnosticsSection(props: MachinaSlotProps) {
   );
 }
 
+function ExportPanel(props: MachinaSlotProps) {
+  const {
+    exportBundle,
+    exportStatus,
+    selectedExportPath,
+    generateExport,
+    selectExportFile,
+    copySelectedExportFile,
+    downloadSelectedExportFile,
+  } = readViewData(props);
+  const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
+
+  return (
+    <InspectorSection title="Export">
+      <div className="export-actions">
+        <button type="button" onClick={generateExport}>
+          Generate Export
+        </button>
+        <button type="button" onClick={copySelectedExportFile} disabled={!selectedFile}>
+          Copy
+        </button>
+        <button type="button" onClick={downloadSelectedExportFile} disabled={!selectedFile}>
+          Download
+        </button>
+      </div>
+      {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
+      {exportBundle ? (
+        <>
+          <div className="export-file-list">
+            {exportBundle.files.map((file) => (
+              <button
+                className={`export-file-row ${selectedFile?.path === file.path ? "is-selected" : ""}`}
+                key={file.path}
+                type="button"
+                onClick={() => selectExportFile(file.path)}
+              >
+                <span>{file.path}</span>
+                <small>
+                  {file.mimeType} / {formatFileSize(file.text)}
+                </small>
+              </button>
+            ))}
+          </div>
+          <textarea
+            className="export-preview"
+            value={selectedFile?.text ?? ""}
+            readOnly
+            spellCheck={false}
+            aria-label="Selected export file preview"
+          />
+        </>
+      ) : (
+        <p className="empty-note">No export generated yet.</p>
+      )}
+    </InspectorSection>
+  );
+}
+
 function Inspector(props: MachinaSlotProps) {
   const { document, runCommand } = readViewData(props);
   const selected = getSelectedObject(document);
@@ -488,6 +570,7 @@ function Inspector(props: MachinaSlotProps) {
           <Field label="Objects" value={Object.keys(document.objects).length} />
         </InspectorSection>
         <GeometryDiagnosticsSection {...props} />
+        <ExportPanel {...props} />
         <CommandJsonPanel {...props} />
       </aside>
     );
@@ -538,6 +621,7 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Notes" value={selected.notes ?? "none"} />
       </InspectorSection>
       <GeometryDiagnosticsSection {...props} />
+      <ExportPanel {...props} />
       <CommandJsonPanel {...props} />
     </aside>
   );
@@ -643,6 +727,9 @@ export function App() {
   >();
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
   const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
+  const [exportBundle, setExportBundle] = useState<CanvasExportBundle>();
+  const [selectedExportPath, setSelectedExportPath] = useState<string>();
+  const [exportStatus, setExportStatus] = useState("");
   const commandLogCounter = useRef(0);
   const geometryDiagnostics = useMemo(() => getSceneGeometryDiagnostics(document), [document]);
 
@@ -716,6 +803,56 @@ export function App() {
       recordAppliedCommands(commands, applyResult.results);
     };
 
+    const generateExport = () => {
+      const latestCommands = commandLog[0]?.commands;
+      const bundle = createCanvasExportBundle(document, {
+        selectedObjectId: document.selectedObjectId,
+        commands: latestCommands,
+        summary: summarizeScene(document),
+        diagnostics: geometryDiagnostics,
+      });
+      setExportBundle(bundle);
+      setSelectedExportPath("handoff.toml");
+      setExportStatus(`${bundle.files.length} files generated in ${bundle.rootName}.`);
+      setLastCommand("export generated");
+    };
+
+    const selectExportFile = (path: string) => {
+      setSelectedExportPath(path);
+      setExportStatus("");
+    };
+
+    const copySelectedExportFile = () => {
+      const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
+      if (!selectedFile) return;
+
+      if (!navigator.clipboard?.writeText) {
+        setExportStatus("Clipboard API is unavailable in this browser.");
+        return;
+      }
+
+      navigator.clipboard
+        .writeText(selectedFile.text)
+        .then(() => setExportStatus(`Copied ${selectedFile.path}.`))
+        .catch(() => setExportStatus(`Could not copy ${selectedFile.path}.`));
+    };
+
+    const downloadSelectedExportFile = () => {
+      const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
+      if (!selectedFile) return;
+
+      const blob = new Blob([selectedFile.text], { type: selectedFile.mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${exportBundle?.rootName ?? document.id}-${selectedFile.path.replace(/\//g, "__")}`;
+      window.document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportStatus(`Downloaded ${selectedFile.path}.`);
+    };
+
     return {
       document,
       lastCommand,
@@ -724,11 +861,18 @@ export function App() {
       commandLog,
       lastApplyResults,
       geometryDiagnostics,
+      exportBundle,
+      selectedExportPath,
+      exportStatus,
       runCommand,
       setCommandJson,
       loadExampleCommands,
       validateCommandJson,
       applyCommandJson,
+      generateExport,
+      selectExportFile,
+      copySelectedExportFile,
+      downloadSelectedExportFile,
     };
   }, [
     document,
@@ -738,6 +882,9 @@ export function App() {
     commandLog,
     lastApplyResults,
     geometryDiagnostics,
+    exportBundle,
+    selectedExportPath,
+    exportStatus,
   ]);
 
   return (
