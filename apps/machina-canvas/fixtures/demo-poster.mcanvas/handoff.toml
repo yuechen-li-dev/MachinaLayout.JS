@@ -9,6 +9,13 @@ document_json = "document.json"
 [selected]
 object_id = "headline"
 
+[viewport]
+zoom = 4
+center_x = 260
+center_y = 192
+focus_kind = "gridRef"
+focus_value = "B2"
+
 [unit_system]
 unit = "px"
 label = "px"

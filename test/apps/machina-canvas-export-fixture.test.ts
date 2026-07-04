@@ -72,5 +72,6 @@ describe("MachinaCanvas export fixture", () => {
 
     const handoffToml = readFileSync(join(fixtureRoot, "handoff.toml"), "utf8");
     expect(handoffToml).toContain("[reference_grid]");
+    expect(handoffToml).toContain("[viewport]");
   });
 });

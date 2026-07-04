@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. It does not implement import, TOML parsing, ZIP packaging, raster rendering, zoom, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. It does not implement import, TOML parsing, ZIP packaging, raster rendering, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -176,6 +176,7 @@ Rules:
 - Object geometry, frame, and resolved values are document units.
 - SVG `viewBox` coordinates can use document coordinates directly.
 - Screen pixels and future viewport zoom are separate from document units.
+- Viewport zoom is viewer state and does not belong in `document.json`.
 - Do not dump giant editable object blobs into `document.json`.
 
 ## Reference Grid
@@ -432,6 +433,13 @@ document_json = "document.json"
 [selected]
 object_id = "feature-chip-1"
 
+[viewport]
+zoom = 4
+center_x = 520
+center_y = 320
+focus_kind = "gridRef"
+focus_value = "D3"
+
 [unit_system]
 unit = "px"
 label = "px"
@@ -461,6 +469,8 @@ message = "Selected object is Feature chip: IDs."
 Rules:
 
 - Handoff is metadata, not scene graph.
+- `[viewport]` is optional viewer/handoff metadata for the current inspection focus.
+- Viewport coordinates are document units. Zoom is a camera scale, not document geometry.
 - `[unit_system]` preserves the document unit metadata used by summaries and measurements.
 - `[reference_grid]` preserves the locator labels used by summaries and inspector references.
 - Diagnostics can be TOML array tables.
@@ -486,6 +496,10 @@ M30i measurement labels are UI aids. Clean `render.svg` output does not include
 measurement labels by default; unit metadata lives in `document.json` and
 `handoff.toml`.
 
+M30j viewport zoom is also a UI/handoff aid. Clean `render.svg` output remains
+full-document artwork by default; zoomed inspection state may be written to
+`handoff.toml` as optional `[viewport]` metadata.
+
 ## Relationship To The Runtime App
 
 The current MachinaCanvas app uses an in-memory scene model. M30d serializers turn that current browser-local scene into a `.mcanvas`-shaped file list:
@@ -505,6 +519,8 @@ M30g serializers include `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan` in command TOML. M30h serializers also include `setFrame`.
 M30i serializers include unit metadata in `document.json` and `[unit_system]`
 in `handoff.toml`.
+M30j serializers may include `[viewport]` in `handoff.toml` when the app passes
+current viewer state to export.
 These are command recipes only; exporting a recipe does not imply snapping,
 constraints, drag editing, or import support.
 

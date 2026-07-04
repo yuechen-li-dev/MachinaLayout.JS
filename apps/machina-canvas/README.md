@@ -31,6 +31,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - CAD-style reference grid spans for speakable object locations
 - canvas frame intent separate from resolved object geometry
 - document units and formatted measurement readouts
+- controlled viewport zoom for canvas, selection, and grid inspection
 - inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
@@ -114,13 +115,33 @@ and formatting precision. Built-in unit systems include `px`, `pt`, `mm`, `cm`,
 
 MachinaCanvas treats object `x`, `y`, `width`, and `height` as document units.
 The SVG `viewBox` uses those same document coordinates. Browser screen pixels
-are a rendered display concern, and viewport zoom is deliberately separate for a
-future milestone. M30i does not implement zoom, snapping, CAD constraints, or a
-magnifier.
+are a rendered display concern, and viewport zoom is deliberately separate
+viewer state. Zooming never changes object `x`, `y`, `width`, or `height`.
 
 The inspector shows document/unit metadata and selected-object measurements:
 size, position, and center. A small optional SVG label can be toggled for the
 selected object when measurements are useful on the canvas itself.
+
+## Viewport Zoom And Inspection
+
+M30j adds controlled inspection zoom without adding pan/drag navigation or wheel
+zoom. The inspector owns the viewport controls:
+
+- Fit returns to the full canvas at 100%.
+- Fixed zoom buttons inspect at 50%, 100%, 200%, 400%, or 800%.
+- Zoom to selected centers the view on the selected object.
+- Grid ref zoom accepts point refs such as `D3` or `D3.ne`.
+- Grid span zoom accepts whole-cell spans such as `A2-C3`.
+
+The viewport is implemented as `zoom` plus document-coordinate center point and
+rendered through the SVG `viewBox`. It is a camera over the document, not
+document geometry. Units remain authored document state; resolved object bounds
+remain the editable/rendered geometry.
+
+The inspector and bottom shelf include a viewport summary with zoom percent,
+visible document rect, visible object count, a few visible object IDs/spans, and
+whether the selected object is visible in the current view. This is the local
+textual counterpart to the visual magnifier.
 
 ## Geometry Diagnostics
 
@@ -203,6 +224,10 @@ readouts without baking the overlay into clean rendered SVG output.
 
 M30i adds unit metadata to generated `document.json` and `handoff.toml`.
 Geometry, frame, and resolved values in object TOML are document units.
+
+M30j adds optional `[viewport]` metadata to generated `handoff.toml` so a handoff
+can preserve the current inspection focus. `document.json` remains the document
+graph, and `render.svg` remains clean full-document artwork by default.
 
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and

@@ -1,6 +1,7 @@
 import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
 import { getCanvasUnitSystem } from "./canvasUnits";
+import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
   CanvasDocument,
   CanvasFrame,
@@ -26,6 +27,7 @@ export type CanvasExportOptions = {
   rootName?: string;
   selectedObjectId?: string;
   includeSessionCommands?: boolean;
+  viewport?: CanvasViewport;
 };
 
 function quoteTomlString(value: string): string {
@@ -120,6 +122,32 @@ function pushUnitSystemToml(lines: string[], document: CanvasDocument) {
     `pixels_per_unit = ${unitSystem.pixelsPerUnit}`,
     `precision = ${unitSystem.precision}`,
   );
+}
+
+function getViewportFocusValue(focus: CanvasViewportFocus | undefined): string | undefined {
+  if (!focus || focus.kind === "canvas") return undefined;
+  if (focus.kind === "object") return focus.objectId;
+  if (focus.kind === "gridRef") return focus.ref;
+  if (focus.kind === "gridSpan") return focus.span;
+  return `${focus.x},${focus.y},${focus.width},${focus.height}`;
+}
+
+function pushViewportToml(lines: string[], viewport: CanvasViewport | undefined) {
+  if (!viewport) return;
+
+  lines.push(
+    "",
+    "[viewport]",
+    `zoom = ${viewport.zoom}`,
+    `center_x = ${viewport.centerX}`,
+    `center_y = ${viewport.centerY}`,
+    `focus_kind = ${quoteTomlString(viewport.focus?.kind ?? "canvas")}`,
+  );
+
+  const focusValue = getViewportFocusValue(viewport.focus);
+  if (focusValue !== undefined) {
+    lines.push(`focus_value = ${quoteTomlString(focusValue)}`);
+  }
 }
 
 function formatLabelRange(labels: readonly string[]): string {
@@ -387,6 +415,7 @@ export function serializeCanvasHandoffToml(
     selectedObjectId?: string;
     summary?: string;
     diagnostics?: readonly GeometryDiagnostic[];
+    viewport?: CanvasViewport;
   },
 ): string {
   const selectedObjectId = options?.selectedObjectId ?? document.selectedObjectId;
@@ -406,6 +435,7 @@ export function serializeCanvasHandoffToml(
     lines.push("", "[selected]", `object_id = ${quoteTomlString(selectedObjectId)}`);
   }
 
+  pushViewportToml(lines, options?.viewport);
   pushUnitSystemToml(lines, document);
 
   lines.push(
@@ -511,6 +541,7 @@ export function createCanvasExportBundle(
         selectedObjectId: options?.selectedObjectId,
         summary: options?.summary,
         diagnostics: options?.diagnostics,
+        viewport: options?.viewport,
       }),
     },
   ];

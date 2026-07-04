@@ -16,6 +16,16 @@ import {
   type CanvasExportBundle,
   type CanvasExportFile,
 } from "./canvasExport";
+import {
+  createCanvasViewport,
+  fitCanvasViewport,
+  getCanvasViewportViewBox,
+  setCanvasViewportZoom,
+  viewportForGridRef,
+  viewportForGridSpan,
+  viewportForObject,
+  type CanvasViewport,
+} from "./canvasViewport";
 import { formatCanvasMeasurement, getCanvasUnitSystem } from "./canvasUnits";
 import {
   formatCanvasExportValidationReport,
@@ -41,6 +51,7 @@ import type {
   TextObject,
 } from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
+import { summarizeViewport } from "./viewportSummary";
 import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
 
 const MIN_WIDTH = 760;
@@ -112,6 +123,7 @@ type CanvasAidToggles = {
 
 type AppViewData = {
   document: CanvasDocument;
+  viewport: CanvasViewport;
   aidToggles: CanvasAidToggles;
   lastCommand: string;
   commandJson: string;
@@ -123,7 +135,13 @@ type AppViewData = {
   exportValidation: CanvasExportValidationResult | undefined;
   selectedExportPath: string | undefined;
   exportStatus: string;
+  setViewport: (viewport: CanvasViewport) => void;
   setAidToggle: (key: keyof CanvasAidToggles, value: boolean) => void;
+  fitViewport: () => void;
+  setZoom: (zoom: number) => void;
+  zoomToSelected: () => void;
+  zoomToGridRef: (ref: string) => void;
+  zoomToGridSpan: (span: string) => void;
   runCommand: (command: CanvasCommand) => void;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
@@ -544,7 +562,8 @@ function MeasurementLabelsOverlay({ document }: { document: CanvasDocument }) {
 }
 
 function CanvasPanel(props: MachinaSlotProps) {
-  const { document, aidToggles, runCommand } = readViewData(props);
+  const { document, viewport, aidToggles, runCommand } = readViewData(props);
+  const viewBox = getCanvasViewportViewBox(document, viewport);
 
   return (
     <main className="canvas-panel panel">
@@ -558,7 +577,7 @@ function CanvasPanel(props: MachinaSlotProps) {
       <div className="artboard-wrap">
         <svg
           className="artboard"
-          viewBox={`0 0 ${document.width} ${document.height}`}
+          viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           role="img"
           aria-label="MachinaCanvas demo poster scene graph"
         >
@@ -624,6 +643,77 @@ function ToggleField({
         onChange={(event) => onChange(event.currentTarget.checked)}
       />
     </label>
+  );
+}
+
+function ViewportSection(props: MachinaSlotProps) {
+  const {
+    document,
+    viewport,
+    fitViewport,
+    setZoom,
+    zoomToSelected,
+    zoomToGridRef,
+    zoomToGridSpan,
+  } = readViewData(props);
+  const [gridRef, setGridRef] = useState("D3");
+  const [gridSpan, setGridSpan] = useState("A2-C3");
+  const [error, setError] = useState("");
+  const selected = getSelectedObject(document);
+  const zoomValues = [0.5, 1, 2, 4, 8];
+
+  const runViewportAction = (action: () => void) => {
+    try {
+      action();
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not update viewport.");
+    }
+  };
+
+  return (
+    <InspectorSection title="Viewport">
+      <Field label="Zoom" value={`${Math.round(viewport.zoom * 100)}%`} />
+      <div className="viewport-actions">
+        <button type="button" onClick={fitViewport}>
+          Fit
+        </button>
+        {zoomValues.map((zoom) => (
+          <button
+            className={viewport.zoom === zoom ? "is-active" : ""}
+            key={zoom}
+            type="button"
+            onClick={() => setZoom(zoom)}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+        ))}
+      </div>
+      <button
+        className="viewport-wide-button"
+        type="button"
+        disabled={!selected}
+        onClick={() => runViewportAction(zoomToSelected)}
+      >
+        Zoom to selected
+      </button>
+      <label className="viewport-input-row">
+        <span>Grid ref</span>
+        <input value={gridRef} onChange={(event) => setGridRef(event.currentTarget.value)} />
+        <button type="button" onClick={() => runViewportAction(() => zoomToGridRef(gridRef))}>
+          Zoom
+        </button>
+      </label>
+      <label className="viewport-input-row">
+        <span>Grid span</span>
+        <input value={gridSpan} onChange={(event) => setGridSpan(event.currentTarget.value)} />
+        <button type="button" onClick={() => runViewportAction(() => zoomToGridSpan(gridSpan))}>
+          Zoom
+        </button>
+      </label>
+      {error ? <p className="viewport-error">{error}</p> : null}
+      <p className="viewport-summary">{summarizeViewport(document, viewport)}</p>
+    </InspectorSection>
   );
 }
 
@@ -869,6 +959,7 @@ function Inspector(props: MachinaSlotProps) {
           <Field label="Layers" value={document.layers.length} />
           <Field label="Objects" value={Object.keys(document.objects).length} />
         </InspectorSection>
+        <ViewportSection {...props} />
         <ViewAidsSection {...props} />
         <InspectorSection title="Measurements">
           {measurements.map((measurement) => (
@@ -935,6 +1026,7 @@ function Inspector(props: MachinaSlotProps) {
           )} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
         />
       </InspectorSection>
+      <ViewportSection {...props} />
       <ViewAidsSection {...props} />
       <InspectorSection title="Measurements">
         <Field label="Unit" value={unitSystem.label} />
@@ -966,7 +1058,7 @@ function Inspector(props: MachinaSlotProps) {
 }
 
 function SceneSummaryShelf(props: MachinaSlotProps) {
-  const { document, runCommand, commandLog } = readViewData(props);
+  const { document, viewport, runCommand, commandLog } = readViewData(props);
   const objects = Object.values(document.objects).filter((object) =>
     ["logo", "headline", "product-body", "cta-bg", "feature-chip-1"].includes(object.id),
   );
@@ -976,6 +1068,9 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
     <section className="scene-summary panel">
       <div className="summary-main">
         <p className="summary-text">{summarizeScene(document)}</p>
+        <p className="summary-text viewport-summary-text">
+          {summarizeViewport(document, viewport)}
+        </p>
         <div className="object-card-row">
           {objects.map((object) => (
             <button
@@ -1058,6 +1153,7 @@ export function App() {
   const rootRect = useRootRect();
   const layout = useMemo(() => resolveAppLayout(rootRect), [rootRect]);
   const [document, setDocument] = useState(initialSceneDocument);
+  const [viewport, setViewport] = useState(() => createCanvasViewport(initialSceneDocument));
   const [lastCommand, setLastCommand] = useState("ready");
   const [commandJson, setCommandJson] = useState(exampleCommandJson);
   const [commandValidation, setCommandValidation] = useState<
@@ -1112,6 +1208,34 @@ export function App() {
       setAidToggles((current) => ({ ...current, [key]: value }));
     };
 
+    const fitViewport = () => {
+      setViewport(fitCanvasViewport(document));
+      setLastCommand("viewport fit to canvas");
+    };
+
+    const setZoom = (zoom: number) => {
+      setViewport((current) => setCanvasViewportZoom(current, zoom));
+      setLastCommand(
+        `viewport zoom ${Math.round(setCanvasViewportZoom(viewport, zoom).zoom * 100)}%`,
+      );
+    };
+
+    const zoomToSelected = () => {
+      if (!document.selectedObjectId) return;
+      setViewport(viewportForObject(document, document.selectedObjectId));
+      setLastCommand(`viewport zoomed to ${document.selectedObjectId}`);
+    };
+
+    const zoomToGridRef = (ref: string) => {
+      setViewport(viewportForGridRef(document, ref));
+      setLastCommand(`viewport zoomed to ${ref.trim()}`);
+    };
+
+    const zoomToGridSpan = (span: string) => {
+      setViewport(viewportForGridSpan(document, span));
+      setLastCommand(`viewport zoomed to ${span.trim()}`);
+    };
+
     const loadExampleCommands = () => {
       setCommandJson(exampleCommandJson);
       setCommandValidation(undefined);
@@ -1159,6 +1283,7 @@ export function App() {
         commands: latestCommands,
         summary: summarizeScene(document),
         diagnostics: geometryDiagnostics,
+        viewport,
       });
       const validation = validateCanvasExportBundle(bundle, {
         expectedCommands: latestCommands !== undefined,
@@ -1226,6 +1351,7 @@ export function App() {
 
     return {
       document,
+      viewport,
       aidToggles,
       lastCommand,
       commandJson,
@@ -1237,7 +1363,13 @@ export function App() {
       exportValidation,
       selectedExportPath,
       exportStatus,
+      setViewport,
       setAidToggle,
+      fitViewport,
+      setZoom,
+      zoomToSelected,
+      zoomToGridRef,
+      zoomToGridSpan,
       runCommand,
       setCommandJson,
       loadExampleCommands,
@@ -1251,6 +1383,7 @@ export function App() {
     };
   }, [
     document,
+    viewport,
     aidToggles,
     lastCommand,
     commandJson,
