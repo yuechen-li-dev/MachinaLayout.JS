@@ -180,6 +180,10 @@ button {
   background: #eaf6ee;
 }
 
+.kind-sketch {
+  background: #eef4ff;
+}
+
 .canvas-panel {
   display: flex;
   flex-direction: column;
@@ -405,6 +409,32 @@ button {
 
 .reference-grid-overlay {
   pointer-events: none;
+}
+
+.canvas-sketch-overlay {
+  pointer-events: none;
+}
+
+.canvas-sketch-box,
+.canvas-sketch-line,
+.canvas-sketch-point,
+.canvas-sketch-label {
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-sketch-box,
+.canvas-sketch-line,
+.canvas-sketch-point {
+  stroke-width: 2;
+}
+
+.canvas-sketch-label {
+  fill: #2364d2;
+  font-size: 14px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 4px;
 }
 
 .reference-grid-border,
@@ -971,6 +1001,31 @@ button {
   height: 16px;
   padding: 0;
   accent-color: #111111;
+}
+
+.sketch-primitive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sketch-primitive-card {
+  border: 1px solid #e1e1dc;
+  background: #fbfbfa;
+  padding: 10px;
+}
+
+.sketch-primitive-card strong {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.sketch-primitive-card p {
+  margin: 6px 0 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .scene-summary {

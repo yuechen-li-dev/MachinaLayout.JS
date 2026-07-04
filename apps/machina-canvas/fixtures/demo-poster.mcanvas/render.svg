@@ -8,6 +8,12 @@
 
   <ellipse data-canvas-object-id="product-base-shadow" data-canvas-kind="ellipse" data-canvas-name="Product base shadow" cx="625" cy="504" rx="125" ry="22" fill="#d8d8d4" />
   <image data-canvas-object-id="generated-product-image" data-canvas-kind="image" data-canvas-name="Generated product image" href="assets/generated-product.svg" x="508" y="176" width="224" height="308" preserveAspectRatio="xMidYMid meet" opacity="1" mask="url(#mask-generated-product-image)" />
+  <g class="canvas-sketch-overlay" data-canvas-object-id="generated-product-sketch" data-canvas-kind="sketchOverlay" data-canvas-name="Generated product sketch overlay">
+    <rect class="canvas-sketch-box" data-canvas-sketch-id="silhouette-box" x="480" y="160" width="320" height="480" fill="rgba(35, 100, 210, 0.08)" stroke="#2364d2" pointer-events="none" />
+    <line class="canvas-sketch-line" data-canvas-sketch-id="highlight-callout" x1="640" y1="400" x2="640" y2="160" stroke="#2364d2" pointer-events="none" />
+    <circle class="canvas-sketch-point" data-canvas-sketch-id="focus-point" cx="560" cy="400" r="5" fill="#ffffff" stroke="#2364d2" pointer-events="none" />
+    <text class="canvas-sketch-label" data-canvas-sketch-id="main-note" x="560" y="160" pointer-events="none">Generated product silhouette</text>
+  </g>
   <rect data-canvas-object-id="product-silhouette-body" data-canvas-kind="rect" data-canvas-name="Product silhouette body" x="520" y="200" width="190" height="284" rx="34" fill="#151515" stroke="#000000" />
   <ellipse data-canvas-object-id="product-highlight" data-canvas-kind="ellipse" data-canvas-name="Product highlight" cx="596" cy="323" rx="31" ry="85" fill="#ffffff" opacity="0.92" />
 

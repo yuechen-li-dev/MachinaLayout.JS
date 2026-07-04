@@ -32,6 +32,7 @@
       "objectIds": [
         "product-base-shadow",
         "generated-product-image",
+        "generated-product-sketch",
         "generated-product-alpha",
         "product-silhouette-body",
         "product-highlight"
@@ -68,6 +69,10 @@
     "generated-product-alpha": {
       "kind": "image",
       "asset": "objects/generated-product-alpha.toml"
+    },
+    "generated-product-sketch": {
+      "kind": "sketchOverlay",
+      "asset": "objects/generated-product-sketch.sketch.toml"
     },
     "product-silhouette-body": {
       "kind": "rect",
@@ -115,6 +120,11 @@
       "kind": "alphaMapFor",
       "sourceId": "generated-product-image",
       "alphaId": "generated-product-alpha"
+    },
+    {
+      "kind": "sketchOverlayFor",
+      "sourceId": "generated-product-image",
+      "overlayId": "generated-product-sketch"
     }
   ]
 }

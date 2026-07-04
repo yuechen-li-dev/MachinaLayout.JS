@@ -1,0 +1,32 @@
+id = "generated-product-sketch"
+kind = "sketchOverlay"
+name = "Generated product sketch overlay"
+target_id = "generated-product-image"
+dialect = "sketch"
+visible = true
+
+[[box]]
+id = "silhouette-box"
+label = "Silhouette frame"
+frame = "D2-E4"
+stroke = "#2364d2"
+fill = "rgba(35, 100, 210, 0.08)"
+
+[[line]]
+id = "highlight-callout"
+label = "Highlight callout"
+from = "D3.e"
+to = "E2.w"
+stroke = "#2364d2"
+
+[[point]]
+id = "focus-point"
+label = "Bottle center"
+ref = "D3.c"
+stroke = "#2364d2"
+fill = "#ffffff"
+
+[[label]]
+id = "main-note"
+text = "Generated product silhouette"
+ref = "D2.n"

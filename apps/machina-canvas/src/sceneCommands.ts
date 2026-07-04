@@ -77,6 +77,20 @@ export type CanvasCommand =
   | {
       kind: "detachAlphaMap";
       sourceId: string;
+    }
+  | {
+      kind: "attachSketchOverlay";
+      sourceId: string;
+      overlayId: string;
+    }
+  | {
+      kind: "detachSketchOverlay";
+      sourceId: string;
+    }
+  | {
+      kind: "setSketchOverlayVisible";
+      overlayId: string;
+      visible: boolean;
     };
 
 export type CanvasCommandValidationContext = {
@@ -520,6 +534,59 @@ function validateAlphaMapCommand(
   }
 }
 
+function validateSketchOverlayCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.sourceId, commandIndex, "sourceId");
+  validateObjectId(document, diagnostics, command.overlayId, commandIndex, "overlayId");
+
+  if (!isString(command.sourceId) || !isString(command.overlayId)) return;
+  if (command.sourceId === command.overlayId) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSketchOverlayRelation",
+      message: "sourceId and overlayId must reference different objects.",
+      commandIndex,
+      objectId: command.sourceId,
+    });
+    return;
+  }
+
+  const source = document.objects[command.sourceId];
+  const overlay = document.objects[command.overlayId];
+
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+
+  if (overlay !== undefined && overlay.kind !== "sketchOverlay") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSketchOverlayRelation",
+      message: `Overlay object "${overlay.id}" must be a sketch overlay object.`,
+      commandIndex,
+      objectId: overlay.id,
+    });
+  } else if (overlay?.targetId !== command.sourceId) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSketchOverlayRelation",
+      message: `Sketch overlay "${overlay?.id}" must target image "${command.sourceId}".`,
+      commandIndex,
+      objectId: overlay?.id,
+    });
+  }
+}
+
 function validateSetUiPropCommand(
   document: CanvasDocument,
   diagnostics: CanvasCommandValidationDiagnostic[],
@@ -643,6 +710,54 @@ function validateDetachAlphaMapCommand(
       message: `Source object "${source.id}" must be an image object.`,
       commandIndex,
       objectId: source.id,
+    });
+  }
+}
+
+function validateDetachSketchOverlayCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  sourceId: unknown,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, sourceId, commandIndex, "sourceId");
+  if (!isString(sourceId)) return;
+  const source = document.objects[sourceId];
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+}
+
+function validateSetSketchOverlayVisibleCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.overlayId, commandIndex, "overlayId");
+  if (!isString(command.overlayId)) return;
+  const overlay = document.objects[command.overlayId];
+  if (overlay !== undefined && overlay.kind !== "sketchOverlay") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSketchOverlayRelation",
+      message: `Overlay object "${overlay.id}" must be a sketch overlay object.`,
+      commandIndex,
+      objectId: overlay.id,
+    });
+  }
+  if (typeof command.visible !== "boolean") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCommand",
+      message: "visible must be a boolean.",
+      commandIndex,
     });
   }
 }
@@ -781,6 +896,15 @@ export function validateCanvasCommand(
       break;
     case "detachAlphaMap":
       validateDetachAlphaMapCommand(document, diagnostics, command.sourceId, commandIndex);
+      break;
+    case "attachSketchOverlay":
+      validateSketchOverlayCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "detachSketchOverlay":
+      validateDetachSketchOverlayCommand(document, diagnostics, command.sourceId, commandIndex);
+      break;
+    case "setSketchOverlayVisible":
+      validateSetSketchOverlayVisibleCommand(document, diagnostics, command, commandIndex);
       break;
     default:
       addDiagnostic(diagnostics, {
@@ -997,6 +1121,21 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
       ? `No alpha map was attached to ${command.sourceId}.`
       : `Detached alpha map from ${command.sourceId}.`;
   }
+  if (command.kind === "attachSketchOverlay") {
+    return changes.length === 0
+      ? `Sketch overlay ${command.overlayId} was already attached to ${command.sourceId}.`
+      : `Attached sketch overlay ${command.overlayId} to ${command.sourceId}.`;
+  }
+  if (command.kind === "detachSketchOverlay") {
+    return changes.length === 0
+      ? `No sketch overlay was attached to ${command.sourceId}.`
+      : `Detached sketch overlay from ${command.sourceId}.`;
+  }
+  if (command.kind === "setSketchOverlayVisible") {
+    return changes.length === 0
+      ? `Sketch overlay ${command.overlayId} visibility was already ${command.visible}.`
+      : `Set sketch overlay ${command.overlayId} visible ${command.visible}.`;
+  }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
     return `Moved ${command.id} ${command.anchor ?? "center"} to ${command.ref}.`;
@@ -1132,6 +1271,16 @@ export function applyCanvasCommand(
           after: undefined,
         });
       }
+      if (object.kind === "image" && object.sketchOverlayId === command.id) {
+        const { sketchOverlayId: _sketchOverlayId, ...nextObject } = object;
+        nextObjects[objectId] = nextObject;
+        changes.push({
+          objectId,
+          field: "sketchOverlayId",
+          before: command.id,
+          after: undefined,
+        });
+      }
     }
 
     changes.push({
@@ -1246,6 +1395,61 @@ export function applyCanvasCommand(
     if (changes.length > 0) {
       const { alphaMapId: _alphaMapId, ...nextSource } = source;
       nextDocument = replaceObject(document, source.id, nextSource);
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "attachSketchOverlay") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachSketchOverlay skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "sketchOverlayId", command.overlayId);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, source.id, {
+        ...source,
+        sketchOverlayId: command.overlayId,
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "detachSketchOverlay") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `detachSketchOverlay skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "sketchOverlayId", undefined);
+    if (changes.length > 0) {
+      const { sketchOverlayId: _sketchOverlayId, ...nextSource } = source;
+      nextDocument = replaceObject(document, source.id, nextSource);
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setSketchOverlayVisible") {
+    const overlay = document.objects[command.overlayId];
+    if (overlay?.kind !== "sketchOverlay") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setSketchOverlayVisible skipped invalid sketch overlay "${command.overlayId}".`,
+      };
+    }
+    changeField(changes, overlay, "visible", command.visible);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, overlay.id, { ...overlay, visible: command.visible });
     }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }

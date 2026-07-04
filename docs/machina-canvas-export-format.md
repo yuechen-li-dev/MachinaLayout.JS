@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. M30l allows browser-loaded local image assets to live in the runtime scene as data URL image sources. M30m adds browser-local PNG lowering from the current clean `render.svg`. M30o adds `uiComponent` objects and a lossy `generated-page.tsx` React/MachinaLayout code lowering artifact. It does not implement import, TOML parsing, ZIP packaging, server-side rasterization, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, arbitrary React execution, routing, hooks, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. M30l allows browser-loaded local image assets to live in the runtime scene as data URL image sources. M30m adds browser-local PNG lowering from the current clean `render.svg`. M30o adds `uiComponent` objects and a lossy `generated-page.tsx` React/MachinaLayout code lowering artifact. M30p adds sketch overlay sidecars for image reasoning with `*.sketch.toml` object assets and `sketchOverlayFor` graph relations. It does not implement import, TOML parsing, ZIP packaging, server-side rasterization, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, arbitrary React execution, routing, hooks, or LLM API calls.
 
 ## Format Law
 
@@ -63,6 +63,7 @@ demo-poster.mcanvas/
     headline.toml
     product-base-shadow.toml
     generated-product-image.toml
+    generated-product-sketch.sketch.toml
     generated-product-alpha.toml
     product-silhouette-body.toml
     product-highlight.toml
@@ -157,6 +158,11 @@ Paths inside the bundle are relative to the bundle root.
       "kind": "alphaMapFor",
       "sourceId": "generated-product-image",
       "alphaId": "generated-product-alpha"
+    },
+    {
+      "kind": "sketchOverlayFor",
+      "sourceId": "generated-product-image",
+      "overlayId": "generated-product-sketch"
     }
   ]
 }
@@ -183,12 +189,13 @@ Fields:
 - `layers[].asset`: relative path to layer TOML.
 - `layers[].objectIds`: ordered object IDs in that layer.
 - `objects`: map of stable object IDs to object index entries.
-- `objects[id].kind`: object kind such as `rect`, `ellipse`, `text`, `image`, or `uiComponent`.
+- `objects[id].kind`: object kind such as `rect`, `ellipse`, `text`, `image`, `uiComponent`, or `sketchOverlay`.
 - `objects[id].asset`: relative path to the object TOML contract.
-- `relations`: optional graph relations such as `alphaMapFor`.
+- `relations`: optional graph relations such as `alphaMapFor` and `sketchOverlayFor`.
 - `relations[].kind`: relation kind.
 - `relations[].sourceId`: source image object ID for `alphaMapFor`.
 - `relations[].alphaId`: alpha map or mask image object ID for `alphaMapFor`.
+- `relations[].overlayId`: sketch overlay object ID for `sketchOverlayFor`.
 
 Rules:
 
@@ -454,6 +461,40 @@ fit = "contain"
 color_space = "alpha"
 ```
 
+Sketch overlay sidecar:
+
+```toml
+id = "generated-product-sketch"
+kind = "sketchOverlay"
+name = "Generated product sketch overlay"
+target_id = "generated-product-image"
+dialect = "sketch"
+visible = true
+
+[[box]]
+id = "silhouette-box"
+label = "Silhouette frame"
+frame = "D2-E4"
+stroke = "#2364d2"
+
+[[line]]
+id = "highlight-callout"
+label = "Highlight callout"
+from = "D3.e"
+to = "E2.w"
+stroke = "#2364d2"
+
+[[point]]
+id = "focus-point"
+label = "Bottle center"
+ref = "D3.c"
+
+[[label]]
+id = "main-note"
+text = "Generated product silhouette"
+ref = "D2.n"
+```
+
 UI component:
 
 ```toml
@@ -517,6 +558,8 @@ Rules:
   and `blend_mode`.
 - Alpha map objects remain normal scene objects and are often `visible = false`
   so they are inspectable and exportable without rendering as normal artwork.
+- Sketch overlay objects remain normal scene objects and use dialect-specific
+  object assets such as `*.sketch.toml`.
 - No giant object JSON blob.
 
 ## Layer TOML
@@ -598,6 +641,20 @@ kind = "detachAlphaMap"
 source_id = "generated-product-image"
 
 [[command]]
+kind = "attachSketchOverlay"
+source_id = "generated-product-image"
+overlay_id = "generated-product-sketch"
+
+[[command]]
+kind = "detachSketchOverlay"
+source_id = "generated-product-image"
+
+[[command]]
+kind = "setSketchOverlayVisible"
+overlay_id = "generated-product-sketch"
+visible = true
+
+[[command]]
 kind = "removeObject"
 id = "generated-product-alpha"
 
@@ -629,6 +686,8 @@ Rules:
 - `setUiProp` command recipes can store basic UI component prop edits.
 - `attachAlphaMap` and `detachAlphaMap` command recipes preserve explicit
   image-to-alpha-map relationship edits.
+- `attachSketchOverlay`, `detachSketchOverlay`, and `setSketchOverlayVisible`
+  preserve explicit image-to-sketch-overlay relationship edits.
 - `removeObject` command recipes preserve unload/remove edits.
 - `addImageObject` runtime commands may be omitted from command TOML recipes
   because they can contain large data URL image payloads. The loaded image
@@ -688,6 +747,11 @@ message = "Selected object is Feature chip: IDs."
 kind = "alphaMapFor"
 source_id = "generated-product-image"
 alpha_id = "generated-product-alpha"
+
+[[sketch_overlay]]
+source_id = "generated-product-image"
+overlay_id = "generated-product-sketch"
+path = "objects/generated-product-sketch.sketch.toml"
 ```
 
 Rules:
@@ -700,6 +764,8 @@ Rules:
 - Diagnostics can be TOML array tables.
 - It should be easy to read in a text editor.
 - `[[composite]]` entries summarize exported image composition relationships
+  for handoff readers.
+- `[[sketch_overlay]]` entries summarize exported image-to-sidecar relationships
   for handoff readers.
 
 ## Rendered Artifacts
@@ -745,6 +811,11 @@ objects.
 M30l data URL image sources are written directly to SVG `<image href="...">`
 attributes. Relative fixture asset paths remain valid, and data URLs do not
 require any bundle asset file existence check.
+
+M30p visible sketch overlays render into clean `render.svg` after their target
+image so the reasoning marks remain readable. Hide the overlay before export if
+you want it excluded from `render.svg` and PNG lowering. Sketch overlays are
+not raster edits; their editable truth lives in `*.sketch.toml`.
 
 M30m `render.png` is an optional lossy bitmap lowering from `render.svg`. It is
 generated browser-locally with SVG image loading and canvas `toBlob("image/png")`.
@@ -830,6 +901,9 @@ current viewer state to export.
 M30k serializers include image object `[image]` and `[composite]` blocks,
 `alphaMapFor` relations in `document.json`, SVG mask output in `render.svg`,
 and `[[composite]]` handoff entries.
+M30p serializers include image `sketch_overlay_id`, `sketchOverlayFor`
+relations in `document.json`, `*.sketch.toml` sidecars, `[[sketch_overlay]]`
+handoff entries, and visible sketch overlay primitives in `render.svg`.
 M30l serializers preserve browser-loaded image `src` data URLs in object TOML
 and SVG output. Command recipe serialization can skip bulky `addImageObject`
 session commands while keeping smaller edits such as `removeObject`.
@@ -861,6 +935,7 @@ Validation checks:
 - whether `render.svg` includes `data-canvas-object-id` markers for indexed objects
 - whether `handoff.toml` selected `object_id` points to a known object when present
 - whether `document.json` `alphaMapFor` relations point to image objects
+- whether `document.json` `sketchOverlayFor` relations point to image and sketchOverlay objects
 - whether `render.svg` includes a mask for alpha-mapped image relations
 - whether a command recipe exists when the caller says session commands were expected
 - whether generated TSX exists when listed in handoff metadata is intentionally a lightweight file-list check for now

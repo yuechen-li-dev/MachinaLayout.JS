@@ -18,6 +18,11 @@ source_id = "generated-product-image"
 alpha_id = "generated-product-alpha"
 
 [[command]]
+kind = "setSketchOverlayVisible"
+overlay_id = "generated-product-sketch"
+visible = true
+
+[[command]]
 kind = "setFrame"
 id = "cta-bg"
 

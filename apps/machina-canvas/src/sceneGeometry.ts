@@ -73,6 +73,32 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
         });
       }
     }
+
+    if (object.kind === "image" && object.sketchOverlayId !== undefined) {
+      const overlay = document.objects[object.sketchOverlayId];
+      if (overlay === undefined) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSketchOverlayRelation",
+          message: `${object.name} references missing sketch overlay ${object.sketchOverlayId}.`,
+          objectIds: [object.id],
+        });
+      } else if (overlay.kind !== "sketchOverlay") {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSketchOverlayRelation",
+          message: `${object.name} references non-sketch overlay ${overlay.name}.`,
+          objectIds: [object.id, overlay.id],
+        });
+      } else if (overlay.targetId !== object.id) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSketchOverlayRelation",
+          message: `${object.name} sketch overlay ${overlay.id} targets ${overlay.targetId} instead.`,
+          objectIds: [object.id, overlay.id],
+        });
+      }
+    }
   }
 
   if (selected?.visible) {

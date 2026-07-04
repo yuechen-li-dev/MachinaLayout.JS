@@ -28,6 +28,7 @@ height = 308
 src = "assets/generated-product.svg"
 role = "image"
 alpha_map_id = "generated-product-alpha"
+sketch_overlay_id = "generated-product-sketch"
 fit = "contain"
 intrinsic_width = 512
 intrinsic_height = 512

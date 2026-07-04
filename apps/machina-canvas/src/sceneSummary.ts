@@ -13,9 +13,13 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
     : `x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
   const imageSummary =
     object.kind === "image"
-      ? `; role ${object.role ?? "image"}${object.alphaMapId ? `; uses alpha map ${object.alphaMapId}` : ""}`
+      ? `; role ${object.role ?? "image"}${object.alphaMapId ? `; uses alpha map ${object.alphaMapId}` : ""}${object.sketchOverlayId ? `; uses sketch overlay ${object.sketchOverlayId}` : ""}`
       : "";
-  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}`;
+  const sketchSummary =
+    object.kind === "sketchOverlay"
+      ? `; target ${object.targetId}; primitives ${object.spec.primitives.length}; dialect ${object.spec.dialect}`
+      : "";
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${sketchSummary}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {

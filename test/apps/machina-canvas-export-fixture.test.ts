@@ -59,11 +59,19 @@ describe("MachinaCanvas export fixture", () => {
     }
 
     for (const [objectId, object] of Object.entries(document.objects)) {
-      expect(object.asset).toBe(`objects/${objectId}.toml`);
+      expect(object.asset).toBe(
+        object.kind === "sketchOverlay"
+          ? `objects/${objectId}.sketch.toml`
+          : `objects/${objectId}.toml`,
+      );
       expect(existsSync(join(fixtureRoot, object.asset))).toBe(true);
       const objectToml = readFileSync(join(fixtureRoot, object.asset), "utf8");
-      expect(objectToml).toContain("[frame]");
-      expect(objectToml).toContain("[resolved]");
+      if (object.kind === "sketchOverlay") {
+        expect(objectToml).toContain('dialect = "sketch"');
+      } else {
+        expect(objectToml).toContain("[frame]");
+        expect(objectToml).toContain("[resolved]");
+      }
     }
 
     const renderSvg = readFileSync(join(fixtureRoot, "render.svg"), "utf8");

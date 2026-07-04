@@ -14,6 +14,7 @@ export type CanvasExportValidationDiagnosticCode =
   | "InvalidHandoffReference"
   | "InvalidUnitSystem"
   | "InvalidCompositeRelation"
+  | "InvalidSketchOverlayRelation"
   | "MissingCompositeMask"
   | "MissingCommandRecipe"
   | "EmptyExportBundle";
@@ -62,7 +63,8 @@ type DocumentIndex = {
   relations?: Array<{
     kind: string;
     sourceId: string;
-    alphaId: string;
+    alphaId?: string;
+    overlayId?: string;
   }>;
 };
 
@@ -123,11 +125,14 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
       if (!isRecord(relation)) return undefined;
       if (typeof relation.kind !== "string") return undefined;
       if (typeof relation.sourceId !== "string") return undefined;
-      if (typeof relation.alphaId !== "string") return undefined;
+      if (relation.alphaId !== undefined && typeof relation.alphaId !== "string") return undefined;
+      if (relation.overlayId !== undefined && typeof relation.overlayId !== "string")
+        return undefined;
       relations.push({
         kind: relation.kind,
         sourceId: relation.sourceId,
         alphaId: relation.alphaId,
+        overlayId: relation.overlayId,
       });
     }
   }
@@ -219,12 +224,9 @@ function getObjectToml(bundle: CanvasExportBundle, documentIndex: DocumentIndex,
   return asset ? getFile(bundle, asset)?.text : undefined;
 }
 
-function isHiddenAlphaMapToml(text: string | undefined): boolean {
+function isHiddenObjectToml(text: string | undefined): boolean {
   if (text === undefined) return false;
-  return (
-    getTomlStringValue(text, "role") === "alphaMap" &&
-    getTomlBooleanValue(text, "visible") === false
-  );
+  return getTomlBooleanValue(text, "visible") === false;
 }
 
 function getCanvasImageMaskId(objectId: string): string {
@@ -328,7 +330,10 @@ export function validateCanvasExportBundle(
     }
 
     for (const path of [...paths]
-      .filter((path) => path.startsWith("objects/") && path.endsWith(".toml"))
+      .filter(
+        (path) =>
+          path.startsWith("objects/") && (path.endsWith(".toml") || path.endsWith(".sketch.toml")),
+      )
       .sort()) {
       const owner = Object.entries(documentIndex.objects).find(
         ([, object]) => object.asset === path,
@@ -346,7 +351,7 @@ export function validateCanvasExportBundle(
     const renderSvg = getFile(bundle, "render.svg");
     if (resolvedOptions.checkRenderObjectIds && renderSvg) {
       for (const objectId of Object.keys(documentIndex.objects).sort()) {
-        if (isHiddenAlphaMapToml(getObjectToml(bundle, documentIndex, objectId))) continue;
+        if (isHiddenObjectToml(getObjectToml(bundle, documentIndex, objectId))) continue;
         if (!renderSvg.text.includes(`data-canvas-object-id="${quoteXmlAttribute(objectId)}"`)) {
           diagnostics.push({
             severity: "warning",
@@ -359,58 +364,101 @@ export function validateCanvasExportBundle(
     }
 
     for (const relation of documentIndex.relations ?? []) {
-      if (relation.kind !== "alphaMapFor") continue;
-
-      const source = documentIndex.objects[relation.sourceId];
-      const alpha = documentIndex.objects[relation.alphaId];
-      if (source === undefined) {
-        diagnostics.push({
-          severity: "error",
-          code: "InvalidCompositeRelation",
-          path: "document.json",
-          objectId: relation.sourceId,
-          message: `alphaMapFor source ${relation.sourceId} is not present in document.json.`,
-        });
-      } else if (source.kind !== "image") {
-        diagnostics.push({
-          severity: "error",
-          code: "InvalidCompositeRelation",
-          path: "document.json",
-          objectId: relation.sourceId,
-          message: `alphaMapFor source ${relation.sourceId} must be an image object.`,
-        });
-      }
-
-      if (alpha === undefined) {
-        diagnostics.push({
-          severity: "error",
-          code: "InvalidCompositeRelation",
-          path: "document.json",
-          objectId: relation.alphaId,
-          message: `alphaMapFor alpha ${relation.alphaId} is not present in document.json.`,
-        });
-      } else if (alpha.kind !== "image") {
-        diagnostics.push({
-          severity: "error",
-          code: "InvalidCompositeRelation",
-          path: "document.json",
-          objectId: relation.alphaId,
-          message: `alphaMapFor alpha ${relation.alphaId} must be an image object.`,
-        });
-      }
-
-      if (renderSvg) {
-        const maskId = getCanvasImageMaskId(relation.sourceId);
-        if (
-          !renderSvg.text.includes(`id="${quoteXmlAttribute(maskId)}"`) &&
-          !renderSvg.text.includes(`mask="url(#${quoteXmlAttribute(maskId)})"`)
-        ) {
+      if (relation.kind === "alphaMapFor") {
+        const alphaId = relation.alphaId;
+        const source = documentIndex.objects[relation.sourceId];
+        const alpha = alphaId ? documentIndex.objects[alphaId] : undefined;
+        if (source === undefined) {
           diagnostics.push({
-            severity: "warning",
-            code: "MissingCompositeMask",
-            path: "render.svg",
+            severity: "error",
+            code: "InvalidCompositeRelation",
+            path: "document.json",
             objectId: relation.sourceId,
-            message: `render.svg does not contain a mask for alphaMapFor source ${relation.sourceId}.`,
+            message: `alphaMapFor source ${relation.sourceId} is not present in document.json.`,
+          });
+        } else if (source.kind !== "image") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidCompositeRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `alphaMapFor source ${relation.sourceId} must be an image object.`,
+          });
+        }
+
+        if (alphaId === undefined || alpha === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidCompositeRelation",
+            path: "document.json",
+            objectId: alphaId,
+            message: `alphaMapFor alpha ${alphaId} is not present in document.json.`,
+          });
+        } else if (alpha.kind !== "image") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidCompositeRelation",
+            path: "document.json",
+            objectId: alphaId,
+            message: `alphaMapFor alpha ${alphaId} must be an image object.`,
+          });
+        }
+
+        if (renderSvg) {
+          const maskId = getCanvasImageMaskId(relation.sourceId);
+          if (
+            !renderSvg.text.includes(`id="${quoteXmlAttribute(maskId)}"`) &&
+            !renderSvg.text.includes(`mask="url(#${quoteXmlAttribute(maskId)})"`)
+          ) {
+            diagnostics.push({
+              severity: "warning",
+              code: "MissingCompositeMask",
+              path: "render.svg",
+              objectId: relation.sourceId,
+              message: `render.svg does not contain a mask for alphaMapFor source ${relation.sourceId}.`,
+            });
+          }
+        }
+      }
+
+      if (relation.kind === "sketchOverlayFor") {
+        const overlayId = relation.overlayId;
+        const source = documentIndex.objects[relation.sourceId];
+        const overlay = overlayId ? documentIndex.objects[overlayId] : undefined;
+
+        if (source === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSketchOverlayRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `sketchOverlayFor source ${relation.sourceId} is not present in document.json.`,
+          });
+        } else if (source.kind !== "image") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSketchOverlayRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `sketchOverlayFor source ${relation.sourceId} must be an image object.`,
+          });
+        }
+
+        if (overlayId === undefined || overlay === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSketchOverlayRelation",
+            path: "document.json",
+            objectId: overlayId,
+            message: `sketchOverlayFor overlay ${overlayId} is not present in document.json.`,
+          });
+        } else if (overlay.kind !== "sketchOverlay") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSketchOverlayRelation",
+            path: "document.json",
+            objectId: overlayId,
+            message: `sketchOverlayFor overlay ${overlayId} must be a sketchOverlay object.`,
           });
         }
       }

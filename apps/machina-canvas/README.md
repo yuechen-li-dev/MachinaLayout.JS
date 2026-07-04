@@ -72,6 +72,9 @@ Supported command kinds:
 - `removeObject`
 - `attachAlphaMap`
 - `detachAlphaMap`
+- `attachSketchOverlay`
+- `detachSketchOverlay`
+- `setSketchOverlayVisible`
 - `setUiProp`
 
 Grid-aware commands let command JSON target the reference grid instead of raw
@@ -177,6 +180,34 @@ This toolbox complements generative image systems. It does not call an LLM or
 diffusion API, does not upload pixels, and does not add brush editing. It gives
 models a stable local operation for a common layer-composition task. See
 [MachinaCanvas tools](../../docs/machina-canvas-tools.md).
+
+## Sketch Overlay Sidecars
+
+M30p adds structured sketch overlays for image reasoning:
+
+```txt
+image object
+  + sketch overlay object/spec
+  + sketchOverlayId relation
+  -> visual reasoning overlay
+```
+
+The overlay is not a raster edit and not an alpha mask. It is a readable sidecar
+for boxes, lines, points, and labels so an LLM can reason over image structure
+without squinting at pixels.
+
+Sketch overlays remain normal scene objects in the scene tree and inspector.
+The current dialect exports as `*.sketch.toml`, for example
+`objects/generated-product-sketch.sketch.toml`. The image/object graph exports a
+`sketchOverlayFor` relation in `document.json`, and `handoff.toml` includes a
+matching `[[sketch_overlay]]` entry.
+
+Visible sketch overlays render on top of their target image in the canvas and in
+clean `render.svg`, so PNG lowering also includes them. Hide the overlay before
+export if you want it excluded from the rendered artifact. The sidecar-dialect
+shape is intended to generalize later to things like `.pcb.toml`,
+`.graph.toml`, `.spritegrid.toml`, or `.atlas.toml`, but M30p only implements
+`.sketch.toml`.
 
 ## UI Components And TSX Lowering
 
@@ -372,6 +403,11 @@ under `[rendered_artifacts]` and `[lowering.react]` as a lossy TSX code lowering
 artifact. It preserves component intent better than pixels, but it intentionally
 does not preserve editor commands, viewport state, every canvas semantic, or a
 full import path back into MachinaCanvas.
+
+M30p adds sketch overlay sidecars for images. Object exports can now use
+`*.sketch.toml` dialect paths, `document.json` can include `sketchOverlayFor`
+relations, and visible sketch overlays are part of `render.svg` and PNG
+lowering. See [MachinaCanvas sketch overlays](../../docs/machina-canvas-sketch-overlays.md).
 
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and

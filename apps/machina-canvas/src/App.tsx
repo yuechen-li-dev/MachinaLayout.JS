@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -56,6 +57,7 @@ import {
 import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
+import { resolveSketchSpec } from "./sketchOverlay";
 import type {
   CanvasDocument,
   CanvasFrame,
@@ -90,6 +92,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   text: "Text",
   image: "Image",
   uiComponent: "UI Component",
+  sketchOverlay: "Sketch Overlay",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -109,6 +112,9 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
   detachAlphaMap: "Detach alpha map",
+  attachSketchOverlay: "Attach sketch overlay",
+  detachSketchOverlay: "Detach sketch overlay",
+  setSketchOverlayVisible: "Set sketch overlay visible",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -129,6 +135,11 @@ const exampleCommandJson = JSON.stringify(
       kind: "attachAlphaMap",
       sourceId: "generated-product-image",
       alphaId: "generated-product-alpha",
+    },
+    {
+      kind: "setSketchOverlayVisible",
+      overlayId: "generated-product-sketch",
+      visible: true,
     },
     {
       kind: "setFrame",
@@ -275,6 +286,7 @@ function getKindClass(object: CanvasObject): string {
     text: () => "kind-text",
     image: () => "kind-image",
     uiComponent: () => "kind-ui",
+    sketchOverlay: () => "kind-sketch",
   });
 }
 
@@ -292,7 +304,24 @@ function getKindShortLabel(object: CanvasObject): string {
             : "IMG"
         : "IMG",
     uiComponent: () => "UI",
+    sketchOverlay: () => "SKETCH",
   });
+}
+
+function getSketchOverlayForImage(document: CanvasDocument, object: ImageObject) {
+  if (!object.sketchOverlayId) return undefined;
+  const overlay = document.objects[object.sketchOverlayId];
+  if (overlay?.kind !== "sketchOverlay" || overlay.targetId !== object.id) return undefined;
+  return overlay;
+}
+
+function getSketchOverlayTarget(
+  document: CanvasDocument,
+  object: Extract<CanvasObject, { kind: "sketchOverlay" }>,
+) {
+  const target = document.objects[object.targetId];
+  if (target?.kind !== "image") return undefined;
+  return target;
 }
 
 function getObjectGridSpan(document: CanvasDocument, object: CanvasObject): string {
@@ -434,6 +463,12 @@ function SceneTree(props: MachinaSlotProps) {
                           candidate.kind === "image" && candidate.alphaMapId === object.id,
                       )?.id
                     : undefined;
+                const sketchFor =
+                  object.kind === "sketchOverlay"
+                    ? getSketchOverlayTarget(document, object)?.id
+                    : undefined;
+                const sketchOverlayId =
+                  object.kind === "image" ? object.sketchOverlayId : undefined;
                 return (
                   <button
                     className={`tree-object ${selected ? "is-selected" : ""}`}
@@ -446,7 +481,13 @@ function SceneTree(props: MachinaSlotProps) {
                     </span>
                     <span>{object.name}</span>
                     <small>
-                      {alphaFor ? `alpha for ${alphaFor}` : getObjectGridSpan(document, object)}
+                      {alphaFor
+                        ? `alpha for ${alphaFor}`
+                        : sketchFor
+                          ? `overlay for ${sketchFor}`
+                          : sketchOverlayId
+                            ? `overlay ${sketchOverlayId}`
+                            : getObjectGridSpan(document, object)}
                     </small>
                   </button>
                 );
@@ -491,6 +532,7 @@ function SceneObjectSvg({
   onSelect: (id: string) => void;
 }) {
   if (!object.visible) return null;
+  if (object.kind === "sketchOverlay") return null;
 
   const common = {
     "data-canvas-object-id": object.id,
@@ -587,6 +629,95 @@ function SceneObjectSvg({
           width={object.width + 10}
           height={object.height + 10}
           rx={4}
+        />
+      ) : null}
+    </g>
+  );
+}
+
+function SketchOverlaySvg({
+  document,
+  overlay,
+  selected,
+}: {
+  document: CanvasDocument;
+  overlay: Extract<CanvasObject, { kind: "sketchOverlay" }>;
+  selected: boolean;
+}) {
+  const primitives = resolveSketchSpec(document, overlay.spec);
+
+  return (
+    <g
+      className={`canvas-sketch-overlay ${selected ? "is-selected" : ""}`}
+      data-canvas-object-id={overlay.id}
+      data-canvas-kind={overlay.kind}
+      data-canvas-name={overlay.name}
+      pointerEvents="none"
+    >
+      {primitives.map((primitive) => {
+        if (primitive.kind === "box") {
+          return (
+            <rect
+              className="canvas-sketch-box"
+              data-canvas-sketch-id={primitive.id}
+              fill={primitive.fill ?? "transparent"}
+              height={primitive.rect.height}
+              key={primitive.id}
+              stroke={primitive.stroke ?? "#2364d2"}
+              width={primitive.rect.width}
+              x={primitive.rect.x}
+              y={primitive.rect.y}
+            />
+          );
+        }
+        if (primitive.kind === "line") {
+          return (
+            <line
+              className="canvas-sketch-line"
+              data-canvas-sketch-id={primitive.id}
+              key={primitive.id}
+              stroke={primitive.stroke ?? "#2364d2"}
+              x1={primitive.from.x}
+              x2={primitive.to.x}
+              y1={primitive.from.y}
+              y2={primitive.to.y}
+            />
+          );
+        }
+        if (primitive.kind === "point") {
+          return (
+            <circle
+              className="canvas-sketch-point"
+              cx={primitive.point.x}
+              cy={primitive.point.y}
+              data-canvas-sketch-id={primitive.id}
+              fill={primitive.fill ?? "#ffffff"}
+              key={primitive.id}
+              r={5}
+              stroke={primitive.stroke ?? "#2364d2"}
+            />
+          );
+        }
+        return (
+          <text
+            className="canvas-sketch-label"
+            data-canvas-sketch-id={primitive.id}
+            key={primitive.id}
+            x={primitive.point.x}
+            y={primitive.point.y}
+          >
+            {primitive.text}
+          </text>
+        );
+      })}
+      {selected ? (
+        <rect
+          className="selection-box"
+          height={overlay.height + 10}
+          rx={4}
+          width={overlay.width + 10}
+          x={overlay.x - 5}
+          y={overlay.y - 5}
         />
       ) : null}
     </g>
@@ -761,14 +892,24 @@ function CanvasPanel(props: MachinaSlotProps) {
                 object.kind === "image" && object.alphaMapId
                   ? document.objects[object.alphaMapId]
                   : undefined;
+              const sketchOverlay =
+                object.kind === "image" ? getSketchOverlayForImage(document, object) : undefined;
               return (
-                <SceneObjectSvg
-                  key={object.id}
-                  object={object}
-                  alphaMap={alphaMap?.kind === "image" ? alphaMap : undefined}
-                  selected={document.selectedObjectId === object.id}
-                  onSelect={(id) => runCommand({ kind: "select", id })}
-                />
+                <Fragment key={object.id}>
+                  <SceneObjectSvg
+                    object={object}
+                    alphaMap={alphaMap?.kind === "image" ? alphaMap : undefined}
+                    selected={document.selectedObjectId === object.id}
+                    onSelect={(id) => runCommand({ kind: "select", id })}
+                  />
+                  {sketchOverlay ? (
+                    <SketchOverlaySvg
+                      document={document}
+                      overlay={sketchOverlay}
+                      selected={document.selectedObjectId === sketchOverlay.id}
+                    />
+                  ) : null}
+                </Fragment>
               );
             })}
           {aidToggles.showMeasurementLabels ? (
@@ -1586,6 +1727,68 @@ function Inspector(props: MachinaSlotProps) {
               }
             />
           </InspectorSection>
+          <InspectorSection title="Sketch Overlay">
+            {(() => {
+              const overlay = getSketchOverlayForImage(document, selected);
+              if (!overlay) {
+                const demoOverlay = document.objects["generated-product-sketch"];
+                const attachable =
+                  demoOverlay?.kind === "sketchOverlay" && demoOverlay.targetId === selected.id;
+                return (
+                  <>
+                    <Field label="Overlay" value="none" />
+                    {attachable ? (
+                      <div className="command-row">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            runCommand({
+                              kind: "attachSketchOverlay",
+                              sourceId: selected.id,
+                              overlayId: demoOverlay.id,
+                            })
+                          }
+                        >
+                          Attach Demo Sketch Overlay
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                );
+              }
+              return (
+                <>
+                  <Field label="Overlay" value={overlay.id} />
+                  <Field label="Dialect" value={overlay.spec.dialect} />
+                  <div className="command-row">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "setSketchOverlayVisible",
+                          overlayId: overlay.id,
+                          visible: !overlay.visible,
+                        })
+                      }
+                    >
+                      {overlay.visible ? "Hide Sketch Overlay" : "Show Sketch Overlay"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "detachSketchOverlay",
+                          sourceId: selected.id,
+                        })
+                      }
+                    >
+                      Detach Sketch Overlay
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </InspectorSection>
           <InspectorSection title="Composite">
             {selected.alphaMapId ? (
               <Field label="Uses alpha map" value={selected.alphaMapId} />
@@ -1598,6 +1801,43 @@ function Inspector(props: MachinaSlotProps) {
             ) : null}
           </InspectorSection>
         </>
+      ) : null}
+      {selected.kind === "sketchOverlay" ? (
+        <InspectorSection title="Sketch Overlay">
+          <Field label="Target" value={selected.targetId} />
+          <Field label="Dialect" value={selected.spec.dialect} />
+          <Field label="Primitives" value={selected.spec.primitives.length} />
+          <label className="toggle-row">
+            <span>Visible</span>
+            <input
+              checked={selected.visible}
+              onChange={(event) =>
+                runCommand({
+                  kind: "setSketchOverlayVisible",
+                  overlayId: selected.id,
+                  visible: event.target.checked,
+                })
+              }
+              type="checkbox"
+            />
+          </label>
+          <div className="sketch-primitive-list">
+            {selected.spec.primitives.map((primitive) => (
+              <div className="sketch-primitive-card" key={primitive.id}>
+                <strong>
+                  {primitive.kind} / {primitive.id}
+                </strong>
+                <p>
+                  {"label" in primitive && primitive.label
+                    ? primitive.label
+                    : primitive.kind === "label"
+                      ? primitive.text
+                      : "no label"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </InspectorSection>
       ) : null}
       {selected.kind === "uiComponent" ? (
         <InspectorSection title="UI Component">
