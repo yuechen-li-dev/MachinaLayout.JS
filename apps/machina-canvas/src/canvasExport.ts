@@ -384,6 +384,8 @@ export function serializeCanvasCommandsToml(
   if (description) lines.push(`description = ${quoteTomlString(description)}`);
 
   for (const command of commands) {
+    if (command.kind === "addImageObject") continue;
+
     lines.push("", "[[command]]", `kind = ${quoteTomlString(command.kind)}`);
     switch (command.kind) {
       case "select":
@@ -448,6 +450,9 @@ export function serializeCanvasCommandsToml(
       case "setFrame":
         lines.push(`id = ${quoteTomlString(command.id)}`);
         pushFrameToml(lines, "[command.frame]", command.frame);
+        break;
+      case "removeObject":
+        lines.push(`id = ${quoteTomlString(command.id)}`);
         break;
       case "attachAlphaMap":
         lines.push(

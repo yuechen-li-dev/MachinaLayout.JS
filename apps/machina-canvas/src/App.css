@@ -89,6 +89,9 @@ button {
 .viewport-input-row button,
 .command-json-actions button,
 .export-actions button,
+.asset-actions button,
+.asset-select-row button,
+.asset-wide-button,
 .export-file-row {
   border: 0;
   background: transparent;
@@ -297,7 +300,10 @@ button {
 .viewport-wide-button,
 .viewport-input-row button,
 .command-json-actions button,
-.export-actions button {
+.export-actions button,
+.asset-actions button,
+.asset-select-row button,
+.asset-wide-button {
   min-height: 34px;
   border: 1px solid #111111;
   background: #ffffff;
@@ -306,7 +312,8 @@ button {
   text-transform: uppercase;
 }
 
-.export-actions button:disabled {
+.export-actions button:disabled,
+.asset-select-row button:disabled {
   border-color: #d7d7d2;
   color: #8a8a84;
 }
@@ -408,6 +415,37 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.asset-file-input {
+  display: none;
+}
+
+.asset-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.asset-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  gap: 8px;
+}
+
+.asset-select-row select {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  color: #111111;
+  font: inherit;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.asset-wide-button {
+  width: 100%;
 }
 
 .export-status {

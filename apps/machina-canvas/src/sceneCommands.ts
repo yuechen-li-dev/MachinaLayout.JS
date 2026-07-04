@@ -1,5 +1,5 @@
 import { resolveCanvasFrame } from "./canvasFrames";
-import type { CanvasDocument, CanvasFrame, CanvasObject } from "./sceneModel";
+import type { CanvasDocument, CanvasFrame, CanvasObject, ImageObject } from "./sceneModel";
 import {
   gridPointRefToCanvasPoint,
   gridSpanRefToCanvasRect,
@@ -46,6 +46,14 @@ export type CanvasCommand =
       kind: "setFrame";
       id: string;
       frame: CanvasFrame;
+    }
+  | {
+      kind: "addImageObject";
+      object: ImageObject;
+    }
+  | {
+      kind: "removeObject";
+      id: string;
     }
   | {
       kind: "attachAlphaMap";
@@ -333,6 +341,95 @@ function validateCanvasFrameValue(
   }
 }
 
+function validateAddImageObjectCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  object: unknown,
+  commandIndex: number | undefined,
+) {
+  if (!isRecord(object)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageAsset",
+      message: "addImageObject requires an image object.",
+      commandIndex,
+    });
+    return;
+  }
+
+  if (!isString(object.id) || object.id.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageAsset",
+      message: "Image object id must be a non-empty string.",
+      commandIndex,
+    });
+  } else if (document.objects[object.id] !== undefined) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "DuplicateObjectId",
+      message: `Object "${object.id}" already exists.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  }
+
+  if (object.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: "addImageObject only accepts objects with kind image.",
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (!isString(object.layerId) || !document.layers.some((layer) => layer.id === object.layerId)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "MissingLayer",
+      message: `Image object layer "${String(object.layerId)}" does not exist.`,
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (!isString(object.src) || object.src.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageAsset",
+      message: "Image object src must be a non-empty string.",
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+}
+
+function validateRemoveObjectCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  id: unknown,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, id, commandIndex);
+  if (!isString(id) || document.objects[id] === undefined) return;
+
+  const references = Object.values(document.objects).filter(
+    (object) => object.kind === "image" && object.alphaMapId === id,
+  );
+  if (references.length > 0) {
+    addDiagnostic(diagnostics, {
+      severity: "warning",
+      code: "RemovingAlphaMapReference",
+      message: `Removing "${id}" will detach it from ${references.length} image object${
+        references.length === 1 ? "" : "s"
+      }.`,
+      commandIndex,
+      objectId: id,
+    });
+  }
+}
+
 function validateAlphaMapCommand(
   document: CanvasDocument,
   diagnostics: CanvasCommandValidationDiagnostic[],
@@ -531,6 +628,12 @@ export function validateCanvasCommand(
     case "setFrame":
       validateObjectId(document, diagnostics, command.id, commandIndex);
       validateCanvasFrameValue(document, diagnostics, command.frame, commandIndex, context);
+      break;
+    case "addImageObject":
+      validateAddImageObjectCommand(document, diagnostics, command.object, commandIndex);
+      break;
+    case "removeObject":
+      validateRemoveObjectCommand(document, diagnostics, command.id, commandIndex);
       break;
     case "attachAlphaMap":
       validateAlphaMapCommand(document, diagnostics, command, commandIndex);
@@ -733,6 +836,16 @@ function applyDistributeCommand(
 }
 
 function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
+  if (command.kind === "addImageObject") {
+    return changes.length === 0
+      ? `Image object ${command.object.id} was already present.`
+      : `Added image object ${command.object.id}.`;
+  }
+  if (command.kind === "removeObject") {
+    return changes.length === 0
+      ? `Object ${command.id} was not removed.`
+      : `Removed object ${command.id}.`;
+  }
   if (command.kind === "attachAlphaMap") {
     return changes.length === 0
       ? `Alpha map ${command.alphaId} was already attached to ${command.sourceId}.`
@@ -767,6 +880,128 @@ export function applyCanvasCommand(
 ): CanvasCommandApplyResult {
   const changes: CanvasCommandChange[] = [];
   let nextDocument = document;
+
+  if (command.kind === "addImageObject") {
+    if (document.objects[command.object.id] !== undefined) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addImageObject skipped duplicate object "${command.object.id}".`,
+      };
+    }
+
+    const layerExists = document.layers.some((layer) => layer.id === command.object.layerId);
+    if (!layerExists || command.object.kind !== "image" || command.object.src.length === 0) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addImageObject skipped invalid image object "${command.object.id}".`,
+      };
+    }
+
+    changes.push({
+      objectId: command.object.id,
+      field: "objects",
+      before: undefined,
+      after: command.object,
+    });
+    changes.push({
+      objectId: command.object.id,
+      field: "layer.objectIds",
+      before: undefined,
+      after: command.object.id,
+    });
+    if (document.selectedObjectId !== command.object.id) {
+      changes.push({
+        objectId: command.object.id,
+        field: "selectedObjectId",
+        before: document.selectedObjectId,
+        after: command.object.id,
+      });
+    }
+
+    nextDocument = {
+      ...document,
+      selectedObjectId: command.object.id,
+      objects: {
+        ...document.objects,
+        [command.object.id]: command.object,
+      },
+      layers: document.layers.map((layer) =>
+        layer.id === command.object.layerId
+          ? { ...layer, objectIds: [...layer.objectIds, command.object.id] }
+          : layer,
+      ),
+    };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "removeObject") {
+    const removedObject = document.objects[command.id];
+    if (removedObject === undefined) {
+      return {
+        document,
+        command,
+        changes,
+        message: `removeObject skipped missing object "${command.id}".`,
+      };
+    }
+
+    const nextObjects = { ...document.objects };
+    delete nextObjects[command.id];
+    for (const [objectId, object] of Object.entries(nextObjects)) {
+      if (object.kind === "image" && object.alphaMapId === command.id) {
+        const { alphaMapId: _alphaMapId, ...nextObject } = object;
+        nextObjects[objectId] = nextObject;
+        changes.push({
+          objectId,
+          field: "alphaMapId",
+          before: command.id,
+          after: undefined,
+        });
+      }
+    }
+
+    changes.push({
+      objectId: command.id,
+      field: "objects",
+      before: removedObject,
+      after: undefined,
+    });
+
+    const nextLayers = document.layers.map((layer) => {
+      if (!layer.objectIds.includes(command.id)) return layer;
+      changes.push({
+        objectId: command.id,
+        field: "layer.objectIds",
+        before: command.id,
+        after: undefined,
+      });
+      return { ...layer, objectIds: layer.objectIds.filter((objectId) => objectId !== command.id) };
+    });
+
+    if (document.selectedObjectId === command.id) {
+      changes.push({
+        objectId: command.id,
+        field: "selectedObjectId",
+        before: command.id,
+        after: undefined,
+      });
+    }
+
+    nextDocument = {
+      ...document,
+      objects: nextObjects,
+      layers: nextLayers,
+      selectedObjectId:
+        document.selectedObjectId === command.id ? undefined : document.selectedObjectId,
+    };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
 
   if (command.kind === "select") {
     if (command.id !== undefined && document.objects[command.id] === undefined) {

@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. It does not implement import, TOML parsing, ZIP packaging, raster rendering, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. M30l allows browser-loaded local image assets to live in the runtime scene as data URL image sources. It does not implement import, TOML parsing, ZIP packaging, raster rendering, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -382,6 +382,47 @@ opacity = 1
 blend_mode = "normal"
 ```
 
+Browser-loaded image:
+
+```toml
+id = "image-product"
+kind = "image"
+name = "Product"
+layer = "foreground"
+visible = true
+locked = false
+
+[geometry]
+x = 180
+y = 140
+width = 40
+height = 20
+
+[frame]
+kind = "absolute"
+x = 180
+y = 140
+width = 40
+height = 20
+
+[resolved]
+x = 180
+y = 140
+width = 40
+height = 20
+
+[image]
+src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg=="
+role = "image"
+fit = "contain"
+intrinsic_width = 40
+intrinsic_height = 20
+
+[metadata]
+tags = ["loaded", "image"]
+notes = "Loaded from product.svg (image/svg+xml)."
+```
+
 Alpha map:
 
 ```toml
@@ -422,6 +463,9 @@ Rules:
 - Kind-specific blocks exist, including `[shape]` and `[text]`.
 - Image objects use `[image]`; normal images may point at alpha maps with
   `alpha_map_id`.
+- `src` may be a bundle-relative asset path or a `data:image/...` URL produced
+  by browser-local file loading. Data URLs are self-contained and convenient for
+  local handoff, but they can make object TOML and `render.svg` large.
 - Image composition metadata uses `[composite]` with fields such as `opacity`
   and `blend_mode`.
 - Alpha map objects remain normal scene objects and are often `visible = false`
@@ -507,6 +551,10 @@ kind = "detachAlphaMap"
 source_id = "generated-product-image"
 
 [[command]]
+kind = "removeObject"
+id = "generated-product-alpha"
+
+[[command]]
 kind = "setFrame"
 id = "cta-bg"
 
@@ -527,6 +575,11 @@ Rules:
   and `referenceGridSpan` frame intent.
 - `attachAlphaMap` and `detachAlphaMap` command recipes preserve explicit
   image-to-alpha-map relationship edits.
+- `removeObject` command recipes preserve unload/remove edits.
+- `addImageObject` runtime commands may be omitted from command TOML recipes
+  because they can contain large data URL image payloads. The loaded image
+  object itself is still exported through `objects/*.toml`, `document.json`, and
+  `render.svg`.
 - The format does not require a TOML parser or command recipe importer.
 
 ## `handoff.toml`
@@ -628,6 +681,10 @@ object's own geometry remains inspectable and exported, but it does not drive
 mask placement yet. Invisible alpha maps are not rendered as normal image
 objects.
 
+M30l data URL image sources are written directly to SVG `<image href="...">`
+attributes. Relative fixture asset paths remain valid, and data URLs do not
+require any bundle asset file existence check.
+
 ## Relationship To The Runtime App
 
 The current MachinaCanvas app uses an in-memory scene model. M30d serializers turn that current browser-local scene into a `.mcanvas`-shaped file list:
@@ -652,6 +709,9 @@ current viewer state to export.
 M30k serializers include image object `[image]` and `[composite]` blocks,
 `alphaMapFor` relations in `document.json`, SVG mask output in `render.svg`,
 and `[[composite]]` handoff entries.
+M30l serializers preserve browser-loaded image `src` data URLs in object TOML
+and SVG output. Command recipe serialization can skip bulky `addImageObject`
+session commands while keeping smaller edits such as `removeObject`.
 These are command recipes only; exporting a recipe does not imply snapping,
 constraints, drag editing, or import support.
 

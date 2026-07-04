@@ -65,6 +65,8 @@ Supported command kinds:
 - `alignToGrid`
 - `resizeToGridSpan`
 - `setFrame`
+- `addImageObject`
+- `removeObject`
 - `attachAlphaMap`
 - `detachAlphaMap`
 
@@ -117,6 +119,26 @@ mask placement yet.
 This is composition, not brush editing. M30k does not add image generation,
 image upload UI, raster alpha compositing, canvas pixel manipulation, mask
 painting, PNG export, nested layer trees, or TOML import.
+
+M30l adds browser-local image loading into the current runtime scene stack. The
+inspector can load a PNG, JPEG, WebP, or SVG file as a normal image, or load one
+as an alpha-map object. Files are read with the browser `FileReader` API as data
+URLs and stored directly in `ImageObject.src`; there is no upload, backend
+service, image generation, or raster editing step.
+
+Loaded image objects are appended to the selected object's layer when possible,
+or to the foreground/first visible layer. Normal images render immediately.
+Loaded alpha maps use role `alphaMap`, are hidden by default, remain visible in
+the scene tree and inspector, and can be attached to a source image with the
+inspector's alpha controls. Source images can detach their alpha map, and any
+selected object can be removed from the scene. Removing an alpha map also
+detaches image objects that referenced it.
+
+Data URL image sources export through the normal object TOML `[image] src`
+field and through `render.svg` image `href` values. This makes local handoff
+convenient but can create large text files. A future asset-folder export could
+externalize binary assets; M30l intentionally does not add `.mcanvas` import,
+TOML import, ZIP export, or browser binary asset writing.
 
 ## Canvas Frames
 
@@ -265,6 +287,12 @@ SVG mask output in `render.svg`, and `[[composite]]` entries in `handoff.toml`.
 The relationship is explicit graph data rather than a nested Photoshop-style
 layer stack.
 
+M30l allows `[image] src` to be either a relative asset path such as
+`assets/generated-product.svg` or a browser-loaded `data:image/...` URL.
+Session command TOML may omit large `addImageObject` commands so command recipes
+do not embed data URLs; the loaded image objects themselves remain present in the
+exported scene files.
+
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan`. Importing TOML command recipes remains out of scope.
@@ -277,7 +305,7 @@ raster/PNG rendering.
 
 - no raster editing yet
 - no LLM API yet
-- no image generation, upload UI, or mask painting yet
+- no image generation, upload/backend service, or mask painting yet
 - no CAD, path, or font outline editing yet
 - no file import yet
 - no ZIP export yet

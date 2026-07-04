@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type ComponentType,
   type MouseEvent,
   type ReactNode,
@@ -40,12 +41,18 @@ import {
   type CanvasCommandValidationResult,
   validateCanvasCommands,
 } from "./sceneCommands";
+import {
+  createImageObjectFromAsset,
+  loadImageAssetFromFile,
+  makeUniqueObjectId,
+} from "./imageAssets";
 import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import type {
   CanvasDocument,
   CanvasFrame,
+  CanvasImageRole,
   CanvasObject,
   CanvasObjectKind,
   ImageObject,
@@ -78,6 +85,8 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   alignToGrid: "Align to grid",
   resizeToGridSpan: "Resize to grid span",
   setFrame: "Set frame",
+  addImageObject: "Add image object",
+  removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
   detachAlphaMap: "Detach alpha map",
 });
@@ -153,6 +162,7 @@ type AppViewData = {
   zoomToGridRef: (ref: string) => void;
   zoomToGridSpan: (span: string) => void;
   runCommand: (command: CanvasCommand) => void;
+  loadImageFile: (file: File, role: CanvasImageRole) => Promise<void>;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
   validateCommandJson: () => void;
@@ -203,6 +213,20 @@ function getObjectLayer(document: CanvasDocument, object: CanvasObject | undefin
   return document.layers.find((layer) => layer.id === object.layerId);
 }
 
+function getDefaultImageLayerId(document: CanvasDocument): string {
+  const selected = getSelectedObject(document);
+  if (selected && document.layers.some((layer) => layer.id === selected.layerId)) {
+    return selected.layerId;
+  }
+
+  return (
+    document.layers.find((layer) => layer.id === "foreground")?.id ??
+    document.layers.find((layer) => layer.visible)?.id ??
+    document.layers[0]?.id ??
+    "foreground"
+  );
+}
+
 function getKindClass(object: CanvasObject): string {
   return matchEnum(object.kind, {
     rect: () => "kind-rect",
@@ -217,7 +241,14 @@ function getKindShortLabel(object: CanvasObject): string {
     rect: () => "RECT",
     ellipse: () => "OVAL",
     text: () => "TEXT",
-    image: () => (object.kind === "image" && object.role === "alphaMap" ? "ALPHA" : "IMG"),
+    image: () =>
+      object.kind === "image"
+        ? object.role === "alphaMap"
+          ? "ALPHA"
+          : object.role === "mask"
+            ? "MASK"
+            : "IMG"
+        : "IMG",
   });
 }
 
@@ -347,6 +378,13 @@ function SceneTree(props: MachinaSlotProps) {
               {layer.objectIds.map((objectId) => {
                 const object = document.objects[objectId];
                 const selected = document.selectedObjectId === object.id;
+                const alphaFor =
+                  object.kind === "image" && (object.role === "alphaMap" || object.role === "mask")
+                    ? Object.values(document.objects).find(
+                        (candidate) =>
+                          candidate.kind === "image" && candidate.alphaMapId === object.id,
+                      )?.id
+                    : undefined;
                 return (
                   <button
                     className={`tree-object ${selected ? "is-selected" : ""}`}
@@ -358,7 +396,9 @@ function SceneTree(props: MachinaSlotProps) {
                       {getKindShortLabel(object)}
                     </span>
                     <span>{object.name}</span>
-                    <small>{getObjectGridSpan(document, object)}</small>
+                    <small>
+                      {alphaFor ? `alpha for ${alphaFor}` : getObjectGridSpan(document, object)}
+                    </small>
                   </button>
                 );
               })}
@@ -689,6 +729,147 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function formatImageSrcLabel(src: string): string {
+  if (src.startsWith("data:")) {
+    const mimeType = /^data:([^;,]+)/.exec(src)?.[1] ?? "data URL";
+    return `${mimeType} data URL (${src.length.toLocaleString()} chars)`;
+  }
+  return src;
+}
+
+function ImageAssetSection(props: MachinaSlotProps) {
+  const { document, loadImageFile, runCommand } = readViewData(props);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const alphaInputRef = useRef<HTMLInputElement>(null);
+  const selected = getSelectedObject(document);
+  const imageObjects = Object.values(document.objects).filter(
+    (object): object is ImageObject =>
+      object.kind === "image" && (object.role === undefined || object.role === "image"),
+  );
+  const alphaObjects = Object.values(document.objects).filter(
+    (object): object is ImageObject =>
+      object.kind === "image" && (object.role === "alphaMap" || object.role === "mask"),
+  );
+  const defaultAlphaId = alphaObjects[0]?.id ?? "";
+  const defaultSourceId = imageObjects[0]?.id ?? "";
+  const [alphaId, setAlphaId] = useState(defaultAlphaId);
+  const [sourceId, setSourceId] = useState(defaultSourceId);
+
+  useEffect(() => {
+    setAlphaId((current) =>
+      current && alphaObjects.some((object) => object.id === current) ? current : defaultAlphaId,
+    );
+  }, [alphaObjects, defaultAlphaId]);
+
+  useEffect(() => {
+    setSourceId((current) =>
+      current && imageObjects.some((object) => object.id === current) ? current : defaultSourceId,
+    );
+  }, [imageObjects, defaultSourceId]);
+
+  const loadFromInput = (role: CanvasImageRole) => (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (file) void loadImageFile(file, role);
+  };
+
+  return (
+    <InspectorSection title="Image assets">
+      <input
+        ref={imageInputRef}
+        className="asset-file-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        onChange={loadFromInput("image")}
+      />
+      <input
+        ref={alphaInputRef}
+        className="asset-file-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        onChange={loadFromInput("alphaMap")}
+      />
+      <div className="asset-actions">
+        <button type="button" onClick={() => imageInputRef.current?.click()}>
+          Load image
+        </button>
+        <button type="button" onClick={() => alphaInputRef.current?.click()}>
+          Load alpha map
+        </button>
+      </div>
+      {selected?.kind === "image" &&
+      (selected.role === undefined || selected.role === "image") &&
+      alphaObjects.length > 0 ? (
+        <div className="asset-select-row">
+          <select
+            aria-label="Alpha map object"
+            value={alphaId}
+            onChange={(event) => setAlphaId(event.currentTarget.value)}
+          >
+            {alphaObjects.map((object) => (
+              <option key={object.id} value={object.id}>
+                {object.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={!alphaId}
+            onClick={() => runCommand({ kind: "attachAlphaMap", sourceId: selected.id, alphaId })}
+          >
+            Attach alpha
+          </button>
+        </div>
+      ) : null}
+      {selected?.kind === "image" &&
+      (selected.role === "alphaMap" || selected.role === "mask") &&
+      imageObjects.length > 0 ? (
+        <div className="asset-select-row">
+          <select
+            aria-label="Source image object"
+            value={sourceId}
+            onChange={(event) => setSourceId(event.currentTarget.value)}
+          >
+            {imageObjects.map((object) => (
+              <option key={object.id} value={object.id}>
+                {object.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={!sourceId}
+            onClick={() => runCommand({ kind: "attachAlphaMap", sourceId, alphaId: selected.id })}
+          >
+            Use as alpha
+          </button>
+        </div>
+      ) : null}
+      {selected?.kind === "image" && selected.alphaMapId ? (
+        <button
+          className="asset-wide-button"
+          type="button"
+          onClick={() => runCommand({ kind: "detachAlphaMap", sourceId: selected.id })}
+        >
+          Detach alpha map
+        </button>
+      ) : null}
+      {selected ? (
+        <button
+          className="asset-wide-button"
+          type="button"
+          onClick={() => runCommand({ kind: "removeObject", id: selected.id })}
+        >
+          Remove selected
+        </button>
+      ) : null}
+      {selected?.kind === "image" && selected.role === "alphaMap" ? (
+        <p className="empty-note">Attach it to an image with Attach Alpha.</p>
+      ) : null}
+    </InspectorSection>
   );
 }
 
@@ -1028,6 +1209,7 @@ function Inspector(props: MachinaSlotProps) {
         </InspectorSection>
         <ViewportSection {...props} />
         <ViewAidsSection {...props} />
+        <ImageAssetSection {...props} />
         <InspectorSection title="Measurements">
           {measurements.map((measurement) => (
             <Field key={measurement.label} label={measurement.label} value={measurement.text} />
@@ -1095,6 +1277,7 @@ function Inspector(props: MachinaSlotProps) {
       </InspectorSection>
       <ViewportSection {...props} />
       <ViewAidsSection {...props} />
+      <ImageAssetSection {...props} />
       <InspectorSection title="Measurements">
         <Field label="Unit" value={unitSystem.label} />
         <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
@@ -1115,7 +1298,7 @@ function Inspector(props: MachinaSlotProps) {
       {selected.kind === "image" ? (
         <>
           <InspectorSection title="Image">
-            <Field label="Src" value={selected.src} />
+            <Field label="Src" value={formatImageSrcLabel(selected.src)} />
             <Field label="Role" value={selected.role ?? "image"} />
             <Field label="Alpha map" value={selected.alphaMapId ?? "none"} />
             <Field label="Opacity" value={selected.opacity ?? 1} />
@@ -1139,33 +1322,6 @@ function Inspector(props: MachinaSlotProps) {
                 <Field label="Role" value="alpha map" />
                 <Field label="Attachable" value="Can be attached to an image object" />
               </>
-            ) : null}
-            {selected.id === "generated-product-image" ? (
-              <div className="command-row">
-                <button
-                  type="button"
-                  onClick={() =>
-                    runCommand({
-                      kind: "attachAlphaMap",
-                      sourceId: "generated-product-image",
-                      alphaId: "generated-product-alpha",
-                    })
-                  }
-                >
-                  Attach demo alpha
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    runCommand({
-                      kind: "detachAlphaMap",
-                      sourceId: "generated-product-image",
-                    })
-                  }
-                >
-                  Detach alpha
-                </button>
-              </div>
             ) : null}
           </InspectorSection>
         </>
@@ -1327,6 +1483,36 @@ export function App() {
       const applyResult = applyCanvasCommands(document, [command]);
       setDocument(applyResult.document);
       recordAppliedCommands([command], applyResult.results);
+    };
+
+    const loadImageFile = async (file: File, role: CanvasImageRole) => {
+      try {
+        const asset = await loadImageAssetFromFile(file, {
+          idPrefix: role === "image" ? "image-" : "alpha-",
+        });
+        const objectId = makeUniqueObjectId(asset.id, document);
+        const object = createImageObjectFromAsset(asset, {
+          id: objectId,
+          layerId: getDefaultImageLayerId(document),
+          role,
+          document,
+        });
+        const command: CanvasCommand = { kind: "addImageObject", object };
+        const validation = validateCanvasCommands(document, command);
+        setCommandValidation(validation);
+        if (!validation.ok) {
+          setLastCommand("image asset command invalid");
+          return;
+        }
+
+        const applyResult = applyCanvasCommands(document, [command]);
+        setDocument(applyResult.document);
+        recordAppliedCommands([command], applyResult.results);
+      } catch (caught) {
+        setLastCommand(
+          caught instanceof Error ? caught.message : "Image file could not be loaded.",
+        );
+      }
     };
 
     const setAidToggle = (key: keyof CanvasAidToggles, value: boolean) => {
@@ -1496,6 +1682,7 @@ export function App() {
       zoomToGridRef,
       zoomToGridSpan,
       runCommand,
+      loadImageFile,
       setCommandJson,
       loadExampleCommands,
       validateCommandJson,
