@@ -1,7 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-label="MachinaCanvas demo poster scene graph">
+  <defs>
+    <mask id="mask-generated-product-image" maskUnits="userSpaceOnUse">
+      <image href="assets/generated-product-alpha.svg" x="508" y="176" width="224" height="308" preserveAspectRatio="xMidYMid meet" />
+    </mask>
+  </defs>
   <rect data-canvas-object-id="poster-bg" data-canvas-kind="rect" data-canvas-name="Poster background" x="0" y="0" width="960" height="640" fill="#f4f4f1" stroke="#d7d7d2" />
 
   <ellipse data-canvas-object-id="product-base-shadow" data-canvas-kind="ellipse" data-canvas-name="Product base shadow" cx="625" cy="504" rx="125" ry="22" fill="#d8d8d4" />
+  <image data-canvas-object-id="generated-product-image" data-canvas-kind="image" data-canvas-name="Generated product image" href="assets/generated-product.svg" x="508" y="176" width="224" height="308" preserveAspectRatio="xMidYMid meet" opacity="1" mask="url(#mask-generated-product-image)" />
   <rect data-canvas-object-id="product-silhouette-body" data-canvas-kind="rect" data-canvas-name="Product silhouette body" x="520" y="200" width="190" height="284" rx="34" fill="#151515" stroke="#000000" />
   <ellipse data-canvas-object-id="product-highlight" data-canvas-kind="ellipse" data-canvas-name="Product highlight" cx="596" cy="323" rx="31" ry="85" fill="#ffffff" opacity="0.92" />
 

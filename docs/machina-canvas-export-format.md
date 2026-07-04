@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. It does not implement import, TOML parsing, ZIP packaging, raster rendering, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. It does not implement import, TOML parsing, ZIP packaging, raster rendering, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
 
 ## Format Law
 
@@ -46,6 +46,10 @@ demo-poster.mcanvas/
   document.json
   handoff.toml
 
+  assets/
+    generated-product.svg
+    generated-product-alpha.svg
+
   layers/
     background.toml
     product.toml
@@ -56,6 +60,8 @@ demo-poster.mcanvas/
     logo.toml
     headline.toml
     product-base-shadow.toml
+    generated-product-image.toml
+    generated-product-alpha.toml
     product-silhouette-body.toml
     product-highlight.toml
     price-chip.toml
@@ -107,7 +113,13 @@ Paths inside the bundle are relative to the bundle root.
     {
       "id": "product",
       "asset": "layers/product.toml",
-      "objectIds": ["product-base-shadow", "product-silhouette-body", "product-highlight"]
+      "objectIds": [
+        "product-base-shadow",
+        "generated-product-image",
+        "generated-product-alpha",
+        "product-silhouette-body",
+        "product-highlight"
+      ]
     },
     {
       "id": "foreground",
@@ -137,7 +149,14 @@ Paths inside the bundle are relative to the bundle root.
       "kind": "text",
       "asset": "objects/headline.toml"
     }
-  }
+  },
+  "relations": [
+    {
+      "kind": "alphaMapFor",
+      "sourceId": "generated-product-image",
+      "alphaId": "generated-product-alpha"
+    }
+  ]
 }
 ```
 
@@ -162,8 +181,12 @@ Fields:
 - `layers[].asset`: relative path to layer TOML.
 - `layers[].objectIds`: ordered object IDs in that layer.
 - `objects`: map of stable object IDs to object index entries.
-- `objects[id].kind`: object kind such as `rect`, `ellipse`, or `text`.
+- `objects[id].kind`: object kind such as `rect`, `ellipse`, `text`, or `image`.
 - `objects[id].asset`: relative path to the object TOML contract.
+- `relations`: optional graph relations such as `alphaMapFor`.
+- `relations[].kind`: relation kind.
+- `relations[].sourceId`: source image object ID for `alphaMapFor`.
+- `relations[].alphaId`: alpha map or mask image object ID for `alphaMapFor`.
 
 Rules:
 
@@ -178,6 +201,7 @@ Rules:
 - Screen pixels and future viewport zoom are separate from document units.
 - Viewport zoom is viewer state and does not belong in `document.json`.
 - Do not dump giant editable object blobs into `document.json`.
+- Alpha-map composition is graph data, not a nested layer tree.
 
 ## Reference Grid
 
@@ -316,6 +340,77 @@ opacity = 0.92
 tags = ["product", "highlight"]
 ```
 
+Image with alpha map:
+
+```toml
+id = "generated-product-image"
+kind = "image"
+name = "Generated product image"
+layer = "product"
+visible = true
+locked = false
+
+[geometry]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[frame]
+kind = "referenceGrid"
+ref = "D3@0.85,0.05"
+anchor = "center"
+width = 224
+height = 308
+
+[resolved]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[image]
+src = "assets/generated-product.svg"
+role = "image"
+alpha_map_id = "generated-product-alpha"
+fit = "contain"
+intrinsic_width = 512
+intrinsic_height = 512
+
+[composite]
+opacity = 1
+blend_mode = "normal"
+```
+
+Alpha map:
+
+```toml
+id = "generated-product-alpha"
+kind = "image"
+name = "Generated product alpha map"
+layer = "product"
+visible = false
+locked = false
+
+[geometry]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[resolved]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[image]
+src = "assets/generated-product-alpha.svg"
+role = "alphaMap"
+fit = "contain"
+color_space = "alpha"
+```
+
 Rules:
 
 - One object per TOML file.
@@ -325,6 +420,12 @@ Rules:
 - `[geometry]` is retained as a compatibility shorthand for current resolved geometry.
 - Style is explicit.
 - Kind-specific blocks exist, including `[shape]` and `[text]`.
+- Image objects use `[image]`; normal images may point at alpha maps with
+  `alpha_map_id`.
+- Image composition metadata uses `[composite]` with fields such as `opacity`
+  and `blend_mode`.
+- Alpha map objects remain normal scene objects and are often `visible = false`
+  so they are inspectable and exportable without rendering as normal artwork.
 - No giant object JSON blob.
 
 ## Layer TOML
@@ -397,6 +498,15 @@ id = "product-body"
 span = "D2-E4"
 
 [[command]]
+kind = "attachAlphaMap"
+source_id = "generated-product-image"
+alpha_id = "generated-product-alpha"
+
+[[command]]
+kind = "detachAlphaMap"
+source_id = "generated-product-image"
+
+[[command]]
 kind = "setFrame"
 id = "cta-bg"
 
@@ -415,6 +525,8 @@ Rules:
 - Grid-aware command recipes use the exported reference grid labels.
 - `setFrame` command recipes can store `absolute`, `anchor`, `referenceGrid`,
   and `referenceGridSpan` frame intent.
+- `attachAlphaMap` and `detachAlphaMap` command recipes preserve explicit
+  image-to-alpha-map relationship edits.
 - The format does not require a TOML parser or command recipe importer.
 
 ## `handoff.toml`
@@ -464,6 +576,11 @@ severity = "info"
 code = "SelectedObject"
 object_id = "feature-chip-1"
 message = "Selected object is Feature chip: IDs."
+
+[[composite]]
+kind = "alphaMapFor"
+source_id = "generated-product-image"
+alpha_id = "generated-product-alpha"
 ```
 
 Rules:
@@ -475,6 +592,8 @@ Rules:
 - `[reference_grid]` preserves the locator labels used by summaries and inspector references.
 - Diagnostics can be TOML array tables.
 - It should be easy to read in a text editor.
+- `[[composite]]` entries summarize exported image composition relationships
+  for handoff readers.
 
 ## Rendered Artifacts
 
@@ -500,6 +619,15 @@ M30j viewport zoom is also a UI/handoff aid. Clean `render.svg` output remains
 full-document artwork by default; zoomed inspection state may be written to
 `handoff.toml` as optional `[viewport]` metadata.
 
+M30k image composition uses SVG masks. For an image object with
+`alphaMapId = "generated-product-alpha"`, `render.svg` emits a deterministic
+mask ID such as `mask-generated-product-image` and applies it to the source
+`<image>`. In M30k, mask placement uses the source image object's resolved
+geometry so RGB image and alpha map assets align by default. The alpha map
+object's own geometry remains inspectable and exported, but it does not drive
+mask placement yet. Invisible alpha maps are not rendered as normal image
+objects.
+
 ## Relationship To The Runtime App
 
 The current MachinaCanvas app uses an in-memory scene model. M30d serializers turn that current browser-local scene into a `.mcanvas`-shaped file list:
@@ -521,6 +649,9 @@ M30i serializers include unit metadata in `document.json` and `[unit_system]`
 in `handoff.toml`.
 M30j serializers may include `[viewport]` in `handoff.toml` when the app passes
 current viewer state to export.
+M30k serializers include image object `[image]` and `[composite]` blocks,
+`alphaMapFor` relations in `document.json`, SVG mask output in `render.svg`,
+and `[[composite]]` handoff entries.
 These are command recipes only; exporting a recipe does not imply snapping,
 constraints, drag editing, or import support.
 
@@ -542,6 +673,8 @@ Validation checks:
 - whether extra `objects/*.toml` files lack a matching `document.json` object entry
 - whether `render.svg` includes `data-canvas-object-id` markers for indexed objects
 - whether `handoff.toml` selected `object_id` points to a known object when present
+- whether `document.json` `alphaMapFor` relations point to image objects
+- whether `render.svg` includes a mask for alpha-mapped image relations
 - whether a command recipe exists when the caller says session commands were expected
 
 Validation does not import a bundle back into the runtime scene. It does not
@@ -555,6 +688,8 @@ Warnings are advisory and do not make the validation result fail. The
 `render.svg` object ID check is a warning because invisible objects or objects on
 hidden layers may legitimately be omitted from rendered output while still
 remaining indexed in `document.json` and represented by object TOML contracts.
+The missing composite mask check is advisory because it is a deterministic but
+text-based SVG check.
 
 ## Fixture
 
@@ -572,6 +707,10 @@ It includes `render.svg`, `document.json`, `handoff.toml`, layer TOML files, obj
 - No TOML parser.
 - No ZIP bundle writer.
 - No raster pipeline.
+- No image generation.
+- No upload UI.
+- No raster mask painting.
+- No nested Photoshop-style layer tree.
 - No font outline format.
 - No CAD/DXF yet.
 - No cross-file dependency resolver.

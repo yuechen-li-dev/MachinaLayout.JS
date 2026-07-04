@@ -5,10 +5,12 @@ import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
   CanvasDocument,
   CanvasFrame,
+  ImageObject,
   CanvasLayer,
   CanvasObject,
   TextObject,
 } from "./sceneModel";
+import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 
@@ -57,6 +59,26 @@ function tomlValue(value: string | number | boolean): string {
 function sanitizePathId(id: string): string {
   const sanitized = id.replace(/[^A-Za-z0-9._-]/g, "-");
   return sanitized.length > 0 ? sanitized : "untitled";
+}
+
+function normalizeAssetSrc(src: string): string {
+  return src.startsWith("/") ? src.slice(1) : src;
+}
+
+function getAlphaMapRelations(document: CanvasDocument) {
+  return getObjectOrder(document)
+    .map((objectId) => document.objects[objectId])
+    .filter(
+      (object): object is ImageObject =>
+        object.kind === "image" &&
+        object.alphaMapId !== undefined &&
+        document.objects[object.alphaMapId] !== undefined,
+    )
+    .map((object) => ({
+      kind: "alphaMapFor" as const,
+      sourceId: object.id,
+      alphaId: object.alphaMapId as string,
+    }));
 }
 
 function getObjectOrder(document: CanvasDocument): string[] {
@@ -267,6 +289,7 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         objectIds: [...layer.objectIds],
       })),
       objects,
+      relations: getAlphaMapRelations(document),
     },
     null,
     2,
@@ -305,6 +328,30 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
     );
     if (object.fontWeight !== undefined)
       lines.push(`font_weight = ${tomlValue(object.fontWeight)}`);
+  }
+
+  if (object.kind === "image") {
+    lines.push("", "[image]", `src = ${quoteTomlString(normalizeAssetSrc(object.src))}`);
+    lines.push(`role = ${quoteTomlString(object.role ?? "image")}`);
+    if (object.alphaMapId !== undefined) {
+      lines.push(`alpha_map_id = ${quoteTomlString(object.alphaMapId)}`);
+    }
+    if (object.fit !== undefined) lines.push(`fit = ${quoteTomlString(object.fit)}`);
+    if (object.intrinsicWidth !== undefined) {
+      lines.push(`intrinsic_width = ${object.intrinsicWidth}`);
+    }
+    if (object.intrinsicHeight !== undefined) {
+      lines.push(`intrinsic_height = ${object.intrinsicHeight}`);
+    }
+    if (object.role === "alphaMap") lines.push('color_space = "alpha"');
+
+    if (object.opacity !== undefined || object.blendMode !== undefined) {
+      lines.push("", "[composite]");
+      if (object.opacity !== undefined) lines.push(`opacity = ${object.opacity}`);
+      if (object.blendMode !== undefined) {
+        lines.push(`blend_mode = ${quoteTomlString(object.blendMode)}`);
+      }
+    }
   }
 
   if (object.fill !== undefined || object.stroke !== undefined) {
@@ -402,6 +449,15 @@ export function serializeCanvasCommandsToml(
         lines.push(`id = ${quoteTomlString(command.id)}`);
         pushFrameToml(lines, "[command.frame]", command.frame);
         break;
+      case "attachAlphaMap":
+        lines.push(
+          `source_id = ${quoteTomlString(command.sourceId)}`,
+          `alpha_id = ${quoteTomlString(command.alphaId)}`,
+        );
+        break;
+      case "detachAlphaMap":
+        lines.push(`source_id = ${quoteTomlString(command.sourceId)}`);
+        break;
     }
   }
 
@@ -472,13 +528,58 @@ export function serializeCanvasHandoffToml(
     lines.push(`message = ${quoteTomlString(diagnostic.message)}`);
   }
 
+  for (const relation of getAlphaMapRelations(document)) {
+    lines.push(
+      "",
+      "[[composite]]",
+      `kind = ${quoteTomlString(relation.kind)}`,
+      `source_id = ${quoteTomlString(relation.sourceId)}`,
+      `alpha_id = ${quoteTomlString(relation.alphaId)}`,
+    );
+  }
+
   return `${lines.join("\n")}\n`;
+}
+
+function getSvgObjectAttributes(object: CanvasObject): string {
+  return `data-canvas-object-id="${quoteXmlAttribute(object.id)}" data-canvas-kind="${quoteXmlAttribute(object.kind)}" data-canvas-name="${quoteXmlAttribute(object.name)}"`;
+}
+
+function serializeImageElement(object: ImageObject, maskId?: string): string {
+  const attrs = getSvgObjectAttributes(object);
+  const mask = maskId ? ` mask="url(#${quoteXmlAttribute(maskId)})"` : "";
+  const opacity = object.opacity !== undefined ? ` opacity="${object.opacity}"` : "";
+  const preserveAspectRatio = getImagePreserveAspectRatio(object.fit);
+  return `  <image ${attrs} href="${quoteXmlAttribute(normalizeAssetSrc(object.src))}" x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" preserveAspectRatio="${preserveAspectRatio}"${opacity}${mask} />`;
 }
 
 export function serializeCanvasRenderSvg(document: CanvasDocument): string {
   const lines = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}">`,
   ];
+  const alphaMappedImages = getObjectOrder(document)
+    .map((objectId) => document.objects[objectId])
+    .filter(
+      (object): object is ImageObject =>
+        object.kind === "image" &&
+        object.alphaMapId !== undefined &&
+        document.objects[object.alphaMapId]?.kind === "image",
+    );
+
+  if (alphaMappedImages.length > 0) {
+    lines.push("  <defs>");
+    for (const object of alphaMappedImages) {
+      const alpha = document.objects[object.alphaMapId as string];
+      if (alpha?.kind !== "image") continue;
+      const maskId = getCanvasImageMaskId(object.id);
+      lines.push(`    <mask id="${quoteXmlAttribute(maskId)}" maskUnits="userSpaceOnUse">`);
+      lines.push(
+        `      <image href="${quoteXmlAttribute(normalizeAssetSrc(alpha.src))}" x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" preserveAspectRatio="${getImagePreserveAspectRatio(object.fit)}" />`,
+      );
+      lines.push("    </mask>");
+    }
+    lines.push("  </defs>");
+  }
 
   for (const layer of document.layers) {
     if (!layer.visible) continue;
@@ -486,7 +587,7 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
       const object = document.objects[objectId];
       if (object === undefined || !object.visible) continue;
 
-      const attrs = `data-canvas-object-id="${quoteXmlAttribute(object.id)}" data-canvas-kind="${quoteXmlAttribute(object.kind)}" data-canvas-name="${quoteXmlAttribute(object.name)}"`;
+      const attrs = getSvgObjectAttributes(object);
       if (object.kind === "rect") {
         lines.push(
           `  <rect ${attrs} x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" rx="${object.radius ?? 0}" fill="${quoteXmlAttribute(object.fill ?? "transparent")}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
@@ -495,7 +596,7 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
         lines.push(
           `  <ellipse ${attrs} cx="${object.x + object.width / 2}" cy="${object.y + object.height / 2}" rx="${object.width / 2}" ry="${object.height / 2}" fill="${quoteXmlAttribute(object.fill ?? "transparent")}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
         );
-      } else {
+      } else if (object.kind === "text") {
         lines.push(
           `  <text ${attrs} x="${object.x}" y="${object.y + object.fontSize}" fill="${quoteXmlAttribute(object.fill ?? "#111111")}" font-size="${object.fontSize}"${object.fontWeight !== undefined ? ` font-weight="${quoteXmlAttribute(String(object.fontWeight))}"` : ""}>`,
         );
@@ -505,6 +606,13 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
           );
         });
         lines.push("  </text>");
+      } else {
+        lines.push(
+          serializeImageElement(
+            object,
+            object.alphaMapId ? getCanvasImageMaskId(object.id) : undefined,
+          ),
+        );
       }
     }
   }

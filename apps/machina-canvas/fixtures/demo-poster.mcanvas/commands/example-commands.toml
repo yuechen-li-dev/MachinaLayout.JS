@@ -13,6 +13,11 @@ ref = "B4.c"
 anchor = "center"
 
 [[command]]
+kind = "attachAlphaMap"
+source_id = "generated-product-image"
+alpha_id = "generated-product-alpha"
+
+[[command]]
 kind = "setFrame"
 id = "cta-bg"
 

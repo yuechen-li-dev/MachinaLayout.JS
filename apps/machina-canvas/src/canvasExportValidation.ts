@@ -13,6 +13,8 @@ export type CanvasExportValidationDiagnosticCode =
   | "MissingHandoff"
   | "InvalidHandoffReference"
   | "InvalidUnitSystem"
+  | "InvalidCompositeRelation"
+  | "MissingCompositeMask"
   | "MissingCommandRecipe"
   | "EmptyExportBundle";
 
@@ -53,9 +55,15 @@ type DocumentIndex = {
   objects: Record<
     string,
     {
+      kind?: string;
       asset: string;
     }
   >;
+  relations?: Array<{
+    kind: string;
+    sourceId: string;
+    alphaId: string;
+  }>;
 };
 
 const defaultOptions = {
@@ -104,7 +112,24 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
   for (const [objectId, object] of Object.entries(value.objects)) {
     if (!isRecord(object)) return undefined;
     if (typeof object.asset !== "string") return undefined;
-    objects[objectId] = { asset: object.asset };
+    if (object.kind !== undefined && typeof object.kind !== "string") return undefined;
+    objects[objectId] = { kind: object.kind, asset: object.asset };
+  }
+
+  const relations: DocumentIndex["relations"] = [];
+  if (value.relations !== undefined) {
+    if (!Array.isArray(value.relations)) return undefined;
+    for (const relation of value.relations) {
+      if (!isRecord(relation)) return undefined;
+      if (typeof relation.kind !== "string") return undefined;
+      if (typeof relation.sourceId !== "string") return undefined;
+      if (typeof relation.alphaId !== "string") return undefined;
+      relations.push({
+        kind: relation.kind,
+        sourceId: relation.sourceId,
+        alphaId: relation.alphaId,
+      });
+    }
   }
 
   return {
@@ -116,6 +141,7 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
     },
     layers,
     objects,
+    relations,
   };
 }
 
@@ -180,6 +206,30 @@ function quoteXmlAttribute(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function getTomlBooleanValue(text: string, key: string): boolean | undefined {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`(?:^|\\n)\\s*${escapedKey}\\s*=\\s*(true|false)`).exec(text);
+  return match ? match[1] === "true" : undefined;
+}
+
+function getObjectToml(bundle: CanvasExportBundle, documentIndex: DocumentIndex, objectId: string) {
+  const asset = documentIndex.objects[objectId]?.asset;
+  return asset ? getFile(bundle, asset)?.text : undefined;
+}
+
+function isHiddenAlphaMapToml(text: string | undefined): boolean {
+  if (text === undefined) return false;
+  return (
+    getTomlStringValue(text, "role") === "alphaMap" &&
+    getTomlBooleanValue(text, "visible") === false
+  );
+}
+
+function getCanvasImageMaskId(objectId: string): string {
+  const sanitized = objectId.replace(/[^A-Za-z0-9_-]/g, "-");
+  return `mask-${sanitized.length > 0 ? sanitized : "image"}`;
 }
 
 export function validateCanvasExportBundle(
@@ -296,12 +346,71 @@ export function validateCanvasExportBundle(
     const renderSvg = getFile(bundle, "render.svg");
     if (resolvedOptions.checkRenderObjectIds && renderSvg) {
       for (const objectId of Object.keys(documentIndex.objects).sort()) {
+        if (isHiddenAlphaMapToml(getObjectToml(bundle, documentIndex, objectId))) continue;
         if (!renderSvg.text.includes(`data-canvas-object-id="${quoteXmlAttribute(objectId)}"`)) {
           diagnostics.push({
             severity: "warning",
             code: "MissingRenderObject",
             objectId,
             message: `render.svg does not contain data-canvas-object-id for ${objectId}.`,
+          });
+        }
+      }
+    }
+
+    for (const relation of documentIndex.relations ?? []) {
+      if (relation.kind !== "alphaMapFor") continue;
+
+      const source = documentIndex.objects[relation.sourceId];
+      const alpha = documentIndex.objects[relation.alphaId];
+      if (source === undefined) {
+        diagnostics.push({
+          severity: "error",
+          code: "InvalidCompositeRelation",
+          path: "document.json",
+          objectId: relation.sourceId,
+          message: `alphaMapFor source ${relation.sourceId} is not present in document.json.`,
+        });
+      } else if (source.kind !== "image") {
+        diagnostics.push({
+          severity: "error",
+          code: "InvalidCompositeRelation",
+          path: "document.json",
+          objectId: relation.sourceId,
+          message: `alphaMapFor source ${relation.sourceId} must be an image object.`,
+        });
+      }
+
+      if (alpha === undefined) {
+        diagnostics.push({
+          severity: "error",
+          code: "InvalidCompositeRelation",
+          path: "document.json",
+          objectId: relation.alphaId,
+          message: `alphaMapFor alpha ${relation.alphaId} is not present in document.json.`,
+        });
+      } else if (alpha.kind !== "image") {
+        diagnostics.push({
+          severity: "error",
+          code: "InvalidCompositeRelation",
+          path: "document.json",
+          objectId: relation.alphaId,
+          message: `alphaMapFor alpha ${relation.alphaId} must be an image object.`,
+        });
+      }
+
+      if (renderSvg) {
+        const maskId = getCanvasImageMaskId(relation.sourceId);
+        if (
+          !renderSvg.text.includes(`id="${quoteXmlAttribute(maskId)}"`) &&
+          !renderSvg.text.includes(`mask="url(#${quoteXmlAttribute(maskId)})"`)
+        ) {
+          diagnostics.push({
+            severity: "warning",
+            code: "MissingCompositeMask",
+            path: "render.svg",
+            objectId: relation.sourceId,
+            message: `render.svg does not contain a mask for alphaMapFor source ${relation.sourceId}.`,
           });
         }
       }

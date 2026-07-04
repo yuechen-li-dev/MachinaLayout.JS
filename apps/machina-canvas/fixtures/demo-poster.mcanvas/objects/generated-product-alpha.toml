@@ -1,0 +1,37 @@
+id = "generated-product-alpha"
+kind = "image"
+name = "Generated product alpha map"
+layer = "product"
+visible = false
+locked = false
+
+[geometry]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[frame]
+kind = "absolute"
+x = 508
+y = 176
+width = 224
+height = 308
+
+[resolved]
+x = 508
+y = 176
+width = 224
+height = 308
+
+[image]
+src = "assets/generated-product-alpha.svg"
+role = "alphaMap"
+fit = "contain"
+intrinsic_width = 512
+intrinsic_height = 512
+color_space = "alpha"
+
+[metadata]
+tags = ["generated", "alpha-map"]
+notes = "White means opaque, black means transparent."

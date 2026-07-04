@@ -168,6 +168,10 @@ button {
   background: #f8f3e8;
 }
 
+.kind-image {
+  background: #eef1fb;
+}
+
 .canvas-panel {
   display: flex;
   flex-direction: column;

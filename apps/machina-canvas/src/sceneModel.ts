@@ -30,7 +30,7 @@ export type CanvasLayer = {
   objectIds: string[];
 };
 
-export type CanvasObject = RectObject | EllipseObject | TextObject;
+export type CanvasObject = RectObject | EllipseObject | TextObject | ImageObject;
 
 export type CanvasFrame =
   | CanvasAbsoluteFrame
@@ -87,7 +87,11 @@ export type CanvasObjectBase = {
   notes?: string;
 };
 
-export type CanvasObjectKind = "rect" | "ellipse" | "text";
+export type CanvasObjectKind = "rect" | "ellipse" | "text" | "image";
+
+export type CanvasImageRole = "image" | "alphaMap" | "mask";
+
+export type CanvasBlendMode = "normal" | "multiply" | "screen" | "overlay";
 
 export type RectObject = CanvasObjectBase & {
   kind: "rect";
@@ -103,4 +107,16 @@ export type TextObject = CanvasObjectBase & {
   text: string;
   fontSize: number;
   fontWeight?: number | string;
+};
+
+export type ImageObject = CanvasObjectBase & {
+  kind: "image";
+  src: string;
+  role?: CanvasImageRole;
+  alphaMapId?: string;
+  intrinsicWidth?: number;
+  intrinsicHeight?: number;
+  opacity?: number;
+  blendMode?: CanvasBlendMode;
+  fit?: "fill" | "contain" | "cover";
 };

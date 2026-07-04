@@ -48,11 +48,13 @@ import type {
   CanvasFrame,
   CanvasObject,
   CanvasObjectKind,
+  ImageObject,
   TextObject,
 } from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
 import { summarizeViewport } from "./viewportSummary";
 import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
+import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
@@ -61,6 +63,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   rect: "Rectangle",
   ellipse: "Ellipse",
   text: "Text",
+  image: "Image",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -75,6 +78,8 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   alignToGrid: "Align to grid",
   resizeToGridSpan: "Resize to grid span",
   setFrame: "Set frame",
+  attachAlphaMap: "Attach alpha map",
+  detachAlphaMap: "Detach alpha map",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -90,6 +95,11 @@ const exampleCommandJson = JSON.stringify(
       ids: ["logo", "headline"],
       axis: "left",
       ref: "A1.w",
+    },
+    {
+      kind: "attachAlphaMap",
+      sourceId: "generated-product-image",
+      alphaId: "generated-product-alpha",
     },
     {
       kind: "setFrame",
@@ -198,6 +208,7 @@ function getKindClass(object: CanvasObject): string {
     rect: () => "kind-rect",
     ellipse: () => "kind-ellipse",
     text: () => "kind-text",
+    image: () => "kind-image",
   });
 }
 
@@ -206,6 +217,7 @@ function getKindShortLabel(object: CanvasObject): string {
     rect: () => "RECT",
     ellipse: () => "OVAL",
     text: () => "TEXT",
+    image: () => (object.kind === "image" && object.role === "alphaMap" ? "ALPHA" : "IMG"),
   });
 }
 
@@ -380,10 +392,12 @@ function wrapText(object: TextObject): string[] {
 
 function SceneObjectSvg({
   object,
+  alphaMap,
   selected,
   onSelect,
 }: {
   object: CanvasObject;
+  alphaMap?: ImageObject;
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -421,7 +435,7 @@ function SceneObjectSvg({
         fill={object.fill ?? "transparent"}
         stroke={object.stroke ?? "none"}
       />
-    ) : (
+    ) : object.kind === "text" ? (
       <text
         {...common}
         x={object.x}
@@ -436,6 +450,18 @@ function SceneObjectSvg({
           </tspan>
         ))}
       </text>
+    ) : (
+      <image
+        {...common}
+        href={object.src}
+        x={object.x}
+        y={object.y}
+        width={object.width}
+        height={object.height}
+        preserveAspectRatio={getImagePreserveAspectRatio(object.fit)}
+        opacity={object.opacity}
+        mask={alphaMap ? `url(#${getCanvasImageMaskId(object.id)})` : undefined}
+      />
     );
 
   return (
@@ -564,6 +590,15 @@ function MeasurementLabelsOverlay({ document }: { document: CanvasDocument }) {
 function CanvasPanel(props: MachinaSlotProps) {
   const { document, viewport, aidToggles, runCommand } = readViewData(props);
   const viewBox = getCanvasViewportViewBox(document, viewport);
+  const alphaMappedImages = document.layers
+    .filter((layer) => layer.visible)
+    .flatMap((layer) => layer.objectIds.map((id) => document.objects[id]))
+    .filter(
+      (object): object is ImageObject =>
+        object?.kind === "image" &&
+        object.alphaMapId !== undefined &&
+        document.objects[object.alphaMapId]?.kind === "image",
+    );
 
   return (
     <main className="canvas-panel panel">
@@ -581,17 +616,49 @@ function CanvasPanel(props: MachinaSlotProps) {
           role="img"
           aria-label="MachinaCanvas demo poster scene graph"
         >
+          {alphaMappedImages.length > 0 ? (
+            <defs>
+              {alphaMappedImages.map((object) => {
+                const alphaMap = document.objects[object.alphaMapId as string];
+                if (alphaMap?.kind !== "image") return null;
+                return (
+                  <mask
+                    id={getCanvasImageMaskId(object.id)}
+                    key={object.id}
+                    maskUnits="userSpaceOnUse"
+                  >
+                    <image
+                      href={alphaMap.src}
+                      x={object.x}
+                      y={object.y}
+                      width={object.width}
+                      height={object.height}
+                      preserveAspectRatio={getImagePreserveAspectRatio(object.fit)}
+                    />
+                  </mask>
+                );
+              })}
+            </defs>
+          ) : null}
           {document.layers
             .filter((layer) => layer.visible)
             .flatMap((layer) => layer.objectIds.map((id) => document.objects[id]))
-            .map((object) => (
-              <SceneObjectSvg
-                key={object.id}
-                object={object}
-                selected={document.selectedObjectId === object.id}
-                onSelect={(id) => runCommand({ kind: "select", id })}
-              />
-            ))}
+            .filter((object): object is CanvasObject => object !== undefined)
+            .map((object) => {
+              const alphaMap =
+                object.kind === "image" && object.alphaMapId
+                  ? document.objects[object.alphaMapId]
+                  : undefined;
+              return (
+                <SceneObjectSvg
+                  key={object.id}
+                  object={object}
+                  alphaMap={alphaMap?.kind === "image" ? alphaMap : undefined}
+                  selected={document.selectedObjectId === object.id}
+                  onSelect={(id) => runCommand({ kind: "select", id })}
+                />
+              );
+            })}
           {aidToggles.showMeasurementLabels ? (
             <MeasurementLabelsOverlay document={document} />
           ) : null}
@@ -1045,6 +1112,64 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Stroke" value={selected.stroke ?? "none"} />
         {selected.kind === "text" ? <Field label="Font size" value={selected.fontSize} /> : null}
       </InspectorSection>
+      {selected.kind === "image" ? (
+        <>
+          <InspectorSection title="Image">
+            <Field label="Src" value={selected.src} />
+            <Field label="Role" value={selected.role ?? "image"} />
+            <Field label="Alpha map" value={selected.alphaMapId ?? "none"} />
+            <Field label="Opacity" value={selected.opacity ?? 1} />
+            <Field label="Blend" value={selected.blendMode ?? "normal"} />
+            <Field label="Fit" value={selected.fit ?? "fill"} />
+            <Field
+              label="Intrinsic"
+              value={
+                selected.intrinsicWidth && selected.intrinsicHeight
+                  ? `${selected.intrinsicWidth} x ${selected.intrinsicHeight}`
+                  : "unknown"
+              }
+            />
+          </InspectorSection>
+          <InspectorSection title="Composite">
+            {selected.alphaMapId ? (
+              <Field label="Uses alpha map" value={selected.alphaMapId} />
+            ) : null}
+            {selected.role === "alphaMap" ? (
+              <>
+                <Field label="Role" value="alpha map" />
+                <Field label="Attachable" value="Can be attached to an image object" />
+              </>
+            ) : null}
+            {selected.id === "generated-product-image" ? (
+              <div className="command-row">
+                <button
+                  type="button"
+                  onClick={() =>
+                    runCommand({
+                      kind: "attachAlphaMap",
+                      sourceId: "generated-product-image",
+                      alphaId: "generated-product-alpha",
+                    })
+                  }
+                >
+                  Attach demo alpha
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    runCommand({
+                      kind: "detachAlphaMap",
+                      sourceId: "generated-product-image",
+                    })
+                  }
+                >
+                  Detach alpha
+                </button>
+              </div>
+            ) : null}
+          </InspectorSection>
+        </>
+      ) : null}
       <InspectorSection title="Metadata">
         <Field label="ID" value={selected.id} />
         <Field label="Tags" value={selected.tags?.join(", ") ?? "none"} />
@@ -1060,7 +1185,7 @@ function Inspector(props: MachinaSlotProps) {
 function SceneSummaryShelf(props: MachinaSlotProps) {
   const { document, viewport, runCommand, commandLog } = readViewData(props);
   const objects = Object.values(document.objects).filter((object) =>
-    ["logo", "headline", "product-body", "cta-bg", "feature-chip-1"].includes(object.id),
+    ["logo", "headline", "generated-product-image", "cta-bg", "feature-chip-1"].includes(object.id),
   );
   const recentLog = commandLog.slice(0, 3);
 

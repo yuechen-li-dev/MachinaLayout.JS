@@ -46,6 +46,15 @@ export type CanvasCommand =
       kind: "setFrame";
       id: string;
       frame: CanvasFrame;
+    }
+  | {
+      kind: "attachAlphaMap";
+      sourceId: string;
+      alphaId: string;
+    }
+  | {
+      kind: "detachAlphaMap";
+      sourceId: string;
     };
 
 export type CanvasCommandValidationContext = {
@@ -324,6 +333,85 @@ function validateCanvasFrameValue(
   }
 }
 
+function validateAlphaMapCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.sourceId, commandIndex, "sourceId");
+  validateObjectId(document, diagnostics, command.alphaId, commandIndex, "alphaId");
+
+  if (!isString(command.sourceId) || !isString(command.alphaId)) return;
+
+  if (command.sourceId === command.alphaId) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCompositeRelation",
+      message: "sourceId and alphaId must reference different objects.",
+      commandIndex,
+      objectId: command.sourceId,
+    });
+    return;
+  }
+
+  const source = document.objects[command.sourceId];
+  const alpha = document.objects[command.alphaId];
+
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+
+  if (alpha !== undefined && alpha.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidAlphaMap",
+      message: `Alpha map object "${alpha.id}" must be an image object.`,
+      commandIndex,
+      objectId: alpha.id,
+    });
+  } else if (
+    alpha !== undefined &&
+    alpha.kind === "image" &&
+    alpha.role !== "alphaMap" &&
+    alpha.role !== "mask"
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidAlphaMap",
+      message: `Alpha map object "${alpha.id}" must have role alphaMap or mask.`,
+      commandIndex,
+      objectId: alpha.id,
+    });
+  }
+}
+
+function validateDetachAlphaMapCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  sourceId: unknown,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, sourceId, commandIndex, "sourceId");
+  if (!isString(sourceId)) return;
+  const source = document.objects[sourceId];
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+}
+
 export function validateCanvasCommand(
   document: CanvasDocument,
   command: unknown,
@@ -444,6 +532,12 @@ export function validateCanvasCommand(
       validateObjectId(document, diagnostics, command.id, commandIndex);
       validateCanvasFrameValue(document, diagnostics, command.frame, commandIndex, context);
       break;
+    case "attachAlphaMap":
+      validateAlphaMapCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "detachAlphaMap":
+      validateDetachAlphaMapCommand(document, diagnostics, command.sourceId, commandIndex);
+      break;
     default:
       addDiagnostic(diagnostics, {
         severity: "error",
@@ -482,17 +576,18 @@ function replaceObject(
   };
 }
 
-function changeField<T extends keyof CanvasObject>(
+function changeField(
   changes: CanvasCommandChange[],
   object: CanvasObject,
-  field: T,
-  after: CanvasObject[T],
+  field: keyof CanvasObject | string,
+  after: unknown,
 ) {
-  if (object[field] !== after) {
+  const before = object[field as keyof CanvasObject];
+  if (before !== after) {
     changes.push({
       objectId: object.id,
       field: String(field),
-      before: object[field],
+      before,
       after,
     });
   }
@@ -638,6 +733,16 @@ function applyDistributeCommand(
 }
 
 function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
+  if (command.kind === "attachAlphaMap") {
+    return changes.length === 0
+      ? `Alpha map ${command.alphaId} was already attached to ${command.sourceId}.`
+      : `Attached alpha map ${command.alphaId} to ${command.sourceId}.`;
+  }
+  if (command.kind === "detachAlphaMap") {
+    return changes.length === 0
+      ? `No alpha map was attached to ${command.sourceId}.`
+      : `Detached alpha map from ${command.sourceId}.`;
+  }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
     return `Moved ${command.id} ${command.anchor ?? "center"} to ${command.ref}.`;
@@ -703,6 +808,41 @@ export function applyCanvasCommand(
 
   if (command.kind === "alignToGrid") {
     nextDocument = applyAlignToGridCommand(document, command, changes, context);
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "attachAlphaMap") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachAlphaMap skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "alphaMapId", command.alphaId);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, source.id, { ...source, alphaMapId: command.alphaId });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "detachAlphaMap") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `detachAlphaMap skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "alphaMapId", undefined);
+    if (changes.length > 0) {
+      const { alphaMapId: _alphaMapId, ...nextSource } = source;
+      nextDocument = replaceObject(document, source.id, nextSource);
+    }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 

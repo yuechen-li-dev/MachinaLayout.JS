@@ -11,7 +11,11 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
   const bounds = document
     ? formatCanvasRect(object, getCanvasUnitSystem(document))
     : `x:${object.x} y:${object.y} w:${object.width} h:${object.height}`;
-  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}`;
+  const imageSummary =
+    object.kind === "image"
+      ? `; role ${object.role ?? "image"}${object.alphaMapId ? `; uses alpha map ${object.alphaMapId}` : ""}`
+      : "";
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {
@@ -22,7 +26,9 @@ export function summarizeScene(document: CanvasDocument): string {
     : undefined;
   const notableObjects = objects
     .filter((object) =>
-      ["logo", "headline", "product-body", "cta-bg", "feature-chip-1"].includes(object.id),
+      ["logo", "headline", "generated-product-image", "cta-bg", "feature-chip-1"].includes(
+        object.id,
+      ),
     )
     .map((object) => getObjectBoundsSummary(object, document))
     .join("; ");

@@ -32,6 +32,8 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - canvas frame intent separate from resolved object geometry
 - document units and formatted measurement readouts
 - controlled viewport zoom for canvas, selection, and grid inspection
+- image scene objects with explicit RGB image plus alpha-map relationships
+- SVG mask-based composition for deterministic transparent visual output
 - inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
@@ -63,6 +65,8 @@ Supported command kinds:
 - `alignToGrid`
 - `resizeToGridSpan`
 - `setFrame`
+- `attachAlphaMap`
+- `detachAlphaMap`
 
 Grid-aware commands let command JSON target the reference grid instead of raw
 pixels:
@@ -86,6 +90,33 @@ cover full cells inclusively.
 Validation reports diagnostics instead of throwing for normal input failures. It checks command kind, target object IDs, finite numbers, positive sizes, align/distribute object lists, valid axes, grid refs, grid spans, anchors, and non-negative distribute gaps.
 
 The command log records recent applied commands, result messages, and field-level before/after changes. This is the command substrate an LLM could target, but the app does not call an LLM API yet.
+
+## Image Assets And Alpha Maps
+
+M30k adds image objects for the common LLM image workflow:
+
+```txt
+RGB/generated image
++ alpha map / mask image
++ deterministic compositor
+= transparent/composited visual result
+```
+
+Image objects are first-class scene objects with stable IDs, geometry, layer
+membership, visibility, tags, and notes. A normal image can reference another
+image object by `alphaMapId`; the referenced object uses role `alphaMap` or
+`mask`. The alpha map remains in the scene tree and inspector even when it is
+hidden from normal output.
+
+MachinaCanvas renders image composition through SVG masks. In M30k, the mask
+image is placed using the source image object's `x`, `y`, `width`, and `height`
+so the generated RGB image and alpha map line up deterministically. The alpha
+object's own geometry is still inspectable and exported, but it is not used for
+mask placement yet.
+
+This is composition, not brush editing. M30k does not add image generation,
+image upload UI, raster alpha compositing, canvas pixel manipulation, mask
+painting, PNG export, nested layer trees, or TOML import.
 
 ## Canvas Frames
 
@@ -229,6 +260,11 @@ M30j adds optional `[viewport]` metadata to generated `handoff.toml` so a handof
 can preserve the current inspection focus. `document.json` remains the document
 graph, and `render.svg` remains clean full-document artwork by default.
 
+M30k adds image object contracts, `alphaMapFor` relations in `document.json`,
+SVG mask output in `render.svg`, and `[[composite]]` entries in `handoff.toml`.
+The relationship is explicit graph data rather than a nested Photoshop-style
+layer stack.
+
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan`. Importing TOML command recipes remains out of scope.
@@ -241,6 +277,7 @@ raster/PNG rendering.
 
 - no raster editing yet
 - no LLM API yet
+- no image generation, upload UI, or mask painting yet
 - no CAD, path, or font outline editing yet
 - no file import yet
 - no ZIP export yet

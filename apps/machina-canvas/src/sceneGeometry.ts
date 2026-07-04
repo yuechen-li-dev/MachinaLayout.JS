@@ -54,6 +54,25 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
         objectIds: [object.id],
       });
     }
+
+    if (object.kind === "image" && object.alphaMapId !== undefined) {
+      const alphaMap = document.objects[object.alphaMapId];
+      if (alphaMap === undefined) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidCompositeRelation",
+          message: `${object.name} references missing alpha map ${object.alphaMapId}.`,
+          objectIds: [object.id],
+        });
+      } else if (alphaMap.kind !== "image") {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidCompositeRelation",
+          message: `${object.name} references non-image alpha map ${alphaMap.name}.`,
+          objectIds: [object.id, alphaMap.id],
+        });
+      }
+    }
   }
 
   if (selected?.visible) {

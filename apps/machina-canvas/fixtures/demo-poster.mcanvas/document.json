@@ -29,7 +29,13 @@
     {
       "id": "product",
       "asset": "layers/product.toml",
-      "objectIds": ["product-base-shadow", "product-silhouette-body", "product-highlight"]
+      "objectIds": [
+        "product-base-shadow",
+        "generated-product-image",
+        "generated-product-alpha",
+        "product-silhouette-body",
+        "product-highlight"
+      ]
     },
     {
       "id": "foreground",
@@ -54,6 +60,14 @@
     "product-base-shadow": {
       "kind": "ellipse",
       "asset": "objects/product-base-shadow.toml"
+    },
+    "generated-product-image": {
+      "kind": "image",
+      "asset": "objects/generated-product-image.toml"
+    },
+    "generated-product-alpha": {
+      "kind": "image",
+      "asset": "objects/generated-product-alpha.toml"
     },
     "product-silhouette-body": {
       "kind": "rect",
@@ -95,5 +109,12 @@
       "kind": "rect",
       "asset": "objects/feature-chip-3.toml"
     }
-  }
+  },
+  "relations": [
+    {
+      "kind": "alphaMapFor",
+      "sourceId": "generated-product-image",
+      "alphaId": "generated-product-alpha"
+    }
+  ]
 }
