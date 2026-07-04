@@ -18,6 +18,7 @@ export default defineConfig({
     "machina/index": "src/machina/index.ts",
     "match/index": "src/match/index.ts",
     "style/index": "src/style/index.ts",
+    "static/index": "src/static/index.ts",
   },
   format: ["esm"],
   dts: true,

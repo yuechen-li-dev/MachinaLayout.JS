@@ -59,6 +59,8 @@ Inspection and handoff utilities are available at `machinalayout/inspect` and `m
 
 Typed semantic style authoring is available at `machinalayout/style`; see [MachinaStyle](docs/machina-style.md).
 
+Static no-JS finite UI machine lowering is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -134,6 +136,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Error codes](docs/error-codes.md)
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
 - [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
+- [Machina Static](docs/machina-static.md) — finite UI machines lowered to no-JS HTML/CSS.
 - [Exhaustive enum matching](docs/exhaustive-match.md)
 
 ## Tiny `LayoutRow[]` example
@@ -347,6 +350,7 @@ const views = {
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
 - [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
+- [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
 - [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
 
 Run it locally:
@@ -369,6 +373,7 @@ This repo uses Biome.
 ## Documentation
 
 - [Machina authoring](docs/machina-authoring.md)
+- [Machina Static](docs/machina-static.md)
 - [MachinaCanvas export format](docs/machina-canvas-export-format.md) documents
   the `.mcanvas` JSON/TOML/rendered artifact split and the
   [`demo-poster.mcanvas`](apps/machina-canvas/fixtures/demo-poster.mcanvas)

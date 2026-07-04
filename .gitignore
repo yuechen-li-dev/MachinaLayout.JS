@@ -1,5 +1,9 @@
 node_modules/
 dist/
+!samples/static-tabs/dist/
+!samples/static-tabs/dist/index.html
+!samples/static-tabs/dist/generated.css
+samples/static-tabs/.generated/
 tmp/
 .env
 *.tsbuildinfo

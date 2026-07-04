@@ -15,6 +15,13 @@ import {
   serializeMachinaStyleSheet,
   validateMachinaStyleSheet,
 } from "../src/style";
+import {
+  createStaticHtmlArtifact,
+  H,
+  serializeStaticPageCss,
+  serializeStaticPageHtml,
+  validateStaticPage,
+} from "../src/static";
 import { writeMachinaHandoffBundle } from "../src/handoff";
 import {
   createDeusSnapshot,
@@ -64,6 +71,16 @@ describe("package export entrypoints", () => {
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");
     expect(validateMachinaStyleSheet).toBeTypeOf("function");
+  });
+
+  it("exposes static subpath utilities", () => {
+    expect(H.tabs).toBeTypeOf("function");
+    expect(H.page).toBeTypeOf("function");
+    expect(H.staticPage).toBeTypeOf("function");
+    expect(createStaticHtmlArtifact).toBeTypeOf("function");
+    expect(serializeStaticPageHtml).toBeTypeOf("function");
+    expect(serializeStaticPageCss).toBeTypeOf("function");
+    expect(validateStaticPage).toBeTypeOf("function");
   });
 
   it("exposes deus subpath utilities", () => {

@@ -123,6 +123,10 @@
     "./style": {
       "types": "./dist/style/index.d.ts",
       "import": "./dist/style/index.js"
+    },
+    "./static": {
+      "types": "./dist/static/index.d.ts",
+      "import": "./dist/static/index.js"
     }
   },
   "files": [

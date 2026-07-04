@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Machina Static Tabs</title>
+    <link rel="stylesheet" href="generated.css" />
+  </head>
+  <body>
+<section class="machina-tabs" id="product-tabs">
+    <input class="machina-tabs__input" type="radio" name="product-tabs-state" id="product-tabs-overview" checked />
+    <input class="machina-tabs__input" type="radio" name="product-tabs-state" id="product-tabs-features" />
+    <input class="machina-tabs__input" type="radio" name="product-tabs-state" id="product-tabs-export" />
+    <div class="machina-tabs__labels">
+      <label class="machina-tabs__label" for="product-tabs-overview">Overview</label>
+      <label class="machina-tabs__label" for="product-tabs-features">Features</label>
+      <label class="machina-tabs__label" for="product-tabs-export">Export</label>
+    </div>
+    <div class="machina-tabs__panels">
+      <section class="machina-tabs__panel machina-tabs__panel--overview">Machina compiles typed UI intent into browser artifacts.</section>
+      <section class="machina-tabs__panel machina-tabs__panel--features">Rows, styles, state tables, and lowering targets.</section>
+      <section class="machina-tabs__panel machina-tabs__panel--export">Lower to HTML, CSS, TSX, SVG, or PNG.</section>
+    </div>
+  </section>
+  </body>
+</html>
