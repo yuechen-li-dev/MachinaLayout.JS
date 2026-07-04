@@ -13,6 +13,7 @@ import type {
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
+import type { NormalizedRasterExportOptions } from "./rasterExport";
 
 export type CanvasExportFile = {
   path: string;
@@ -30,6 +31,8 @@ export type CanvasExportOptions = {
   selectedObjectId?: string;
   includeSessionCommands?: boolean;
   viewport?: CanvasViewport;
+  rasterArtifactPath?: string;
+  rasterOptions?: NormalizedRasterExportOptions;
 };
 
 function quoteTomlString(value: string): string {
@@ -477,6 +480,8 @@ export function serializeCanvasHandoffToml(
     summary?: string;
     diagnostics?: readonly GeometryDiagnostic[];
     viewport?: CanvasViewport;
+    rasterArtifactPath?: string;
+    rasterOptions?: NormalizedRasterExportOptions;
   },
 ): string {
   const selectedObjectId = options?.selectedObjectId ?? document.selectedObjectId;
@@ -491,6 +496,23 @@ export function serializeCanvasHandoffToml(
     'render_svg = "render.svg"',
     'document_json = "document.json"',
   ];
+
+  if (options?.rasterArtifactPath && options.rasterOptions) {
+    const target =
+      options.rasterOptions.mimeType === "image/png" ? "png" : options.rasterOptions.mimeType;
+    lines.push(
+      "",
+      "[rendered_artifacts]",
+      'svg = "render.svg"',
+      `${target === "png" ? "png" : "raster"} = ${quoteTomlString(options.rasterArtifactPath)}`,
+      "",
+      "[lowering]",
+      `target = ${quoteTomlString(target)}`,
+      `scale = ${options.rasterOptions.scale}`,
+      `background = ${quoteTomlString(options.rasterOptions.background)}`,
+      "lossy = true",
+    );
+  }
 
   if (selectedObjectId) {
     lines.push("", "[selected]", `object_id = ${quoteTomlString(selectedObjectId)}`);
@@ -655,6 +677,8 @@ export function createCanvasExportBundle(
         summary: options?.summary,
         diagnostics: options?.diagnostics,
         viewport: options?.viewport,
+        rasterArtifactPath: options?.rasterArtifactPath,
+        rasterOptions: options?.rasterOptions,
       }),
     },
   ];

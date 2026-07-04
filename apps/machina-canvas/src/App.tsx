@@ -18,6 +18,13 @@ import {
   type CanvasExportFile,
 } from "./canvasExport";
 import {
+  getRasterExportFileName,
+  lowerCanvasDocumentToRasterBlob,
+  normalizeRasterExportOptions,
+  type NormalizedRasterExportOptions,
+  type RasterExportBackground,
+} from "./rasterExport";
+import {
   createCanvasViewport,
   fitCanvasViewport,
   getCanvasViewportViewBox,
@@ -154,6 +161,10 @@ type AppViewData = {
   exportValidation: CanvasExportValidationResult | undefined;
   selectedExportPath: string | undefined;
   exportStatus: string;
+  rasterScale: number;
+  rasterBackground: RasterExportBackground;
+  rasterArtifact: RasterExportArtifact | undefined;
+  rasterStatus: string;
   setViewport: (viewport: CanvasViewport) => void;
   setAidToggle: (key: keyof CanvasAidToggles, value: boolean) => void;
   fitViewport: () => void;
@@ -168,10 +179,21 @@ type AppViewData = {
   validateCommandJson: () => void;
   applyCommandJson: () => void;
   generateExport: () => void;
+  setRasterScale: (scale: number) => void;
+  setRasterBackground: (background: RasterExportBackground) => void;
+  generatePngExport: () => Promise<void>;
   selectExportFile: (path: string) => void;
   copySelectedExportFile: () => void;
   copyValidationReport: () => void;
   downloadSelectedExportFile: () => void;
+  downloadRasterArtifact: () => void;
+};
+
+type RasterExportArtifact = {
+  path: string;
+  mimeType: string;
+  blob: Blob;
+  size: number;
 };
 
 function getRootRect(): Rect {
@@ -301,6 +323,12 @@ function formatChange(change: CanvasCommandApplyResult["changes"][number]): stri
 
 function formatFileSize(text: string): string {
   return `${text.length.toLocaleString()} chars`;
+}
+
+function formatBlobSize(size: number): string {
+  if (size < 1024) return `${size.toLocaleString()} B`;
+  if (size < 1024 * 1024) return `${Math.round(size / 102.4) / 10} KB`;
+  return `${Math.round(size / 1024 / 102.4) / 10} MB`;
 }
 
 function formatDocumentSize(document: CanvasDocument): string {
@@ -1094,12 +1122,20 @@ function ExportPanel(props: MachinaSlotProps) {
     exportBundle,
     exportValidation,
     exportStatus,
+    rasterScale,
+    rasterBackground,
+    rasterArtifact,
+    rasterStatus,
     selectedExportPath,
     generateExport,
+    setRasterScale,
+    setRasterBackground,
+    generatePngExport,
     selectExportFile,
     copySelectedExportFile,
     copyValidationReport,
     downloadSelectedExportFile,
+    downloadRasterArtifact,
   } = readViewData(props);
   const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
   const validationReport = exportValidation
@@ -1123,6 +1159,49 @@ function ExportPanel(props: MachinaSlotProps) {
         </button>
       </div>
       {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
+      <div className="raster-lowering">
+        <div className="raster-control">
+          <span>Scale</span>
+          <div className="raster-button-group">
+            {[1, 2, 4].map((scale) => (
+              <button
+                className={rasterScale === scale ? "is-active" : ""}
+                key={scale}
+                type="button"
+                onClick={() => setRasterScale(scale)}
+              >
+                {scale}x
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className="raster-control">
+          <span>Background</span>
+          <select
+            value={rasterBackground}
+            onChange={(event) => setRasterBackground(event.target.value)}
+          >
+            <option value="transparent">transparent</option>
+            <option value="#ffffff">white</option>
+            <option value="#000000">black</option>
+          </select>
+        </label>
+        <div className="raster-actions">
+          <button type="button" onClick={generatePngExport}>
+            Generate PNG
+          </button>
+          <button type="button" onClick={downloadRasterArtifact} disabled={!rasterArtifact}>
+            Download PNG
+          </button>
+        </div>
+        {rasterArtifact ? (
+          <p className="export-status">
+            {rasterArtifact.path} - {rasterArtifact.mimeType} -{" "}
+            {formatBlobSize(rasterArtifact.size)}
+          </p>
+        ) : null}
+        {rasterStatus ? <p className="export-status">{rasterStatus}</p> : null}
+      </div>
       <div className={`validation-result ${getExportValidationClass(exportValidation)}`}>
         <strong>{getExportValidationLabel(exportValidation)}</strong>
         {exportValidation ? (
@@ -1452,6 +1531,11 @@ export function App() {
   const [exportValidation, setExportValidation] = useState<CanvasExportValidationResult>();
   const [selectedExportPath, setSelectedExportPath] = useState<string>();
   const [exportStatus, setExportStatus] = useState("");
+  const [rasterScale, setRasterScaleState] = useState(1);
+  const [rasterBackground, setRasterBackgroundState] =
+    useState<RasterExportBackground>("transparent");
+  const [rasterArtifact, setRasterArtifact] = useState<RasterExportArtifact>();
+  const [rasterStatus, setRasterStatus] = useState("");
   const commandLogCounter = useRef(0);
   const geometryDiagnostics = useMemo(() => getSceneGeometryDiagnostics(document), [document]);
 
@@ -1601,6 +1685,8 @@ export function App() {
       });
       setExportBundle(bundle);
       setExportValidation(validation);
+      setRasterArtifact(undefined);
+      setRasterStatus("");
       setSelectedExportPath("handoff.toml");
       setExportStatus(
         `${bundle.files.length} files generated in ${bundle.rootName}. Validation ${
@@ -1608,6 +1694,66 @@ export function App() {
         }.`,
       );
       setLastCommand("export generated");
+    };
+
+    const setRasterScale = (scale: number) => {
+      setRasterScaleState(scale);
+      setRasterArtifact(undefined);
+      setRasterStatus("");
+    };
+
+    const setRasterBackground = (background: RasterExportBackground) => {
+      setRasterBackgroundState(background);
+      setRasterArtifact(undefined);
+      setRasterStatus("");
+    };
+
+    const generatePngExport = async () => {
+      try {
+        setRasterStatus("Generating PNG from render.svg...");
+        const rasterOptions: NormalizedRasterExportOptions = normalizeRasterExportOptions({
+          mimeType: "image/png",
+          scale: rasterScale,
+          background: rasterBackground,
+        });
+        const path = getRasterExportFileName("render", rasterOptions);
+        const blob = await lowerCanvasDocumentToRasterBlob(document, rasterOptions);
+        const artifact = {
+          path,
+          mimeType: rasterOptions.mimeType,
+          blob,
+          size: blob.size,
+        };
+        const latestCommands = commandLog[0]?.commands;
+        const bundle = createCanvasExportBundle(document, {
+          selectedObjectId: document.selectedObjectId,
+          commands: latestCommands,
+          summary: summarizeScene(document),
+          diagnostics: geometryDiagnostics,
+          viewport,
+          rasterArtifactPath: path,
+          rasterOptions,
+        });
+        const validation = validateCanvasExportBundle(bundle, {
+          expectedCommands: latestCommands !== undefined,
+        });
+
+        setRasterArtifact(artifact);
+        setExportBundle(bundle);
+        setExportValidation(validation);
+        setSelectedExportPath("handoff.toml");
+        setRasterStatus(`Generated ${path}.`);
+        setExportStatus(
+          `${bundle.files.length} text files generated with PNG lowering metadata. Validation ${
+            validation.ok ? "passed" : "failed"
+          }.`,
+        );
+        setLastCommand("PNG lowered from render.svg");
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : "PNG export failed.";
+        setRasterStatus(message);
+        setLastCommand("PNG export failed");
+      }
     };
 
     const selectExportFile = (path: string) => {
@@ -1660,6 +1806,20 @@ export function App() {
       setExportStatus(`Downloaded ${selectedFile.path}.`);
     };
 
+    const downloadRasterArtifact = () => {
+      if (!rasterArtifact) return;
+
+      const url = URL.createObjectURL(rasterArtifact.blob);
+      const anchor = window.document.createElement("a");
+      anchor.href = url;
+      anchor.download = rasterArtifact.path;
+      window.document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setRasterStatus(`Downloaded ${rasterArtifact.path}.`);
+    };
+
     return {
       document,
       viewport,
@@ -1674,6 +1834,10 @@ export function App() {
       exportValidation,
       selectedExportPath,
       exportStatus,
+      rasterScale,
+      rasterBackground,
+      rasterArtifact,
+      rasterStatus,
       setViewport,
       setAidToggle,
       fitViewport,
@@ -1688,10 +1852,14 @@ export function App() {
       validateCommandJson,
       applyCommandJson,
       generateExport,
+      setRasterScale,
+      setRasterBackground,
+      generatePngExport,
       selectExportFile,
       copySelectedExportFile,
       copyValidationReport,
       downloadSelectedExportFile,
+      downloadRasterArtifact,
     };
   }, [
     document,
@@ -1707,6 +1875,10 @@ export function App() {
     exportValidation,
     selectedExportPath,
     exportStatus,
+    rasterScale,
+    rasterBackground,
+    rasterArtifact,
+    rasterStatus,
   ]);
 
   return (

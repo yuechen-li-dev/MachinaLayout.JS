@@ -34,6 +34,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - controlled viewport zoom for canvas, selection, and grid inspection
 - image scene objects with explicit RGB image plus alpha-map relationships
 - SVG mask-based composition for deterministic transparent visual output
+- browser-local PNG lowering from clean `render.svg`
 - inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
@@ -139,6 +140,28 @@ field and through `render.svg` image `href` values. This makes local handoff
 convenient but can create large text files. A future asset-folder export could
 externalize binary assets; M30l intentionally does not add `.mcanvas` import,
 TOML import, ZIP export, or browser binary asset writing.
+
+M30m adds browser-local PNG export as a lowering operation:
+
+```txt
+.mcanvas semantic package -> render.svg -> browser rasterization -> render.png
+```
+
+PNG export uses the current clean `render.svg`, loads it into an
+`HTMLImageElement`, draws it to an `HTMLCanvasElement`, and writes a PNG Blob
+with `canvas.toBlob("image/png")`. It does not call a backend and does not add
+server-side rasterization, native canvas dependencies, `sharp`, or `canvas`.
+
+PNG defaults to transparent background so alpha from SVG masks and transparent
+artwork can survive. The Export panel also offers white or black background fill
+and 1x, 2x, or 4x scale options. Reference grid overlays, measurement labels,
+selection outlines, viewport zoom, and editor UI are not part of `render.svg`,
+so they are not part of `render.png`.
+
+The PNG is a lossy artifact: it keeps pixels and alpha only. It does not keep
+layers, object IDs, command recipes, frame intent, reference-grid semantics,
+unit metadata, or alpha-map relationship metadata. The `.mcanvas` text package
+remains the source of truth; PNG import remains out of scope.
 
 ## Canvas Frames
 
@@ -293,17 +316,25 @@ Session command TOML may omit large `addImageObject` commands so command recipes
 do not embed data URLs; the loaded image objects themselves remain present in the
 exported scene files.
 
+M30m adds optional PNG lowering controls to the same Export panel. Generating a
+PNG creates a browser Blob named `render.png`, `render@2x.png`, or
+`render@4x.png` and updates `handoff.toml` with `[rendered_artifacts]` and
+`[lowering]` metadata. The binary PNG is downloaded separately; no ZIP writer or
+server raster service is added.
+
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan`. Importing TOML command recipes remains out of scope.
 
 Export validation is still one-way. It is not import, round-trip loading, full
 TOML semantic parsing, ZIP export, backend processing, LLM API integration, or
-raster/PNG rendering.
+server-side raster rendering.
 
 ## Non-Goals
 
 - no raster editing yet
+- no `.mcanvas` or PNG import yet
+- no server-side rasterization or native raster dependencies
 - no LLM API yet
 - no image generation, upload/backend service, or mask painting yet
 - no CAD, path, or font outline editing yet

@@ -313,7 +313,8 @@ button {
 }
 
 .export-actions button:disabled,
-.asset-select-row button:disabled {
+.asset-select-row button:disabled,
+.raster-actions button:disabled {
   border-color: #d7d7d2;
   color: #8a8a84;
 }
@@ -415,6 +416,66 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.raster-lowering {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  padding: 10px;
+}
+
+.raster-control {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: #555550;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.raster-control span {
+  text-transform: uppercase;
+}
+
+.raster-control select {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid #d7d7d2;
+  background: #ffffff;
+  color: #111111;
+  font: inherit;
+  padding: 0 8px;
+}
+
+.raster-button-group,
+.raster-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.raster-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.raster-button-group button,
+.raster-actions button {
+  min-height: 32px;
+  border: 1px solid #111111;
+  background: #ffffff;
+  color: #111111;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.raster-button-group button.is-active {
+  background: #111111;
+  color: #ffffff;
 }
 
 .asset-file-input {
