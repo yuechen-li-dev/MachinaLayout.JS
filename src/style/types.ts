@@ -18,6 +18,20 @@ export type MachinaStyleTokens = {
 
 export type MachinaTokenRef = string;
 
+export type MachinaStyleSlot<T> =
+  | {
+      kind: "set";
+      value: T;
+    }
+  | {
+      kind: "inherit";
+    }
+  | {
+      kind: "unset";
+    };
+
+export type MachinaStyleSlotInput<T> = T | MachinaStyleSlot<T>;
+
 export type MachinaBoxStyle = {
   display?: "block" | "inlineBlock" | "flex" | "grid" | "none";
   width?: number | string;
@@ -84,6 +98,74 @@ export type MachinaStyleRecord = {
   text?: MachinaTextStyle;
   border?: MachinaBorderStyle;
   effect?: MachinaEffectStyle;
+};
+
+export type MachinaBoxStyleLayer = {
+  display?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["display"]>>;
+  width?: MachinaStyleSlotInput<number | string>;
+  height?: MachinaStyleSlotInput<number | string>;
+  minWidth?: MachinaStyleSlotInput<number | string>;
+  minHeight?: MachinaStyleSlotInput<number | string>;
+  maxWidth?: MachinaStyleSlotInput<number | string>;
+  maxHeight?: MachinaStyleSlotInput<number | string>;
+
+  padding?: MachinaStyleSlotInput<number | string>;
+  paddingX?: MachinaStyleSlotInput<number | string>;
+  paddingY?: MachinaStyleSlotInput<number | string>;
+  paddingTop?: MachinaStyleSlotInput<number | string>;
+  paddingRight?: MachinaStyleSlotInput<number | string>;
+  paddingBottom?: MachinaStyleSlotInput<number | string>;
+  paddingLeft?: MachinaStyleSlotInput<number | string>;
+
+  margin?: MachinaStyleSlotInput<number | string>;
+  marginX?: MachinaStyleSlotInput<number | string>;
+  marginY?: MachinaStyleSlotInput<number | string>;
+  marginTop?: MachinaStyleSlotInput<number | string>;
+  marginRight?: MachinaStyleSlotInput<number | string>;
+  marginBottom?: MachinaStyleSlotInput<number | string>;
+  marginLeft?: MachinaStyleSlotInput<number | string>;
+
+  gap?: MachinaStyleSlotInput<number | string>;
+
+  alignItems?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["alignItems"]>>;
+  justifyContent?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["justifyContent"]>>;
+
+  overflow?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["overflow"]>>;
+};
+
+export type MachinaSurfaceStyleLayer = {
+  fill?: MachinaStyleSlotInput<string>;
+  radius?: MachinaStyleSlotInput<number | string>;
+  opacity?: MachinaStyleSlotInput<number>;
+};
+
+export type MachinaTextStyleLayer = {
+  color?: MachinaStyleSlotInput<string>;
+  font?: MachinaStyleSlotInput<string>;
+  family?: MachinaStyleSlotInput<string>;
+  size?: MachinaStyleSlotInput<number | string>;
+  lineHeight?: MachinaStyleSlotInput<number | string>;
+  weight?: MachinaStyleSlotInput<MachinaFontWeight>;
+  align?: MachinaStyleSlotInput<NonNullable<MachinaTextStyle["align"]>>;
+  transform?: MachinaStyleSlotInput<NonNullable<MachinaTextStyle["transform"]>>;
+};
+
+export type MachinaBorderStyleLayer = {
+  color?: MachinaStyleSlotInput<string>;
+  width?: MachinaStyleSlotInput<number | string>;
+  style?: MachinaStyleSlotInput<NonNullable<MachinaBorderStyle["style"]>>;
+};
+
+export type MachinaEffectStyleLayer = {
+  shadow?: MachinaStyleSlotInput<string>;
+};
+
+export type MachinaStyleLayer = {
+  box?: MachinaBoxStyleLayer;
+  surface?: MachinaSurfaceStyleLayer;
+  text?: MachinaTextStyleLayer;
+  border?: MachinaBorderStyleLayer;
+  effect?: MachinaEffectStyleLayer;
 };
 
 export type MachinaStyleSheet = {

@@ -11,6 +11,7 @@ import type {
   MachinaTextStyle,
   SerializeMachinaStyleOptions,
 } from "./types";
+import { isMachinaStyleSlot } from "./authoring";
 
 const TOKEN_GROUPS = ["color", "space", "radius", "font", "shadow"] as const;
 type TokenGroup = (typeof TOKEN_GROUPS)[number];
@@ -285,6 +286,20 @@ function styleDeclarations(record: MachinaStyleRecord): CssDeclaration[] {
   ];
 }
 
+function assertNoUnresolvedStyleSlots(value: unknown, path: string): void {
+  if (isMachinaStyleSlot(value)) {
+    throw new Error(
+      `Cannot serialize unresolved MachinaStyleSlot at ${path}. Call S.compose/S.over first.`,
+    );
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return;
+  }
+  for (const [key, nestedValue] of Object.entries(value)) {
+    assertNoUnresolvedStyleSlots(nestedValue, `${path}.${key}`);
+  }
+}
+
 function serializeRule(selector: string, declarations: readonly CssDeclaration[]): string {
   const lines = [`${selector} {`];
   for (const [property, value] of declarations) {
@@ -310,6 +325,7 @@ export function serializeMachinaStyleSheet(
   }
 
   for (const className of Object.keys(sheet.classes).sort()) {
+    assertNoUnresolvedStyleSlots(sheet.classes[className], `classes.${className}`);
     const declarations = styleDeclarations(sheet.classes[className]);
     blocks.push(serializeRule(`.${className}`, declarations));
   }
