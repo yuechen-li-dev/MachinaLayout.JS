@@ -173,6 +173,21 @@ export const sheet = S.sheet({
 
 Sheets are concrete. If an unresolved slot reaches `S.sheet` validation, it is reported as `UnresolvedStyleSlot`; serialization also rejects unresolved slots with a stable error. Compose layer stacks before serializing.
 
+## Dogfood Sample
+
+`samples/style-dogfood` is a small React/Vite control-panel sample that uses `machinalayout/style` as its authoring surface:
+
+```txt
+samples/style-dogfood/src/style.ts
+  -> serializeMachinaStyleSheet(sheet)
+  -> samples/style-dogfood/src/generated.css
+  -> imported by samples/style-dogfood/src/main.tsx
+```
+
+The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, validation diagnostics, and deterministic CSS serialization without runtime CSS injection.
+
+See the M31c friction report at [`docs/machina-style-dogfood-report.md`](machina-style-dogfood-report.md) for concrete recommendations from using MachinaStyle in the sample.
+
 ## Validation
 
 Use `validateMachinaStyleSheet(sheet)` to check common authoring mistakes:

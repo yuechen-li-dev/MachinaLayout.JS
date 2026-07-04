@@ -346,6 +346,7 @@ const views = {
 - [`samples/music-player`](samples/music-player/README.md)
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
+- [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
 - [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
 
 Run it locally:
