@@ -4,12 +4,18 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  artifact,
+  classes,
   css,
   diagnosticProbeDiagnostics,
   sheet,
   sheetDiagnostics,
 } from "../samples/style-dogfood/src/style";
-import { serializeMachinaStyleSheet, validateMachinaStyleSheet } from "../src/style";
+import {
+  createMachinaStyleArtifact,
+  serializeMachinaStyleSheet,
+  validateMachinaStyleSheet,
+} from "../src/style";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sampleRoot = resolve(repoRoot, "samples/style-dogfood");
@@ -36,19 +42,24 @@ describe("MachinaStyle dogfood sample", () => {
     ]);
   });
 
-  it("keeps checked-in generated CSS in sync with the serialized sheet", () => {
+  it("keeps checked-in generated CSS in sync with the artifact helper and serializer", () => {
     const generatedCss = readFileSync(generatedCssPath, "utf8");
 
+    expect(artifact).toEqual(createMachinaStyleArtifact(sheet));
     expect(generatedCss).toBe(serializeMachinaStyleSheet(sheet));
     expect(generatedCss).toBe(css);
   });
 
-  it("emits root token variables and composed sample classes", () => {
+  it("emits root token variables, class helper names, and composed sample classes", () => {
     const generatedCss = readFileSync(generatedCssPath, "utf8");
 
+    expect(classes.buttonPrimary).toBe("buttonPrimary");
     expect(generatedCss).toContain(":root {");
     expect(generatedCss).toContain("--color-primary: #2457d6;");
     expect(generatedCss).toContain("--space-md: 14px;");
+    expect(generatedCss).toContain(
+      "--font-ui-family: Inter, ui-sans-serif, system-ui, sans-serif;",
+    );
     expect(generatedCss).toContain(".buttonPrimary {");
     expect(generatedCss).toContain(".buttonGhost {");
     expect(generatedCss).toContain(".cardElevated {");
@@ -67,7 +78,18 @@ describe("MachinaStyle dogfood sample", () => {
     expect(compactPrimaryButton).toContain("padding-top: var(--space-xs);");
   });
 
-  it("does not leak unresolved slot markers into generated CSS", () => {
+  it("expands font tokens in generated sample CSS", () => {
+    const generatedCss = readFileSync(generatedCssPath, "utf8");
+    const buttonPrimary = classBlock(generatedCss, "buttonPrimary");
+
+    expect(buttonPrimary).toContain("font-family: var(--font-ui-family);");
+    expect(buttonPrimary).toContain("font-size: var(--font-ui-size);");
+    expect(buttonPrimary).toContain("line-height: var(--font-ui-line-height);");
+    expect(buttonPrimary).toContain("font-weight: var(--font-ui-weight);");
+    expect(buttonPrimary).toContain("font-weight: 600;");
+  });
+
+  it("does not leak unresolved slot markers or token objects into generated CSS", () => {
     const generatedCss = readFileSync(generatedCssPath, "utf8");
 
     expect(generatedCss).not.toContain("kind:");

@@ -8,7 +8,13 @@ vi.mock("react-native", () => ({
 import { parseMachinaText } from "../src/text";
 import { summarizeMachinaDom } from "../src/inspect";
 import { assertNever, enumTable, matchEnum } from "../src/match";
-import { S, serializeMachinaStyleSheet, validateMachinaStyleSheet } from "../src/style";
+import {
+  createMachinaClassNames,
+  createMachinaStyleArtifact,
+  S,
+  serializeMachinaStyleSheet,
+  validateMachinaStyleSheet,
+} from "../src/style";
 import { writeMachinaHandoffBundle } from "../src/handoff";
 import {
   createDeusSnapshot,
@@ -45,6 +51,10 @@ describe("package export entrypoints", () => {
   it("exposes style subpath utilities", () => {
     expect(S.style).toBeTypeOf("function");
     expect(S.with).toBeTypeOf("function");
+    expect(S.token).toBeTypeOf("function");
+    expect(S.classes).toBeTypeOf("function");
+    expect(createMachinaClassNames).toBeTypeOf("function");
+    expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");
     expect(validateMachinaStyleSheet).toBeTypeOf("function");
   });

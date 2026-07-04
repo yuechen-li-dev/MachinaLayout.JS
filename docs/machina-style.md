@@ -13,7 +13,12 @@ MachinaLayout decides where boxes go. MachinaStyle decides how boxes look. CSS i
 ## Import
 
 ```ts
-import { S, serializeMachinaStyleSheet, validateMachinaStyleSheet } from "machinalayout/style";
+import {
+  createMachinaStyleArtifact,
+  S,
+  serializeMachinaStyleSheet,
+  validateMachinaStyleSheet,
+} from "machinalayout/style";
 ```
 
 ## Tokens
@@ -38,10 +43,53 @@ const tokens = S.tokens({
     md: 12,
     lg: 20,
   },
+  font: {
+    ui: {
+      family: "Inter, system-ui, sans-serif",
+      size: 14,
+      lineHeight: 1.45,
+      weight: "medium",
+    },
+  },
 });
 ```
 
 Numeric `space` and `radius` token values lower to `px`. Token names lower to stable custom-property names such as `--color-on-primary` and `--radius-lg`.
+
+### Token References
+
+String token references such as `"color.primary"` still work for backward compatibility, but M31d adds a safer helper:
+
+```ts
+const t = S.token;
+
+const panel = S.style({
+  surface: {
+    fill: t("color", "primary"),
+    radius: t("radius", "md"),
+  },
+  box: {
+    paddingX: t("space", "md"),
+  },
+  text: {
+    color: t("color", "onPrimary"),
+  },
+});
+```
+
+`S.token(group, key)` returns a `MachinaTokenReference` object:
+
+```ts
+type MachinaTokenGroup = "color" | "space" | "radius" | "font" | "shadow";
+
+type MachinaTokenReference = {
+  kind: "token";
+  group: MachinaTokenGroup;
+  key: string;
+};
+```
+
+Both `"color.primary"` and `S.token("color", "primary")` lower to `var(--color-primary)`. Validation covers both forms.
 
 ## Style Records
 
@@ -57,54 +105,7 @@ For example, `surface.fill` lowers to `background`, `surface.radius` lowers to `
 
 ## Immutable Updates
 
-`S.with` mirrors C# record-style copy/update ergonomics. It deep-merges by style group, returns a fresh record, and leaves the base and patch untouched. Undefined patch fields are ignored in M31a; delete semantics can come later.
-
-```ts
-import { S, serializeMachinaStyleSheet } from "machinalayout/style";
-
-const baseButton = S.style({
-  box: {
-    paddingX: "space.md",
-    paddingY: "space.sm",
-  },
-  surface: {
-    radius: "radius.md",
-  },
-  text: {
-    weight: "semibold",
-  },
-});
-
-const primaryButton = S.with(baseButton, {
-  surface: {
-    fill: "color.primary",
-  },
-  text: {
-    color: "color.onPrimary",
-  },
-});
-
-export const sheet = S.sheet({
-  tokens: S.tokens({
-    color: {
-      primary: "#7c5cff",
-      onPrimary: "#ffffff",
-    },
-    space: {
-      sm: 8,
-      md: 16,
-    },
-    radius: {
-      md: 12,
-    },
-  }),
-  classes: {
-    primaryButton,
-  },
-});
-
-export const css = serializeMachinaStyleSheet(sheet);
-```
+`S.with` mirrors C# record-style copy/update ergonomics. It deep-merges by style group, returns a fresh record, and leaves the base and patch untouched. Undefined patch fields are ignored.
 
 ## Explicit Style Layers
 
@@ -124,54 +125,78 @@ MachinaStyle does not use null as an inherit sentinel. Inheritance and removal a
 
 `S.with(base, patch)` remains the ergonomic copy/update helper for concrete records. Use `S.over` or `S.compose` when you want explicit layer composition with set/inherit/unset semantics.
 
+Sheets are concrete. If an unresolved slot reaches `S.sheet` validation, it is reported as `UnresolvedStyleSlot`; serialization also rejects unresolved slots with a stable error. Compose layer stacks before serializing.
+
+## Font Tokens
+
+Font tokens are structured tokens. They emit separate CSS variables:
+
+```css
+--font-ui-family: Inter, system-ui, sans-serif;
+--font-ui-size: 14px;
+--font-ui-line-height: 1.45;
+--font-ui-weight: 500;
+```
+
+When `text.font` references a font token, MachinaStyle expands it into multiple declarations:
+
 ```ts
-const baseButton = S.style({
-  box: {
-    paddingX: "space.md",
-    paddingY: "space.sm",
-  },
-  surface: {
-    fill: "color.panel",
-    radius: "radius.md",
-  },
+const label = S.style({
   text: {
-    color: "color.text",
-    weight: "semibold",
-  },
-});
-
-const primaryLayer = S.layer({
-  surface: {
-    fill: "color.primary",
-  },
-  text: {
-    color: "color.onPrimary",
-  },
-});
-
-const ghostLayer = S.layer({
-  surface: {
-    fill: S.unset(),
-  },
-  border: {
-    color: "color.primary",
-    width: 1,
-  },
-});
-
-const primaryButton = S.compose(baseButton, primaryLayer);
-const ghostButton = S.compose(baseButton, ghostLayer);
-
-export const sheet = S.sheet({
-  tokens,
-  classes: {
-    primaryButton,
-    ghostButton,
+    font: S.token("font", "ui"),
+    size: 16,
   },
 });
 ```
 
-Sheets are concrete. If an unresolved slot reaches `S.sheet` validation, it is reported as `UnresolvedStyleSlot`; serialization also rejects unresolved slots with a stable error. Compose layer stacks before serializing.
+```css
+font-family: var(--font-ui-family);
+font-size: var(--font-ui-size);
+line-height: var(--font-ui-line-height);
+font-weight: var(--font-ui-weight);
+font-size: 16px;
+```
+
+Expansion happens first, and explicit `text.family`, `text.size`, `text.lineHeight`, `text.weight`, and `text.letterSpacing` declarations come after it so local overrides win.
+
+## Class Helpers
+
+Use `S.classes(sheet)` to derive a typed-ish class-name map from sheet keys:
+
+```ts
+export const sheet = S.sheet({
+  tokens,
+  classes: {
+    page,
+    buttonPrimary,
+  },
+});
+
+export const classes = S.classes(sheet);
+```
+
+```tsx
+<button className={classes.buttonPrimary}>Launch</button>
+```
+
+The helper returns the exact class names used during serialization, which keeps React `className` usage aligned with `style.ts`.
+
+## Artifact Generation
+
+MachinaStyle does not write files itself, but it can produce a standard artifact object:
+
+```ts
+const artifact = createMachinaStyleArtifact(sheet);
+// { path: "generated.css", css: "..." }
+```
+
+That keeps generation scripts boring:
+
+```ts
+await writeFile(`src/${artifact.path}`, artifact.css, "utf8");
+```
+
+`assertMachinaStyleArtifactText(sheet, cssText)` is also available for sync tests.
 
 ## Dogfood Sample
 
@@ -179,12 +204,13 @@ Sheets are concrete. If an unresolved slot reaches `S.sheet` validation, it is r
 
 ```txt
 samples/style-dogfood/src/style.ts
-  -> serializeMachinaStyleSheet(sheet)
+  -> S.token(...)
+  -> S.classes(sheet)
+  -> createMachinaStyleArtifact(sheet)
   -> samples/style-dogfood/src/generated.css
-  -> imported by samples/style-dogfood/src/main.tsx
 ```
 
-The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, validation diagnostics, and deterministic CSS serialization without runtime CSS injection.
+The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, validation diagnostics, class helpers, artifact generation, structured font-token lowering, and deterministic CSS serialization without runtime CSS injection.
 
 See the M31c friction report at [`docs/machina-style-dogfood-report.md`](machina-style-dogfood-report.md) for concrete recommendations from using MachinaStyle in the sample.
 
@@ -195,14 +221,15 @@ Use `validateMachinaStyleSheet(sheet)` to check common authoring mistakes:
 - empty or whitespace-containing class names
 - opacity outside `0..1`
 - negative numeric radius, border width, space token, or radius token values
-- token references such as `color.primary` that do not exist in the sheet tokens
+- unknown token references from either string refs or `MachinaTokenReference` objects
+- invalid `text.font` references that do not point at the `font` token group
 
 `formatMachinaStyleDiagnostics(diagnostics)` returns a compact human-readable report.
 
 Serialization does not block on diagnostics. That keeps lowering deterministic and lets tools decide whether diagnostics are fatal.
 
-## M31a Scope
+## Scope
 
-M31a deliberately does not support arbitrary selector nesting, pseudo selectors, media queries, keyframes, runtime style injection, theme providers, or raw CSS escape hatches.
+MachinaStyle deliberately does not support arbitrary selector nesting, pseudo selectors, media queries, keyframes, runtime style injection, theme providers, or raw CSS escape hatches.
 
 Future phases can add variants, pseudo states, responsive/media rules, MachinaCanvas dogfood, and TSX export integration without turning CSS back into the source language.

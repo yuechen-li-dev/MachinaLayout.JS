@@ -1,14 +1,18 @@
+import { isMachinaStyleSlot } from "./authoring";
+import {
+  describeMachinaTokenReference,
+  isMachinaTokenGroup,
+  looksLikeMachinaTokenReference,
+  parseMachinaTokenReference,
+  tokenExists,
+} from "./tokens";
 import type {
-  MachinaStyleLayer,
   MachinaStyleDiagnostic,
+  MachinaStyleLayer,
   MachinaStyleRecord,
   MachinaStyleSheet,
   MachinaStyleTokens,
 } from "./types";
-import { isMachinaStyleSlot } from "./authoring";
-
-const TOKEN_GROUPS = ["color", "space", "radius", "font", "shadow"] as const;
-type TokenGroup = (typeof TOKEN_GROUPS)[number];
 
 function pushError(
   diagnostics: MachinaStyleDiagnostic[],
@@ -17,36 +21,6 @@ function pushError(
   path?: string,
 ): void {
   diagnostics.push({ severity: "error", code, message, path });
-}
-
-function isTokenRef(value: unknown): value is string {
-  return typeof value === "string" && TOKEN_GROUPS.some((group) => value.startsWith(`${group}.`));
-}
-
-function tokenExists(tokens: MachinaStyleTokens | undefined, ref: string): boolean {
-  const [group, ...keyParts] = ref.split(".");
-  if (!TOKEN_GROUPS.includes(group as TokenGroup)) {
-    return false;
-  }
-  const key = keyParts.join(".");
-  const groupTokens = tokens?.[group as TokenGroup] as Record<string, unknown> | undefined;
-  return !!groupTokens && Object.hasOwn(groupTokens, key);
-}
-
-function checkTokenRef(
-  diagnostics: MachinaStyleDiagnostic[],
-  tokens: MachinaStyleTokens | undefined,
-  value: unknown,
-  path: string,
-): void {
-  if (isTokenRef(value) && !tokenExists(tokens, value)) {
-    pushError(
-      diagnostics,
-      "UnknownTokenRef",
-      `Unknown MachinaStyle token reference "${value}".`,
-      path,
-    );
-  }
 }
 
 function checkNonNegativeNumber(
@@ -79,6 +53,96 @@ function checkUnresolvedStyleSlot(
     path,
   );
   return true;
+}
+
+function checkTokenReferenceShape(
+  diagnostics: MachinaStyleDiagnostic[],
+  value: unknown,
+  path: string,
+): void {
+  if (!looksLikeMachinaTokenReference(value)) {
+    return;
+  }
+
+  if (!isMachinaTokenGroup(value.group)) {
+    pushError(
+      diagnostics,
+      "InvalidTokenReference",
+      `MachinaStyle token reference at ${path} must use a known group; received "${String(value.group)}".`,
+      path,
+    );
+  }
+
+  if (typeof value.key !== "string" || value.key.trim().length === 0) {
+    pushError(
+      diagnostics,
+      "InvalidTokenReference",
+      `MachinaStyle token reference at ${path} must include a non-empty key.`,
+      path,
+    );
+  }
+}
+
+function checkTokenRef(
+  diagnostics: MachinaStyleDiagnostic[],
+  tokens: MachinaStyleTokens | undefined,
+  value: unknown,
+  path: string,
+): void {
+  checkTokenReferenceShape(diagnostics, value, path);
+
+  const parsed = parseMachinaTokenReference(value);
+  if (!parsed) {
+    return;
+  }
+
+  if (!isMachinaTokenGroup(parsed.group) || parsed.key.trim().length === 0) {
+    return;
+  }
+
+  if (!tokenExists(tokens, value)) {
+    pushError(
+      diagnostics,
+      "UnknownTokenReference",
+      `Unknown MachinaStyle token reference ${describeMachinaTokenReference(value)} at ${path} (group: "${parsed.group}", key: "${parsed.key}").`,
+      path,
+    );
+  }
+}
+
+function checkFontTokenRef(
+  diagnostics: MachinaStyleDiagnostic[],
+  tokens: MachinaStyleTokens | undefined,
+  value: unknown,
+  path: string,
+): void {
+  const parsed = parseMachinaTokenReference(value);
+  if (!parsed) {
+    return;
+  }
+
+  if (!isMachinaTokenGroup(parsed.group) || parsed.key.trim().length === 0) {
+    return;
+  }
+
+  if (parsed.group !== "font") {
+    pushError(
+      diagnostics,
+      "InvalidFontTokenReference",
+      `MachinaStyle text.font at ${path} must reference a font token; received group "${parsed.group}" with key "${parsed.key}".`,
+      path,
+    );
+    return;
+  }
+
+  if (!tokenExists(tokens, value)) {
+    pushError(
+      diagnostics,
+      "UnknownTokenReference",
+      `Unknown MachinaStyle token reference ${describeMachinaTokenReference(value)} at ${path} (group: "${parsed.group}", key: "${parsed.key}").`,
+      path,
+    );
+  }
 }
 
 function checkStyleValue(
@@ -142,8 +206,15 @@ function validateStyleRecord(
       continue;
     }
     for (const [propertyName, value] of Object.entries(groupValue)) {
+      if (groupName === "text" && propertyName === "font") {
+        continue;
+      }
       checkStyleValue(diagnostics, tokens, value, `${path}.${groupName}.${propertyName}`);
     }
+  }
+
+  if (record.text?.font !== undefined) {
+    checkFontTokenRef(diagnostics, tokens, record.text.font, `${path}.text.font`);
   }
 }
 
@@ -153,6 +224,11 @@ function validateLayerSlot(
   path: string,
 ): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  if (looksLikeMachinaTokenReference(value)) {
+    checkTokenReferenceShape(diagnostics, value, path);
     return value;
   }
 
@@ -180,6 +256,7 @@ function validateLayerSlot(
       );
       return undefined;
     }
+    checkTokenReferenceShape(diagnostics, slot.value, path);
     return slot.value;
   }
 

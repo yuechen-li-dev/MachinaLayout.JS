@@ -2,6 +2,15 @@
 
 M31c dogfooded MachinaStyle in `samples/style-dogfood`, a tiny React/Vite control-panel page whose CSS is generated from `src/style.ts` and checked in as `src/generated.css`.
 
+## M31d Follow-Through
+
+M31d addressed several of the ergonomics issues called out below:
+
+- `S.token(group, key)` now provides typed-ish token references without breaking existing string refs.
+- `S.classes(sheet)` now gives React code an aligned class-name map.
+- `createMachinaStyleArtifact(sheet)` now standardizes the `style.ts -> generated.css` generation path.
+- `text.font` now expands font tokens into multiple declarations instead of pretending a structured font token is a single CSS variable.
+
 ## What Worked Well
 
 - `S.style` was clear for concrete base records such as panels, buttons, badges, and swatches.

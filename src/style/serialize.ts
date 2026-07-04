@@ -1,3 +1,12 @@
+import { isMachinaStyleSlot } from "./authoring";
+import {
+  MACHINA_TOKEN_GROUPS,
+  isMachinaTokenReference,
+  parseMachinaTokenReference,
+  readTokenValue,
+  tokenReferenceToCssVar,
+  tokenVariableName,
+} from "./tokens";
 import type {
   MachinaBorderStyle,
   MachinaBoxStyle,
@@ -11,45 +20,49 @@ import type {
   MachinaTextStyle,
   SerializeMachinaStyleOptions,
 } from "./types";
-import { isMachinaStyleSlot } from "./authoring";
-
-const TOKEN_GROUPS = ["color", "space", "radius", "font", "shadow"] as const;
-type TokenGroup = (typeof TOKEN_GROUPS)[number];
 
 type CssDeclaration = readonly [property: string, value: string];
 
-function toKebabName(value: string): string {
-  return value
-    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-    .replace(/[_\s]+/g, "-")
-    .toLowerCase();
-}
-
-function tokenVariableName(group: TokenGroup, key: string): string {
-  return `--${group}-${toKebabName(key)}`;
-}
-
-function isTokenRef(value: string): boolean {
-  return TOKEN_GROUPS.some((group) => value.startsWith(`${group}.`));
-}
-
-function tokenRefToVar(value: string): string {
-  const [group, ...keyParts] = value.split(".");
-  return `var(--${toKebabName(group)}-${toKebabName(keyParts.join("-"))})`;
-}
-
-function lowerLength(value: number | string): string {
+function lowerLength(value: number | string | object): string {
   if (typeof value === "number") {
     return `${value}px`;
   }
-  return isTokenRef(value) ? tokenRefToVar(value) : value;
+
+  const tokenVar = tokenReferenceToCssVar(value);
+  if (tokenVar) {
+    return tokenVar;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (isMachinaTokenReference(value)) {
+    throw new Error("Cannot lower MachinaStyle token object in this length context.");
+  }
+
+  return String(value);
 }
 
-function lowerValue(value: number | string): string {
+function lowerValue(value: number | string | object): string {
   if (typeof value === "number") {
     return String(value);
   }
-  return isTokenRef(value) ? tokenRefToVar(value) : value;
+
+  const tokenVar = tokenReferenceToCssVar(value);
+  if (tokenVar) {
+    return tokenVar;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (isMachinaTokenReference(value)) {
+    throw new Error("Cannot lower MachinaStyle token object in this value context.");
+  }
+
+  return String(value);
 }
 
 function lowerFontWeight(weight: MachinaFontWeight): string {
@@ -104,7 +117,7 @@ function lowerJustifyContent(value: NonNullable<MachinaBoxStyle["justifyContent"
 function pushLength(
   declarations: CssDeclaration[],
   property: string,
-  value: number | string | undefined,
+  value: number | string | object | undefined,
 ): void {
   if (value !== undefined) {
     declarations.push([property, lowerLength(value)]);
@@ -114,7 +127,7 @@ function pushLength(
 function pushValue(
   declarations: CssDeclaration[],
   property: string,
-  value: number | string | undefined,
+  value: number | string | object | undefined,
 ): void {
   if (value !== undefined) {
     declarations.push([property, lowerValue(value)]);
@@ -127,20 +140,23 @@ function serializeFontToken(
   key: string,
 ): void {
   if (token.family !== undefined) {
-    declarations.push([`--font-${toKebabName(key)}-family`, token.family]);
+    declarations.push([tokenVariableName("font", `${key}-family`), token.family]);
   }
   if (token.size !== undefined) {
-    declarations.push([`--font-${toKebabName(key)}-size`, lowerLength(token.size)]);
+    declarations.push([tokenVariableName("font", `${key}-size`), lowerLength(token.size)]);
   }
   if (token.lineHeight !== undefined) {
-    declarations.push([`--font-${toKebabName(key)}-line-height`, lowerValue(token.lineHeight)]);
+    declarations.push([
+      tokenVariableName("font", `${key}-line-height`),
+      lowerValue(token.lineHeight),
+    ]);
   }
   if (token.weight !== undefined) {
-    declarations.push([`--font-${toKebabName(key)}-weight`, lowerFontWeight(token.weight)]);
+    declarations.push([tokenVariableName("font", `${key}-weight`), lowerFontWeight(token.weight)]);
   }
   if (token.letterSpacing !== undefined) {
     declarations.push([
-      `--font-${toKebabName(key)}-letter-spacing`,
+      tokenVariableName("font", `${key}-letter-spacing`),
       lowerLength(token.letterSpacing),
     ]);
   }
@@ -150,21 +166,25 @@ function tokenDeclarations(tokens: MachinaStyleTokens | undefined): CssDeclarati
   if (!tokens) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
-  for (const group of TOKEN_GROUPS) {
+  for (const group of MACHINA_TOKEN_GROUPS) {
     const values = tokens[group];
     if (!values) {
       continue;
     }
+
     for (const key of Object.keys(values).sort()) {
       const value = values[key];
       if (value === undefined) {
         continue;
       }
+
       if (group === "font") {
         serializeFontToken(value as MachinaFontToken, declarations, key);
         continue;
       }
+
       declarations.push([
         tokenVariableName(group, key),
         group === "space" || group === "radius"
@@ -173,6 +193,7 @@ function tokenDeclarations(tokens: MachinaStyleTokens | undefined): CssDeclarati
       ]);
     }
   }
+
   return declarations;
 }
 
@@ -180,6 +201,7 @@ function boxDeclarations(box: MachinaBoxStyle | undefined): CssDeclaration[] {
   if (!box) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
   if (box.display !== undefined) {
     declarations.push(["display", lowerDisplay(box.display)]);
@@ -225,6 +247,7 @@ function surfaceDeclarations(surface: MachinaSurfaceStyle | undefined): CssDecla
   if (!surface) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
   pushValue(declarations, "background", surface.fill);
   pushLength(declarations, "border-radius", surface.radius);
@@ -232,25 +255,75 @@ function surfaceDeclarations(surface: MachinaSurfaceStyle | undefined): CssDecla
   return declarations;
 }
 
-function textDeclarations(text: MachinaTextStyle | undefined): CssDeclaration[] {
+function pushFontTokenDeclarations(
+  declarations: CssDeclaration[],
+  fontTokenKey: string,
+  token: MachinaFontToken,
+): void {
+  if (token.family !== undefined) {
+    declarations.push([
+      "font-family",
+      `var(${tokenVariableName("font", `${fontTokenKey}-family`)})`,
+    ]);
+  }
+  if (token.size !== undefined) {
+    declarations.push(["font-size", `var(${tokenVariableName("font", `${fontTokenKey}-size`)})`]);
+  }
+  if (token.lineHeight !== undefined) {
+    declarations.push([
+      "line-height",
+      `var(${tokenVariableName("font", `${fontTokenKey}-line-height`)})`,
+    ]);
+  }
+  if (token.weight !== undefined) {
+    declarations.push([
+      "font-weight",
+      `var(${tokenVariableName("font", `${fontTokenKey}-weight`)})`,
+    ]);
+  }
+  if (token.letterSpacing !== undefined) {
+    declarations.push([
+      "letter-spacing",
+      `var(${tokenVariableName("font", `${fontTokenKey}-letter-spacing`)})`,
+    ]);
+  }
+}
+
+function textDeclarations(
+  text: MachinaTextStyle | undefined,
+  tokens: MachinaStyleTokens | undefined,
+): CssDeclaration[] {
   if (!text) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
   pushValue(declarations, "color", text.color);
-  pushValue(declarations, "font-family", text.font);
+
+  const fontRef = parseMachinaTokenReference(text.font);
+  if (fontRef && fontRef.group === "font") {
+    const fontToken = readTokenValue(tokens, text.font);
+    if (fontToken && typeof fontToken === "object" && !Array.isArray(fontToken)) {
+      pushFontTokenDeclarations(declarations, fontRef.key, fontToken as MachinaFontToken);
+    }
+  } else if (text.font !== undefined) {
+    pushValue(declarations, "font-family", text.font);
+  }
+
   pushValue(declarations, "font-family", text.family);
   pushLength(declarations, "font-size", text.size);
   pushValue(declarations, "line-height", text.lineHeight);
   if (text.weight !== undefined) {
     declarations.push(["font-weight", lowerFontWeight(text.weight)]);
   }
+  pushLength(declarations, "letter-spacing", text.letterSpacing);
   if (text.align !== undefined) {
     declarations.push(["text-align", text.align]);
   }
   if (text.transform !== undefined) {
     declarations.push(["text-transform", text.transform]);
   }
+
   return declarations;
 }
 
@@ -258,6 +331,7 @@ function borderDeclarations(border: MachinaBorderStyle | undefined): CssDeclarat
   if (!border) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
   pushLength(declarations, "border-width", border.width);
   if (border.style !== undefined) {
@@ -271,16 +345,20 @@ function effectDeclarations(effect: MachinaEffectStyle | undefined): CssDeclarat
   if (!effect) {
     return [];
   }
+
   const declarations: CssDeclaration[] = [];
   pushValue(declarations, "box-shadow", effect.shadow);
   return declarations;
 }
 
-function styleDeclarations(record: MachinaStyleRecord): CssDeclaration[] {
+function styleDeclarations(
+  record: MachinaStyleRecord,
+  tokens: MachinaStyleTokens | undefined,
+): CssDeclaration[] {
   return [
     ...boxDeclarations(record.box),
     ...surfaceDeclarations(record.surface),
-    ...textDeclarations(record.text),
+    ...textDeclarations(record.text, tokens),
     ...borderDeclarations(record.border),
     ...effectDeclarations(record.effect),
   ];
@@ -317,6 +395,9 @@ export function serializeMachinaStyleSheet(
   const blocks: string[] = [];
   if (includeHeader) {
     blocks.push("/* Generated by MachinaStyle. Edit style.ts, not this CSS. */");
+    blocks.push(
+      "/* biome-ignore-all lint/suspicious/noDuplicateProperties: Font token expansion intentionally emits base declarations before explicit overrides. */",
+    );
   }
 
   const tokens = tokenDeclarations(sheet.tokens);
@@ -326,7 +407,7 @@ export function serializeMachinaStyleSheet(
 
   for (const className of Object.keys(sheet.classes).sort()) {
     assertNoUnresolvedStyleSlots(sheet.classes[className], `classes.${className}`);
-    const declarations = styleDeclarations(sheet.classes[className]);
+    const declarations = styleDeclarations(sheet.classes[className], sheet.tokens);
     blocks.push(serializeRule(`.${className}`, declarations));
   }
 

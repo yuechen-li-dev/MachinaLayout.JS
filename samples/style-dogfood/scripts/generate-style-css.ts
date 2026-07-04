@@ -1,9 +1,9 @@
 import { writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { css } from "../src/style";
+import { fileURLToPath } from "node:url";
+import { artifact } from "../src/style";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const outputPath = resolve(scriptDir, "../src/generated.css");
+const outputPath = resolve(scriptDir, `../src/${artifact.path}`);
 
-await writeFile(outputPath, css, "utf8");
+await writeFile(outputPath, artifact.css, "utf8");

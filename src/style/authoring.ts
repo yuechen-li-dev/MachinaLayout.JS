@@ -4,7 +4,9 @@ import type {
   MachinaStyleSheet,
   MachinaStyleSlot,
   MachinaStyleTokens,
+  MachinaTokenGroup,
 } from "./types";
+import { createMachinaTokenReference } from "./tokens";
 
 type PlainRecord = Record<string, unknown>;
 type StyleGroupName = keyof MachinaStyleRecord;
@@ -39,7 +41,17 @@ const STYLE_FIELDS = {
     "overflow",
   ],
   surface: ["fill", "radius", "opacity"],
-  text: ["color", "font", "family", "size", "lineHeight", "weight", "align", "transform"],
+  text: [
+    "color",
+    "font",
+    "family",
+    "size",
+    "lineHeight",
+    "weight",
+    "letterSpacing",
+    "align",
+    "transform",
+  ],
   border: ["color", "width", "style"],
   effect: ["shadow"],
 } as const satisfies Record<StyleGroupName, readonly string[]>;
@@ -289,8 +301,29 @@ export function sheet(input: MachinaStyleSheet): MachinaStyleSheet {
   };
 }
 
+export function token(group: MachinaTokenGroup, key: string) {
+  return createMachinaTokenReference(group, key);
+}
+
+export function createMachinaClassNames<TClasses extends Record<string, unknown>>(sheet: {
+  classes: TClasses;
+}): { readonly [K in keyof TClasses]: string } {
+  const classNames = {} as { [K in keyof TClasses]: string };
+  for (const className of Object.keys(sheet.classes)) {
+    classNames[className as keyof TClasses] = className;
+  }
+  return Object.freeze(classNames);
+}
+
+export function classes<TClasses extends Record<string, unknown>>(sheet: {
+  classes: TClasses;
+}): { readonly [K in keyof TClasses]: string } {
+  return createMachinaClassNames(sheet);
+}
+
 export const S = {
   tokens,
+  token,
   style,
   set: setStyleSlot,
   inherit: inheritStyleSlot,
@@ -301,4 +334,5 @@ export const S = {
   with: withStyle,
   merge: withStyle,
   sheet,
+  classes,
 } as const;

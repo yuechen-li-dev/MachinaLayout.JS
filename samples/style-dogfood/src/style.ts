@@ -1,9 +1,11 @@
 import {
+  createMachinaStyleArtifact,
   S,
-  serializeMachinaStyleSheet,
   validateMachinaStyleLayer,
   validateMachinaStyleSheet,
-} from "machinalayout/style";
+} from "../../../src/style";
+
+const t = S.token;
 
 export const tokens = S.tokens({
   color: {
@@ -43,6 +45,7 @@ export const tokens = S.tokens({
       size: 16,
       lineHeight: 1.5,
       weight: "normal",
+      letterSpacing: 0,
     },
   },
   shadow: {
@@ -53,23 +56,22 @@ export const tokens = S.tokens({
 const basePanel = S.style({
   box: {
     display: "block",
-    padding: "space.lg",
-    marginBottom: "space.lg",
+    padding: t("space", "lg"),
+    marginBottom: t("space", "lg"),
   },
   surface: {
-    fill: "color.surface",
-    radius: "radius.lg",
+    fill: t("color", "surface"),
+    radius: t("radius", "lg"),
   },
   text: {
-    color: "color.text",
-    family: "Inter, ui-sans-serif, system-ui, sans-serif",
-    lineHeight: 1.5,
+    color: t("color", "text"),
+    font: t("font", "ui"),
   },
 });
 
 const borderedLayer = S.layer({
   border: {
-    color: "color.border",
+    color: t("color", "border"),
     width: 1,
     style: "solid",
   },
@@ -78,10 +80,10 @@ const borderedLayer = S.layer({
 const page = S.with(basePanel, {
   box: {
     minHeight: "100vh",
-    padding: "space.xl",
+    padding: t("space", "xl"),
   },
   surface: {
-    fill: "color.page",
+    fill: t("color", "page"),
     radius: 0,
   },
 });
@@ -89,23 +91,23 @@ const page = S.with(basePanel, {
 const header = S.style({
   box: {
     display: "block",
-    marginBottom: "space.xl",
+    marginBottom: t("space", "xl"),
     maxWidth: 760,
   },
   text: {
-    color: "color.text",
-    family: "Inter, ui-sans-serif, system-ui, sans-serif",
+    color: t("color", "text"),
+    font: t("font", "ui"),
   },
 });
 
 const title = S.style({
   box: {
     margin: 0,
-    marginBottom: "space.sm",
+    marginBottom: t("space", "sm"),
   },
   text: {
-    color: "color.text",
-    family: "Inter, ui-sans-serif, system-ui, sans-serif",
+    color: t("color", "text"),
+    font: t("font", "ui"),
     size: 42,
     lineHeight: 1.1,
     weight: "bold",
@@ -115,10 +117,11 @@ const title = S.style({
 const sectionTitle = S.style({
   box: {
     margin: 0,
-    marginBottom: "space.md",
+    marginBottom: t("space", "md"),
   },
   text: {
-    color: "color.text",
+    color: t("color", "text"),
+    font: t("font", "ui"),
     size: 18,
     lineHeight: 1.25,
     weight: "semibold",
@@ -130,17 +133,18 @@ const bodyText = S.style({
     margin: 0,
   },
   text: {
-    color: "color.muted",
+    color: t("color", "muted"),
+    font: t("font", "ui"),
     lineHeight: 1.5,
   },
 });
 
 const primaryLayer = S.layer({
   surface: {
-    fill: "color.primary",
+    fill: t("color", "primary"),
   },
   text: {
-    color: "color.onPrimary",
+    color: t("color", "onPrimary"),
   },
 });
 
@@ -149,10 +153,10 @@ const ghostLayer = S.layer({
     fill: S.unset(),
   },
   border: {
-    color: "color.primary",
+    color: t("color", "primary"),
   },
   text: {
-    color: "color.primary",
+    color: t("color", "primary"),
   },
 });
 
@@ -161,17 +165,17 @@ const compactLayer = S.layer({
     radius: S.inherit(),
   },
   box: {
-    paddingX: "space.sm",
-    paddingY: "space.xs",
+    paddingX: t("space", "sm"),
+    paddingY: t("space", "xs"),
   },
 });
 
 const dangerLayer = S.layer({
   surface: {
-    fill: S.set("color.danger"),
+    fill: S.set(t("color", "danger")),
   },
   text: {
-    color: S.set("color.onDanger"),
+    color: S.set(t("color", "onDanger")),
   },
 });
 
@@ -180,30 +184,30 @@ const disabledLayer = S.layer({
     opacity: 0.55,
   },
   text: {
-    color: "color.muted",
+    color: t("color", "muted"),
   },
 });
 
 const baseButton = S.style({
   box: {
     display: "inlineBlock",
-    paddingX: "space.md",
-    paddingY: "space.sm",
-    marginRight: "space.sm",
-    marginBottom: "space.sm",
+    paddingX: t("space", "md"),
+    paddingY: t("space", "sm"),
+    marginRight: t("space", "sm"),
+    marginBottom: t("space", "sm"),
   },
   surface: {
-    fill: "color.surface",
-    radius: "radius.md",
+    fill: t("color", "surface"),
+    radius: t("radius", "md"),
   },
   border: {
     width: 1,
-    color: "color.border",
+    color: t("color", "border"),
     style: "solid",
   },
   text: {
-    color: "color.text",
-    family: "Inter, ui-sans-serif, system-ui, sans-serif",
+    color: t("color", "text"),
+    font: t("font", "ui"),
     lineHeight: 1.25,
     weight: "semibold",
   },
@@ -212,22 +216,23 @@ const baseButton = S.style({
 const baseBadge = S.style({
   box: {
     display: "inlineBlock",
-    paddingX: "space.sm",
-    paddingY: "space.xs",
-    marginRight: "space.sm",
-    marginBottom: "space.sm",
+    paddingX: t("space", "sm"),
+    paddingY: t("space", "xs"),
+    marginRight: t("space", "sm"),
+    marginBottom: t("space", "sm"),
   },
   surface: {
-    fill: "color.surfaceRaised",
-    radius: "radius.round",
+    fill: t("color", "surfaceRaised"),
+    radius: t("radius", "round"),
   },
   border: {
     width: 1,
-    color: "color.border",
+    color: t("color", "border"),
     style: "solid",
   },
   text: {
-    color: "color.text",
+    color: t("color", "text"),
+    font: t("font", "ui"),
     size: 13,
     lineHeight: 1.2,
     weight: "semibold",
@@ -236,43 +241,43 @@ const baseBadge = S.style({
 
 const successLayer = S.layer({
   surface: {
-    fill: "color.success",
+    fill: t("color", "success"),
   },
   border: {
-    color: "color.success",
+    color: t("color", "success"),
   },
   text: {
-    color: "color.onSuccess",
+    color: t("color", "onSuccess"),
   },
 });
 
 const warningLayer = S.layer({
   surface: {
-    fill: S.set("color.warning"),
+    fill: S.set(t("color", "warning")),
   },
   border: {
-    color: S.set("color.warning"),
+    color: S.set(t("color", "warning")),
   },
   text: {
-    color: S.set("color.onWarning"),
+    color: S.set(t("color", "onWarning")),
   },
 });
 
 const elevatedLayer = S.layer({
   surface: {
-    fill: "color.surfaceRaised",
+    fill: t("color", "surfaceRaised"),
   },
   effect: {
-    shadow: "shadow.elevated",
+    shadow: t("shadow", "elevated"),
   },
 });
 
 const warningCardLayer = S.layer({
   surface: {
-    fill: S.set("color.warningSurface"),
+    fill: S.set(t("color", "warningSurface")),
   },
   border: {
-    color: S.set("color.warning"),
+    color: S.set(t("color", "warning")),
   },
 });
 
@@ -281,23 +286,23 @@ const swatch = S.style({
     display: "inlineBlock",
     width: 34,
     height: 34,
-    marginRight: "space.sm",
+    marginRight: t("space", "sm"),
   },
   surface: {
-    fill: "color.surface",
-    radius: "radius.sm",
+    fill: t("color", "surface"),
+    radius: t("radius", "sm"),
   },
   border: {
     width: 1,
-    color: "color.border",
+    color: t("color", "border"),
     style: "solid",
   },
 });
 
-const fillPrimaryLayer = S.layer({ surface: { fill: "color.primary" } });
-const fillDangerLayer = S.layer({ surface: { fill: "color.danger" } });
-const fillWarningLayer = S.layer({ surface: { fill: "color.warning" } });
-const fillSuccessLayer = S.layer({ surface: { fill: "color.success" } });
+const fillPrimaryLayer = S.layer({ surface: { fill: t("color", "primary") } });
+const fillDangerLayer = S.layer({ surface: { fill: t("color", "danger") } });
+const fillWarningLayer = S.layer({ surface: { fill: t("color", "warning") } });
+const fillSuccessLayer = S.layer({ surface: { fill: t("color", "success") } });
 
 export const diagnosticProbeLayer = S.layer({
   surface: {
@@ -313,11 +318,11 @@ export const sheet = S.sheet({
   classes: {
     alertInfo: S.compose(basePanel, borderedLayer, {
       surface: {
-        fill: "color.warningSurface",
-        radius: "radius.md",
+        fill: t("color", "warningSurface"),
+        radius: t("radius", "md"),
       },
       text: {
-        color: "color.onWarning",
+        color: t("color", "onWarning"),
         weight: "semibold",
       },
     }),
@@ -342,18 +347,19 @@ export const sheet = S.sheet({
     cardGrid: S.style({
       box: {
         display: "grid",
-        gap: "space.lg",
-        marginBottom: "space.lg",
+        gap: t("space", "lg"),
+        marginBottom: t("space", "lg"),
       },
     }),
     cardWarning: S.compose(basePanel, borderedLayer, warningCardLayer),
     eyebrow: S.style({
       box: {
         margin: 0,
-        marginBottom: "space.sm",
+        marginBottom: t("space", "sm"),
       },
       text: {
-        color: "color.primary",
+        color: t("color", "primary"),
+        font: t("font", "ui"),
         size: 13,
         weight: "bold",
         transform: "uppercase",
@@ -361,15 +367,15 @@ export const sheet = S.sheet({
     }),
     field: S.compose(basePanel, borderedLayer, {
       box: {
-        padding: "space.md",
-        marginBottom: "space.lg",
+        padding: t("space", "md"),
+        marginBottom: t("space", "lg"),
       },
       surface: {
-        fill: "color.field",
-        radius: "radius.md",
+        fill: t("color", "field"),
+        radius: t("radius", "md"),
       },
       text: {
-        color: "color.muted",
+        color: t("color", "muted"),
         family: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
       },
     }),
@@ -381,19 +387,21 @@ export const sheet = S.sheet({
         width: 120,
       },
       text: {
-        color: "color.muted",
+        color: t("color", "muted"),
+        font: t("font", "ui"),
         weight: "semibold",
       },
     }),
     matrixRow: S.style({
       box: {
         display: "block",
-        paddingY: "space.sm",
+        paddingY: t("space", "sm"),
       },
     }),
     mutedText: S.style({
       text: {
-        color: "color.muted",
+        color: t("color", "muted"),
+        font: t("font", "ui"),
         size: 14,
       },
     }),
@@ -413,11 +421,12 @@ export const sheet = S.sheet({
     tokenItem: S.style({
       box: {
         display: "inlineBlock",
-        marginRight: "space.lg",
-        marginBottom: "space.sm",
+        marginRight: t("space", "lg"),
+        marginBottom: t("space", "sm"),
       },
       text: {
-        color: "color.text",
+        color: t("color", "text"),
+        font: t("font", "ui"),
       },
     }),
     tokenRow: S.style({
@@ -428,5 +437,7 @@ export const sheet = S.sheet({
   },
 });
 
+export const classes = S.classes(sheet);
 export const sheetDiagnostics = validateMachinaStyleSheet(sheet);
-export const css = serializeMachinaStyleSheet(sheet);
+export const artifact = createMachinaStyleArtifact(sheet);
+export const css = artifact.css;

@@ -8,6 +8,14 @@ export type MachinaFontToken = {
   letterSpacing?: number | string;
 };
 
+export type MachinaTokenGroup = "color" | "space" | "radius" | "font" | "shadow";
+
+export type MachinaTokenReference = {
+  kind: "token";
+  group: MachinaTokenGroup;
+  key: string;
+};
+
 export type MachinaStyleTokens = {
   color?: Record<string, string>;
   space?: Record<string, number | string>;
@@ -16,7 +24,9 @@ export type MachinaStyleTokens = {
   shadow?: Record<string, string>;
 };
 
-export type MachinaTokenRef = string;
+export type MachinaTokenRef = string | MachinaTokenReference;
+export type MachinaTokenLength = number | string | MachinaTokenReference;
+export type MachinaTokenValue = string | MachinaTokenReference;
 
 export type MachinaStyleSlot<T> =
   | {
@@ -34,30 +44,30 @@ export type MachinaStyleSlotInput<T> = T | MachinaStyleSlot<T>;
 
 export type MachinaBoxStyle = {
   display?: "block" | "inlineBlock" | "flex" | "grid" | "none";
-  width?: number | string;
-  height?: number | string;
-  minWidth?: number | string;
-  minHeight?: number | string;
-  maxWidth?: number | string;
-  maxHeight?: number | string;
+  width?: MachinaTokenLength;
+  height?: MachinaTokenLength;
+  minWidth?: MachinaTokenLength;
+  minHeight?: MachinaTokenLength;
+  maxWidth?: MachinaTokenLength;
+  maxHeight?: MachinaTokenLength;
 
-  padding?: number | string;
-  paddingX?: number | string;
-  paddingY?: number | string;
-  paddingTop?: number | string;
-  paddingRight?: number | string;
-  paddingBottom?: number | string;
-  paddingLeft?: number | string;
+  padding?: MachinaTokenLength;
+  paddingX?: MachinaTokenLength;
+  paddingY?: MachinaTokenLength;
+  paddingTop?: MachinaTokenLength;
+  paddingRight?: MachinaTokenLength;
+  paddingBottom?: MachinaTokenLength;
+  paddingLeft?: MachinaTokenLength;
 
-  margin?: number | string;
-  marginX?: number | string;
-  marginY?: number | string;
-  marginTop?: number | string;
-  marginRight?: number | string;
-  marginBottom?: number | string;
-  marginLeft?: number | string;
+  margin?: MachinaTokenLength;
+  marginX?: MachinaTokenLength;
+  marginY?: MachinaTokenLength;
+  marginTop?: MachinaTokenLength;
+  marginRight?: MachinaTokenLength;
+  marginBottom?: MachinaTokenLength;
+  marginLeft?: MachinaTokenLength;
 
-  gap?: number | string;
+  gap?: MachinaTokenLength;
 
   alignItems?: "start" | "center" | "end" | "stretch";
   justifyContent?: "start" | "center" | "end" | "spaceBetween" | "spaceAround" | "spaceEvenly";
@@ -66,30 +76,31 @@ export type MachinaBoxStyle = {
 };
 
 export type MachinaSurfaceStyle = {
-  fill?: string;
-  radius?: number | string;
+  fill?: MachinaTokenValue;
+  radius?: MachinaTokenLength;
   opacity?: number;
 };
 
 export type MachinaTextStyle = {
-  color?: string;
-  font?: string;
-  family?: string;
-  size?: number | string;
-  lineHeight?: number | string;
+  color?: MachinaTokenValue;
+  font?: MachinaTokenRef;
+  family?: MachinaTokenValue;
+  size?: MachinaTokenLength;
+  lineHeight?: MachinaTokenLength;
   weight?: MachinaFontWeight;
+  letterSpacing?: MachinaTokenLength;
   align?: "left" | "center" | "right";
   transform?: "none" | "uppercase" | "lowercase" | "capitalize";
 };
 
 export type MachinaBorderStyle = {
-  color?: string;
-  width?: number | string;
+  color?: MachinaTokenValue;
+  width?: MachinaTokenLength;
   style?: "solid" | "dashed" | "dotted" | "none";
 };
 
 export type MachinaEffectStyle = {
-  shadow?: string;
+  shadow?: MachinaTokenValue;
 };
 
 export type MachinaStyleRecord = {
@@ -102,30 +113,30 @@ export type MachinaStyleRecord = {
 
 export type MachinaBoxStyleLayer = {
   display?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["display"]>>;
-  width?: MachinaStyleSlotInput<number | string>;
-  height?: MachinaStyleSlotInput<number | string>;
-  minWidth?: MachinaStyleSlotInput<number | string>;
-  minHeight?: MachinaStyleSlotInput<number | string>;
-  maxWidth?: MachinaStyleSlotInput<number | string>;
-  maxHeight?: MachinaStyleSlotInput<number | string>;
+  width?: MachinaStyleSlotInput<MachinaTokenLength>;
+  height?: MachinaStyleSlotInput<MachinaTokenLength>;
+  minWidth?: MachinaStyleSlotInput<MachinaTokenLength>;
+  minHeight?: MachinaStyleSlotInput<MachinaTokenLength>;
+  maxWidth?: MachinaStyleSlotInput<MachinaTokenLength>;
+  maxHeight?: MachinaStyleSlotInput<MachinaTokenLength>;
 
-  padding?: MachinaStyleSlotInput<number | string>;
-  paddingX?: MachinaStyleSlotInput<number | string>;
-  paddingY?: MachinaStyleSlotInput<number | string>;
-  paddingTop?: MachinaStyleSlotInput<number | string>;
-  paddingRight?: MachinaStyleSlotInput<number | string>;
-  paddingBottom?: MachinaStyleSlotInput<number | string>;
-  paddingLeft?: MachinaStyleSlotInput<number | string>;
+  padding?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingX?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingY?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingTop?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingRight?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingBottom?: MachinaStyleSlotInput<MachinaTokenLength>;
+  paddingLeft?: MachinaStyleSlotInput<MachinaTokenLength>;
 
-  margin?: MachinaStyleSlotInput<number | string>;
-  marginX?: MachinaStyleSlotInput<number | string>;
-  marginY?: MachinaStyleSlotInput<number | string>;
-  marginTop?: MachinaStyleSlotInput<number | string>;
-  marginRight?: MachinaStyleSlotInput<number | string>;
-  marginBottom?: MachinaStyleSlotInput<number | string>;
-  marginLeft?: MachinaStyleSlotInput<number | string>;
+  margin?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginX?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginY?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginTop?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginRight?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginBottom?: MachinaStyleSlotInput<MachinaTokenLength>;
+  marginLeft?: MachinaStyleSlotInput<MachinaTokenLength>;
 
-  gap?: MachinaStyleSlotInput<number | string>;
+  gap?: MachinaStyleSlotInput<MachinaTokenLength>;
 
   alignItems?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["alignItems"]>>;
   justifyContent?: MachinaStyleSlotInput<NonNullable<MachinaBoxStyle["justifyContent"]>>;
@@ -134,30 +145,31 @@ export type MachinaBoxStyleLayer = {
 };
 
 export type MachinaSurfaceStyleLayer = {
-  fill?: MachinaStyleSlotInput<string>;
-  radius?: MachinaStyleSlotInput<number | string>;
+  fill?: MachinaStyleSlotInput<MachinaTokenValue>;
+  radius?: MachinaStyleSlotInput<MachinaTokenLength>;
   opacity?: MachinaStyleSlotInput<number>;
 };
 
 export type MachinaTextStyleLayer = {
-  color?: MachinaStyleSlotInput<string>;
-  font?: MachinaStyleSlotInput<string>;
-  family?: MachinaStyleSlotInput<string>;
-  size?: MachinaStyleSlotInput<number | string>;
-  lineHeight?: MachinaStyleSlotInput<number | string>;
+  color?: MachinaStyleSlotInput<MachinaTokenValue>;
+  font?: MachinaStyleSlotInput<MachinaTokenRef>;
+  family?: MachinaStyleSlotInput<MachinaTokenValue>;
+  size?: MachinaStyleSlotInput<MachinaTokenLength>;
+  lineHeight?: MachinaStyleSlotInput<MachinaTokenLength>;
   weight?: MachinaStyleSlotInput<MachinaFontWeight>;
+  letterSpacing?: MachinaStyleSlotInput<MachinaTokenLength>;
   align?: MachinaStyleSlotInput<NonNullable<MachinaTextStyle["align"]>>;
   transform?: MachinaStyleSlotInput<NonNullable<MachinaTextStyle["transform"]>>;
 };
 
 export type MachinaBorderStyleLayer = {
-  color?: MachinaStyleSlotInput<string>;
-  width?: MachinaStyleSlotInput<number | string>;
+  color?: MachinaStyleSlotInput<MachinaTokenValue>;
+  width?: MachinaStyleSlotInput<MachinaTokenLength>;
   style?: MachinaStyleSlotInput<NonNullable<MachinaBorderStyle["style"]>>;
 };
 
 export type MachinaEffectStyleLayer = {
-  shadow?: MachinaStyleSlotInput<string>;
+  shadow?: MachinaStyleSlotInput<MachinaTokenValue>;
 };
 
 export type MachinaStyleLayer = {
@@ -175,6 +187,11 @@ export type MachinaStyleSheet = {
 
 export type SerializeMachinaStyleOptions = {
   includeHeader?: boolean;
+};
+
+export type MachinaStyleArtifact = {
+  path: string;
+  css: string;
 };
 
 export type MachinaStyleDiagnostic = {

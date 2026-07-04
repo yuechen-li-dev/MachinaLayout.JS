@@ -1,97 +1,99 @@
+import { classes } from "./style";
+
 const tokenSwatches = [
-  ["swatchPrimary", "Primary"],
-  ["swatchDanger", "Danger"],
-  ["swatchWarning", "Warning"],
-  ["swatchSuccess", "Success"],
+  [classes.swatchPrimary, "Primary"],
+  [classes.swatchDanger, "Danger"],
+  [classes.swatchWarning, "Warning"],
+  [classes.swatchSuccess, "Success"],
 ] as const;
 
 const stateRows = [
-  ["Idle", "buttonBase", "badgeNeutral", "Queued"],
-  ["Ready", "buttonPrimary", "badgeSuccess", "Live"],
-  ["Compact", "buttonCompactPrimary", "badgeNeutral", "Dense"],
-  ["Danger", "buttonDanger", "badgeDanger", "Armed"],
-  ["Ghost", "buttonGhost", "badgeWarning", "No fill"],
+  ["Idle", classes.buttonBase, classes.badgeNeutral, "Queued"],
+  ["Ready", classes.buttonPrimary, classes.badgeSuccess, "Live"],
+  ["Compact", classes.buttonCompactPrimary, classes.badgeNeutral, "Dense"],
+  ["Danger", classes.buttonDanger, classes.badgeDanger, "Armed"],
+  ["Ghost", classes.buttonGhost, classes.badgeWarning, "No fill"],
 ] as const;
 
 export function App() {
   return (
-    <main className="page">
-      <header className="header">
-        <p className="eyebrow">MachinaStyle dogfood</p>
-        <h1 className="title">Control Panel</h1>
-        <p className="subtitle">
+    <main className={classes.page}>
+      <header className={classes.header}>
+        <p className={classes.eyebrow}>MachinaStyle dogfood</p>
+        <h1 className={classes.title}>Control Panel</h1>
+        <p className={classes.subtitle}>
           A tiny React page whose paint comes from style.ts lowered to checked-in CSS.
         </p>
       </header>
 
-      <section className="panel">
-        <h2 className="sectionTitle">Tokens</h2>
-        <div className="tokenRow">
+      <section className={classes.panel}>
+        <h2 className={classes.sectionTitle}>Tokens</h2>
+        <div className={classes.tokenRow}>
           {tokenSwatches.map(([className, label]) => (
-            <span className="tokenItem" key={className}>
+            <span className={classes.tokenItem} key={className}>
               <span className={className} />
-              <span className="mutedText">{label}</span>
+              <span className={classes.mutedText}>{label}</span>
             </span>
           ))}
         </div>
       </section>
 
-      <section className="panel">
-        <h2 className="sectionTitle">Buttons</h2>
-        <div className="buttonRow">
-          <button className="buttonBase" type="button">
+      <section className={classes.panel}>
+        <h2 className={classes.sectionTitle}>Buttons</h2>
+        <div className={classes.buttonRow}>
+          <button className={classes.buttonBase} type="button">
             Base
           </button>
-          <button className="buttonPrimary" type="button">
+          <button className={classes.buttonPrimary} type="button">
             Primary
           </button>
-          <button className="buttonDanger" type="button">
+          <button className={classes.buttonDanger} type="button">
             Danger
           </button>
-          <button className="buttonGhost" type="button">
+          <button className={classes.buttonGhost} type="button">
             Ghost
           </button>
-          <button className="buttonDisabled" type="button" aria-disabled="true">
+          <button className={classes.buttonDisabled} type="button" aria-disabled="true">
             Disabled
           </button>
         </div>
       </section>
 
-      <section className="cardGrid">
-        <article className="cardBase">
-          <h2 className="sectionTitle">Base card</h2>
-          <p className="bodyText">Concrete record plus a border layer.</p>
+      <section className={classes.cardGrid}>
+        <article className={classes.cardBase}>
+          <h2 className={classes.sectionTitle}>Base card</h2>
+          <p className={classes.bodyText}>Concrete record plus a border layer.</p>
         </article>
-        <article className="cardElevated">
-          <h2 className="sectionTitle">Elevated card</h2>
-          <p className="bodyText">Composes the base card with an effect layer.</p>
+        <article className={classes.cardElevated}>
+          <h2 className={classes.sectionTitle}>Elevated card</h2>
+          <p className={classes.bodyText}>Composes the base card with an effect layer.</p>
         </article>
-        <article className="cardWarning">
-          <h2 className="sectionTitle">Warning card</h2>
-          <p className="bodyText">Uses set slots for semantic warning color.</p>
+        <article className={classes.cardWarning}>
+          <h2 className={classes.sectionTitle}>Warning card</h2>
+          <p className={classes.bodyText}>Uses set slots for semantic warning color.</p>
         </article>
       </section>
 
-      <section className="panel">
-        <h2 className="sectionTitle">Badges and field</h2>
-        <div className="badgeRow">
-          <span className="badgeNeutral">Neutral</span>
-          <span className="badgeSuccess">Success</span>
-          <span className="badgeWarning">Warning</span>
-          <span className="badgeDanger">Danger</span>
+      <section className={classes.panel}>
+        <h2 className={classes.sectionTitle}>Badges and field</h2>
+        <div className={classes.buttonRow}>
+          <span className={classes.badgeNeutral}>Neutral</span>
+          <span className={classes.badgeSuccess}>Success</span>
+          <span className={classes.badgeWarning}>Warning</span>
+          <span className={classes.badgeDanger}>Danger</span>
         </div>
-        <div className="field">machina.control.mode = manual</div>
-        <div className="alertInfo">
+        <div className={classes.field}>machina.control.mode = manual</div>
+        <div className={classes.alertInfo}>
           Validation stays explicit: unresolved slots are rejected before CSS.
         </div>
       </section>
 
-      <section className="panel">
-        <h2 className="sectionTitle">State Matrix</h2>
-        <div className="matrix">
+      <section className={classes.panel}>
+        <h2 className={classes.sectionTitle}>State Matrix</h2>
+        <div className={classes.matrix}>
           {stateRows.map(([state, buttonClass, badgeClass, badgeText]) => (
-            <div className="matrixRow" key={state}>
-              <span className="matrixLabel">{state}</span>
+            <div className={classes.matrixRow} key={state}>
+              <span className={classes.matrixLabel}>{state}</span>
               <button className={buttonClass} type="button">
                 Action
               </button>
