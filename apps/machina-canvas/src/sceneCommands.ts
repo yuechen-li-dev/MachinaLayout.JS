@@ -1,5 +1,13 @@
 import { resolveCanvasFrame } from "./canvasFrames";
-import type { CanvasDocument, CanvasFrame, CanvasObject, ImageObject } from "./sceneModel";
+import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
+import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
+import type {
+  CanvasDocument,
+  CanvasFrame,
+  CanvasObject,
+  CanvasUiPropValue,
+  ImageObject,
+} from "./sceneModel";
 import {
   gridPointRefToCanvasPoint,
   gridSpanRefToCanvasRect,
@@ -46,6 +54,12 @@ export type CanvasCommand =
       kind: "setFrame";
       id: string;
       frame: CanvasFrame;
+    }
+  | {
+      kind: "setUiProp";
+      id: string;
+      prop: string;
+      value: CanvasUiPropValue;
     }
   | {
       kind: "addImageObject";
@@ -116,6 +130,23 @@ function isFiniteNumber(value: unknown): value is number {
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+function isCanvasUiPropValue(value: unknown): value is CanvasUiPropValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return typeof value !== "number" || Number.isFinite(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every((item) => typeof item === "string") || value.every(isFiniteNumber);
+  }
+
+  return false;
 }
 
 function makeResult(
@@ -489,6 +520,113 @@ function validateAlphaMapCommand(
   }
 }
 
+function validateSetUiPropCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.id, commandIndex);
+  if (!isString(command.id) || document.objects[command.id] === undefined) return;
+
+  const object = document.objects[command.id];
+  if (object.kind !== "uiComponent") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidObjectKind",
+      message: `Object "${object.id}" is not a UI component object.`,
+      commandIndex,
+      objectId: object.id,
+    });
+    return;
+  }
+
+  if (!isString(command.prop) || command.prop.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCommand",
+      message: "setUiProp requires a non-empty string prop.",
+      commandIndex,
+      objectId: object.id,
+    });
+    return;
+  }
+
+  let definition: CanvasUiComponentDefinition;
+  try {
+    definition = getCanvasUiComponentDefinition(object.componentId);
+  } catch (error) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "UnknownUiComponent",
+      message: error instanceof Error ? error.message : "Unknown UI component.",
+      commandIndex,
+      objectId: object.id,
+    });
+    return;
+  }
+
+  const propDefinition = definition.propSchema.find((prop) => prop.name === command.prop);
+  if (!propDefinition) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "UnknownUiProp",
+      message: `UI component "${object.componentId}" does not define prop "${command.prop}".`,
+      commandIndex,
+      objectId: object.id,
+    });
+    return;
+  }
+
+  if (!isCanvasUiPropValue(command.value)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidUiPropValue",
+      message: `Prop "${command.prop}" must be a serializable UI prop value.`,
+      commandIndex,
+      objectId: object.id,
+    });
+    return;
+  }
+
+  if (propDefinition.kind === "string" && typeof command.value !== "string") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidUiPropValue",
+      message: `Prop "${command.prop}" must be a string.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  } else if (propDefinition.kind === "number" && typeof command.value !== "number") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidUiPropValue",
+      message: `Prop "${command.prop}" must be a number.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  } else if (propDefinition.kind === "boolean" && typeof command.value !== "boolean") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidUiPropValue",
+      message: `Prop "${command.prop}" must be a boolean.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  } else if (
+    propDefinition.kind === "enum" &&
+    (typeof command.value !== "string" || !propDefinition.options?.includes(command.value))
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidUiPropValue",
+      message: `Prop "${command.prop}" must be one of ${(propDefinition.options ?? []).join(", ")}.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  }
+}
+
 function validateDetachAlphaMapCommand(
   document: CanvasDocument,
   diagnostics: CanvasCommandValidationDiagnostic[],
@@ -628,6 +766,9 @@ export function validateCanvasCommand(
     case "setFrame":
       validateObjectId(document, diagnostics, command.id, commandIndex);
       validateCanvasFrameValue(document, diagnostics, command.frame, commandIndex, context);
+      break;
+    case "setUiProp":
+      validateSetUiPropCommand(document, diagnostics, command, commandIndex);
       break;
     case "addImageObject":
       validateAddImageObjectCommand(document, diagnostics, command.object, commandIndex);
@@ -935,6 +1076,34 @@ export function applyCanvasCommand(
           : layer,
       ),
     };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setUiProp") {
+    const object = document.objects[command.id];
+    if (object?.kind !== "uiComponent") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setUiProp skipped invalid UI component object "${command.id}".`,
+      };
+    }
+
+    const before = object.props[command.prop];
+    if (before !== command.value) {
+      changes.push({
+        objectId: object.id,
+        field: `props.${command.prop}`,
+        before,
+        after: command.value,
+      });
+      nextDocument = replaceObject(document, object.id, {
+        ...object,
+        props: { ...object.props, [command.prop]: command.value },
+      });
+    }
 
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }

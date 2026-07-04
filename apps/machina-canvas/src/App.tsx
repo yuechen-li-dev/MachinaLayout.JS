@@ -76,6 +76,10 @@ import {
   runCanvasTool as runRegisteredCanvasTool,
   type CanvasToolResult,
 } from "./tools";
+import {
+  getCanvasUiComponentDefinition,
+  type CanvasUiPropDefinition,
+} from "./uiComponents/catalog";
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
@@ -85,6 +89,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   ellipse: "Ellipse",
   text: "Text",
   image: "Image",
+  uiComponent: "UI Component",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -99,6 +104,7 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   alignToGrid: "Align to grid",
   resizeToGridSpan: "Resize to grid span",
   setFrame: "Set frame",
+  setUiProp: "Set UI prop",
   addImageObject: "Add image object",
   removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
@@ -191,6 +197,7 @@ type AppViewData = {
   validateCommandJson: () => void;
   applyCommandJson: () => void;
   generateExport: () => void;
+  generateTsxExport: () => void;
   setRasterScale: (scale: number) => void;
   setRasterBackground: (background: RasterExportBackground) => void;
   generatePngExport: () => Promise<void>;
@@ -267,6 +274,7 @@ function getKindClass(object: CanvasObject): string {
     ellipse: () => "kind-ellipse",
     text: () => "kind-text",
     image: () => "kind-image",
+    uiComponent: () => "kind-ui",
   });
 }
 
@@ -283,6 +291,7 @@ function getKindShortLabel(object: CanvasObject): string {
             ? "MASK"
             : "IMG"
         : "IMG",
+    uiComponent: () => "UI",
   });
 }
 
@@ -530,6 +539,29 @@ function SceneObjectSvg({
           </tspan>
         ))}
       </text>
+    ) : object.kind === "uiComponent" ? (
+      <foreignObject
+        {...common}
+        x={object.x}
+        y={object.y}
+        width={object.width}
+        height={object.height}
+      >
+        <div className="canvas-ui-preview-shell">
+          {(() => {
+            try {
+              const PreviewComponent = getCanvasUiComponentDefinition(object.componentId).preview;
+              return <PreviewComponent object={object} selected={selected} />;
+            } catch {
+              return (
+                <div className="canvas-ui-preview-missing">
+                  Unknown component {object.componentId}
+                </div>
+              );
+            }
+          })()}
+        </div>
+      </foreignObject>
     ) : (
       <image
         {...common}
@@ -769,6 +801,82 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+function UiPropEditor({
+  objectId,
+  prop,
+  value,
+  runCommand,
+}: {
+  objectId: string;
+  prop: CanvasUiPropDefinition;
+  value: unknown;
+  runCommand: (command: CanvasCommand) => void;
+}) {
+  const label = <span>{prop.label}</span>;
+  if (prop.kind === "boolean") {
+    return (
+      <label className="ui-prop-row ui-prop-checkbox-row">
+        {label}
+        <input
+          type="checkbox"
+          checked={value === true}
+          onChange={(event) =>
+            runCommand({
+              kind: "setUiProp",
+              id: objectId,
+              prop: prop.name,
+              value: event.target.checked,
+            })
+          }
+        />
+      </label>
+    );
+  }
+
+  if (prop.kind === "enum") {
+    return (
+      <label className="ui-prop-row">
+        {label}
+        <select
+          value={typeof value === "string" ? value : (prop.options?.[0] ?? "")}
+          onChange={(event) =>
+            runCommand({
+              kind: "setUiProp",
+              id: objectId,
+              prop: prop.name,
+              value: event.target.value,
+            })
+          }
+        >
+          {(prop.options ?? []).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <label className="ui-prop-row">
+      {label}
+      <input
+        type={prop.kind === "number" ? "number" : "text"}
+        value={typeof value === "number" || typeof value === "string" ? value : ""}
+        onChange={(event) =>
+          runCommand({
+            kind: "setUiProp",
+            id: objectId,
+            prop: prop.name,
+            value: prop.kind === "number" ? Number(event.target.value) : event.target.value,
+          })
+        }
+      />
+    </label>
   );
 }
 
@@ -1196,6 +1304,7 @@ function ExportPanel(props: MachinaSlotProps) {
     rasterStatus,
     selectedExportPath,
     generateExport,
+    generateTsxExport,
     setRasterScale,
     setRasterBackground,
     generatePngExport,
@@ -1227,6 +1336,22 @@ function ExportPanel(props: MachinaSlotProps) {
         </button>
       </div>
       {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
+      <div className="tsx-lowering">
+        <strong>TSX LOWERING</strong>
+        <p>generated-page.tsx - text/typescript</p>
+        <div className="tsx-actions">
+          <button type="button" onClick={generateTsxExport}>
+            Generate TSX Page
+          </button>
+          <button
+            type="button"
+            onClick={() => selectExportFile("generated-page.tsx")}
+            disabled={!exportBundle?.files.some((file) => file.path === "generated-page.tsx")}
+          >
+            Show TSX
+          </button>
+        </div>
+      </div>
       <div className="raster-lowering">
         <div className="raster-control">
           <span>Scale</span>
@@ -1473,6 +1598,41 @@ function Inspector(props: MachinaSlotProps) {
             ) : null}
           </InspectorSection>
         </>
+      ) : null}
+      {selected.kind === "uiComponent" ? (
+        <InspectorSection title="UI Component">
+          {(() => {
+            try {
+              const definition = getCanvasUiComponentDefinition(selected.componentId);
+              return (
+                <>
+                  <Field label="Component" value={selected.componentId} />
+                  <Field label="Label" value={definition.label} />
+                  <Field label="Variant" value={selected.variant ?? "none"} />
+                  <Field label="Export name" value={selected.exportName ?? "auto"} />
+                  <div className="ui-prop-list">
+                    {definition.propSchema.map((prop) => (
+                      <UiPropEditor
+                        key={prop.name}
+                        objectId={selected.id}
+                        prop={prop}
+                        value={selected.props[prop.name] ?? definition.defaultProps[prop.name]}
+                        runCommand={runCommand}
+                      />
+                    ))}
+                  </div>
+                </>
+              );
+            } catch (error) {
+              return (
+                <Field
+                  label="Component"
+                  value={error instanceof Error ? error.message : selected.componentId}
+                />
+              );
+            }
+          })()}
+        </InspectorSection>
       ) : null}
       <InspectorSection title="Metadata">
         <Field label="ID" value={selected.id} />
@@ -1787,6 +1947,32 @@ export function App() {
       setLastCommand("export generated");
     };
 
+    const generateTsxExport = () => {
+      const latestCommands = commandLog[0]?.commands;
+      const bundle = createCanvasExportBundle(document, {
+        selectedObjectId: document.selectedObjectId,
+        commands: latestCommands,
+        summary: summarizeScene(document),
+        diagnostics: geometryDiagnostics,
+        viewport,
+        tsxOptions: { componentName: "GeneratedPage" },
+      });
+      const validation = validateCanvasExportBundle(bundle, {
+        expectedCommands: latestCommands !== undefined,
+      });
+      setExportBundle(bundle);
+      setExportValidation(validation);
+      setRasterArtifact(undefined);
+      setRasterStatus("");
+      setSelectedExportPath("generated-page.tsx");
+      setExportStatus(
+        `generated-page.tsx added to ${bundle.rootName}. Validation ${
+          validation.ok ? "passed" : "failed"
+        }.`,
+      );
+      setLastCommand("TSX page generated");
+    };
+
     const setRasterScale = (scale: number) => {
       setRasterScaleState(scale);
       setRasterArtifact(undefined);
@@ -1945,6 +2131,7 @@ export function App() {
       validateCommandJson,
       applyCommandJson,
       generateExport,
+      generateTsxExport,
       setRasterScale,
       setRasterBackground,
       generatePngExport,

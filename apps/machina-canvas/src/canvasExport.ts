@@ -5,15 +5,18 @@ import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
   CanvasDocument,
   CanvasFrame,
+  CanvasUiPropValue,
   ImageObject,
   CanvasLayer,
   CanvasObject,
   TextObject,
+  UiComponentObject,
 } from "./sceneModel";
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 import type { NormalizedRasterExportOptions } from "./rasterExport";
+import { lowerCanvasDocumentToTsx, type TsxExportOptions } from "./tsxExport";
 
 export type CanvasExportFile = {
   path: string;
@@ -33,6 +36,7 @@ export type CanvasExportOptions = {
   viewport?: CanvasViewport;
   rasterArtifactPath?: string;
   rasterOptions?: NormalizedRasterExportOptions;
+  tsxOptions?: TsxExportOptions | false;
 };
 
 function quoteTomlString(value: string): string {
@@ -55,8 +59,25 @@ function serializeTomlArray(values: readonly string[]): string {
   return `[${values.map(quoteTomlString).join(", ")}]`;
 }
 
-function tomlValue(value: string | number | boolean): string {
+function tomlValue(value: string | number | boolean | null): string {
+  if (value === null) return '""';
   return typeof value === "string" ? quoteTomlString(value) : String(value);
+}
+
+function tomlUiPropValue(value: CanvasUiPropValue): string {
+  if (Array.isArray(value)) {
+    const arrayValue = value as readonly (string | number)[];
+    return `[${arrayValue.map((item) => tomlValue(item)).join(", ")}]`;
+  }
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return tomlValue(value);
+  }
+  throw new Error("Unsupported UI prop value.");
 }
 
 function sanitizePathId(id: string): string {
@@ -175,6 +196,21 @@ function pushViewportToml(lines: string[], viewport: CanvasViewport | undefined)
   }
 }
 
+function pushTsxLoweringToml(lines: string[], options: TsxExportOptions | false | undefined) {
+  if (options === false || options === undefined) return;
+
+  lines.push(
+    "",
+    "[rendered_artifacts]",
+    'tsx = "generated-page.tsx"',
+    "",
+    "[lowering.react]",
+    'target = "tsx"',
+    `component_name = ${quoteTomlString(options?.componentName ?? "GeneratedPage")}`,
+    "lossy = true",
+  );
+}
+
 function formatLabelRange(labels: readonly string[]): string {
   if (labels.length === 0) return "";
   if (labels.length === 1) return labels[0];
@@ -261,6 +297,11 @@ function wrapText(object: TextObject): string[] {
 
   if (line) lines.push(line);
   return lines;
+}
+
+function uiComponentPreviewLabel(object: UiComponentObject): string {
+  const candidate = object.props.children ?? object.props.title ?? object.componentId;
+  return typeof candidate === "string" ? candidate : object.componentId;
 }
 
 export function serializeCanvasDocumentJson(document: CanvasDocument): string {
@@ -354,6 +395,21 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
       if (object.blendMode !== undefined) {
         lines.push(`blend_mode = ${quoteTomlString(object.blendMode)}`);
       }
+    }
+  }
+
+  if (object.kind === "uiComponent") {
+    lines.push("", "[component]", `id = ${quoteTomlString(object.componentId)}`);
+    if (object.variant !== undefined) lines.push(`variant = ${quoteTomlString(object.variant)}`);
+    if (object.exportName !== undefined) {
+      lines.push(`export_name = ${quoteTomlString(object.exportName)}`);
+    }
+
+    lines.push("", "[props]");
+    for (const [key, value] of Object.entries(object.props).sort(([a], [b]) =>
+      a.localeCompare(b),
+    )) {
+      lines.push(`${key} = ${tomlUiPropValue(value)}`);
     }
   }
 
@@ -454,6 +510,13 @@ export function serializeCanvasCommandsToml(
         lines.push(`id = ${quoteTomlString(command.id)}`);
         pushFrameToml(lines, "[command.frame]", command.frame);
         break;
+      case "setUiProp":
+        lines.push(
+          `id = ${quoteTomlString(command.id)}`,
+          `prop = ${quoteTomlString(command.prop)}`,
+          `value = ${tomlUiPropValue(command.value)}`,
+        );
+        break;
       case "removeObject":
         lines.push(`id = ${quoteTomlString(command.id)}`);
         break;
@@ -482,6 +545,7 @@ export function serializeCanvasHandoffToml(
     viewport?: CanvasViewport;
     rasterArtifactPath?: string;
     rasterOptions?: NormalizedRasterExportOptions;
+    tsxOptions?: TsxExportOptions | false;
   },
 ): string {
   const selectedObjectId = options?.selectedObjectId ?? document.selectedObjectId;
@@ -512,6 +576,10 @@ export function serializeCanvasHandoffToml(
       `background = ${quoteTomlString(options.rasterOptions.background)}`,
       "lossy = true",
     );
+  }
+
+  if (!(options?.rasterArtifactPath && options.rasterOptions)) {
+    pushTsxLoweringToml(lines, options?.tsxOptions);
   }
 
   if (selectedObjectId) {
@@ -633,6 +701,14 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
           );
         });
         lines.push("  </text>");
+      } else if (object.kind === "uiComponent") {
+        lines.push(
+          `  <g ${attrs}>`,
+          `    <rect x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" rx="8" fill="#ffffff" stroke="#111111" />`,
+          `    <text x="${object.x + 12}" y="${object.y + Math.min(28, object.height / 2 + 5)}" fill="#111111" font-size="14" font-weight="700">${escapeXmlText(uiComponentPreviewLabel(object))}</text>`,
+          `    <text x="${object.x + 12}" y="${object.y + object.height - 12}" fill="#555550" font-size="10">${escapeXmlText(object.componentId)}</text>`,
+          "  </g>",
+        );
       } else {
         lines.push(
           serializeImageElement(
@@ -679,6 +755,7 @@ export function createCanvasExportBundle(
         viewport: options?.viewport,
         rasterArtifactPath: options?.rasterArtifactPath,
         rasterOptions: options?.rasterOptions,
+        tsxOptions: options?.tsxOptions,
       }),
     },
   ];
@@ -709,6 +786,15 @@ export function createCanvasExportBundle(
         options.commands,
         "Commands exported from the current browser-local MachinaCanvas session.",
       ),
+    });
+  }
+
+  if (options?.tsxOptions !== undefined && options.tsxOptions !== false) {
+    const tsx = lowerCanvasDocumentToTsx(document, options?.tsxOptions);
+    files.push({
+      path: tsx.path,
+      mimeType: "text/typescript",
+      text: tsx.text,
     });
   }
 

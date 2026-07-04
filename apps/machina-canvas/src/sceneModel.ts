@@ -30,7 +30,12 @@ export type CanvasLayer = {
   objectIds: string[];
 };
 
-export type CanvasObject = RectObject | EllipseObject | TextObject | ImageObject;
+export type CanvasObject =
+  | RectObject
+  | EllipseObject
+  | TextObject
+  | ImageObject
+  | UiComponentObject;
 
 export type CanvasFrame =
   | CanvasAbsoluteFrame
@@ -87,7 +92,15 @@ export type CanvasObjectBase = {
   notes?: string;
 };
 
-export type CanvasObjectKind = "rect" | "ellipse" | "text" | "image";
+export type CanvasObjectKind = "rect" | "ellipse" | "text" | "image" | "uiComponent";
+
+export type CanvasUiPropValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly string[]
+  | readonly number[];
 
 export type CanvasImageRole = "image" | "alphaMap" | "mask";
 
@@ -119,4 +132,12 @@ export type ImageObject = CanvasObjectBase & {
   opacity?: number;
   blendMode?: CanvasBlendMode;
   fit?: "fill" | "contain" | "cover";
+};
+
+export type UiComponentObject = CanvasObjectBase & {
+  kind: "uiComponent";
+  componentId: string;
+  variant?: string;
+  props: Record<string, CanvasUiPropValue>;
+  exportName?: string;
 };

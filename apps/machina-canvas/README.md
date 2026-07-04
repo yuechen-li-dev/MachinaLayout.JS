@@ -36,6 +36,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - deterministic local image tools for LLM-assisted editing workflows
 - SVG mask-based composition for deterministic transparent visual output
 - browser-local PNG lowering from clean `render.svg`
+- UI component objects with view-only previews and TSX lowering
 - inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
 - JSON command validation and command-based edits
 - before/after command result summaries in a command log
@@ -71,6 +72,7 @@ Supported command kinds:
 - `removeObject`
 - `attachAlphaMap`
 - `detachAlphaMap`
+- `setUiProp`
 
 Grid-aware commands let command JSON target the reference grid instead of raw
 pixels:
@@ -175,6 +177,36 @@ This toolbox complements generative image systems. It does not call an LLM or
 diffusion API, does not upload pixels, and does not add brush editing. It gives
 models a stable local operation for a common layer-composition task. See
 [MachinaCanvas tools](../../docs/machina-canvas-tools.md).
+
+## UI Components And TSX Lowering
+
+M30o adds the first smoke-test version of LLM-native Figma:
+
+```txt
+MachinaCanvas treats UI components as canvas objects with code lowering targets.
+```
+
+The scene model now supports `uiComponent` objects. A UI component object has
+normal canvas bounds, a stable object ID, a built-in `componentId`, serializable
+props, and optional export naming metadata. The built-in catalog includes
+Button, Card, Input, and Badge. These are local presentational definitions, not
+arbitrary imported React components.
+
+Canvas previews are view-only. They render through SVG `foreignObject` so they
+can sit on the same artboard as SVG, image, text, rect, and ellipse objects.
+Buttons do not dispatch, inputs are disabled/read-only, and previews do not run
+hooks, data fetching, routing, backend calls, or app logic.
+
+The inspector shows the selected component ID, label, variant, export name, and
+schema-driven props. Props can be edited with text fields, checkboxes, and
+selects through the `setUiProp` command path.
+
+The Export panel now includes TSX lowering. `generated-page.tsx` is a code
+artifact that lowers visible scene objects into a React/MachinaLayout page
+shell using `MachinaReactView`. UI component objects become real presentational
+React markup; text, image, rect, and ellipse objects lower as simple visual
+artifacts. The TSX is editable code for a developer to wire later, not a
+round-trip source for `.mcanvas`.
 
 ## Canvas Frames
 
@@ -335,6 +367,12 @@ PNG creates a browser Blob named `render.png`, `render@2x.png`, or
 `[lowering]` metadata. The binary PNG is downloaded separately; no ZIP writer or
 server raster service is added.
 
+M30o adds `generated-page.tsx` to generated export bundles. The handoff marks it
+under `[rendered_artifacts]` and `[lowering.react]` as a lossy TSX code lowering
+artifact. It preserves component intent better than pixels, but it intentionally
+does not preserve editor commands, viewport state, every canvas semantic, or a
+full import path back into MachinaCanvas.
+
 M30g command TOML export includes grid-aware command recipes, so handoff bundles
 can preserve edits such as `moveToGrid`, `alignToGrid`, and
 `resizeToGridSpan`. Importing TOML command recipes remains out of scope.
@@ -355,6 +393,8 @@ server-side raster rendering.
 - no file import yet
 - no ZIP export yet
 - no drag editing yet
+- no arbitrary React/component imports in the editor
+- no backend, routing, hooks, dispatch, or form submission from UI component previews
 
 ## Run
 

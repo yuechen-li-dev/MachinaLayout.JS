@@ -2,7 +2,7 @@
 
 MachinaCanvas `.mcanvas` bundles are for LLM/human handoff and deterministic 2D scene editing. The rendered image is an output artifact. The editable truth is structured sidecar data that can be patched one object, layer, or command recipe at a time.
 
-M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. M30l allows browser-loaded local image assets to live in the runtime scene as data URL image sources. M30m adds browser-local PNG lowering from the current clean `render.svg`. It does not implement import, TOML parsing, ZIP packaging, server-side rasterization, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, or LLM API calls.
+M30c designs the format and includes a checked-in fixture. M30d adds browser-local one-way export from the current MachinaCanvas runtime scene into `.mcanvas`-shaped text artifacts. M30f adds reference grid metadata for CAD-style locator language. M30g lets command JSON and exported command TOML use those refs for deterministic edits. M30h adds canvas frame intent beside resolved geometry. M30i adds document unit metadata and measurement-friendly summaries. M30j adds optional handoff viewport metadata for inspection focus. M30k adds explicit image objects and alpha-map composition relations. M30l allows browser-loaded local image assets to live in the runtime scene as data URL image sources. M30m adds browser-local PNG lowering from the current clean `render.svg`. M30o adds `uiComponent` objects and a lossy `generated-page.tsx` React/MachinaLayout code lowering artifact. It does not implement import, TOML parsing, ZIP packaging, server-side rasterization, image generation, upload UI, mask painting, wheel zoom, pan/drag navigation, backend services, arbitrary React execution, routing, hooks, or LLM API calls.
 
 ## Format Law
 
@@ -43,6 +43,7 @@ The analogy is `.sln` or `.slnx` for solution-level composition and `.csproj` fo
 demo-poster.mcanvas/
   render.svg
   render.png                  optional lossy raster lowering
+  generated-page.tsx          optional lossy React/MachinaLayout lowering
   preview.png                 optional
   document.json
   handoff.toml
@@ -182,7 +183,7 @@ Fields:
 - `layers[].asset`: relative path to layer TOML.
 - `layers[].objectIds`: ordered object IDs in that layer.
 - `objects`: map of stable object IDs to object index entries.
-- `objects[id].kind`: object kind such as `rect`, `ellipse`, `text`, or `image`.
+- `objects[id].kind`: object kind such as `rect`, `ellipse`, `text`, `image`, or `uiComponent`.
 - `objects[id].asset`: relative path to the object TOML contract.
 - `relations`: optional graph relations such as `alphaMapFor`.
 - `relations[].kind`: relation kind.
@@ -453,6 +454,47 @@ fit = "contain"
 color_space = "alpha"
 ```
 
+UI component:
+
+```toml
+id = "ui-primary-cta"
+kind = "uiComponent"
+name = "Primary CTA"
+layer = "ui-components"
+visible = true
+locked = false
+
+[geometry]
+x = 616
+y = 552
+width = 162
+height = 44
+
+[frame]
+kind = "absolute"
+x = 616
+y = 552
+width = 162
+height = 44
+
+[resolved]
+x = 616
+y = 552
+width = 162
+height = 44
+
+[component]
+id = "Button"
+variant = "primary"
+export_name = "PrimaryCta"
+
+[props]
+children = "Generate page"
+disabled = false
+size = "lg"
+variant = "primary"
+```
+
 Rules:
 
 - One object per TOML file.
@@ -464,6 +506,10 @@ Rules:
 - Kind-specific blocks exist, including `[shape]` and `[text]`.
 - Image objects use `[image]`; normal images may point at alpha maps with
   `alpha_map_id`.
+- UI component objects use `[component]` and `[props]`. `component.id`
+  references the built-in MachinaCanvas UI component catalog. Props are boring
+  serializable values only: strings, numbers, booleans, null-like empty values,
+  and string/number arrays.
 - `src` may be a bundle-relative asset path or a `data:image/...` URL produced
   by browser-local file loading. Data URLs are self-contained and convenient for
   local handoff, but they can make object TOML and `render.svg` large.
@@ -565,6 +611,12 @@ left = 72
 bottom = 96
 width = 188
 height = 48
+
+[[command]]
+kind = "setUiProp"
+id = "ui-primary-cta"
+prop = "children"
+value = "Generate page"
 ```
 
 Rules:
@@ -574,6 +626,7 @@ Rules:
 - Grid-aware command recipes use the exported reference grid labels.
 - `setFrame` command recipes can store `absolute`, `anchor`, `referenceGrid`,
   and `referenceGridSpan` frame intent.
+- `setUiProp` command recipes can store basic UI component prop edits.
 - `attachAlphaMap` and `detachAlphaMap` command recipes preserve explicit
   image-to-alpha-map relationship edits.
 - `removeObject` command recipes preserve unload/remove edits.
@@ -660,6 +713,10 @@ Rules:
 `render.png` is optional and can be omitted when a fixture or export only needs
 the semantic package and vector artifact.
 
+`generated-page.tsx` is optional and can be omitted when a handoff only needs
+the semantic package and rendered artifacts. When present, it is a lossy code
+lowering artifact, not a source format for importing back into MachinaCanvas.
+
 `preview.png` is optional and can be omitted when a fixture only needs a lightweight readable artifact.
 
 Rendered artifacts may be regenerated from `document.json` and object TOML specs in a later milestone. M30c does not implement regeneration.
@@ -695,6 +752,13 @@ Transparent background is the default for PNG, with optional solid background
 fill and export scale. PNG validation is runtime/UI-local in M30m; the text-only
 `CanvasExportBundle` can reference the generated raster path in `handoff.toml`
 without embedding binary image data in the text file list.
+
+M30o `generated-page.tsx` is an optional React/MachinaLayout lowering. It emits
+a working page shell with `MachinaReactView`; UI component objects become
+presentational React markup, images stay images, text stays text, and simple
+vector objects become decorative blocks. It does not execute arbitrary imported
+components, add hooks, fetch data, route, submit forms, or preserve a full
+round-trip editor source.
 
 ### Raster lowering / PNG export
 
@@ -772,6 +836,9 @@ session commands while keeping smaller edits such as `removeObject`.
 M30m can add `[rendered_artifacts]` and `[lowering]` metadata to `handoff.toml`
 after PNG generation. The PNG itself is not part of the text-only bundle file
 list.
+M30o can add `generated-page.tsx` and `[lowering.react]` metadata to
+`handoff.toml`. The TSX is editable developer code, but `.mcanvas` remains the
+semantic scene handoff.
 These are command recipes only; exporting a recipe does not imply snapping,
 constraints, drag editing, or import support.
 
@@ -796,6 +863,7 @@ Validation checks:
 - whether `document.json` `alphaMapFor` relations point to image objects
 - whether `render.svg` includes a mask for alpha-mapped image relations
 - whether a command recipe exists when the caller says session commands were expected
+- whether generated TSX exists when listed in handoff metadata is intentionally a lightweight file-list check for now
 
 Validation does not import a bundle back into the runtime scene. It does not
 parse TOML semantically, add a TOML parser dependency, resolve every object
@@ -838,3 +906,6 @@ It includes `render.svg`, `document.json`, `handoff.toml`, layer TOML files, obj
 - No plugin system.
 - No LLM API calls.
 - No backend service.
+- No arbitrary React component execution in the editor.
+- No TSX import or round-trip source loading.
+- No hooks, routing, dispatch integration, data fetching, or real form submission in UI component previews.
