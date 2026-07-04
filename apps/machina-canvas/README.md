@@ -33,6 +33,7 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - document units and formatted measurement readouts
 - controlled viewport zoom for canvas, selection, and grid inspection
 - image scene objects with explicit RGB image plus alpha-map relationships
+- deterministic local image tools for LLM-assisted editing workflows
 - SVG mask-based composition for deterministic transparent visual output
 - browser-local PNG lowering from clean `render.svg`
 - inspector toggles for reference grid, grid lines, measurement labels, and diagnostics
@@ -162,6 +163,18 @@ The PNG is a lossy artifact: it keeps pixels and alpha only. It does not keep
 layers, object IDs, command recipes, frame intent, reference-grid semantics,
 unit metadata, or alpha-map relationship metadata. The `.mcanvas` text package
 remains the source of truth; PNG import remains out of scope.
+
+M30n starts the MachinaCanvas image editing toolbox. Tools are deterministic
+browser-local operations that work on scene objects and produce structured
+results for humans and LLM workflows. The first tool, `generate-alpha-map`,
+derives a grayscale alpha-map PNG from a selected image object, creates a hidden
+`alphaMap` image object, and can attach it back to the source through
+`alphaMapId`.
+
+This toolbox complements generative image systems. It does not call an LLM or
+diffusion API, does not upload pixels, and does not add brush editing. It gives
+models a stable local operation for a common layer-composition task. See
+[MachinaCanvas tools](../../docs/machina-canvas-tools.md).
 
 ## Canvas Frames
 
@@ -337,6 +350,7 @@ server-side raster rendering.
 - no server-side rasterization or native raster dependencies
 - no LLM API yet
 - no image generation, upload/backend service, or mask painting yet
+- no plugin loader or tool package ecosystem yet
 - no CAD, path, or font outline editing yet
 - no file import yet
 - no ZIP export yet

@@ -36,6 +36,7 @@
       "!samples/**/dist",
       "!apps/**/node_modules",
       "!apps/**/dist",
+      "!apps/**/tmp",
       "!coverage",
       "!*.tgz"
     ]

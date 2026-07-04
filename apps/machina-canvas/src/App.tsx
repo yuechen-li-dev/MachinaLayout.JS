@@ -69,6 +69,13 @@ import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
 import { summarizeViewport } from "./viewportSummary";
 import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
+import {
+  GENERATE_ALPHA_MAP_TOOL_ID,
+  canvasTools,
+  listCanvasTools,
+  runCanvasTool as runRegisteredCanvasTool,
+  type CanvasToolResult,
+} from "./tools";
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
@@ -156,6 +163,7 @@ type AppViewData = {
   commandValidation: CanvasCommandValidationResult | undefined;
   commandLog: CommandLogEntry[];
   lastApplyResults: CanvasCommandApplyResult[];
+  lastToolResult: CanvasToolResult | undefined;
   geometryDiagnostics: GeometryDiagnostic[];
   exportBundle: CanvasExportBundle | undefined;
   exportValidation: CanvasExportValidationResult | undefined;
@@ -173,6 +181,10 @@ type AppViewData = {
   zoomToGridRef: (ref: string) => void;
   zoomToGridSpan: (span: string) => void;
   runCommand: (command: CanvasCommand) => void;
+  runCanvasTool: (
+    toolId: string,
+    input: { targetObjectId?: string; options?: Record<string, unknown> },
+  ) => Promise<void>;
   loadImageFile: (file: File, role: CanvasImageRole) => Promise<void>;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
@@ -901,6 +913,62 @@ function ImageAssetSection(props: MachinaSlotProps) {
   );
 }
 
+function CanvasToolsSection(props: MachinaSlotProps) {
+  const { document, lastToolResult, runCanvasTool } = readViewData(props);
+  const selected = getSelectedObject(document);
+  const [autoAttach, setAutoAttach] = useState(true);
+
+  if (selected?.kind !== "image") return null;
+
+  const availableTools = listCanvasTools(canvasTools).filter(
+    (tool) =>
+      tool.targetKind === "image-object" &&
+      (selected.role === undefined || selected.role === "image"),
+  );
+  if (availableTools.length === 0) return null;
+
+  return (
+    <InspectorSection title="Tools">
+      <ToggleField label="Auto-attach alpha map" checked={autoAttach} onChange={setAutoAttach} />
+      <div className="tool-actions">
+        {availableTools.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            onClick={() =>
+              runCanvasTool(tool.id, {
+                targetObjectId: selected.id,
+                options:
+                  tool.id === GENERATE_ALPHA_MAP_TOOL_ID
+                    ? {
+                        autoAttach,
+                      }
+                    : undefined,
+              })
+            }
+          >
+            {tool.label}
+          </button>
+        ))}
+      </div>
+      {lastToolResult ? (
+        <div className="last-tool-result">
+          <strong>{lastToolResult.toolId}</strong>
+          {lastToolResult.createdObjectIds?.length ? (
+            <p>Created: {lastToolResult.createdObjectIds.join(", ")}</p>
+          ) : null}
+          {lastToolResult.updatedObjectIds?.length ? (
+            <p>Updated: {lastToolResult.updatedObjectIds.join(", ")}</p>
+          ) : null}
+          {lastToolResult.notes?.map((note, index) => (
+            <p key={`${lastToolResult.toolId}-${index}`}>{note}</p>
+          ))}
+        </div>
+      ) : null}
+    </InspectorSection>
+  );
+}
+
 function ToggleField({
   label,
   checked,
@@ -1357,6 +1425,7 @@ function Inspector(props: MachinaSlotProps) {
       <ViewportSection {...props} />
       <ViewAidsSection {...props} />
       <ImageAssetSection {...props} />
+      <CanvasToolsSection {...props} />
       <InspectorSection title="Measurements">
         <Field label="Unit" value={unitSystem.label} />
         <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
@@ -1527,6 +1596,7 @@ export function App() {
     showGeometryDiagnostics: true,
   });
   const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
+  const [lastToolResult, setLastToolResult] = useState<CanvasToolResult>();
   const [exportBundle, setExportBundle] = useState<CanvasExportBundle>();
   const [exportValidation, setExportValidation] = useState<CanvasExportValidationResult>();
   const [selectedExportPath, setSelectedExportPath] = useState<string>();
@@ -1567,6 +1637,27 @@ export function App() {
       const applyResult = applyCanvasCommands(document, [command]);
       setDocument(applyResult.document);
       recordAppliedCommands([command], applyResult.results);
+    };
+
+    const runCanvasTool: AppViewData["runCanvasTool"] = async (toolId, input) => {
+      try {
+        const result = await runRegisteredCanvasTool(canvasTools, toolId, input, { document });
+        setLastToolResult(result);
+        if (result.document) {
+          setDocument(result.document);
+        }
+        if (result.commands?.length && result.commandResults?.length) {
+          recordAppliedCommands([...result.commands], [...result.commandResults]);
+        }
+        setLastCommand(`tool ${toolId} completed`);
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : `Tool ${toolId} failed.`;
+        setLastCommand(message);
+        setLastToolResult({
+          toolId,
+          notes: [message],
+        });
+      }
     };
 
     const loadImageFile = async (file: File, role: CanvasImageRole) => {
@@ -1829,6 +1920,7 @@ export function App() {
       commandValidation,
       commandLog,
       lastApplyResults,
+      lastToolResult,
       geometryDiagnostics,
       exportBundle,
       exportValidation,
@@ -1846,6 +1938,7 @@ export function App() {
       zoomToGridRef,
       zoomToGridSpan,
       runCommand,
+      runCanvasTool,
       loadImageFile,
       setCommandJson,
       loadExampleCommands,
@@ -1870,6 +1963,7 @@ export function App() {
     commandValidation,
     commandLog,
     lastApplyResults,
+    lastToolResult,
     geometryDiagnostics,
     exportBundle,
     exportValidation,
