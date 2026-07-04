@@ -98,35 +98,4 @@
   display: block;
 }
 
-#product-tabs-overview:checked ~ .machina-tabs__labels label[for="product-tabs-overview"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
-}
 
-#product-tabs-overview:checked ~ .machina-tabs__panels .machina-tabs__panel--overview {
-  display: block;
-}
-
-#product-tabs-features:checked ~ .machina-tabs__labels label[for="product-tabs-features"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
-}
-
-#product-tabs-features:checked ~ .machina-tabs__panels .machina-tabs__panel--features {
-  display: block;
-}
-
-#product-tabs-export:checked ~ .machina-tabs__labels label[for="product-tabs-export"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
-}
-
-#product-tabs-export:checked ~ .machina-tabs__panels .machina-tabs__panel--export {
-  display: block;
-}

@@ -75,6 +75,7 @@ describe("package export entrypoints", () => {
 
   it("exposes static subpath utilities", () => {
     expect(H.tabs).toBeTypeOf("function");
+    expect(H.accordion).toBeTypeOf("function");
     expect(H.page).toBeTypeOf("function");
     expect(H.staticPage).toBeTypeOf("function");
     expect(createStaticHtmlArtifact).toBeTypeOf("function");

@@ -1,7 +1,19 @@
-import type { StaticNode, StaticPage, StaticTabs, StaticTabsItem } from "./types";
-import { formatStaticMachineDiagnostics, validateStaticPage, validateStaticTabs } from "./validate";
+import type {
+  StaticAccordion,
+  StaticAccordionItem,
+  StaticNode,
+  StaticPage,
+  StaticTabs,
+  StaticTabsItem,
+} from "./types";
+import {
+  formatStaticMachineDiagnostics,
+  validateStaticAccordion,
+  validateStaticPage,
+  validateStaticTabs,
+} from "./validate";
 
-function assertNoStaticErrors(diagnostics: ReturnType<typeof validateStaticTabs>): void {
+function assertNoStaticErrors(diagnostics: ReturnType<typeof validateStaticPage>): void {
   const errors = diagnostics.filter((entry) => entry.severity === "error");
   if (errors.length > 0) {
     throw new Error(formatStaticMachineDiagnostics(errors));
@@ -22,6 +34,21 @@ function cloneTabsItem(item: StaticTabsItem): StaticTabsItem {
   };
 }
 
+function cloneAccordionItem(item: StaticAccordionItem): StaticAccordionItem {
+  return {
+    id: item.id,
+    label: item.label,
+    content:
+      typeof item.content === "string"
+        ? item.content
+        : {
+            kind: "html",
+            html: item.content.html,
+          },
+    defaultOpen: item.defaultOpen,
+  };
+}
+
 export function tabs(input: {
   id: string;
   initial: string;
@@ -37,6 +64,21 @@ export function tabs(input: {
   return output;
 }
 
+export function accordion(input: {
+  id: string;
+  allowMultiple?: boolean;
+  items: readonly StaticAccordionItem[];
+}): StaticAccordion {
+  const output: StaticAccordion = {
+    kind: "accordion",
+    id: input.id,
+    allowMultiple: input.allowMultiple ?? true,
+    items: input.items.map(cloneAccordionItem),
+  };
+  assertNoStaticErrors(validateStaticAccordion(output));
+  return output;
+}
+
 export function page(input: { title: string; body: readonly StaticNode[] }): StaticPage {
   const output: StaticPage = {
     kind: "page",
@@ -44,6 +86,9 @@ export function page(input: { title: string; body: readonly StaticNode[] }): Sta
     body: input.body.map((node) => {
       if (node.kind === "tabs") {
         return tabs(node);
+      }
+      if (node.kind === "accordion") {
+        return accordion(node);
       }
       return node;
     }),
@@ -56,6 +101,7 @@ export const staticPage = page;
 
 export const H = {
   tabs,
+  accordion,
   page,
   staticPage,
 } as const;

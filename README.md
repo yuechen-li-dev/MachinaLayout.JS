@@ -351,6 +351,7 @@ const views = {
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
 - [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
 - [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
+- [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
 
 Run it locally:

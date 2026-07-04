@@ -6,7 +6,7 @@ machines that can run in the browser without JavaScript.
 The source model is TypeScript data. The lowered artifact is static HTML and CSS.
 The browser selector engine is the runtime target.
 
-M32a starts with tabs:
+M32a starts with tabs, the one-of-many static machine:
 
 - author tabs with `H.tabs`
 - lower state to radio inputs
@@ -48,6 +48,48 @@ const page = H.staticPage({
 const artifact = createStaticHtmlArtifact(page);
 ```
 
+M32b adds accordion/disclosure, the many-independent-booleans static machine:
+
+- author accordions with `H.accordion`
+- lower expansion state to checkbox inputs
+- connect labels with `for`
+- emit panels as static HTML
+- show open panels with CSS `:checked` selectors
+- ship no script tag and no JavaScript runtime behavior
+
+```ts
+import { H } from "machinalayout/static";
+
+const faq = H.accordion({
+  id: "faq",
+  allowMultiple: true,
+  items: [
+    {
+      id: "what-is-machina",
+      label: "What is Machina?",
+      content: "Machina lowers typed UI intent into browser artifacts.",
+      defaultOpen: true,
+    },
+    {
+      id: "does-it-use-js",
+      label: "Does this use JavaScript?",
+      content: "No. This accordion is powered by checkbox state and CSS selectors.",
+    },
+    {
+      id: "is-this-cursed",
+      label: "Is this cursed?",
+      content: "Yes, but intentionally.",
+    },
+  ],
+});
+```
+
+`allowMultiple` defaults to `true`, which uses checkboxes and lets each item open
+or close independently. `allowMultiple: false` uses a radio group and keeps one
+item open; if no item has `defaultOpen: true`, the first item is serialized as
+checked because radio groups do not naturally return to all-closed state after a
+choice is made.
+
 String content is escaped during HTML serialization. Raw HTML content must be
 explicit:
 
@@ -65,6 +107,10 @@ compile programs into CSS, add event handlers, perform data fetching, bind to
 DeusMachina, or replace dynamic applications. It lowers a bounded finite UI
 machine into ordinary browser-native controls and selectors.
 
-DeusMachina may become a future source for richer static machines, but M32a does
-not integrate it. MachinaStyle may provide shared styling later, but this first
-target keeps CSS simple and independent.
+The current no-JS accordion is functional, but it does not synchronize dynamic
+`aria-expanded` state because there is no JavaScript runtime. It also does not
+provide animation/state runtime behavior or arbitrary state-machine lowering.
+
+DeusMachina may become a future source for richer static machines, but this
+target does not integrate it. MachinaStyle may provide shared styling later, but
+this target keeps CSS simple and independent.

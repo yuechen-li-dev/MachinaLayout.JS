@@ -1,4 +1,5 @@
 import type {
+  StaticAccordion,
   StaticContent,
   StaticHtmlArtifact,
   StaticNode,
@@ -45,6 +46,10 @@ function inputId(tabs: StaticTabs, tabId: string): string {
   return `${tabs.id}-${tabId}`;
 }
 
+function accordionInputId(accordion: StaticAccordion, itemId: string): string {
+  return `${accordion.id}-${itemId}`;
+}
+
 function renderTabsHtml(tabs: StaticTabs): string {
   const name = `${tabs.id}-state`;
   const inputs = tabs.tabs
@@ -77,9 +82,50 @@ ${panels}
   </section>`;
 }
 
+function isAccordionItemChecked(
+  accordion: StaticAccordion,
+  index: number,
+  explicitDefaultIndex: number,
+): boolean {
+  if (accordion.allowMultiple) {
+    return accordion.items[index]?.defaultOpen === true;
+  }
+  if (explicitDefaultIndex >= 0) {
+    return index === explicitDefaultIndex;
+  }
+  return index === 0;
+}
+
+function renderAccordionHtml(accordion: StaticAccordion): string {
+  const inputType = accordion.allowMultiple ? "checkbox" : "radio";
+  const name = `${accordion.id}-state`;
+  const explicitDefaultIndex = accordion.items.findIndex((item) => item.defaultOpen === true);
+  const items = accordion.items
+    .map((item, index) => {
+      const id = accordionInputId(accordion, item.id);
+      const checked = isAccordionItemChecked(accordion, index, explicitDefaultIndex)
+        ? " checked"
+        : "";
+      const radioName = accordion.allowMultiple ? "" : ` name="${escapeAttribute(name)}"`;
+      return `    <div class="machina-accordion__item">
+      <input class="machina-accordion__input" type="${inputType}" id="${escapeAttribute(id)}"${radioName}${checked} />
+      <label class="machina-accordion__label" for="${escapeAttribute(id)}">${escapeHtml(item.label)}</label>
+      <div class="machina-accordion__panel">${renderStaticContent(item.content)}</div>
+    </div>`;
+    })
+    .join("\n");
+
+  return `<section class="machina-accordion" id="${escapeAttribute(accordion.id)}">
+${items}
+  </section>`;
+}
+
 function renderNodeHtml(node: StaticNode): string {
   if (node.kind === "tabs") {
     return renderTabsHtml(node);
+  }
+  if (node.kind === "accordion") {
+    return renderAccordionHtml(node);
   }
   return "";
 }
@@ -159,6 +205,58 @@ function baseCss(): string {
 
 .machina-tabs__panel {
   display: none;
+}
+
+.machina-accordion {
+  color: #172026;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 760px;
+}
+
+.machina-accordion__item {
+  border: 1px solid #b8c2cc;
+  border-radius: 6px;
+  margin-block: 0.75rem;
+  overflow: hidden;
+}
+
+.machina-accordion__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.machina-accordion__label {
+  background: #f7fafc;
+  cursor: pointer;
+  display: block;
+  padding: 0.85rem 1rem;
+}
+
+.machina-accordion__label:hover {
+  background: #eef3f7;
+}
+
+.machina-accordion__panel {
+  display: none;
+  padding: 1rem;
+}
+
+.machina-accordion__input:checked ~ .machina-accordion__label {
+  background: #ffffff;
+  color: #0b5cad;
+  font-weight: 700;
+}
+
+.machina-accordion__input:checked ~ .machina-accordion__panel {
+  display: block;
 }
 `;
 }

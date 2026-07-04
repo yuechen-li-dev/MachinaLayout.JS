@@ -20,7 +20,21 @@ export type StaticTabs = {
   tabs: readonly StaticTabsItem[];
 };
 
-export type StaticNode = StaticTabs;
+export type StaticAccordionItem = {
+  id: StaticMachineId;
+  label: string;
+  content: StaticContent;
+  defaultOpen?: boolean;
+};
+
+export type StaticAccordion = {
+  kind: "accordion";
+  id: StaticMachineId;
+  allowMultiple: boolean;
+  items: readonly StaticAccordionItem[];
+};
+
+export type StaticNode = StaticTabs | StaticAccordion;
 
 export type StaticPage = {
   kind: "page";
