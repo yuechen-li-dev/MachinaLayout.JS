@@ -59,7 +59,7 @@ Inspection and handoff utilities are available at `machinalayout/inspect` and `m
 
 Typed semantic style authoring is available at `machinalayout/style`; see [MachinaStyle](docs/machina-style.md).
 
-Static no-JS finite UI machine lowering for tabs, accordions, and timelines is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
+Static no-JS finite UI machine lowering for tabs, accordions, timelines, and finite dispatch machines is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
 
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
@@ -353,6 +353,7 @@ const views = {
 - [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
 - [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.
+- [`samples/static-dispatch`](samples/static-dispatch) demonstrates `machinalayout/static` lowering a finite dispatch table to checked-in HTML/CSS with no JS.
 - [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
 
 Run it locally:

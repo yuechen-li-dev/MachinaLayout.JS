@@ -143,6 +143,76 @@ emits the same animation with an iteration count of `1`. Step labels and string
 bodies are escaped; step numbers are not serialized as text, because the lowered
 CSS uses `counter-reset`, `counter-increment`, and `content: counter(...)`.
 
+## Static dispatch lowering
+
+M32d adds static dispatch, the general finite one-of-many static machine:
+
+- author a finite dispatch table with `H.dispatch`
+- lower each state to one radio input in a shared group
+- lower each action to a `<label>` targeting the destination state's input
+- emit one visible screen per state
+- show the active screen with CSS `:checked` selectors
+- ship no script tag and no JavaScript runtime behavior
+
+```ts
+import { H } from "machinalayout/static";
+
+const planPicker = H.dispatch({
+  id: "plan-picker",
+  initial: "team-size",
+  states: {
+    "team-size": {
+      title: "How many people are on your team?",
+      body: "Pick the closest answer.",
+      actions: [
+        {
+          id: "solo",
+          label: "Just me",
+          to: "starter-result",
+        },
+        {
+          id: "team",
+          label: "2-10 people",
+          to: "pro-result",
+        },
+        {
+          id: "enterprise",
+          label: "More than 10",
+          to: "enterprise-result",
+        },
+      ],
+    },
+    "starter-result": {
+      title: "Starter",
+      body: "Use the Starter plan.",
+      actions: [{ id: "restart", label: "Start over", to: "team-size" }],
+    },
+    "pro-result": {
+      title: "Pro",
+      body: "Use the Pro plan.",
+      actions: [{ id: "restart", label: "Start over", to: "team-size" }],
+    },
+    "enterprise-result": {
+      title: "Enterprise",
+      body: "Talk to sales.",
+      actions: [{ id: "restart", label: "Start over", to: "team-size" }],
+    },
+  },
+});
+```
+
+The lowered model is intentionally small: a radio group stores the current state,
+and labels transition by selecting another radio input. Terminal states are
+allowed. Cycles are allowed, including "start over" loops. Unreachable states are
+reported as warnings because they may be useful while authoring, but they do not
+break lowering.
+
+Static dispatch can handle finite states, known transitions, public data,
+read-only visual results, bounded decision trees, and no external effects. It
+cannot handle private data, authorization, database writes, payments, secrets,
+dynamic server-side decisions, unbounded computation, or multi-user consistency.
+Do not use static dispatch as a security boundary or backend authority.
+
 String content is escaped during HTML serialization. Raw HTML content must be
 explicit:
 
@@ -172,6 +242,15 @@ CSS animation is used only as a clock for visual progression, CSS counters are
 used only as generated labels, and CSS custom properties are compiler-emitted
 constants.
 
+The current no-JS dispatch target is finite one-of-many state only. It does not
+compile arbitrary TypeScript, execute actions, mutate data, fetch data, bind
+backend authority, route pages, or add a JavaScript runtime. M32d actions only
+mean "transition to this known state."
+
 DeusMachina may become a future source for richer static machines, but this
 target does not integrate it. MachinaStyle may provide shared styling later, but
 this target keeps CSS simple and independent.
+
+Future static dispatch work may include DeusMachina source integration,
+checkbox-backed multi-bit dispatch, hash/target state, and routing or static
+site lowering.

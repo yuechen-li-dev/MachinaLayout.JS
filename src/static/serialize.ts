@@ -1,6 +1,7 @@
 import type {
   StaticAccordion,
   StaticContent,
+  StaticDispatch,
   StaticHtmlArtifact,
   StaticNode,
   StaticPage,
@@ -50,6 +51,10 @@ function inputId(tabs: StaticTabs, tabId: string): string {
 
 function accordionInputId(accordion: StaticAccordion, itemId: string): string {
   return `${accordion.id}-${itemId}`;
+}
+
+function dispatchInputId(dispatch: StaticDispatch, stateId: string): string {
+  return `${dispatch.id}-state-${stateId}`;
 }
 
 function isSafeCssCustomPropertyValue(value: string): boolean {
@@ -163,6 +168,46 @@ ${steps}
   </section>`;
 }
 
+function renderDispatchHtml(dispatch: StaticDispatch): string {
+  const name = `${dispatch.id}-state`;
+  const stateEntries = Object.entries(dispatch.states);
+  const inputs = stateEntries
+    .map(([stateId]) => {
+      const checked = stateId === dispatch.initial ? " checked" : "";
+      return `  <input class="machina-dispatch__input" type="radio" name="${escapeAttribute(name)}" id="${escapeAttribute(dispatchInputId(dispatch, stateId))}"${checked} />`;
+    })
+    .join("\n");
+  const screens = stateEntries
+    .map(([stateId, state]) => {
+      const body =
+        state.body === undefined
+          ? ""
+          : `      <div class="machina-dispatch__body">${renderStaticContent(state.body)}</div>\n`;
+      const actions =
+        state.actions && state.actions.length > 0
+          ? `      <div class="machina-dispatch__actions">
+${state.actions
+  .map(
+    (action) =>
+      `        <label class="machina-dispatch__action" for="${escapeAttribute(dispatchInputId(dispatch, action.to))}">${escapeHtml(action.label)}</label>`,
+  )
+  .join("\n")}
+      </div>\n`
+          : "";
+      return `    <section class="machina-dispatch__screen machina-dispatch__screen--${escapeAttribute(stateId)}">
+      <h2 class="machina-dispatch__title">${escapeHtml(state.title)}</h2>
+${body}${actions}    </section>`;
+    })
+    .join("\n");
+
+  return `<section class="machina-dispatch" id="${escapeAttribute(dispatch.id)}">
+${inputs}
+  <div class="machina-dispatch__screens">
+${screens}
+  </div>
+  </section>`;
+}
+
 function renderNodeHtml(node: StaticNode): string {
   if (node.kind === "tabs") {
     return renderTabsHtml(node);
@@ -172,6 +217,9 @@ function renderNodeHtml(node: StaticNode): string {
   }
   if (node.kind === "timeline") {
     return renderTimelineHtml(node);
+  }
+  if (node.kind === "dispatch") {
+    return renderDispatchHtml(node);
   }
   return "";
 }
@@ -396,6 +444,64 @@ function baseCss(): string {
   transform-origin: left center;
 }
 
+.machina-dispatch {
+  color: var(--machina-static-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 760px;
+}
+
+.machina-dispatch__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.machina-dispatch__screens {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.machina-dispatch__screen {
+  display: none;
+}
+
+.machina-dispatch__title {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+.machina-dispatch__body {
+  line-height: 1.5;
+  margin-block: 0.5rem 1rem;
+}
+
+.machina-dispatch__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.machina-dispatch__action {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 650;
+  padding: 0.65rem 0.85rem;
+}
+
+.machina-dispatch__action:hover {
+  background: var(--machina-static-muted);
+  border-color: var(--machina-static-accent);
+  color: var(--machina-static-accent);
+}
+
 @keyframes machina-timeline-progress {
   from {
     transform: scaleX(0);
@@ -443,6 +549,17 @@ function renderTabsCss(tabs: StaticTabs): string {
     .join("\n\n");
 }
 
+function renderDispatchCss(dispatch: StaticDispatch): string {
+  return Object.keys(dispatch.states)
+    .map((stateId) => {
+      const id = dispatchInputId(dispatch, stateId);
+      return `#${id}:checked ~ .machina-dispatch__screens .machina-dispatch__screen--${stateId} {
+  display: block;
+}`;
+    })
+    .join("\n\n");
+}
+
 export function serializeStaticPageCss(
   page: StaticPage,
   _options: StaticPageSerializeOptions = {},
@@ -452,6 +569,9 @@ export function serializeStaticPageCss(
     .map((node) => {
       if (node.kind === "tabs") {
         return renderTabsCss(node);
+      }
+      if (node.kind === "dispatch") {
+        return renderDispatchCss(node);
       }
       return "";
     })

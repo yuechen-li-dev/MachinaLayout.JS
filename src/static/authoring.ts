@@ -1,6 +1,9 @@
 import type {
   StaticAccordion,
   StaticAccordionItem,
+  StaticDispatch,
+  StaticDispatchAction,
+  StaticDispatchState,
   StaticNode,
   StaticPage,
   StaticTabs,
@@ -11,6 +14,7 @@ import type {
 import {
   formatStaticMachineDiagnostics,
   validateStaticAccordion,
+  validateStaticDispatch,
   validateStaticPage,
   validateStaticTabs,
   validateStaticTimeline,
@@ -67,6 +71,30 @@ function cloneTimelineStep(step: StaticTimelineStep): StaticTimelineStep {
   };
 }
 
+function cloneDispatchAction(action: StaticDispatchAction): StaticDispatchAction {
+  return {
+    id: action.id,
+    label: action.label,
+    to: action.to,
+  };
+}
+
+function cloneDispatchState(state: StaticDispatchState): StaticDispatchState {
+  return {
+    title: state.title,
+    body:
+      state.body === undefined
+        ? undefined
+        : typeof state.body === "string"
+          ? state.body
+          : {
+              kind: "html",
+              html: state.body.html,
+            },
+    actions: state.actions?.map(cloneDispatchAction),
+  };
+}
+
 export function tabs(input: {
   id: string;
   initial: string;
@@ -116,6 +144,23 @@ export function timeline(input: {
   return output;
 }
 
+export function dispatch(input: {
+  id: string;
+  initial: string;
+  states: Record<string, StaticDispatchState>;
+}): StaticDispatch {
+  const output: StaticDispatch = {
+    kind: "dispatch",
+    id: input.id,
+    initial: input.initial,
+    states: Object.fromEntries(
+      Object.entries(input.states).map(([stateId, state]) => [stateId, cloneDispatchState(state)]),
+    ),
+  };
+  assertNoStaticErrors(validateStaticDispatch(output));
+  return output;
+}
+
 export function page(input: { title: string; body: readonly StaticNode[] }): StaticPage {
   const output: StaticPage = {
     kind: "page",
@@ -130,6 +175,9 @@ export function page(input: { title: string; body: readonly StaticNode[] }): Sta
       if (node.kind === "timeline") {
         return timeline(node);
       }
+      if (node.kind === "dispatch") {
+        return dispatch(node);
+      }
       return node;
     }),
   };
@@ -143,6 +191,7 @@ export const H = {
   tabs,
   accordion,
   timeline,
+  dispatch,
   page,
   staticPage,
 } as const;

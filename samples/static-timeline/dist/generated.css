@@ -189,6 +189,64 @@
   transform-origin: left center;
 }
 
+.machina-dispatch {
+  color: var(--machina-static-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 760px;
+}
+
+.machina-dispatch__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.machina-dispatch__screens {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.machina-dispatch__screen {
+  display: none;
+}
+
+.machina-dispatch__title {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+.machina-dispatch__body {
+  line-height: 1.5;
+  margin-block: 0.5rem 1rem;
+}
+
+.machina-dispatch__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.machina-dispatch__action {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 650;
+  padding: 0.65rem 0.85rem;
+}
+
+.machina-dispatch__action:hover {
+  background: var(--machina-static-muted);
+  border-color: var(--machina-static-accent);
+  color: var(--machina-static-accent);
+}
+
 @keyframes machina-timeline-progress {
   from {
     transform: scaleX(0);

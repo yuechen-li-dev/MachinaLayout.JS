@@ -1,6 +1,7 @@
 import type {
   StaticAccordion,
   StaticContent,
+  StaticDispatch,
   StaticPage,
   StaticTabs,
   StaticTimeline,
@@ -307,6 +308,182 @@ export function validateStaticTimeline(
   return diagnostics;
 }
 
+function dispatchInputId(dispatch: StaticDispatch, stateId: string): string {
+  return `${dispatch.id}-state-${stateId}`;
+}
+
+export function validateStaticDispatch(
+  dispatch: StaticDispatch,
+  path = "dispatch",
+): StaticMachineDiagnostic[] {
+  const diagnostics: StaticMachineDiagnostic[] = [];
+  const stateEntries = Object.entries(dispatch.states);
+  const stateIds = new Set(stateEntries.map(([stateId]) => stateId));
+  const seenGeneratedInputIds = new Set<string>();
+  const reachableStateIds = new Set<string>();
+  const pendingStateIds: string[] = [];
+
+  if (!isSafeStaticId(dispatch.id)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidStaticId",
+        `Dispatch id "${dispatch.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+        `${path}.id`,
+      ),
+    );
+  }
+
+  if (stateEntries.length === 0) {
+    diagnostics.push(
+      diagnostic("error", "EmptyDispatch", "Dispatch must contain at least one state.", path),
+    );
+  }
+
+  if (!stateIds.has(dispatch.initial)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "MissingInitialState",
+        `Initial dispatch state "${dispatch.initial}" must refer to an existing state id.`,
+        `${path}.initial`,
+      ),
+    );
+  } else {
+    pendingStateIds.push(dispatch.initial);
+    reachableStateIds.add(dispatch.initial);
+  }
+
+  for (const [stateId, state] of stateEntries) {
+    const statePath = `${path}.states.${stateId}`;
+    if (!isSafeStaticId(stateId)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "InvalidStaticId",
+          `Dispatch state id "${stateId}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+          `${statePath}.id`,
+        ),
+      );
+    }
+
+    const generatedInputId = dispatchInputId(dispatch, stateId);
+    if (seenGeneratedInputIds.has(generatedInputId)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "DuplicateStaticId",
+          `Duplicate generated input id "${generatedInputId}".`,
+          `${statePath}.id`,
+        ),
+      );
+    }
+    seenGeneratedInputIds.add(generatedInputId);
+
+    if (state.title.trim().length === 0) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "EmptyStateTitle",
+          "Dispatch state title must be non-empty.",
+          `${statePath}.title`,
+        ),
+      );
+    }
+
+    if (state.body !== undefined) {
+      diagnostics.push(...validateStaticContent(state.body, `${statePath}.body`));
+    }
+
+    const seenActionIds = new Set<string>();
+    for (const [actionIndex, action] of (state.actions ?? []).entries()) {
+      const actionPath = `${statePath}.actions[${actionIndex}]`;
+      if (!isSafeStaticId(action.id)) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "InvalidStaticId",
+            `Dispatch action id "${action.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+            `${actionPath}.id`,
+          ),
+        );
+      }
+      if (seenActionIds.has(action.id)) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "DuplicateActionId",
+            `Duplicate dispatch action id "${action.id}" within state "${stateId}".`,
+            `${actionPath}.id`,
+          ),
+        );
+      }
+      seenActionIds.add(action.id);
+
+      if (action.label.trim().length === 0) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "EmptyActionLabel",
+            "Dispatch action label must be non-empty.",
+            `${actionPath}.label`,
+          ),
+        );
+      }
+
+      if (!stateIds.has(action.to)) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "MissingActionTarget",
+            `Dispatch action "${action.id}" targets missing state "${action.to}".`,
+            `${actionPath}.to`,
+          ),
+        );
+      }
+
+      if ("kind" in action) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "UnsupportedActionKind",
+            "Static dispatch M32d only supports transition actions with id, label, and to.",
+            actionPath,
+          ),
+        );
+      }
+    }
+  }
+
+  while (pendingStateIds.length > 0) {
+    const stateId = pendingStateIds.shift();
+    if (stateId === undefined) {
+      continue;
+    }
+    for (const action of dispatch.states[stateId]?.actions ?? []) {
+      if (stateIds.has(action.to) && !reachableStateIds.has(action.to)) {
+        reachableStateIds.add(action.to);
+        pendingStateIds.push(action.to);
+      }
+    }
+  }
+
+  for (const [stateId] of stateEntries) {
+    if (!reachableStateIds.has(stateId) && stateIds.has(dispatch.initial)) {
+      diagnostics.push(
+        diagnostic(
+          "warning",
+          "UnreachableStaticState",
+          `Dispatch state "${stateId}" is not reachable from initial state "${dispatch.initial}".`,
+          `${path}.states.${stateId}`,
+        ),
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 function collectGeneratedHtmlIds(node: StaticPage["body"][number]): string[] {
   if (node.kind === "tabs") {
     return [node.id, ...node.tabs.map((item) => `${node.id}-${item.id}`)];
@@ -316,6 +493,9 @@ function collectGeneratedHtmlIds(node: StaticPage["body"][number]): string[] {
   }
   if (node.kind === "timeline") {
     return [node.id];
+  }
+  if (node.kind === "dispatch") {
+    return [node.id, ...Object.keys(node.states).map((stateId) => dispatchInputId(node, stateId))];
   }
   return [];
 }
@@ -337,6 +517,9 @@ export function validateStaticPage(page: StaticPage): StaticMachineDiagnostic[] 
     }
     if (node.kind === "timeline") {
       diagnostics.push(...validateStaticTimeline(node, `body[${index}]`));
+    }
+    if (node.kind === "dispatch") {
+      diagnostics.push(...validateStaticDispatch(node, `body[${index}]`));
     }
     for (const generatedHtmlId of collectGeneratedHtmlIds(node)) {
       if (seenGeneratedInputIds.has(generatedHtmlId)) {

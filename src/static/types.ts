@@ -50,7 +50,26 @@ export type StaticTimeline = {
   steps: readonly StaticTimelineStep[];
 };
 
-export type StaticNode = StaticTabs | StaticAccordion | StaticTimeline;
+export type StaticDispatchAction = {
+  id: StaticMachineId;
+  label: string;
+  to: StaticMachineId;
+};
+
+export type StaticDispatchState = {
+  title: string;
+  body?: StaticContent;
+  actions?: readonly StaticDispatchAction[];
+};
+
+export type StaticDispatch = {
+  kind: "dispatch";
+  id: StaticMachineId;
+  initial: StaticMachineId;
+  states: Record<string, StaticDispatchState>;
+};
+
+export type StaticNode = StaticTabs | StaticAccordion | StaticTimeline | StaticDispatch;
 
 export type StaticPage = {
   kind: "page";

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Machina Static Dispatch</title>
+    <link rel="stylesheet" href="generated.css" />
+  </head>
+  <body>
+<section class="machina-dispatch" id="plan-picker">
+  <input class="machina-dispatch__input" type="radio" name="plan-picker-state" id="plan-picker-state-team-size" checked />
+  <input class="machina-dispatch__input" type="radio" name="plan-picker-state" id="plan-picker-state-starter-result" />
+  <input class="machina-dispatch__input" type="radio" name="plan-picker-state" id="plan-picker-state-pro-result" />
+  <input class="machina-dispatch__input" type="radio" name="plan-picker-state" id="plan-picker-state-enterprise-result" />
+  <div class="machina-dispatch__screens">
+    <section class="machina-dispatch__screen machina-dispatch__screen--team-size">
+      <h2 class="machina-dispatch__title">How many people are on your team?</h2>
+      <div class="machina-dispatch__body">Pick the closest answer. This plan picker is no-JS dispatch lowering.</div>
+      <div class="machina-dispatch__actions">
+        <label class="machina-dispatch__action" for="plan-picker-state-starter-result">Just me</label>
+        <label class="machina-dispatch__action" for="plan-picker-state-pro-result">2-10 people</label>
+        <label class="machina-dispatch__action" for="plan-picker-state-enterprise-result">More than 10</label>
+      </div>
+    </section>
+    <section class="machina-dispatch__screen machina-dispatch__screen--starter-result">
+      <h2 class="machina-dispatch__title">Starter</h2>
+      <div class="machina-dispatch__body">Use the Starter plan. The transition happened through a radio input and CSS.</div>
+      <div class="machina-dispatch__actions">
+        <label class="machina-dispatch__action" for="plan-picker-state-team-size">Start over</label>
+      </div>
+    </section>
+    <section class="machina-dispatch__screen machina-dispatch__screen--pro-result">
+      <h2 class="machina-dispatch__title">Pro</h2>
+      <div class="machina-dispatch__body">Use the Pro plan. Labels target state inputs; there is no JavaScript file.</div>
+      <div class="machina-dispatch__actions">
+        <label class="machina-dispatch__action" for="plan-picker-state-team-size">Start over</label>
+      </div>
+    </section>
+    <section class="machina-dispatch__screen machina-dispatch__screen--enterprise-result">
+      <h2 class="machina-dispatch__title">Enterprise</h2>
+      <div class="machina-dispatch__body">Talk to sales. This result is public, read-only UI state.</div>
+      <div class="machina-dispatch__actions">
+        <label class="machina-dispatch__action" for="plan-picker-state-team-size">Start over</label>
+      </div>
+    </section>
+  </div>
+  </section>
+  </body>
+</html>

@@ -274,35 +274,18 @@
   }
 }
 
-#product-tabs-overview:checked ~ .machina-tabs__labels label[for="product-tabs-overview"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
-}
-
-#product-tabs-overview:checked ~ .machina-tabs__panels .machina-tabs__panel--overview {
+#plan-picker-state-team-size:checked ~ .machina-dispatch__screens .machina-dispatch__screen--team-size {
   display: block;
 }
 
-#product-tabs-features:checked ~ .machina-tabs__labels label[for="product-tabs-features"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
-}
-
-#product-tabs-features:checked ~ .machina-tabs__panels .machina-tabs__panel--features {
+#plan-picker-state-starter-result:checked ~ .machina-dispatch__screens .machina-dispatch__screen--starter-result {
   display: block;
 }
 
-#product-tabs-export:checked ~ .machina-tabs__labels label[for="product-tabs-export"] {
-  background: #ffffff;
-  border-color: #b8c2cc;
-  border-bottom-color: #ffffff;
-  color: #0b5cad;
+#plan-picker-state-pro-result:checked ~ .machina-dispatch__screens .machina-dispatch__screen--pro-result {
+  display: block;
 }
 
-#product-tabs-export:checked ~ .machina-tabs__panels .machina-tabs__panel--export {
+#plan-picker-state-enterprise-result:checked ~ .machina-dispatch__screens .machina-dispatch__screen--enterprise-result {
   display: block;
 }
