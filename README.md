@@ -57,6 +57,8 @@ Machina adapters ask you to learn one layout model: Machina records. The framewo
 
 Inspection and handoff utilities are available at `machinalayout/inspect` and `machinalayout/handoff`.
 
+Typed semantic style authoring is available at `machinalayout/style`; see [MachinaStyle](docs/machina-style.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -131,6 +133,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [MachinaCanvas export format](docs/machina-canvas-export-format.md)
 - [Error codes](docs/error-codes.md)
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
+- [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
 - [Exhaustive enum matching](docs/exhaustive-match.md)
 
 ## Tiny `LayoutRow[]` example
@@ -214,6 +217,8 @@ export function App() {
 
 
 Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/vue`, `machinalayout/text`, `machinalayout/text/react`, `machinalayout/text/react-native`, `machinalayout/text/vue`).
+
+MachinaStyle is available from `machinalayout/style` for typed semantic style records and deterministic CSS serialization.
 
 `machinalayout/react-native` and `machinalayout/text/react-native` require the `react-native` peer dependency in your app, and `machinalayout/vue` / `machinalayout/text/vue` require the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
 

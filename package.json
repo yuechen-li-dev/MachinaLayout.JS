@@ -119,6 +119,10 @@
     "./machina": {
       "types": "./dist/machina/index.d.ts",
       "import": "./dist/machina/index.js"
+    },
+    "./style": {
+      "types": "./dist/style/index.d.ts",
+      "import": "./dist/style/index.js"
     }
   },
   "files": [

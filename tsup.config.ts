@@ -17,6 +17,7 @@ export default defineConfig({
     "deus/index": "src/deus/index.ts",
     "machina/index": "src/machina/index.ts",
     "match/index": "src/match/index.ts",
+    "style/index": "src/style/index.ts",
   },
   format: ["esm"],
   dts: true,

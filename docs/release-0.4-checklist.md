@@ -13,6 +13,7 @@ Use this checklist for the 0.4.0 publish pass. Do not publish from a dirty tree,
 
 - `machinalayout`
 - `machinalayout/machina`
+- `machinalayout/style`
 - `machinalayout/atlas`
 - `machinalayout/deus`
 - `machinalayout/inspect`
