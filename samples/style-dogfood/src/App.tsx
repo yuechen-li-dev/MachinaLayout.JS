@@ -28,7 +28,7 @@ const statefulButtons = [
 export function App() {
   return (
     <main className={classes.page}>
-      <header className={classes.header}>
+      <header className={classes.responsiveHero}>
         <p className={classes.eyebrow}>MachinaStyle dogfood</p>
         <h1 className={classes.title}>Control Panel</h1>
         <p className={classes.subtitle}>
@@ -36,9 +36,9 @@ export function App() {
         </p>
       </header>
 
-      <section className={classes.panel}>
+      <section className={classes.responsivePanel}>
         <h2 className={classes.sectionTitle}>Tokens</h2>
-        <div className={classes.tokenRow}>
+        <div className={`${classes.tokenRow} ${classes.responsiveTokenGrid}`}>
           {tokenSwatches.map(([className, label]) => (
             <span className={classes.tokenItem} key={className}>
               <span className={className} />
@@ -94,7 +94,7 @@ export function App() {
         </div>
       </section>
 
-      <section className={classes.cardGrid}>
+      <section className={classes.responsiveGrid}>
         <article className={classes.cardBase}>
           <h2 className={classes.sectionTitle}>Base card</h2>
           <p className={classes.bodyText}>Concrete record plus a border layer.</p>

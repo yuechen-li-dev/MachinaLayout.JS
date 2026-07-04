@@ -10,13 +10,14 @@ export function createMachinaStyleArtifact(
   options: {
     path?: string;
     includeHeader?: boolean;
+    responsiveProfile?: SerializeMachinaStyleOptions["responsiveProfile"];
   } = {},
 ): MachinaStyleArtifact {
-  const { path = "generated.css", includeHeader } = options;
+  const { path = "generated.css", includeHeader, responsiveProfile } = options;
 
   return {
     path,
-    css: serializeMachinaStyleSheet(sheet, { includeHeader }),
+    css: serializeMachinaStyleSheet(sheet, { includeHeader, responsiveProfile }),
   };
 }
 

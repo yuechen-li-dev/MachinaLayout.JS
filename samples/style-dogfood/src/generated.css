@@ -34,6 +34,21 @@
   --radius-md: 8px;
   --radius-round: 999px;
   --radius-sm: 6px;
+  --font-body-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-body-size: 15px;
+  --font-body-line-height: 1.5;
+  --font-body-weight: 400;
+  --font-body-letter-spacing: 0px;
+  --font-display-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display-size: 42px;
+  --font-display-line-height: 1.1;
+  --font-display-weight: 700;
+  --font-display-letter-spacing: 0px;
+  --font-title-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-title-size: 28px;
+  --font-title-line-height: 1.2;
+  --font-title-weight: 600;
+  --font-title-letter-spacing: 0px;
   --font-ui-family: Inter, ui-sans-serif, system-ui, sans-serif;
   --font-ui-size: 16px;
   --font-ui-line-height: 1.5;
@@ -637,4 +652,142 @@
   border-width: 2px;
   border-color: var(--color-selected-ring);
   box-shadow: 0 0 0 3px rgba(144, 174, 252, 0.32);
+}
+
+.responsiveGrid {
+  display: grid;
+  margin-bottom: var(--space-lg);
+  gap: var(--space-lg);
+}
+
+@media (min-width: 1024px) {
+  .responsiveGrid {
+    gap: var(--space-xl);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .responsiveGrid {
+    gap: var(--space-lg);
+  }
+}
+
+@media (max-width: 639px) {
+  .responsiveGrid {
+    display: block;
+  }
+}
+
+.responsiveHero {
+  display: block;
+  max-width: 760px;
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  color: var(--color-text);
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  line-height: var(--font-ui-line-height);
+  font-weight: var(--font-ui-weight);
+  letter-spacing: var(--font-ui-letter-spacing);
+}
+
+@media (min-width: 1024px) {
+  .responsiveHero {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+    font-family: var(--font-display-family);
+    font-size: var(--font-display-size);
+    line-height: var(--font-display-line-height);
+    font-weight: var(--font-display-weight);
+    letter-spacing: var(--font-display-letter-spacing);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .responsiveHero {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+    font-family: var(--font-title-family);
+    font-size: var(--font-title-size);
+    line-height: var(--font-title-line-height);
+    font-weight: var(--font-title-weight);
+    letter-spacing: var(--font-title-letter-spacing);
+  }
+}
+
+@media (max-width: 639px) {
+  .responsiveHero {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    font-family: var(--font-body-family);
+    font-size: var(--font-body-size);
+    line-height: var(--font-body-line-height);
+    font-weight: var(--font-body-weight);
+    letter-spacing: var(--font-body-letter-spacing);
+  }
+}
+
+.responsivePanel {
+  display: block;
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  line-height: var(--font-ui-line-height);
+  font-weight: var(--font-ui-weight);
+  letter-spacing: var(--font-ui-letter-spacing);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+@media (min-width: 1024px) {
+  .responsivePanel {
+    padding: var(--space-xl);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .responsivePanel {
+    padding: var(--space-lg);
+  }
+}
+
+@media (max-width: 639px) {
+  .responsivePanel {
+    padding: var(--space-md);
+  }
+}
+
+.responsiveTokenGrid {
+  display: block;
+  padding-left: var(--space-sm);
+  padding-right: var(--space-sm);
+}
+
+@media (min-width: 1024px) {
+  .responsiveTokenGrid {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .responsiveTokenGrid {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+
+@media (max-width: 639px) {
+  .responsiveTokenGrid {
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+  }
 }

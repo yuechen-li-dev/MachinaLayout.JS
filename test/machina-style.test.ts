@@ -17,8 +17,11 @@ describe("MachinaStyle authoring", () => {
     expect(S.token).toBeTypeOf("function");
     expect(S.classes).toBeTypeOf("function");
     expect(S.stateful).toBeTypeOf("function");
+    expect(S.responsive).toBeTypeOf("function");
     expect(S.resolveState).toBeTypeOf("function");
     expect(S.resolveStates).toBeTypeOf("function");
+    expect(S.resolveResponsive).toBeTypeOf("function");
+    expect(S.resolveResponsiveVariants).toBeTypeOf("function");
     expect(S.dataState).toBeTypeOf("function");
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");

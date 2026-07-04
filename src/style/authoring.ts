@@ -1,4 +1,6 @@
 import type {
+  MachinaResponsiveStyle,
+  MachinaResponsiveVariant,
   MachinaStatefulStyle,
   MachinaStyleLayer,
   MachinaStyleRecord,
@@ -58,6 +60,7 @@ const STYLE_FIELDS = {
   effect: ["shadow"],
 } as const satisfies Record<StyleGroupName, readonly string[]>;
 
+const RESPONSIVE_VARIANTS = ["desktop", "tablet", "phone"] as const;
 const MACHINA_CLASS_NAME_PATTERN = /^[^\s]+$/;
 const MACHINA_STATE_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 
@@ -92,6 +95,16 @@ function assertValidStateName(stateName: string): void {
   if (!MACHINA_STATE_NAME_PATTERN.test(stateName)) {
     throw new Error(
       `MachinaStyle state name "${stateName}" must match /^[a-zA-Z][a-zA-Z0-9_-]*$/.`,
+    );
+  }
+}
+
+function assertValidResponsiveVariant(
+  variant: string,
+): asserts variant is MachinaResponsiveVariant {
+  if (!(RESPONSIVE_VARIANTS as readonly string[]).includes(variant)) {
+    throw new Error(
+      `MachinaStyle responsive variant "${variant}" must be one of: desktop, tablet, phone.`,
     );
   }
 }
@@ -325,10 +338,18 @@ export function sheet(input: MachinaStyleSheet): MachinaStyleSheet {
     }
     stateful[key] = createStatefulStyle(statefulStyle.className, statefulStyle);
   }
+  const responsive: Record<string, MachinaResponsiveStyle> = {};
+  for (const [key, responsiveStyle] of Object.entries(input.responsive ?? {})) {
+    if (key.trim().length === 0) {
+      throw new Error("MachinaStyle responsive registry keys must be non-empty.");
+    }
+    responsive[key] = createResponsiveStyle(responsiveStyle.className, responsiveStyle);
+  }
   return {
     tokens: input.tokens ? tokens(input.tokens) : undefined,
     classes,
     stateful: Object.keys(stateful).length > 0 ? stateful : undefined,
+    responsive: Object.keys(responsive).length > 0 ? responsive : undefined,
   };
 }
 
@@ -376,6 +397,50 @@ export function resolveMachinaStateStyles(
   return resolved;
 }
 
+export function createResponsiveStyle(
+  className: string,
+  input: {
+    base: MachinaStyleRecord;
+    variants: Partial<Record<MachinaResponsiveVariant, MachinaStyleLayer>>;
+    description?: string;
+  },
+): MachinaResponsiveStyle {
+  assertValidClassName(className);
+  const variants: Partial<Record<MachinaResponsiveVariant, MachinaStyleLayer>> = {};
+  for (const [variantName, variantLayer] of Object.entries(input.variants)) {
+    assertValidResponsiveVariant(variantName);
+    variants[variantName] = layer(variantLayer);
+  }
+  return {
+    className,
+    base: style(input.base),
+    variants,
+    description: input.description,
+  };
+}
+
+export function resolveMachinaResponsiveStyle(
+  responsive: MachinaResponsiveStyle,
+  variant: MachinaResponsiveVariant,
+): MachinaStyleRecord {
+  assertValidResponsiveVariant(variant);
+  const variantLayer = responsive.variants[variant];
+  if (!variantLayer) {
+    return style(responsive.base);
+  }
+  return composeMachinaStyles(responsive.base, variantLayer);
+}
+
+export function resolveMachinaResponsiveStyles(
+  responsive: MachinaResponsiveStyle,
+): Record<MachinaResponsiveVariant, MachinaStyleRecord> {
+  return {
+    desktop: resolveMachinaResponsiveStyle(responsive, "desktop"),
+    tablet: resolveMachinaResponsiveStyle(responsive, "tablet"),
+    phone: resolveMachinaResponsiveStyle(responsive, "phone"),
+  };
+}
+
 export function token(group: MachinaTokenGroup, key: string) {
   return createMachinaTokenReference(group, key);
 }
@@ -383,23 +448,47 @@ export function token(group: MachinaTokenGroup, key: string) {
 export function createMachinaClassNames<
   TClasses extends Record<string, unknown>,
   TStateful extends Record<string, MachinaStatefulStyle> | undefined = undefined,
+  TResponsive extends Record<string, MachinaResponsiveStyle> | undefined = undefined,
 >(sheet: {
   classes: TClasses;
   stateful?: TStateful;
-}): { readonly [K in keyof TClasses | keyof NonNullable<TStateful>]: string } {
+  responsive?: TResponsive;
+}): {
+  readonly [K in
+    | keyof TClasses
+    | keyof NonNullable<TStateful>
+    | keyof NonNullable<TResponsive>]: string;
+} {
   const classNames = {} as {
-    [K in keyof TClasses | keyof NonNullable<TStateful>]: string;
+    [K in keyof TClasses | keyof NonNullable<TStateful> | keyof NonNullable<TResponsive>]: string;
   };
   for (const className of Object.keys(sheet.classes)) {
-    classNames[className as keyof TClasses | keyof NonNullable<TStateful>] = className;
+    classNames[
+      className as keyof TClasses | keyof NonNullable<TStateful> | keyof NonNullable<TResponsive>
+    ] = className;
   }
   for (const key of Object.keys(sheet.stateful ?? {})) {
     if (Object.hasOwn(sheet.classes, key)) {
       throw new Error(`Duplicate MachinaStyle class key "${key}" exists in classes and stateful.`);
     }
-    classNames[key as keyof TClasses | keyof NonNullable<TStateful>] = (
-      sheet.stateful as NonNullable<TStateful>
-    )[key].className;
+    classNames[
+      key as keyof TClasses | keyof NonNullable<TStateful> | keyof NonNullable<TResponsive>
+    ] = (sheet.stateful as NonNullable<TStateful>)[key].className;
+  }
+  for (const key of Object.keys(sheet.responsive ?? {})) {
+    if (Object.hasOwn(sheet.classes, key)) {
+      throw new Error(
+        `Duplicate MachinaStyle class key "${key}" exists in classes and responsive.`,
+      );
+    }
+    if (Object.hasOwn(sheet.stateful ?? {}, key)) {
+      throw new Error(
+        `Duplicate MachinaStyle class key "${key}" exists in stateful and responsive.`,
+      );
+    }
+    classNames[
+      key as keyof TClasses | keyof NonNullable<TStateful> | keyof NonNullable<TResponsive>
+    ] = (sheet.responsive as NonNullable<TResponsive>)[key].className;
   }
   return Object.freeze(classNames);
 }
@@ -407,10 +496,17 @@ export function createMachinaClassNames<
 export function classes<
   TClasses extends Record<string, unknown>,
   TStateful extends Record<string, MachinaStatefulStyle> | undefined = undefined,
+  TResponsive extends Record<string, MachinaResponsiveStyle> | undefined = undefined,
 >(sheet: {
   classes: TClasses;
   stateful?: TStateful;
-}): { readonly [K in keyof TClasses | keyof NonNullable<TStateful>]: string } {
+  responsive?: TResponsive;
+}): {
+  readonly [K in
+    | keyof TClasses
+    | keyof NonNullable<TStateful>
+    | keyof NonNullable<TResponsive>]: string;
+} {
   return createMachinaClassNames(sheet);
 }
 
@@ -433,6 +529,7 @@ export const S = {
   token,
   style,
   stateful: createStatefulStyle,
+  responsive: createResponsiveStyle,
   set: setStyleSlot,
   inherit: inheritStyleSlot,
   unset: unsetStyleSlot,
@@ -441,6 +538,8 @@ export const S = {
   compose: composeMachinaStyles,
   resolveState: resolveMachinaStateStyle,
   resolveStates: resolveMachinaStateStyles,
+  resolveResponsive: resolveMachinaResponsiveStyle,
+  resolveResponsiveVariants: resolveMachinaResponsiveStyles,
   with: withStyle,
   merge: withStyle,
   sheet,

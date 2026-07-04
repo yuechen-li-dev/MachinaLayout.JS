@@ -7,6 +7,8 @@ import {
   tokenExists,
 } from "./tokens";
 import type {
+  MachinaResponsiveStyle,
+  MachinaResponsiveVariant,
   MachinaStatefulStyle,
   MachinaStyleDiagnostic,
   MachinaStyleLayer,
@@ -16,6 +18,7 @@ import type {
 } from "./types";
 
 const MACHINA_STATE_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const RESPONSIVE_VARIANTS: readonly MachinaResponsiveVariant[] = ["desktop", "tablet", "phone"];
 
 function pushError(
   diagnostics: MachinaStyleDiagnostic[],
@@ -261,6 +264,8 @@ function validateLayerSlot(
   path: string,
   options: {
     allowUnset?: boolean;
+    unsupportedUnsetCode?: string;
+    unsupportedUnsetMessage?: string;
   } = {},
 ): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -285,8 +290,9 @@ function validateLayerSlot(
   if (slot.kind === "unset" && options.allowUnset === false) {
     pushError(
       diagnostics,
-      "UnsupportedStateUnset",
-      `MachinaStyle state layers do not support S.unset at ${path} because CSS data-state selectors cannot remove base declarations safely yet.`,
+      options.unsupportedUnsetCode ?? "UnsupportedStateUnset",
+      options.unsupportedUnsetMessage ??
+        `MachinaStyle state layers do not support S.unset at ${path} because CSS data-state selectors cannot remove base declarations safely yet.`,
       path,
     );
   }
@@ -327,6 +333,8 @@ function validateLayerNumber(
   path: string,
   options: {
     allowUnset?: boolean;
+    unsupportedUnsetCode?: string;
+    unsupportedUnsetMessage?: string;
   } = {},
 ): void {
   const unwrapped = validateLayerSlot(diagnostics, value, path, options);
@@ -345,16 +353,19 @@ function validateMachinaStyleLayerInternal(
   options: {
     allowUnset: boolean;
     pathPrefix: string;
+    unsupportedUnsetCode?: string;
+    unsupportedUnsetMessage?: string;
   },
 ): MachinaStyleDiagnostic[] {
   const diagnostics: MachinaStyleDiagnostic[] = [];
-  const { allowUnset, pathPrefix } = options;
+  const { allowUnset, pathPrefix, unsupportedUnsetCode, unsupportedUnsetMessage } = options;
+  const slotOptions = { allowUnset, unsupportedUnsetCode, unsupportedUnsetMessage };
 
   const opacity = validateLayerSlot(
     diagnostics,
     layer.surface?.opacity,
     `${pathPrefix}.surface.opacity`,
-    { allowUnset },
+    slotOptions,
   );
   if (typeof opacity === "number" && (opacity < 0 || opacity > 1)) {
     pushError(
@@ -370,14 +381,14 @@ function validateMachinaStyleLayerInternal(
     "NegativeRadius",
     layer.surface?.radius,
     `${pathPrefix}.surface.radius`,
-    { allowUnset },
+    slotOptions,
   );
   validateLayerNumber(
     diagnostics,
     "NegativeBorderWidth",
     layer.border?.width,
     `${pathPrefix}.border.width`,
-    { allowUnset },
+    slotOptions,
   );
 
   for (const [groupName, groupValue] of Object.entries(layer)) {
@@ -386,12 +397,36 @@ function validateMachinaStyleLayerInternal(
     }
     for (const [propertyName, value] of Object.entries(groupValue)) {
       validateLayerSlot(diagnostics, value, `${pathPrefix}.${groupName}.${propertyName}`, {
-        allowUnset,
+        ...slotOptions,
       });
     }
   }
 
   return diagnostics;
+}
+
+function validateLayerTokenReferences(
+  diagnostics: MachinaStyleDiagnostic[],
+  tokens: MachinaStyleTokens | undefined,
+  layer: MachinaStyleLayer,
+  pathPrefix: string,
+): void {
+  for (const [groupName, groupValue] of Object.entries(layer)) {
+    if (!groupValue || typeof groupValue !== "object") {
+      continue;
+    }
+    for (const [propertyName, rawValue] of Object.entries(groupValue)) {
+      const value =
+        isMachinaStyleSlot(rawValue) && rawValue.kind === "set" ? rawValue.value : rawValue;
+      if (groupName === "text" && propertyName === "font") {
+        checkFontTokenRef(diagnostics, tokens, value, `${pathPrefix}.${groupName}.${propertyName}`);
+        continue;
+      }
+      if (!isMachinaStyleSlot(rawValue) || rawValue.kind === "set") {
+        checkTokenRef(diagnostics, tokens, value, `${pathPrefix}.${groupName}.${propertyName}`);
+      }
+    }
+  }
 }
 
 function validateStatefulStyle(
@@ -420,32 +455,50 @@ function validateStatefulStyle(
       }),
     );
 
-    for (const [groupName, groupValue] of Object.entries(layer)) {
-      if (!groupValue || typeof groupValue !== "object") {
-        continue;
-      }
-      for (const [propertyName, rawValue] of Object.entries(groupValue)) {
-        const value =
-          isMachinaStyleSlot(rawValue) && rawValue.kind === "set" ? rawValue.value : rawValue;
-        if (groupName === "text" && propertyName === "font") {
-          checkFontTokenRef(
-            diagnostics,
-            tokens,
-            value,
-            `stateful.${key}.states.${stateName}.${groupName}.${propertyName}`,
-          );
-          continue;
-        }
-        if (!isMachinaStyleSlot(rawValue) || rawValue.kind === "set") {
-          checkTokenRef(
-            diagnostics,
-            tokens,
-            value,
-            `stateful.${key}.states.${stateName}.${groupName}.${propertyName}`,
-          );
-        }
-      }
+    validateLayerTokenReferences(diagnostics, tokens, layer, `stateful.${key}.states.${stateName}`);
+  }
+}
+
+function validateResponsiveStyle(
+  diagnostics: MachinaStyleDiagnostic[],
+  tokens: MachinaStyleTokens | undefined,
+  key: string,
+  responsive: MachinaResponsiveStyle,
+): void {
+  if (key.trim().length === 0) {
+    pushError(
+      diagnostics,
+      "InvalidResponsiveStyle",
+      "MachinaStyle responsive registry keys must be non-empty.",
+      "responsive",
+    );
+  }
+  validateClassName(diagnostics, responsive.className, `responsive.${key}.className`);
+  validateStyleRecord(diagnostics, tokens, responsive.base, `responsive.${key}.base`);
+
+  for (const [variantName, layer] of Object.entries(responsive.variants)) {
+    if (!(RESPONSIVE_VARIANTS as readonly string[]).includes(variantName)) {
+      pushError(
+        diagnostics,
+        "InvalidResponsiveVariant",
+        `MachinaStyle responsive variant "${variantName}" must be one of: desktop, tablet, phone.`,
+        `responsive.${key}.variants.${variantName}`,
+      );
     }
+    diagnostics.push(
+      ...validateMachinaStyleLayerInternal(layer, {
+        allowUnset: false,
+        unsupportedUnsetCode: "UnsupportedResponsiveUnset",
+        unsupportedUnsetMessage: `MachinaStyle responsive layers do not support S.unset at responsive.${key}.variants.${variantName} because CSS media queries cannot remove base declarations safely yet.`,
+        pathPrefix: `responsive.${key}.variants.${variantName}`,
+      }),
+    );
+    validateLayerTokenReferences(
+      diagnostics,
+      tokens,
+      layer,
+      `responsive.${key}.variants.${variantName}`,
+    );
   }
 }
 
@@ -468,6 +521,26 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
       );
     }
     validateStatefulStyle(diagnostics, sheet.tokens, key, sheet.stateful![key]);
+  }
+
+  for (const key of Object.keys(sheet.responsive ?? {})) {
+    if (Object.hasOwn(sheet.classes, key)) {
+      pushError(
+        diagnostics,
+        "DuplicateClassKey",
+        `MachinaStyle class key "${key}" exists in both classes and responsive.`,
+        `responsive.${key}`,
+      );
+    }
+    if (Object.hasOwn(sheet.stateful ?? {}, key)) {
+      pushError(
+        diagnostics,
+        "DuplicateClassKey",
+        `MachinaStyle class key "${key}" exists in both stateful and responsive.`,
+        `responsive.${key}`,
+      );
+    }
+    validateResponsiveStyle(diagnostics, sheet.tokens, key, sheet.responsive![key]);
   }
 
   return diagnostics;

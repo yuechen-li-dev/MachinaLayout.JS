@@ -11,6 +11,15 @@ M31e intentionally reframed "pseudo states" as actual component states:
 - The dogfood sample now includes a static stateful button matrix driven by literal `data-state` attributes.
 - `S.unset` is intentionally blocked inside state layers for now because CSS state selectors cannot safely remove base declarations without reset semantics.
 
+## M31f Follow-Through
+
+M31f addresses the responsive/media gap as fixed product-level layout modes:
+
+- `S.responsive(className, { base, variants })` models `desktop`, `tablet`, and `phone` variants without arbitrary media-query authoring.
+- Responsive styles lower to deterministic CSS media queries, while authors keep choosing modes.
+- The dogfood sample now includes responsive hero, panel, grid, and token-grid treatments.
+- `S.unset` is intentionally blocked inside responsive layers for now because CSS media queries cannot safely remove base declarations without reset semantics.
+
 ## M31d Follow-Through
 
 M31d addressed several of the ergonomics issues called out below:
@@ -40,7 +49,7 @@ M31d addressed several of the ergonomics issues called out below:
 ## What Was Missing
 
 - Actual component state styling was the first visible limitation for a button sample. M31e now addresses the data model and CSS lowering with `data-state`, while still leaving browser pseudo-classes out of scope.
-- Responsive/media rules were noticeable for the card matrix. The sample stayed blocky because MachinaStyle has no media-layer shape yet.
+- Responsive/media rules were noticeable for the card matrix. M31f now addresses this with fixed `desktop`, `tablet`, and `phone` variants instead of a general media-query DSL.
 - A small class-name helper would reduce drift between generated sheet keys and React `className` strings.
 - A style artifact generator helper would be nicer than each sample writing its own file script.
 - The semantic groups were enough for the dogfood surface, but common CSS like `cursor`, `flex-direction`, `grid-template-columns`, and `outline` came up quickly.
@@ -54,7 +63,7 @@ M31d addressed several of the ergonomics issues called out below:
 
 ## What Should Wait
 
-- Responsive/media layers should wait until pseudo-state and token-reference ergonomics settle.
+- Responsive/state cross-product generation should wait until reset semantics and composition order are proven.
 - Raw CSS escape hatches should wait. This sample was awkward in places, but not blocked.
 - Runtime CSS injection, theme providers, and CSS-in-JS behavior should remain out of scope.
 - MachinaCanvas style replacement should wait. This dogfood sample is enough pressure for the authoring API without disturbing the app.

@@ -189,14 +189,39 @@ export type MachinaStatefulStyle = {
   description?: string;
 };
 
+export type MachinaResponsiveVariant = "desktop" | "tablet" | "phone";
+
+export type MachinaResponsiveProfile = {
+  phoneMaxWidth: number;
+  tabletMinWidth: number;
+  tabletMaxWidth: number;
+  desktopMinWidth: number;
+};
+
+export const DEFAULT_MACHINA_RESPONSIVE_PROFILE: MachinaResponsiveProfile = {
+  phoneMaxWidth: 639,
+  tabletMinWidth: 640,
+  tabletMaxWidth: 1023,
+  desktopMinWidth: 1024,
+};
+
+export type MachinaResponsiveStyle = {
+  className: string;
+  base: MachinaStyleRecord;
+  variants: Partial<Record<MachinaResponsiveVariant, MachinaStyleLayer>>;
+  description?: string;
+};
+
 export type MachinaStyleSheet = {
   tokens?: MachinaStyleTokens;
   classes: Record<string, MachinaStyleRecord>;
   stateful?: Record<string, MachinaStatefulStyle>;
+  responsive?: Record<string, MachinaResponsiveStyle>;
 };
 
 export type SerializeMachinaStyleOptions = {
   includeHeader?: boolean;
+  responsiveProfile?: MachinaResponsiveProfile;
 };
 
 export type MachinaStyleArtifact = {

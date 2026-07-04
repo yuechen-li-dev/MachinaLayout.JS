@@ -46,6 +46,27 @@ export const tokens = S.tokens({
     round: 999,
   },
   font: {
+    body: {
+      family: "Inter, ui-sans-serif, system-ui, sans-serif",
+      size: 15,
+      lineHeight: 1.5,
+      weight: "normal",
+      letterSpacing: 0,
+    },
+    display: {
+      family: "Inter, ui-sans-serif, system-ui, sans-serif",
+      size: 42,
+      lineHeight: 1.1,
+      weight: "bold",
+      letterSpacing: 0,
+    },
+    title: {
+      family: "Inter, ui-sans-serif, system-ui, sans-serif",
+      size: 28,
+      lineHeight: 1.2,
+      weight: "semibold",
+      letterSpacing: 0,
+    },
     ui: {
       family: "Inter, ui-sans-serif, system-ui, sans-serif",
       size: 16,
@@ -117,6 +138,117 @@ const title = S.style({
     size: 42,
     lineHeight: 1.1,
     weight: "bold",
+  },
+});
+
+const responsiveHero = S.responsive("responsiveHero", {
+  description: "Layout-mode hero treatment lowered to fixed media queries.",
+  base: S.with(header, {
+    box: {
+      paddingX: t("space", "lg"),
+      paddingY: t("space", "lg"),
+    },
+  }),
+  variants: {
+    desktop: S.layer({
+      box: {
+        paddingX: t("space", "xl"),
+      },
+      text: {
+        font: t("font", "display"),
+      },
+    }),
+    tablet: S.layer({
+      box: {
+        paddingX: t("space", "lg"),
+      },
+      text: {
+        font: t("font", "title"),
+      },
+    }),
+    phone: S.layer({
+      box: {
+        paddingX: t("space", "md"),
+      },
+      text: {
+        font: t("font", "body"),
+      },
+    }),
+  },
+});
+
+const responsivePanel = S.responsive("responsivePanel", {
+  base: S.compose(basePanel, borderedLayer),
+  variants: {
+    desktop: S.layer({
+      box: {
+        padding: t("space", "xl"),
+      },
+    }),
+    tablet: S.layer({
+      box: {
+        padding: t("space", "lg"),
+      },
+    }),
+    phone: S.layer({
+      box: {
+        padding: t("space", "md"),
+      },
+    }),
+  },
+});
+
+const responsiveGrid = S.responsive("responsiveGrid", {
+  base: S.style({
+    box: {
+      display: "grid",
+      gap: t("space", "lg"),
+      marginBottom: t("space", "lg"),
+    },
+  }),
+  variants: {
+    desktop: S.layer({
+      box: {
+        gap: t("space", "xl"),
+      },
+    }),
+    tablet: S.layer({
+      box: {
+        gap: t("space", "lg"),
+      },
+    }),
+    phone: S.layer({
+      box: {
+        display: "block",
+        gap: S.inherit(),
+      },
+    }),
+  },
+});
+
+const responsiveTokenGrid = S.responsive("responsiveTokenGrid", {
+  base: S.style({
+    box: {
+      display: "block",
+      paddingX: t("space", "sm"),
+    },
+  }),
+  variants: {
+    desktop: S.layer({
+      box: {
+        paddingX: t("space", "lg"),
+      },
+    }),
+    tablet: S.layer({
+      box: {
+        paddingX: t("space", "md"),
+      },
+    }),
+    phone: S.layer({
+      box: {
+        paddingX: t("space", "xs"),
+      },
+    }),
   },
 });
 
@@ -485,6 +617,12 @@ export const sheet = S.sheet({
   },
   stateful: {
     statefulButton,
+  },
+  responsive: {
+    responsiveGrid,
+    responsiveHero,
+    responsivePanel,
+    responsiveTokenGrid,
   },
 });
 

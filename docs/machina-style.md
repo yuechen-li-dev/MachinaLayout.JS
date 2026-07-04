@@ -271,6 +271,92 @@ M31e does not add Deus binding yet. It only creates the style representation and
 
 `S.unset()` is not supported inside state layers yet. Base classes remain active underneath state selectors, so CSS cannot remove a base declaration safely without property-specific reset semantics. Validation reports `UnsupportedStateUnset` if a state layer uses `S.unset()`.
 
+## Responsive Style Variants
+
+MachinaStyle responsive variants are layout modes, not literal devices:
+
+- `desktop` means wide workspace mode.
+- `tablet` means medium stacked mode.
+- `phone` means narrow single-column mode.
+
+CSS media queries are the lowering artifact. Authors choose the mode; they do not author arbitrary breakpoints or media-query logic.
+
+```ts
+const hero = S.responsive("hero", {
+  base: S.style({
+    box: { paddingX: S.token("space", "lg") },
+    text: { font: S.token("font", "body") },
+  }),
+  variants: {
+    desktop: S.layer({
+      box: { paddingX: S.token("space", "xl") },
+      text: { font: S.token("font", "display") },
+    }),
+    tablet: S.layer({
+      box: { paddingX: S.token("space", "lg") },
+      text: { font: S.token("font", "title") },
+    }),
+    phone: S.layer({
+      box: { paddingX: S.token("space", "md") },
+      text: { font: S.token("font", "body") },
+    }),
+  },
+});
+```
+
+Add responsive tables to the `responsive` sheet section:
+
+```ts
+const sheet = S.sheet({
+  tokens,
+  classes: {
+    page,
+  },
+  responsive: {
+    hero,
+  },
+});
+
+const classes = S.classes(sheet);
+// classes.hero === "hero"
+```
+
+`S.resolveResponsive(hero, "desktop")` returns `base` composed with the desktop layer. `S.resolveResponsiveVariants(hero)` returns resolved `desktop`, `tablet`, and `phone` records. Missing variants inherit the base style.
+
+Serialization emits the base class and then present variants in deterministic `desktop`, `tablet`, `phone` order:
+
+```css
+.hero {
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+}
+
+@media (min-width: 1024px) {
+  .hero {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+}
+
+@media (max-width: 639px) {
+  .hero {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+}
+```
+
+`S.unset()` is not supported inside responsive layers yet. Base declarations remain active inside media queries, so CSS cannot remove them safely without reset semantics. Validation reports `UnsupportedResponsiveUnset`.
+
+There is no runtime `matchMedia`, no viewport hook, and no container-query support in this milestone. A future composition order can be `base -> responsive variant -> actual state`, but M31f keeps `responsive` and `stateful` tables independent.
+
 ## Artifact Generation
 
 MachinaStyle does not write files itself, but it can produce a standard artifact object:
@@ -300,7 +386,7 @@ samples/style-dogfood/src/style.ts
   -> samples/style-dogfood/src/generated.css
 ```
 
-The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, stateful style tables, validation diagnostics, class helpers, artifact generation, structured font-token lowering, and deterministic CSS serialization without runtime CSS injection.
+The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, stateful style tables, responsive style variants, validation diagnostics, class helpers, artifact generation, structured font-token lowering, and deterministic CSS serialization without runtime CSS injection.
 
 See the M31c friction report at [`docs/machina-style-dogfood-report.md`](machina-style-dogfood-report.md) for concrete recommendations from using MachinaStyle in the sample.
 
@@ -322,4 +408,4 @@ Serialization does not block on diagnostics. That keeps lowering deterministic a
 
 MachinaStyle deliberately does not support arbitrary selector nesting, CSS pseudo-selector authoring, media queries, keyframes, runtime style injection, theme providers, or raw CSS escape hatches.
 
-Future phases can add responsive/media rules, richer state lowering, MachinaCanvas dogfood, and TSX export integration without turning CSS back into the source language.
+Future phases can add richer state lowering, responsive/state composition, MachinaCanvas dogfood, and TSX export integration without turning CSS back into the source language.
