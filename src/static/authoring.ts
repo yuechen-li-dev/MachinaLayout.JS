@@ -5,12 +5,15 @@ import type {
   StaticPage,
   StaticTabs,
   StaticTabsItem,
+  StaticTimeline,
+  StaticTimelineStep,
 } from "./types";
 import {
   formatStaticMachineDiagnostics,
   validateStaticAccordion,
   validateStaticPage,
   validateStaticTabs,
+  validateStaticTimeline,
 } from "./validate";
 
 function assertNoStaticErrors(diagnostics: ReturnType<typeof validateStaticPage>): void {
@@ -49,6 +52,21 @@ function cloneAccordionItem(item: StaticAccordionItem): StaticAccordionItem {
   };
 }
 
+function cloneTimelineStep(step: StaticTimelineStep): StaticTimelineStep {
+  return {
+    id: step.id,
+    label: step.label,
+    body:
+      typeof step.body === "string"
+        ? step.body
+        : {
+            kind: "html",
+            html: step.body.html,
+          },
+    accent: step.accent,
+  };
+}
+
 export function tabs(input: {
   id: string;
   initial: string;
@@ -79,6 +97,25 @@ export function accordion(input: {
   return output;
 }
 
+export function timeline(input: {
+  id: string;
+  title?: string;
+  durationMs?: number;
+  loop?: boolean;
+  steps: readonly StaticTimelineStep[];
+}): StaticTimeline {
+  const output: StaticTimeline = {
+    kind: "timeline",
+    id: input.id,
+    title: input.title,
+    durationMs: input.durationMs ?? 8000,
+    loop: input.loop ?? true,
+    steps: input.steps.map(cloneTimelineStep),
+  };
+  assertNoStaticErrors(validateStaticTimeline(output));
+  return output;
+}
+
 export function page(input: { title: string; body: readonly StaticNode[] }): StaticPage {
   const output: StaticPage = {
     kind: "page",
@@ -89,6 +126,9 @@ export function page(input: { title: string; body: readonly StaticNode[] }): Sta
       }
       if (node.kind === "accordion") {
         return accordion(node);
+      }
+      if (node.kind === "timeline") {
+        return timeline(node);
       }
       return node;
     }),
@@ -102,6 +142,7 @@ export const staticPage = page;
 export const H = {
   tabs,
   accordion,
+  timeline,
   page,
   staticPage,
 } as const;

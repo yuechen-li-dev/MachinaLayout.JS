@@ -90,6 +90,59 @@ item open; if no item has `defaultOpen: true`, the first item is serialized as
 checked because radio groups do not naturally return to all-closed state after a
 choice is made.
 
+M32c adds timeline/stepper lowering, the time-based static machine:
+
+- author timelines with `H.timeline`
+- lower steps to semantic HTML and an ordered list
+- generate step numbers with CSS counters
+- carry duration, step count, step index, iteration count, and accent values as
+  CSS custom properties
+- use CSS keyframes and animation as the browser-native clock
+- include a `prefers-reduced-motion` fallback
+- ship no script tag and no JavaScript runtime behavior
+
+```ts
+import { H } from "machinalayout/static";
+
+const timeline = H.timeline({
+  id: "launch-sequence",
+  title: "Machina Static Lowering",
+  durationMs: 12000,
+  loop: true,
+  steps: [
+    {
+      id: "source",
+      label: "TypeScript Source",
+      body: "Author finite UI intent in TypeScript.",
+      accent: "#4f8cff",
+    },
+    {
+      id: "mir",
+      label: "Static MIR",
+      body: "Normalize static interaction into a compiler-friendly shape.",
+      accent: "#8b5cf6",
+    },
+    {
+      id: "artifact",
+      label: "HTML/CSS Artifact",
+      body: "Lower into browser-native selectors, counters, variables, and keyframes.",
+      accent: "#f97316",
+    },
+    {
+      id: "browser",
+      label: "Browser Runtime",
+      body: "The browser runs it with no JavaScript.",
+      accent: "#22c55e",
+    },
+  ],
+});
+```
+
+`durationMs` defaults to `8000`, and `loop` defaults to `true`. `loop: false`
+emits the same animation with an iteration count of `1`. Step labels and string
+bodies are escaped; step numbers are not serialized as text, because the lowered
+CSS uses `counter-reset`, `counter-increment`, and `content: counter(...)`.
+
 String content is escaped during HTML serialization. Raw HTML content must be
 explicit:
 
@@ -105,11 +158,19 @@ warning. Treat it as trusted, pre-sanitized content.
 Machina Static is not arbitrary TypeScript-to-CSS compilation. It does not
 compile programs into CSS, add event handlers, perform data fetching, bind to
 DeusMachina, or replace dynamic applications. It lowers a bounded finite UI
-machine into ordinary browser-native controls and selectors.
+machine into ordinary browser-native controls, selectors, counters, custom
+properties, and keyframes.
 
 The current no-JS accordion is functional, but it does not synchronize dynamic
 `aria-expanded` state because there is no JavaScript runtime. It also does not
-provide animation/state runtime behavior or arbitrary state-machine lowering.
+provide arbitrary state-machine lowering.
+
+The current no-JS timeline is intentionally not a carousel or animation
+framework. It does not provide pause/play, manual selection, carousel controls,
+synchronization with form state, event handling, or an arbitrary animation DSL.
+CSS animation is used only as a clock for visual progression, CSS counters are
+used only as generated labels, and CSS custom properties are compiler-emitted
+constants.
 
 DeusMachina may become a future source for richer static machines, but this
 target does not integrate it. MachinaStyle may provide shared styling later, but

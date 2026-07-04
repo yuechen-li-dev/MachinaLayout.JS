@@ -119,7 +119,7 @@ describe("static accordion authoring", () => {
 
     expect(diagnostics.map((entry) => entry.code)).toContain("DuplicateStaticId");
     expect(diagnostics.map((entry) => entry.message).join("\n")).toContain(
-      'Duplicate generated input id "shared-one" across static page.',
+      'Duplicate generated HTML id "shared" across static page.',
     );
   });
 

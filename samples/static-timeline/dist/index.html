@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Machina Static Timeline</title>
+    <link rel="stylesheet" href="generated.css" />
+  </head>
+  <body>
+<section
+    class="machina-timeline"
+    id="launch-sequence"
+    style="--timeline-duration: 12000ms; --timeline-step-count: 4; --timeline-iteration-count: infinite;"
+  >
+  <h2 class="machina-timeline__title">Machina Static Lowering</h2>
+  <ol class="machina-timeline__steps">
+    <li
+      class="machina-timeline__step"
+      style="--step-index: 0; --step-accent: #4f8cff;"
+    >
+      <h3 class="machina-timeline__step-label">TypeScript Source</h3>
+      <div class="machina-timeline__step-body">Author finite UI intent in TypeScript.</div>
+    </li>
+    <li
+      class="machina-timeline__step"
+      style="--step-index: 1; --step-accent: #8b5cf6;"
+    >
+      <h3 class="machina-timeline__step-label">Static MIR</h3>
+      <div class="machina-timeline__step-body">Normalize static interaction into a compiler-friendly shape.</div>
+    </li>
+    <li
+      class="machina-timeline__step"
+      style="--step-index: 2; --step-accent: #f97316;"
+    >
+      <h3 class="machina-timeline__step-label">HTML/CSS Artifact</h3>
+      <div class="machina-timeline__step-body">Lower into browser-native selectors, counters, variables, and keyframes.</div>
+    </li>
+    <li
+      class="machina-timeline__step"
+      style="--step-index: 3; --step-accent: #22c55e;"
+    >
+      <h3 class="machina-timeline__step-label">Browser Runtime</h3>
+      <div class="machina-timeline__step-body">The browser runs it with no JavaScript.</div>
+    </li>
+  </ol>
+  <div class="machina-timeline__progress" aria-hidden="true">
+    <div class="machina-timeline__progress-bar"></div>
+  </div>
+  </section>
+  </body>
+</html>

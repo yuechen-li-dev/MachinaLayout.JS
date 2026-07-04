@@ -34,7 +34,23 @@ export type StaticAccordion = {
   items: readonly StaticAccordionItem[];
 };
 
-export type StaticNode = StaticTabs | StaticAccordion;
+export type StaticTimelineStep = {
+  id: StaticMachineId;
+  label: string;
+  body: StaticContent;
+  accent?: string;
+};
+
+export type StaticTimeline = {
+  kind: "timeline";
+  id: StaticMachineId;
+  title?: string;
+  durationMs: number;
+  loop: boolean;
+  steps: readonly StaticTimelineStep[];
+};
+
+export type StaticNode = StaticTabs | StaticAccordion | StaticTimeline;
 
 export type StaticPage = {
   kind: "page";

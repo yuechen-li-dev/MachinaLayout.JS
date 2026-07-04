@@ -1,4 +1,10 @@
-import type { StaticAccordion, StaticContent, StaticPage, StaticTabs } from "./types";
+import type {
+  StaticAccordion,
+  StaticContent,
+  StaticPage,
+  StaticTabs,
+  StaticTimeline,
+} from "./types";
 
 export type StaticMachineDiagnostic = {
   severity: "error" | "warning";
@@ -34,6 +40,10 @@ function validateStaticContent(content: StaticContent, path: string): StaticMach
       path,
     ),
   ];
+}
+
+function isSafeCssCustomPropertyValue(value: string): boolean {
+  return value.trim().length > 0 && !/[;{}<>]/.test(value);
 }
 
 export function validateStaticTabs(tabs: StaticTabs, path = "tabs"): StaticMachineDiagnostic[] {
@@ -210,12 +220,102 @@ export function validateStaticAccordion(
   return diagnostics;
 }
 
-function collectGeneratedInputIds(node: StaticPage["body"][number]): string[] {
+export function validateStaticTimeline(
+  timeline: StaticTimeline,
+  path = "timeline",
+): StaticMachineDiagnostic[] {
+  const diagnostics: StaticMachineDiagnostic[] = [];
+  const seenStepIds = new Set<string>();
+
+  if (!isSafeStaticId(timeline.id)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidStaticId",
+        `Timeline id "${timeline.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+        `${path}.id`,
+      ),
+    );
+  }
+
+  if (timeline.steps.length === 0) {
+    diagnostics.push(
+      diagnostic("error", "EmptyTimeline", "Timeline must contain at least one step.", path),
+    );
+  }
+
+  if (!Number.isFinite(timeline.durationMs) || timeline.durationMs <= 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidTimelineDuration",
+        "Timeline durationMs must be a positive finite number.",
+        `${path}.durationMs`,
+      ),
+    );
+  }
+
+  for (const [index, step] of timeline.steps.entries()) {
+    const stepPath = `${path}.steps[${index}]`;
+    if (!isSafeStaticId(step.id)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "InvalidStaticId",
+          `Timeline step id "${step.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+          `${stepPath}.id`,
+        ),
+      );
+    }
+    if (seenStepIds.has(step.id)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "DuplicateStaticId",
+          `Duplicate timeline step id "${step.id}".`,
+          `${stepPath}.id`,
+        ),
+      );
+    }
+    seenStepIds.add(step.id);
+
+    if (step.label.trim().length === 0) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "EmptyLabel",
+          "Timeline step label must be non-empty.",
+          `${stepPath}.label`,
+        ),
+      );
+    }
+
+    if (step.accent !== undefined && !isSafeCssCustomPropertyValue(step.accent)) {
+      diagnostics.push(
+        diagnostic(
+          "warning",
+          "InvalidTimelineAccent",
+          "Timeline step accent should be a non-empty CSS color token.",
+          `${stepPath}.accent`,
+        ),
+      );
+    }
+
+    diagnostics.push(...validateStaticContent(step.body, `${stepPath}.body`));
+  }
+
+  return diagnostics;
+}
+
+function collectGeneratedHtmlIds(node: StaticPage["body"][number]): string[] {
   if (node.kind === "tabs") {
-    return node.tabs.map((item) => `${node.id}-${item.id}`);
+    return [node.id, ...node.tabs.map((item) => `${node.id}-${item.id}`)];
   }
   if (node.kind === "accordion") {
-    return node.items.map((item) => `${node.id}-${item.id}`);
+    return [node.id, ...node.items.map((item) => `${node.id}-${item.id}`)];
+  }
+  if (node.kind === "timeline") {
+    return [node.id];
   }
   return [];
 }
@@ -235,18 +335,21 @@ export function validateStaticPage(page: StaticPage): StaticMachineDiagnostic[] 
     if (node.kind === "accordion") {
       diagnostics.push(...validateStaticAccordion(node, `body[${index}]`));
     }
-    for (const generatedInputId of collectGeneratedInputIds(node)) {
-      if (seenGeneratedInputIds.has(generatedInputId)) {
+    if (node.kind === "timeline") {
+      diagnostics.push(...validateStaticTimeline(node, `body[${index}]`));
+    }
+    for (const generatedHtmlId of collectGeneratedHtmlIds(node)) {
+      if (seenGeneratedInputIds.has(generatedHtmlId)) {
         diagnostics.push(
           diagnostic(
             "error",
             "DuplicateStaticId",
-            `Duplicate generated input id "${generatedInputId}" across static page.`,
+            `Duplicate generated HTML id "${generatedHtmlId}" across static page.`,
             `body[${index}]`,
           ),
         );
       }
-      seenGeneratedInputIds.add(generatedInputId);
+      seenGeneratedInputIds.add(generatedHtmlId);
     }
   }
   return diagnostics;

@@ -5,6 +5,8 @@ import type {
   StaticNode,
   StaticPage,
   StaticTabs,
+  StaticTimeline,
+  StaticTimelineStep,
 } from "./types";
 import { formatStaticMachineDiagnostics, validateStaticPage } from "./validate";
 
@@ -48,6 +50,17 @@ function inputId(tabs: StaticTabs, tabId: string): string {
 
 function accordionInputId(accordion: StaticAccordion, itemId: string): string {
   return `${accordion.id}-${itemId}`;
+}
+
+function isSafeCssCustomPropertyValue(value: string): boolean {
+  return value.trim().length > 0 && !/[;{}<>]/.test(value);
+}
+
+function timelineAccent(step: StaticTimelineStep): string {
+  if (step.accent && isSafeCssCustomPropertyValue(step.accent)) {
+    return step.accent;
+  }
+  return "var(--machina-static-accent)";
 }
 
 function renderTabsHtml(tabs: StaticTabs): string {
@@ -120,12 +133,45 @@ ${items}
   </section>`;
 }
 
+function renderTimelineHtml(timeline: StaticTimeline): string {
+  const title = timeline.title
+    ? `  <h2 class="machina-timeline__title">${escapeHtml(timeline.title)}</h2>\n`
+    : "";
+  const steps = timeline.steps
+    .map(
+      (step, index) => `    <li
+      class="machina-timeline__step"
+      style="--step-index: ${index}; --step-accent: ${escapeAttribute(timelineAccent(step))};"
+    >
+      <h3 class="machina-timeline__step-label">${escapeHtml(step.label)}</h3>
+      <div class="machina-timeline__step-body">${renderStaticContent(step.body)}</div>
+    </li>`,
+    )
+    .join("\n");
+
+  return `<section
+    class="machina-timeline"
+    id="${escapeAttribute(timeline.id)}"
+    style="--timeline-duration: ${timeline.durationMs}ms; --timeline-step-count: ${timeline.steps.length}; --timeline-iteration-count: ${timeline.loop ? "infinite" : "1"};"
+  >
+${title}  <ol class="machina-timeline__steps">
+${steps}
+  </ol>
+  <div class="machina-timeline__progress" aria-hidden="true">
+    <div class="machina-timeline__progress-bar"></div>
+  </div>
+  </section>`;
+}
+
 function renderNodeHtml(node: StaticNode): string {
   if (node.kind === "tabs") {
     return renderTabsHtml(node);
   }
   if (node.kind === "accordion") {
     return renderAccordionHtml(node);
+  }
+  if (node.kind === "timeline") {
+    return renderTimelineHtml(node);
   }
   return "";
 }
@@ -159,7 +205,15 @@ ${body}
 }
 
 function baseCss(): string {
-  return `.machina-tabs {
+  return `:root {
+  --machina-static-border: #b8c2cc;
+  --machina-static-accent: #0b5cad;
+  --machina-static-surface: #ffffff;
+  --machina-static-muted: #eef3f7;
+  --machina-static-text: #172026;
+}
+
+.machina-tabs {
   color: #172026;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   margin: 2rem auto;
@@ -257,6 +311,116 @@ function baseCss(): string {
 
 .machina-accordion__input:checked ~ .machina-accordion__panel {
   display: block;
+}
+
+.machina-timeline {
+  color: var(--machina-static-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 760px;
+}
+
+.machina-timeline__title {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: 0 0 1rem;
+}
+
+.machina-timeline__steps {
+  counter-reset: machina-timeline-step;
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.machina-timeline__step {
+  animation-delay: calc(var(--step-index) * var(--timeline-duration) / var(--timeline-step-count));
+  animation-duration: var(--timeline-duration);
+  animation-iteration-count: var(--timeline-iteration-count);
+  animation-name: machina-timeline-step-pulse;
+  animation-timing-function: linear;
+  border: 1px solid var(--machina-static-border);
+  border-left: 0.35rem solid var(--step-accent);
+  border-radius: 6px;
+  counter-increment: machina-timeline-step;
+  opacity: 0.72;
+  padding: 0.85rem 1rem 0.85rem 3.25rem;
+  position: relative;
+}
+
+.machina-timeline__step::before {
+  align-items: center;
+  background: var(--step-accent);
+  border-radius: 999px;
+  color: #ffffff;
+  content: counter(machina-timeline-step);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 750;
+  height: 1.7rem;
+  justify-content: center;
+  left: 1rem;
+  position: absolute;
+  top: 0.85rem;
+  width: 1.7rem;
+}
+
+.machina-timeline__step-label {
+  font-size: 1rem;
+  line-height: 1.3;
+  margin: 0 0 0.3rem;
+}
+
+.machina-timeline__step-body {
+  line-height: 1.5;
+}
+
+.machina-timeline__progress {
+  background: var(--machina-static-muted);
+  border-radius: 999px;
+  height: 0.45rem;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.machina-timeline__progress-bar {
+  animation-duration: var(--timeline-duration);
+  animation-iteration-count: var(--timeline-iteration-count);
+  animation-name: machina-timeline-progress;
+  animation-timing-function: linear;
+  background: var(--machina-static-accent);
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+@keyframes machina-timeline-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes machina-timeline-step-pulse {
+  0%, 18% {
+    border-color: var(--step-accent);
+    opacity: 1;
+  }
+  22%, 100% {
+    border-color: var(--machina-static-border);
+    opacity: 0.72;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .machina-timeline__progress-bar,
+  .machina-timeline__step {
+    animation: none;
+  }
 }
 `;
 }
