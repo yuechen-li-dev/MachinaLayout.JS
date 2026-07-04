@@ -179,7 +179,97 @@ export const classes = S.classes(sheet);
 <button className={classes.buttonPrimary}>Launch</button>
 ```
 
+Stateful styles also participate in the helper, so `sheet.stateful.button = S.stateful("button", ...)` produces `classes.button === "button"`.
+
 The helper returns the exact class names used during serialization, which keeps React `className` usage aligned with `style.ts`.
+
+## Stateful Styles
+
+MachinaStyle models actual component states first, not CSS pseudo-states first.
+
+```txt
+CSS has pseudo-states because CSS has no real state machine.
+
+Machina has DeusMachina.
+
+So MachinaStyle styles actual component states,
+then lowers them to CSS selectors/data attributes.
+```
+
+`S.stateful(className, { base, states })` defines a concrete base record plus named state layers:
+
+```ts
+const button = S.stateful("button", {
+  base: S.style({
+    surface: { fill: S.token("color", "primary") },
+    text: { color: S.token("color", "onPrimary") },
+  }),
+  states: {
+    hover: S.layer({
+      surface: { fill: S.token("color", "primaryHover") },
+    }),
+    pressed: S.layer({
+      surface: { fill: S.token("color", "primaryPressed") },
+    }),
+    disabled: S.layer({
+      surface: { opacity: 0.48 },
+    }),
+  },
+});
+```
+
+Use `S.resolveState(stateful, stateName)` to compose a concrete record for a named state. `S.resolveStates(stateful)` resolves every named state deterministically.
+
+When a sheet includes `stateful`, MachinaStyle lowers those states to `data-state` selectors:
+
+```ts
+const sheet = S.sheet({
+  tokens,
+  classes: {
+    page,
+  },
+  stateful: {
+    button,
+  },
+});
+```
+
+```css
+.button {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.button[data-state~="hover"] {
+  background: var(--color-primary-hover);
+}
+
+.button[data-state~="pressed"] {
+  background: var(--color-primary-pressed);
+}
+
+.button[data-state~="disabled"] {
+  opacity: 0.48;
+}
+```
+
+That makes runtime ownership explicit:
+
+- DeusMachina decides what state a component is in.
+- MachinaStyle decides what style applies to that state.
+- CSS lowering expresses those states through selectors.
+
+`S.dataState(...states)` is a small helper for building a validated `data-state` string:
+
+```tsx
+<button className={classes.button} data-state={S.dataState("hover", "selected")}>
+  Launch
+</button>
+```
+
+M31e does not add Deus binding yet. It only creates the style representation and CSS lowering that Deus can drive later.
+
+`S.unset()` is not supported inside state layers yet. Base classes remain active underneath state selectors, so CSS cannot remove a base declaration safely without property-specific reset semantics. Validation reports `UnsupportedStateUnset` if a state layer uses `S.unset()`.
 
 ## Artifact Generation
 
@@ -210,7 +300,7 @@ samples/style-dogfood/src/style.ts
   -> samples/style-dogfood/src/generated.css
 ```
 
-The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, validation diagnostics, class helpers, artifact generation, structured font-token lowering, and deterministic CSS serialization without runtime CSS injection.
+The sample demonstrates tokens, semantic style records, `S.with`, explicit layers, `S.compose`, `S.set`, `S.inherit`, `S.unset`, stateful style tables, validation diagnostics, class helpers, artifact generation, structured font-token lowering, and deterministic CSS serialization without runtime CSS injection.
 
 See the M31c friction report at [`docs/machina-style-dogfood-report.md`](machina-style-dogfood-report.md) for concrete recommendations from using MachinaStyle in the sample.
 
@@ -230,6 +320,6 @@ Serialization does not block on diagnostics. That keeps lowering deterministic a
 
 ## Scope
 
-MachinaStyle deliberately does not support arbitrary selector nesting, pseudo selectors, media queries, keyframes, runtime style injection, theme providers, or raw CSS escape hatches.
+MachinaStyle deliberately does not support arbitrary selector nesting, CSS pseudo-selector authoring, media queries, keyframes, runtime style injection, theme providers, or raw CSS escape hatches.
 
-Future phases can add variants, pseudo states, responsive/media rules, MachinaCanvas dogfood, and TSX export integration without turning CSS back into the source language.
+Future phases can add responsive/media rules, richer state lowering, MachinaCanvas dogfood, and TSX export integration without turning CSS back into the source language.

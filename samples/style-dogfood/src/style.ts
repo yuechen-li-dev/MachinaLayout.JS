@@ -12,17 +12,23 @@ export const tokens = S.tokens({
     border: "#c7cdd8",
     danger: "#c62828",
     field: "#ffffff",
+    info: "#dce8ff",
     muted: "#5f6978",
     onDanger: "#ffffff",
+    onInfo: "#17336f",
     onPrimary: "#ffffff",
     onSuccess: "#0f2f1d",
     onWarning: "#3a2600",
     page: "#f5f7fb",
     primary: "#2457d6",
+    primaryHover: "#2f64ea",
+    primaryPressed: "#183ea0",
+    selectedRing: "#90aefc",
     success: "#8ee6a6",
     surface: "#ffffff",
     surfaceRaised: "#fdfefe",
     text: "#18202c",
+    textDisabled: "#7d8592",
     warning: "#ffd166",
     warningSurface: "#fff4cf",
   },
@@ -210,6 +216,48 @@ const baseButton = S.style({
     font: t("font", "ui"),
     lineHeight: 1.25,
     weight: "semibold",
+  },
+});
+
+const statefulButton = S.stateful("statefulButton", {
+  description: "Actual button states lowered to data-state selectors.",
+  base: S.compose(baseButton, primaryLayer),
+  states: {
+    hover: S.layer({
+      surface: {
+        fill: t("color", "primaryHover"),
+      },
+    }),
+    loading: S.layer({
+      surface: {
+        fill: t("color", "info"),
+      },
+      text: {
+        color: t("color", "onInfo"),
+      },
+    }),
+    pressed: S.layer({
+      surface: {
+        fill: t("color", "primaryPressed"),
+      },
+    }),
+    disabled: S.layer({
+      surface: {
+        opacity: 0.48,
+      },
+      text: {
+        color: t("color", "textDisabled"),
+      },
+    }),
+    selected: S.layer({
+      border: {
+        color: t("color", "selectedRing"),
+        width: 2,
+      },
+      effect: {
+        shadow: "0 0 0 3px rgba(144, 174, 252, 0.32)",
+      },
+    }),
   },
 });
 
@@ -434,6 +482,9 @@ export const sheet = S.sheet({
         display: "block",
       },
     }),
+  },
+  stateful: {
+    statefulButton,
   },
 });
 

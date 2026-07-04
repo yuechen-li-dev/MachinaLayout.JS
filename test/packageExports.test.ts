@@ -53,6 +53,10 @@ describe("package export entrypoints", () => {
     expect(S.with).toBeTypeOf("function");
     expect(S.token).toBeTypeOf("function");
     expect(S.classes).toBeTypeOf("function");
+    expect(S.stateful).toBeTypeOf("function");
+    expect(S.resolveState).toBeTypeOf("function");
+    expect(S.resolveStates).toBeTypeOf("function");
+    expect(S.dataState).toBeTypeOf("function");
     expect(createMachinaClassNames).toBeTypeOf("function");
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");

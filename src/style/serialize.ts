@@ -1,4 +1,4 @@
-import { isMachinaStyleSlot } from "./authoring";
+import { composeMachinaStyles, isMachinaStyleSlot } from "./authoring";
 import {
   MACHINA_TOKEN_GROUPS,
   isMachinaTokenReference,
@@ -8,6 +8,7 @@ import {
   tokenVariableName,
 } from "./tokens";
 import type {
+  MachinaStatefulStyle,
   MachinaBorderStyle,
   MachinaBoxStyle,
   MachinaEffectStyle,
@@ -364,6 +365,18 @@ function styleDeclarations(
   ];
 }
 
+function stateLayerToCssRecord(
+  stateful: MachinaStatefulStyle,
+  stateName: string,
+): MachinaStyleRecord {
+  const stateLayer = stateful.states[stateName];
+  const stateOverrides = composeMachinaStyles(stateLayer);
+  if (stateLayer.surface?.fill && isMachinaStyleSlot(stateLayer.surface.fill)) {
+    // no-op: composeMachinaStyles already normalized supported set/plain values
+  }
+  return stateOverrides;
+}
+
 function assertNoUnresolvedStyleSlots(value: unknown, path: string): void {
   if (isMachinaStyleSlot(value)) {
     throw new Error(
@@ -375,6 +388,20 @@ function assertNoUnresolvedStyleSlots(value: unknown, path: string): void {
   }
   for (const [key, nestedValue] of Object.entries(value)) {
     assertNoUnresolvedStyleSlots(nestedValue, `${path}.${key}`);
+  }
+}
+
+function assertNoUnsupportedStateUnsets(value: unknown, path: string): void {
+  if (isMachinaStyleSlot(value) && value.kind === "unset") {
+    throw new Error(
+      `Cannot serialize MachinaStyle state layer with S.unset at ${path}. CSS data-state selectors cannot remove base declarations safely yet.`,
+    );
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return;
+  }
+  for (const [key, nestedValue] of Object.entries(value)) {
+    assertNoUnsupportedStateUnsets(nestedValue, `${path}.${key}`);
   }
 }
 
@@ -409,6 +436,28 @@ export function serializeMachinaStyleSheet(
     assertNoUnresolvedStyleSlots(sheet.classes[className], `classes.${className}`);
     const declarations = styleDeclarations(sheet.classes[className], sheet.tokens);
     blocks.push(serializeRule(`.${className}`, declarations));
+  }
+
+  for (const key of Object.keys(sheet.stateful ?? {}).sort()) {
+    const stateful = sheet.stateful![key];
+    assertNoUnresolvedStyleSlots(stateful.base, `stateful.${key}.base`);
+    blocks.push(
+      serializeRule(`.${stateful.className}`, styleDeclarations(stateful.base, sheet.tokens)),
+    );
+
+    for (const stateName of Object.keys(stateful.states).sort()) {
+      assertNoUnsupportedStateUnsets(
+        stateful.states[stateName],
+        `stateful.${key}.states.${stateName}`,
+      );
+      const declarations = styleDeclarations(
+        stateLayerToCssRecord(stateful, stateName),
+        sheet.tokens,
+      );
+      blocks.push(
+        serializeRule(`.${stateful.className}[data-state~="${stateName}"]`, declarations),
+      );
+    }
   }
 
   return `${blocks.join("\n\n")}\n`;

@@ -6,17 +6,23 @@
   --color-border: #c7cdd8;
   --color-danger: #c62828;
   --color-field: #ffffff;
+  --color-info: #dce8ff;
   --color-muted: #5f6978;
   --color-on-danger: #ffffff;
+  --color-on-info: #17336f;
   --color-on-primary: #ffffff;
   --color-on-success: #0f2f1d;
   --color-on-warning: #3a2600;
   --color-page: #f5f7fb;
   --color-primary: #2457d6;
+  --color-primary-hover: #2f64ea;
+  --color-primary-pressed: #183ea0;
+  --color-selected-ring: #90aefc;
   --color-success: #8ee6a6;
   --color-surface: #ffffff;
   --color-surface-raised: #fdfefe;
   --color-text: #18202c;
+  --color-text-disabled: #7d8592;
   --color-warning: #ffd166;
   --color-warning-surface: #fff4cf;
   --space-lg: 20px;
@@ -584,4 +590,51 @@
 
 .tokenRow {
   display: block;
+}
+
+.statefulButton {
+  display: inline-block;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  margin-right: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-on-primary);
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  line-height: var(--font-ui-line-height);
+  font-weight: var(--font-ui-weight);
+  letter-spacing: var(--font-ui-letter-spacing);
+  line-height: 1.25;
+  font-weight: 600;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+.statefulButton[data-state~="disabled"] {
+  opacity: 0.48;
+  color: var(--color-text-disabled);
+}
+
+.statefulButton[data-state~="hover"] {
+  background: var(--color-primary-hover);
+}
+
+.statefulButton[data-state~="loading"] {
+  background: var(--color-info);
+  color: var(--color-on-info);
+}
+
+.statefulButton[data-state~="pressed"] {
+  background: var(--color-primary-pressed);
+}
+
+.statefulButton[data-state~="selected"] {
+  border-width: 2px;
+  border-color: var(--color-selected-ring);
+  box-shadow: 0 0 0 3px rgba(144, 174, 252, 0.32);
 }

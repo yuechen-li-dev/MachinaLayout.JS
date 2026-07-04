@@ -205,8 +205,10 @@ describe("MachinaStyle ergonomics", () => {
 
     expect(dogfoodArtifact.path).toBe("generated.css");
     expect(dogfoodClasses.buttonPrimary).toBe("buttonPrimary");
+    expect(dogfoodClasses.statefulButton).toBe("statefulButton");
     expect(generatedCss).toBe(dogfoodArtifact.css);
     expect(generatedCss).toContain("font-family: var(--font-ui-family);");
+    expect(generatedCss).toContain('.statefulButton[data-state~="hover"] {');
     expect(generatedCss).not.toContain("[object Object]");
   });
 });

@@ -1,7 +1,9 @@
 import type {
+  MachinaStatefulStyle,
   MachinaStyleLayer,
   MachinaStyleRecord,
   MachinaStyleSheet,
+  MachinaStyleStateName,
   MachinaStyleSlot,
   MachinaStyleTokens,
   MachinaTokenGroup,
@@ -56,6 +58,9 @@ const STYLE_FIELDS = {
   effect: ["shadow"],
 } as const satisfies Record<StyleGroupName, readonly string[]>;
 
+const MACHINA_CLASS_NAME_PATTERN = /^[^\s]+$/;
+const MACHINA_STATE_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+
 function cloneDefinedObject<T extends PlainRecord>(input: T): T {
   const output: PlainRecord = {};
   for (const [key, value] of Object.entries(input)) {
@@ -69,6 +74,26 @@ function cloneDefinedObject<T extends PlainRecord>(input: T): T {
     output[key] = value;
   }
   return output as T;
+}
+
+function assertValidClassName(className: string): void {
+  if (className.trim().length === 0) {
+    throw new Error("MachinaStyle class names must be non-empty.");
+  }
+  if (!MACHINA_CLASS_NAME_PATTERN.test(className)) {
+    throw new Error(`MachinaStyle class name "${className}" must not contain whitespace.`);
+  }
+}
+
+function assertValidStateName(stateName: string): void {
+  if (stateName.trim().length === 0) {
+    throw new Error("MachinaStyle state names must be non-empty.");
+  }
+  if (!MACHINA_STATE_NAME_PATTERN.test(stateName)) {
+    throw new Error(
+      `MachinaStyle state name "${stateName}" must match /^[a-zA-Z][a-zA-Z0-9_-]*$/.`,
+    );
+  }
 }
 
 export function isMachinaStyleSlot<T>(value: unknown): value is MachinaStyleSlot<T> {
@@ -290,49 +315,135 @@ export function withStyle(base: MachinaStyleRecord, patch: MachinaStyleRecord): 
 export function sheet(input: MachinaStyleSheet): MachinaStyleSheet {
   const classes: Record<string, MachinaStyleRecord> = {};
   for (const [className, record] of Object.entries(input.classes)) {
-    if (className.trim().length === 0) {
-      throw new Error("MachinaStyle class names must be non-empty.");
-    }
+    assertValidClassName(className);
     classes[className] = style(record);
+  }
+  const stateful: Record<string, MachinaStatefulStyle> = {};
+  for (const [key, statefulStyle] of Object.entries(input.stateful ?? {})) {
+    if (key.trim().length === 0) {
+      throw new Error("MachinaStyle stateful registry keys must be non-empty.");
+    }
+    stateful[key] = createStatefulStyle(statefulStyle.className, statefulStyle);
   }
   return {
     tokens: input.tokens ? tokens(input.tokens) : undefined,
     classes,
+    stateful: Object.keys(stateful).length > 0 ? stateful : undefined,
   };
+}
+
+export function createStatefulStyle(
+  className: string,
+  input: {
+    base: MachinaStyleRecord;
+    states: Record<MachinaStyleStateName, MachinaStyleLayer>;
+    description?: string;
+  },
+): MachinaStatefulStyle {
+  assertValidClassName(className);
+  const states: Record<MachinaStyleStateName, MachinaStyleLayer> = {};
+  for (const [stateName, stateLayer] of Object.entries(input.states)) {
+    assertValidStateName(stateName);
+    states[stateName] = layer(stateLayer);
+  }
+  return {
+    className,
+    base: style(input.base),
+    states,
+    description: input.description,
+  };
+}
+
+export function resolveMachinaStateStyle(
+  stateful: MachinaStatefulStyle,
+  stateName: string,
+): MachinaStyleRecord {
+  assertValidStateName(stateName);
+  const stateLayer = stateful.states[stateName];
+  if (!stateLayer) {
+    throw new Error(`Unknown MachinaStyle state "${stateName}" for class "${stateful.className}".`);
+  }
+  return composeMachinaStyles(stateful.base, stateLayer);
+}
+
+export function resolveMachinaStateStyles(
+  stateful: MachinaStatefulStyle,
+): Record<string, MachinaStyleRecord> {
+  const resolved: Record<string, MachinaStyleRecord> = {};
+  for (const stateName of Object.keys(stateful.states).sort()) {
+    resolved[stateName] = resolveMachinaStateStyle(stateful, stateName);
+  }
+  return resolved;
 }
 
 export function token(group: MachinaTokenGroup, key: string) {
   return createMachinaTokenReference(group, key);
 }
 
-export function createMachinaClassNames<TClasses extends Record<string, unknown>>(sheet: {
+export function createMachinaClassNames<
+  TClasses extends Record<string, unknown>,
+  TStateful extends Record<string, MachinaStatefulStyle> | undefined = undefined,
+>(sheet: {
   classes: TClasses;
-}): { readonly [K in keyof TClasses]: string } {
-  const classNames = {} as { [K in keyof TClasses]: string };
+  stateful?: TStateful;
+}): { readonly [K in keyof TClasses | keyof NonNullable<TStateful>]: string } {
+  const classNames = {} as {
+    [K in keyof TClasses | keyof NonNullable<TStateful>]: string;
+  };
   for (const className of Object.keys(sheet.classes)) {
-    classNames[className as keyof TClasses] = className;
+    classNames[className as keyof TClasses | keyof NonNullable<TStateful>] = className;
+  }
+  for (const key of Object.keys(sheet.stateful ?? {})) {
+    if (Object.hasOwn(sheet.classes, key)) {
+      throw new Error(`Duplicate MachinaStyle class key "${key}" exists in classes and stateful.`);
+    }
+    classNames[key as keyof TClasses | keyof NonNullable<TStateful>] = (
+      sheet.stateful as NonNullable<TStateful>
+    )[key].className;
   }
   return Object.freeze(classNames);
 }
 
-export function classes<TClasses extends Record<string, unknown>>(sheet: {
+export function classes<
+  TClasses extends Record<string, unknown>,
+  TStateful extends Record<string, MachinaStatefulStyle> | undefined = undefined,
+>(sheet: {
   classes: TClasses;
-}): { readonly [K in keyof TClasses]: string } {
+  stateful?: TStateful;
+}): { readonly [K in keyof TClasses | keyof NonNullable<TStateful>]: string } {
   return createMachinaClassNames(sheet);
+}
+
+export function dataState(...states: readonly string[]): string {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const stateName of states) {
+    assertValidStateName(stateName);
+    if (seen.has(stateName)) {
+      continue;
+    }
+    seen.add(stateName);
+    ordered.push(stateName);
+  }
+  return ordered.join(" ");
 }
 
 export const S = {
   tokens,
   token,
   style,
+  stateful: createStatefulStyle,
   set: setStyleSlot,
   inherit: inheritStyleSlot,
   unset: unsetStyleSlot,
   layer,
   over: overMachinaStyle,
   compose: composeMachinaStyles,
+  resolveState: resolveMachinaStateStyle,
+  resolveStates: resolveMachinaStateStyles,
   with: withStyle,
   merge: withStyle,
   sheet,
   classes,
+  dataState,
 } as const;

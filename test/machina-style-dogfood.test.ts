@@ -64,6 +64,10 @@ describe("MachinaStyle dogfood sample", () => {
     expect(generatedCss).toContain(".buttonGhost {");
     expect(generatedCss).toContain(".cardElevated {");
     expect(generatedCss).toContain(".badgeSuccess {");
+    expect(generatedCss).toContain('.statefulButton[data-state~="hover"] {');
+    expect(generatedCss).toContain('.statefulButton[data-state~="pressed"] {');
+    expect(generatedCss).toContain('.statefulButton[data-state~="disabled"] {');
+    expect(generatedCss).not.toContain(":hover");
   });
 
   it("lowers unset, inherit, and composed layers into concrete CSS", () => {

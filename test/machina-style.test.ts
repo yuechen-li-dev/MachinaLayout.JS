@@ -16,6 +16,10 @@ describe("MachinaStyle authoring", () => {
     expect(S.sheet).toBeTypeOf("function");
     expect(S.token).toBeTypeOf("function");
     expect(S.classes).toBeTypeOf("function");
+    expect(S.stateful).toBeTypeOf("function");
+    expect(S.resolveState).toBeTypeOf("function");
+    expect(S.resolveStates).toBeTypeOf("function");
+    expect(S.dataState).toBeTypeOf("function");
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");
     expect(validateMachinaStyleSheet).toBeTypeOf("function");
@@ -81,6 +85,16 @@ describe("MachinaStyle authoring", () => {
       classes: {
         panel: { surface: { radius: "radius.md" } },
       },
+      stateful: {
+        button: S.stateful("button", {
+          base: { surface: { fill: "radius.md" } },
+          states: {
+            hover: S.layer({
+              surface: { opacity: 0.8 },
+            }),
+          },
+        }),
+      },
     };
 
     const sheet = S.sheet(input);
@@ -90,6 +104,8 @@ describe("MachinaStyle authoring", () => {
     expect(sheet.tokens).not.toBe(input.tokens);
     expect(sheet.classes).not.toBe(input.classes);
     expect(sheet.classes.panel).not.toBe(input.classes.panel);
+    expect(sheet.stateful).not.toBe(input.stateful);
+    expect(sheet.stateful?.button).not.toBe(input.stateful?.button);
   });
 
   it("rejects empty class names during authoring", () => {

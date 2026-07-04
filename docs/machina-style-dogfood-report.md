@@ -2,6 +2,15 @@
 
 M31c dogfooded MachinaStyle in `samples/style-dogfood`, a tiny React/Vite control-panel page whose CSS is generated from `src/style.ts` and checked in as `src/generated.css`.
 
+## M31e Follow-Through
+
+M31e intentionally reframed "pseudo states" as actual component states:
+
+- `S.stateful(className, { base, states })` now models a concrete base style plus named state layers.
+- Stateful styles lower to `[data-state~="..."]` selectors rather than `:hover`, `:active`, or `:disabled`.
+- The dogfood sample now includes a static stateful button matrix driven by literal `data-state` attributes.
+- `S.unset` is intentionally blocked inside state layers for now because CSS state selectors cannot safely remove base declarations without reset semantics.
+
 ## M31d Follow-Through
 
 M31d addressed several of the ergonomics issues called out below:
@@ -30,7 +39,7 @@ M31d addressed several of the ergonomics issues called out below:
 
 ## What Was Missing
 
-- Pseudo states were the first visible limitation for a button sample. Hover, focus-visible, active, and disabled selectors would make the page feel more complete.
+- Actual component state styling was the first visible limitation for a button sample. M31e now addresses the data model and CSS lowering with `data-state`, while still leaving browser pseudo-classes out of scope.
 - Responsive/media rules were noticeable for the card matrix. The sample stayed blocky because MachinaStyle has no media-layer shape yet.
 - A small class-name helper would reduce drift between generated sheet keys and React `className` strings.
 - A style artifact generator helper would be nicer than each sample writing its own file script.
@@ -40,7 +49,6 @@ M31d addressed several of the ergonomics issues called out below:
 
 - Add typed token references, or a helper such as `S.token("color", "primary")`, so TypeScript can participate before validation.
 - Add class-name helpers that preserve deterministic sheet keys while giving React code a typed `classes.buttonPrimary` surface.
-- Add pseudo-state layers for common component states, starting with `hover`, `focusVisible`, `active`, and explicit disabled styling.
 - Add a small first-party CSS artifact generator helper so samples and apps can standardize `style.ts -> generated.css`.
 - Fix or clarify font token reference lowering before encouraging `font.ui` usage in examples.
 

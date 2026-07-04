@@ -1,3 +1,4 @@
+import { S } from "../../../src/style";
 import { classes } from "./style";
 
 const tokenSwatches = [
@@ -13,6 +14,15 @@ const stateRows = [
   ["Compact", classes.buttonCompactPrimary, classes.badgeNeutral, "Dense"],
   ["Danger", classes.buttonDanger, classes.badgeDanger, "Armed"],
   ["Ghost", classes.buttonGhost, classes.badgeWarning, "No fill"],
+] as const;
+
+const statefulButtons = [
+  ["Idle", undefined, "Base plus primary layer"],
+  ["Hover", "hover", "Stateful hover via data-state"],
+  ["Pressed", "pressed", "Pressed from explicit state data"],
+  ["Disabled", "disabled", "Dimmed and relabeled"],
+  ["Loading", "loading", "Loading treatment from state table"],
+  ["Selected", S.dataState("hover", "selected"), "Composed runtime states"],
 ] as const;
 
 export function App() {
@@ -56,6 +66,31 @@ export function App() {
           <button className={classes.buttonDisabled} type="button" aria-disabled="true">
             Disabled
           </button>
+        </div>
+      </section>
+
+      <section className={classes.panel}>
+        <h2 className={classes.sectionTitle}>Stateful Button</h2>
+        <p className={classes.bodyText}>
+          MachinaStyle models actual component states first, then lowers them to{" "}
+          <code>data-state</code> selectors.
+        </p>
+        <div className={classes.matrix}>
+          {statefulButtons.map(([label, state, note]) => (
+            <div className={classes.matrixRow} key={label}>
+              <span className={classes.matrixLabel}>{label}</span>
+              <button
+                aria-disabled={state === "disabled" ? "true" : undefined}
+                className={classes.statefulButton}
+                data-state={state}
+                disabled={state === "disabled"}
+                type="button"
+              >
+                Launch
+              </button>
+              <span className={classes.mutedText}>{note}</span>
+            </div>
+          ))}
         </div>
       </section>
 

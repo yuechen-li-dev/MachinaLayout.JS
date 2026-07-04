@@ -7,12 +7,15 @@ import {
   tokenExists,
 } from "./tokens";
 import type {
+  MachinaStatefulStyle,
   MachinaStyleDiagnostic,
   MachinaStyleLayer,
   MachinaStyleRecord,
   MachinaStyleSheet,
   MachinaStyleTokens,
 } from "./types";
+
+const MACHINA_STATE_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 
 function pushError(
   diagnostics: MachinaStyleDiagnostic[],
@@ -218,10 +221,47 @@ function validateStyleRecord(
   }
 }
 
+function validateClassName(
+  diagnostics: MachinaStyleDiagnostic[],
+  className: string,
+  path: string,
+): void {
+  if (className.trim().length === 0) {
+    pushError(diagnostics, "EmptyClassName", "MachinaStyle class names must be non-empty.", path);
+    return;
+  }
+  if (/\s/.test(className)) {
+    pushError(
+      diagnostics,
+      "InvalidClassName",
+      `MachinaStyle class name "${className}" must not contain whitespace.`,
+      path,
+    );
+  }
+}
+
+function validateStateName(
+  diagnostics: MachinaStyleDiagnostic[],
+  stateName: string,
+  path: string,
+): void {
+  if (stateName.trim().length === 0 || !MACHINA_STATE_NAME_PATTERN.test(stateName)) {
+    pushError(
+      diagnostics,
+      "InvalidStateName",
+      `MachinaStyle state name "${stateName}" must match /^[a-zA-Z][a-zA-Z0-9_-]*$/.`,
+      path,
+    );
+  }
+}
+
 function validateLayerSlot(
   diagnostics: MachinaStyleDiagnostic[],
   value: unknown,
   path: string,
+  options: {
+    allowUnset?: boolean;
+  } = {},
 ): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return value;
@@ -240,6 +280,15 @@ function validateLayerSlot(
   if (slot.kind !== "set" && slot.kind !== "inherit" && slot.kind !== "unset") {
     pushError(diagnostics, "InvalidStyleSlot", `Invalid MachinaStyleSlot kind at ${path}.`, path);
     return undefined;
+  }
+
+  if (slot.kind === "unset" && options.allowUnset === false) {
+    pushError(
+      diagnostics,
+      "UnsupportedStateUnset",
+      `MachinaStyle state layers do not support S.unset at ${path} because CSS data-state selectors cannot remove base declarations safely yet.`,
+      path,
+    );
   }
 
   if (slot.kind === "set") {
@@ -276,30 +325,59 @@ function validateLayerNumber(
   code: string,
   value: unknown,
   path: string,
+  options: {
+    allowUnset?: boolean;
+  } = {},
 ): void {
-  const unwrapped = validateLayerSlot(diagnostics, value, path);
+  const unwrapped = validateLayerSlot(diagnostics, value, path, options);
   checkNonNegativeNumber(diagnostics, code, unwrapped, path);
 }
 
 export function validateMachinaStyleLayer(layer: MachinaStyleLayer): MachinaStyleDiagnostic[] {
-  const diagnostics: MachinaStyleDiagnostic[] = [];
+  return validateMachinaStyleLayerInternal(layer, {
+    allowUnset: true,
+    pathPrefix: "layer",
+  });
+}
 
-  const opacity = validateLayerSlot(diagnostics, layer.surface?.opacity, "layer.surface.opacity");
+function validateMachinaStyleLayerInternal(
+  layer: MachinaStyleLayer,
+  options: {
+    allowUnset: boolean;
+    pathPrefix: string;
+  },
+): MachinaStyleDiagnostic[] {
+  const diagnostics: MachinaStyleDiagnostic[] = [];
+  const { allowUnset, pathPrefix } = options;
+
+  const opacity = validateLayerSlot(
+    diagnostics,
+    layer.surface?.opacity,
+    `${pathPrefix}.surface.opacity`,
+    { allowUnset },
+  );
   if (typeof opacity === "number" && (opacity < 0 || opacity > 1)) {
     pushError(
       diagnostics,
       "InvalidOpacity",
       "MachinaStyle surface opacity must be between 0 and 1.",
-      "layer.surface.opacity",
+      `${pathPrefix}.surface.opacity`,
     );
   }
 
-  validateLayerNumber(diagnostics, "NegativeRadius", layer.surface?.radius, "layer.surface.radius");
+  validateLayerNumber(
+    diagnostics,
+    "NegativeRadius",
+    layer.surface?.radius,
+    `${pathPrefix}.surface.radius`,
+    { allowUnset },
+  );
   validateLayerNumber(
     diagnostics,
     "NegativeBorderWidth",
     layer.border?.width,
-    "layer.border.width",
+    `${pathPrefix}.border.width`,
+    { allowUnset },
   );
 
   for (const [groupName, groupValue] of Object.entries(layer)) {
@@ -307,11 +385,68 @@ export function validateMachinaStyleLayer(layer: MachinaStyleLayer): MachinaStyl
       continue;
     }
     for (const [propertyName, value] of Object.entries(groupValue)) {
-      validateLayerSlot(diagnostics, value, `layer.${groupName}.${propertyName}`);
+      validateLayerSlot(diagnostics, value, `${pathPrefix}.${groupName}.${propertyName}`, {
+        allowUnset,
+      });
     }
   }
 
   return diagnostics;
+}
+
+function validateStatefulStyle(
+  diagnostics: MachinaStyleDiagnostic[],
+  tokens: MachinaStyleTokens | undefined,
+  key: string,
+  stateful: MachinaStatefulStyle,
+): void {
+  if (key.trim().length === 0) {
+    pushError(
+      diagnostics,
+      "InvalidStatefulStyle",
+      "MachinaStyle stateful registry keys must be non-empty.",
+      "stateful",
+    );
+  }
+  validateClassName(diagnostics, stateful.className, `stateful.${key}.className`);
+  validateStyleRecord(diagnostics, tokens, stateful.base, `stateful.${key}.base`);
+
+  for (const [stateName, layer] of Object.entries(stateful.states)) {
+    validateStateName(diagnostics, stateName, `stateful.${key}.states.${stateName}`);
+    diagnostics.push(
+      ...validateMachinaStyleLayerInternal(layer, {
+        allowUnset: false,
+        pathPrefix: `stateful.${key}.states.${stateName}`,
+      }),
+    );
+
+    for (const [groupName, groupValue] of Object.entries(layer)) {
+      if (!groupValue || typeof groupValue !== "object") {
+        continue;
+      }
+      for (const [propertyName, rawValue] of Object.entries(groupValue)) {
+        const value =
+          isMachinaStyleSlot(rawValue) && rawValue.kind === "set" ? rawValue.value : rawValue;
+        if (groupName === "text" && propertyName === "font") {
+          checkFontTokenRef(
+            diagnostics,
+            tokens,
+            value,
+            `stateful.${key}.states.${stateName}.${groupName}.${propertyName}`,
+          );
+          continue;
+        }
+        if (!isMachinaStyleSlot(rawValue) || rawValue.kind === "set") {
+          checkTokenRef(
+            diagnostics,
+            tokens,
+            value,
+            `stateful.${key}.states.${stateName}.${groupName}.${propertyName}`,
+          );
+        }
+      }
+    }
+  }
 }
 
 export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyleDiagnostic[] {
@@ -319,24 +454,20 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
   validateTokens(diagnostics, sheet.tokens);
 
   for (const [className, record] of Object.entries(sheet.classes)) {
-    if (className.trim().length === 0) {
-      pushError(
-        diagnostics,
-        "EmptyClassName",
-        "MachinaStyle class names must be non-empty.",
-        "classes",
-      );
-      continue;
-    }
-    if (/\s/.test(className)) {
-      pushError(
-        diagnostics,
-        "InvalidClassName",
-        `MachinaStyle class name "${className}" must not contain whitespace.`,
-        `classes.${className}`,
-      );
-    }
+    validateClassName(diagnostics, className, `classes.${className}`);
     validateStyleRecord(diagnostics, sheet.tokens, record, `classes.${className}`);
+  }
+
+  for (const key of Object.keys(sheet.stateful ?? {})) {
+    if (Object.hasOwn(sheet.classes, key)) {
+      pushError(
+        diagnostics,
+        "DuplicateClassKey",
+        `MachinaStyle class key "${key}" exists in both classes and stateful.`,
+        `stateful.${key}`,
+      );
+    }
+    validateStatefulStyle(diagnostics, sheet.tokens, key, sheet.stateful![key]);
   }
 
   return diagnostics;

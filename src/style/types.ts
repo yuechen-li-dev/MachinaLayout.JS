@@ -180,9 +180,19 @@ export type MachinaStyleLayer = {
   effect?: MachinaEffectStyleLayer;
 };
 
+export type MachinaStyleStateName = string;
+
+export type MachinaStatefulStyle = {
+  className: string;
+  base: MachinaStyleRecord;
+  states: Record<MachinaStyleStateName, MachinaStyleLayer>;
+  description?: string;
+};
+
 export type MachinaStyleSheet = {
   tokens?: MachinaStyleTokens;
   classes: Record<string, MachinaStyleRecord>;
+  stateful?: Record<string, MachinaStatefulStyle>;
 };
 
 export type SerializeMachinaStyleOptions = {
