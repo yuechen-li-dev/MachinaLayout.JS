@@ -59,7 +59,7 @@ Inspection and handoff utilities are available at `machinalayout/inspect` and `m
 
 Typed semantic style authoring is available at `machinalayout/style`; see [MachinaStyle](docs/machina-style.md).
 
-Static no-JS finite UI machine lowering for tabs, accordions, timelines, and finite dispatch machines is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
+Static no-JS lowering for tabs, accordions, timelines, finite dispatch machines, and native GET/POST HTTP forms is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
 
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
@@ -136,7 +136,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Error codes](docs/error-codes.md)
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
 - [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
-- [Machina Static](docs/machina-static.md) — finite UI machines and timelines lowered to no-JS HTML/CSS.
+- [Machina Static](docs/machina-static.md) — finite UI machines, timelines, and native HTTP forms lowered to no-JS HTML/CSS.
 - [Exhaustive enum matching](docs/exhaustive-match.md)
 
 ## Tiny `LayoutRow[]` example
@@ -354,6 +354,7 @@ const views = {
 - [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.
 - [`samples/static-dispatch`](samples/static-dispatch) demonstrates `machinalayout/static` lowering a finite dispatch table to checked-in HTML/CSS with no JS.
+- [`samples/static-http`](samples/static-http) demonstrates `machinalayout/static` lowering native GET/POST HTTP intent to checked-in HTML/CSS with no JS.
 - [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
 
 Run it locally:

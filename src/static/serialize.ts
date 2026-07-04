@@ -3,6 +3,10 @@ import type {
   StaticContent,
   StaticDispatch,
   StaticHtmlArtifact,
+  StaticHttpAction,
+  StaticHttpField,
+  StaticHttpFieldOption,
+  StaticHttpLink,
   StaticNode,
   StaticPage,
   StaticTabs,
@@ -55,6 +59,18 @@ function accordionInputId(accordion: StaticAccordion, itemId: string): string {
 
 function dispatchInputId(dispatch: StaticDispatch, stateId: string): string {
   return `${dispatch.id}-state-${stateId}`;
+}
+
+function httpFieldId(action: StaticHttpAction, field: StaticHttpField): string {
+  return `${action.id}-${field.id}`;
+}
+
+function httpOptionId(
+  action: StaticHttpAction,
+  field: StaticHttpField,
+  option: StaticHttpFieldOption,
+): string {
+  return `${httpFieldId(action, field)}-${option.value}`;
 }
 
 function isSafeCssCustomPropertyValue(value: string): boolean {
@@ -208,6 +224,136 @@ ${screens}
   </section>`;
 }
 
+function renderBooleanAttribute(name: string, value: boolean | undefined): string {
+  return value ? ` ${name}` : "";
+}
+
+function renderAttribute(name: string, value: string | number | undefined): string {
+  if (value === undefined) {
+    return "";
+  }
+  return ` ${name}="${escapeAttribute(String(value))}"`;
+}
+
+function renderTargetAttributes(target: "self" | "blank" | undefined): string {
+  if (target === "blank") {
+    return ' target="_blank" rel="noopener noreferrer"';
+  }
+  return "";
+}
+
+function renderCommonFieldAttributes(field: StaticHttpField): string {
+  return [
+    renderAttribute("placeholder", field.placeholder),
+    renderBooleanAttribute("required", field.required),
+    renderBooleanAttribute("disabled", field.disabled),
+    renderBooleanAttribute("readonly", field.readonly),
+    renderAttribute("min", field.min),
+    renderAttribute("max", field.max),
+    renderAttribute("step", field.step),
+    renderAttribute("pattern", field.pattern),
+    renderAttribute("autocomplete", field.autocomplete),
+  ].join("");
+}
+
+function renderHiddenHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  const id = httpFieldId(action, field);
+  const name = field.name ?? field.id;
+  return `      <input type="hidden" id="${escapeAttribute(id)}" name="${escapeAttribute(name)}"${renderAttribute("value", field.value)}${renderBooleanAttribute("disabled", field.disabled)} />`;
+}
+
+function renderTextareaHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  const id = httpFieldId(action, field);
+  const name = field.name ?? field.id;
+  return `      <div class="machina-http-action__field">
+        <label for="${escapeAttribute(id)}">${escapeHtml(field.label ?? "")}</label>
+        <textarea id="${escapeAttribute(id)}" name="${escapeAttribute(name)}"${renderCommonFieldAttributes(field)}>${escapeHtml(field.value ?? "")}</textarea>
+      </div>`;
+}
+
+function renderSelectHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  const id = httpFieldId(action, field);
+  const name = field.name ?? field.id;
+  const options = (field.options ?? [])
+    .map(
+      (option) =>
+        `          <option value="${escapeAttribute(option.value)}"${option.value === field.value ? " selected" : ""}>${escapeHtml(option.label)}</option>`,
+    )
+    .join("\n");
+  return `      <div class="machina-http-action__field">
+        <label for="${escapeAttribute(id)}">${escapeHtml(field.label ?? "")}</label>
+        <select id="${escapeAttribute(id)}" name="${escapeAttribute(name)}"${renderCommonFieldAttributes(field)}>
+${options}
+        </select>
+      </div>`;
+}
+
+function renderRadioHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  const name = field.name ?? field.id;
+  const options = (field.options ?? [])
+    .map((option) => {
+      const id = httpOptionId(action, field, option);
+      return `        <label class="machina-http-action__choice" for="${escapeAttribute(id)}">
+          <input id="${escapeAttribute(id)}" name="${escapeAttribute(name)}" type="radio" value="${escapeAttribute(option.value)}"${option.value === field.value ? " checked" : ""}${renderBooleanAttribute("required", field.required)}${renderBooleanAttribute("disabled", field.disabled)} />
+          <span>${escapeHtml(option.label)}</span>
+        </label>`;
+    })
+    .join("\n");
+  return `      <fieldset class="machina-http-action__field machina-http-action__field--choices">
+        <legend>${escapeHtml(field.label ?? "")}</legend>
+${options}
+      </fieldset>`;
+}
+
+function renderInputHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  const id = httpFieldId(action, field);
+  const name = field.name ?? field.id;
+  const value = field.kind === "checkbox" ? (field.value ?? "on") : field.value;
+  return `      <div class="machina-http-action__field">
+        <label for="${escapeAttribute(id)}">${escapeHtml(field.label ?? "")}</label>
+        <input id="${escapeAttribute(id)}" name="${escapeAttribute(name)}" type="${escapeAttribute(field.kind)}"${renderAttribute("value", value)}${renderCommonFieldAttributes(field)} />
+      </div>`;
+}
+
+function renderHttpField(action: StaticHttpAction, field: StaticHttpField): string {
+  if (field.kind === "hidden") {
+    return renderHiddenHttpField(action, field);
+  }
+  if (field.kind === "textarea") {
+    return renderTextareaHttpField(action, field);
+  }
+  if (field.kind === "select") {
+    return renderSelectHttpField(action, field);
+  }
+  if (field.kind === "radio") {
+    return renderRadioHttpField(action, field);
+  }
+  return renderInputHttpField(action, field);
+}
+
+function renderHttpActionHtml(action: StaticHttpAction): string {
+  const title =
+    action.title === undefined
+      ? ""
+      : `  <h2 class="machina-http-action__title">${escapeHtml(action.title)}</h2>\n`;
+  const description =
+    action.description === undefined
+      ? ""
+      : `  <div class="machina-http-action__description">${renderStaticContent(action.description)}</div>\n`;
+  const fields = action.fields.map((field) => renderHttpField(action, field)).join("\n");
+
+  return `<section class="machina-http-action" id="${escapeAttribute(action.id)}">
+${title}${description}  <form class="machina-http-action__form" method="${action.method.toLowerCase()}" action="${escapeAttribute(action.action)}"${renderTargetAttributes(action.target)}>
+${fields}
+    <button class="machina-http-action__submit" type="submit">${escapeHtml(action.submitLabel ?? "Submit")}</button>
+  </form>
+  </section>`;
+}
+
+function renderHttpLinkHtml(link: StaticHttpLink): string {
+  return `<a class="machina-http-link" id="${escapeAttribute(link.id)}" href="${escapeAttribute(link.href)}"${renderTargetAttributes(link.target)}>${escapeHtml(link.label)}</a>`;
+}
+
 function renderNodeHtml(node: StaticNode): string {
   if (node.kind === "tabs") {
     return renderTabsHtml(node);
@@ -220,6 +366,12 @@ function renderNodeHtml(node: StaticNode): string {
   }
   if (node.kind === "dispatch") {
     return renderDispatchHtml(node);
+  }
+  if (node.kind === "httpAction") {
+    return renderHttpActionHtml(node);
+  }
+  if (node.kind === "httpLink") {
+    return renderHttpLinkHtml(node);
   }
   return "";
 }
@@ -500,6 +652,95 @@ function baseCss(): string {
   background: var(--machina-static-muted);
   border-color: var(--machina-static-accent);
   color: var(--machina-static-accent);
+}
+
+.machina-http-action {
+  color: var(--machina-static-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem auto;
+  max-width: 760px;
+}
+
+.machina-http-action__title {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+.machina-http-action__description {
+  line-height: 1.5;
+  margin-block: 0 1rem;
+}
+
+.machina-http-action__form {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.machina-http-action__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.machina-http-action__field label,
+.machina-http-action__field legend {
+  font-weight: 650;
+}
+
+.machina-http-action__field input,
+.machina-http-action__field select,
+.machina-http-action__field textarea {
+  border: 1px solid var(--machina-static-border);
+  border-radius: 6px;
+  color: var(--machina-static-text);
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+}
+
+.machina-http-action__field textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.machina-http-action__field--choices {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.machina-http-action__choice {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  font-weight: 500;
+}
+
+.machina-http-action__choice input {
+  inline-size: auto;
+}
+
+.machina-http-action__submit {
+  background: var(--machina-static-accent);
+  border: 1px solid var(--machina-static-accent);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  justify-self: start;
+  padding: 0.65rem 0.95rem;
+}
+
+.machina-http-link {
+  color: var(--machina-static-accent);
+  display: inline-flex;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 700;
+  margin: 1rem auto;
+  max-width: 760px;
 }
 
 @keyframes machina-timeline-progress {

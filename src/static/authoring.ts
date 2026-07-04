@@ -4,6 +4,11 @@ import type {
   StaticDispatch,
   StaticDispatchAction,
   StaticDispatchState,
+  StaticHttpAction,
+  StaticHttpField,
+  StaticHttpLink,
+  StaticHttpMethod,
+  StaticHttpTarget,
   StaticNode,
   StaticPage,
   StaticTabs,
@@ -15,6 +20,8 @@ import {
   formatStaticMachineDiagnostics,
   validateStaticAccordion,
   validateStaticDispatch,
+  validateStaticHttpAction,
+  validateStaticHttpLink,
   validateStaticPage,
   validateStaticTabs,
   validateStaticTimeline,
@@ -95,6 +102,29 @@ function cloneDispatchState(state: StaticDispatchState): StaticDispatchState {
   };
 }
 
+function cloneHttpField(field: StaticHttpField): StaticHttpField {
+  return {
+    id: field.id,
+    name: field.name,
+    label: field.label,
+    kind: field.kind,
+    value: field.value,
+    placeholder: field.placeholder,
+    required: field.required,
+    disabled: field.disabled,
+    readonly: field.readonly,
+    min: field.min,
+    max: field.max,
+    step: field.step,
+    pattern: field.pattern,
+    autocomplete: field.autocomplete,
+    options: field.options?.map((option) => ({
+      value: option.value,
+      label: option.label,
+    })),
+  };
+}
+
 export function tabs(input: {
   id: string;
   initial: string;
@@ -161,6 +191,56 @@ export function dispatch(input: {
   return output;
 }
 
+export function httpAction(input: {
+  id: string;
+  method?: StaticHttpMethod;
+  action: string;
+  title?: string;
+  description?: StaticHttpAction["description"];
+  target?: StaticHttpTarget;
+  submitLabel?: string;
+  fields: readonly StaticHttpField[];
+}): StaticHttpAction {
+  const output: StaticHttpAction = {
+    kind: "httpAction",
+    id: input.id,
+    method: input.method ?? "GET",
+    action: input.action,
+    title: input.title,
+    description:
+      input.description === undefined
+        ? undefined
+        : typeof input.description === "string"
+          ? input.description
+          : {
+              kind: "html",
+              html: input.description.html,
+            },
+    target: input.target ?? "self",
+    submitLabel: input.submitLabel ?? "Submit",
+    fields: input.fields.map(cloneHttpField),
+  };
+  assertNoStaticErrors(validateStaticHttpAction(output));
+  return output;
+}
+
+export function httpLink(input: {
+  id: string;
+  href: string;
+  label: string;
+  target?: StaticHttpTarget;
+}): StaticHttpLink {
+  const output: StaticHttpLink = {
+    kind: "httpLink",
+    id: input.id,
+    href: input.href,
+    label: input.label,
+    target: input.target ?? "self",
+  };
+  assertNoStaticErrors(validateStaticHttpLink(output));
+  return output;
+}
+
 export function page(input: { title: string; body: readonly StaticNode[] }): StaticPage {
   const output: StaticPage = {
     kind: "page",
@@ -178,6 +258,12 @@ export function page(input: { title: string; body: readonly StaticNode[] }): Sta
       if (node.kind === "dispatch") {
         return dispatch(node);
       }
+      if (node.kind === "httpAction") {
+        return httpAction(node);
+      }
+      if (node.kind === "httpLink") {
+        return httpLink(node);
+      }
       return node;
     }),
   };
@@ -192,6 +278,8 @@ export const H = {
   accordion,
   timeline,
   dispatch,
+  httpAction,
+  httpLink,
   page,
   staticPage,
 } as const;

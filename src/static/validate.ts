@@ -2,6 +2,9 @@ import type {
   StaticAccordion,
   StaticContent,
   StaticDispatch,
+  StaticHttpAction,
+  StaticHttpField,
+  StaticHttpLink,
   StaticPage,
   StaticTabs,
   StaticTimeline,
@@ -15,6 +18,20 @@ export type StaticMachineDiagnostic = {
 };
 
 const SAFE_STATIC_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
+const STATIC_HTTP_FIELD_KINDS = new Set([
+  "text",
+  "email",
+  "number",
+  "password",
+  "search",
+  "url",
+  "tel",
+  "textarea",
+  "select",
+  "hidden",
+  "checkbox",
+  "radio",
+]);
 
 function diagnostic(
   severity: StaticMachineDiagnostic["severity"],
@@ -45,6 +62,150 @@ function validateStaticContent(content: StaticContent, path: string): StaticMach
 
 function isSafeCssCustomPropertyValue(value: string): boolean {
   return value.trim().length > 0 && !/[;{}<>]/.test(value);
+}
+
+function isSafeHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+  if (/^javascript:/i.test(trimmed)) {
+    return false;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    return /^https?:\/\//i.test(trimmed);
+  }
+  return true;
+}
+
+function validateHttpTarget(target: unknown, path: string): StaticMachineDiagnostic[] {
+  if (target === undefined || target === "self" || target === "blank") {
+    return [];
+  }
+  return [diagnostic("error", "InvalidHttpTarget", "HTTP target must be self or blank.", path)];
+}
+
+function validateStaticHttpField(field: StaticHttpField, path: string): StaticMachineDiagnostic[] {
+  const diagnostics: StaticMachineDiagnostic[] = [];
+  const name = field.name ?? field.id;
+
+  if (!isSafeStaticId(field.id)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpField",
+        `HTTP field id "${field.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+        `${path}.id`,
+      ),
+    );
+  }
+
+  if (!STATIC_HTTP_FIELD_KINDS.has(field.kind)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpField",
+        "HTTP field kind must be one of the supported native field kinds.",
+        `${path}.kind`,
+      ),
+    );
+  }
+
+  if (name.trim().length === 0) {
+    diagnostics.push(
+      diagnostic("error", "InvalidHttpField", "HTTP field name must be non-empty.", `${path}.name`),
+    );
+  }
+
+  if (field.kind !== "hidden" && (field.label === undefined || field.label.trim().length === 0)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "MissingFieldLabel",
+        "Visible HTTP fields must include a non-empty label.",
+        `${path}.label`,
+      ),
+    );
+  }
+
+  if ((field.kind === "select" || field.kind === "radio") && (field.options?.length ?? 0) === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "MissingFieldOptions",
+        `${field.kind} HTTP fields must include at least one option.`,
+        `${path}.options`,
+      ),
+    );
+  }
+
+  const seenOptionValues = new Set<string>();
+  for (const [optionIndex, option] of (field.options ?? []).entries()) {
+    const optionPath = `${path}.options[${optionIndex}]`;
+    if (option.value.trim().length === 0) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "InvalidFieldOption",
+          "HTTP field option values must be non-empty.",
+          `${optionPath}.value`,
+        ),
+      );
+    }
+    if (option.label.trim().length === 0) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "InvalidFieldOption",
+          "HTTP field option labels must be non-empty.",
+          `${optionPath}.label`,
+        ),
+      );
+    }
+    if (seenOptionValues.has(option.value)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "InvalidFieldOption",
+          `Duplicate HTTP field option value "${option.value}".`,
+          `${optionPath}.value`,
+        ),
+      );
+    }
+    seenOptionValues.add(option.value);
+  }
+
+  if (field.pattern !== undefined && field.pattern.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpField",
+        "HTTP field pattern must be non-empty.",
+        `${path}.pattern`,
+      ),
+    );
+  }
+
+  const min = field.min === undefined ? undefined : Number(field.min);
+  const max = field.max === undefined ? undefined : Number(field.max);
+  if (
+    min !== undefined &&
+    max !== undefined &&
+    Number.isFinite(min) &&
+    Number.isFinite(max) &&
+    min > max
+  ) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidFieldRange",
+        "HTTP field min cannot be greater than max when both are numeric.",
+        path,
+      ),
+    );
+  }
+
+  return diagnostics;
 }
 
 export function validateStaticTabs(tabs: StaticTabs, path = "tabs"): StaticMachineDiagnostic[] {
@@ -312,6 +473,13 @@ function dispatchInputId(dispatch: StaticDispatch, stateId: string): string {
   return `${dispatch.id}-state-${stateId}`;
 }
 
+function collectHttpFieldHtmlIds(action: StaticHttpAction, field: StaticHttpField): string[] {
+  if (field.kind === "radio") {
+    return (field.options ?? []).map((option) => `${action.id}-${field.id}-${option.value}`);
+  }
+  return [`${action.id}-${field.id}`];
+}
+
 export function validateStaticDispatch(
   dispatch: StaticDispatch,
   path = "dispatch",
@@ -484,6 +652,161 @@ export function validateStaticDispatch(
   return diagnostics;
 }
 
+export function validateStaticHttpAction(
+  action: StaticHttpAction,
+  path = "httpAction",
+): StaticMachineDiagnostic[] {
+  const diagnostics: StaticMachineDiagnostic[] = [];
+  const seenFieldIds = new Set<string>();
+  const seenGeneratedIds = new Set<string>();
+
+  if (!isSafeStaticId(action.id)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidStaticId",
+        `HTTP action id "${action.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+        `${path}.id`,
+      ),
+    );
+  }
+
+  if (action.method !== "GET" && action.method !== "POST") {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpMethod",
+        "HTTP action method must be GET or POST.",
+        `${path}.method`,
+      ),
+    );
+  }
+
+  if (action.action.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpAction",
+        "HTTP action URL must be non-empty.",
+        `${path}.action`,
+      ),
+    );
+  } else if (!isSafeHttpUrl(action.action)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "UnsafeHttpUrl",
+        "HTTP action URL must be relative or absolute http/https, not javascript: or other schemes.",
+        `${path}.action`,
+      ),
+    );
+  }
+
+  diagnostics.push(...validateHttpTarget(action.target, `${path}.target`));
+
+  if (action.title !== undefined && action.title.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpAction",
+        "HTTP action title must be non-empty.",
+        `${path}.title`,
+      ),
+    );
+  }
+  if (action.submitLabel !== undefined && action.submitLabel.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpAction",
+        "HTTP submit label must be non-empty.",
+        `${path}.submitLabel`,
+      ),
+    );
+  }
+  if (action.description !== undefined) {
+    diagnostics.push(...validateStaticContent(action.description, `${path}.description`));
+  }
+
+  for (const [fieldIndex, field] of action.fields.entries()) {
+    const fieldPath = `${path}.fields[${fieldIndex}]`;
+    diagnostics.push(...validateStaticHttpField(field, fieldPath));
+
+    if (seenFieldIds.has(field.id)) {
+      diagnostics.push(
+        diagnostic(
+          "error",
+          "DuplicateStaticId",
+          `Duplicate HTTP field id "${field.id}".`,
+          `${fieldPath}.id`,
+        ),
+      );
+    }
+    seenFieldIds.add(field.id);
+
+    for (const generatedId of collectHttpFieldHtmlIds(action, field)) {
+      if (seenGeneratedIds.has(generatedId)) {
+        diagnostics.push(
+          diagnostic(
+            "error",
+            "DuplicateStaticId",
+            `Duplicate generated HTTP field id "${generatedId}".`,
+            `${fieldPath}.id`,
+          ),
+        );
+      }
+      seenGeneratedIds.add(generatedId);
+    }
+  }
+
+  return diagnostics;
+}
+
+export function validateStaticHttpLink(
+  link: StaticHttpLink,
+  path = "httpLink",
+): StaticMachineDiagnostic[] {
+  const diagnostics: StaticMachineDiagnostic[] = [];
+
+  if (!isSafeStaticId(link.id)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidStaticId",
+        `HTTP link id "${link.id}" must match /^[A-Za-z][A-Za-z0-9_-]*$/.`,
+        `${path}.id`,
+      ),
+    );
+  }
+  if (link.href.trim().length === 0) {
+    diagnostics.push(
+      diagnostic("error", "InvalidHttpAction", "HTTP link href must be non-empty.", `${path}.href`),
+    );
+  } else if (!isSafeHttpUrl(link.href)) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "UnsafeHttpUrl",
+        "HTTP link href must be relative or absolute http/https, not javascript: or other schemes.",
+        `${path}.href`,
+      ),
+    );
+  }
+  if (link.label.trim().length === 0) {
+    diagnostics.push(
+      diagnostic(
+        "error",
+        "InvalidHttpAction",
+        "HTTP link label must be non-empty.",
+        `${path}.label`,
+      ),
+    );
+  }
+  diagnostics.push(...validateHttpTarget(link.target, `${path}.target`));
+
+  return diagnostics;
+}
+
 function collectGeneratedHtmlIds(node: StaticPage["body"][number]): string[] {
   if (node.kind === "tabs") {
     return [node.id, ...node.tabs.map((item) => `${node.id}-${item.id}`)];
@@ -496,6 +819,12 @@ function collectGeneratedHtmlIds(node: StaticPage["body"][number]): string[] {
   }
   if (node.kind === "dispatch") {
     return [node.id, ...Object.keys(node.states).map((stateId) => dispatchInputId(node, stateId))];
+  }
+  if (node.kind === "httpAction") {
+    return [node.id, ...node.fields.flatMap((field) => collectHttpFieldHtmlIds(node, field))];
+  }
+  if (node.kind === "httpLink") {
+    return [node.id];
   }
   return [];
 }
@@ -520,6 +849,12 @@ export function validateStaticPage(page: StaticPage): StaticMachineDiagnostic[] 
     }
     if (node.kind === "dispatch") {
       diagnostics.push(...validateStaticDispatch(node, `body[${index}]`));
+    }
+    if (node.kind === "httpAction") {
+      diagnostics.push(...validateStaticHttpAction(node, `body[${index}]`));
+    }
+    if (node.kind === "httpLink") {
+      diagnostics.push(...validateStaticHttpLink(node, `body[${index}]`));
     }
     for (const generatedHtmlId of collectGeneratedHtmlIds(node)) {
       if (seenGeneratedInputIds.has(generatedHtmlId)) {

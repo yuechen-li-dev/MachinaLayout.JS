@@ -1,0 +1,17 @@
+{
+  "name": "static-http-sample",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "tsc -p tsconfig.json && node .generated/page.js",
+    "build": "npm run generate"
+  },
+  "dependencies": {
+    "machinalayout": "file:../.."
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^5.6.3"
+  }
+}

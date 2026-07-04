@@ -213,6 +213,97 @@ cannot handle private data, authorization, database writes, payments, secrets,
 dynamic server-side decisions, unbounded computation, or multi-user consistency.
 Do not use static dispatch as a security boundary or backend authority.
 
+## Static HTTP action lowering
+
+M32e adds static HTTP action lowering. Forms are the original REST client:
+Machina can author public GET/POST intent in TypeScript and lower it into native
+HTML links and forms.
+
+- author forms with `H.httpAction`
+- lower `GET` to `<form method="get" action="...">`
+- lower `POST` to `<form method="post" action="...">`
+- author links with `H.httpLink`, lowered to `<a href="...">`
+- emit native HTML validation attributes such as `required`, `pattern`, `min`,
+  `max`, `step`, and `autocomplete`
+- represent hidden fields, including method override fields when that is an
+  explicit server convention
+- ship no script tag and no JavaScript runtime behavior
+
+```ts
+import { H } from "machinalayout/static";
+
+const search = H.httpAction({
+  id: "site-search",
+  method: "GET",
+  action: "/search",
+  title: "Search",
+  submitLabel: "Search",
+  fields: [
+    {
+      id: "q",
+      kind: "search",
+      label: "Query",
+      required: true,
+      autocomplete: "off",
+    },
+  ],
+});
+
+const contact = H.httpAction({
+  id: "contact-form",
+  method: "POST",
+  action: "/contact",
+  title: "Contact",
+  submitLabel: "Send",
+  fields: [
+    {
+      id: "source",
+      kind: "hidden",
+      value: "machina-static",
+    },
+    {
+      id: "email",
+      kind: "email",
+      label: "Email",
+      required: true,
+      autocomplete: "email",
+    },
+    {
+      id: "message",
+      kind: "textarea",
+      label: "Message",
+      required: true,
+    },
+  ],
+});
+
+const docs = H.httpLink({
+  id: "docs-link",
+  href: "/docs",
+  label: "Read docs",
+});
+```
+
+`method` defaults to `"GET"`, `target` defaults to `"self"`, and `submitLabel`
+defaults to `"Submit"`. Field `name` defaults to the field `id`. Visible fields
+must have labels. `select` and `radio` fields must provide options. Checkbox
+fields use their `value`, or `"on"` when no value is supplied.
+
+The boundary is intentionally narrow. HTML/CSS can submit HTTP requests, but it
+cannot act like a full JavaScript REST client. M32e supports public GET links,
+GET search/query forms, POST forms, native HTML validation attributes, and hidden
+fields. It does not support PUT, PATCH, DELETE as native methods, custom request
+headers, Authorization headers, JSON request bodies, `fetch`, XHR, client-side
+JSON response handling, retry logic, streaming, SPA behavior, or CORS behavior
+that depends on JavaScript.
+
+Response handling is normal browser navigation and server responsibility. The
+static artifact can submit the request; it does not parse the response, update
+the UI dynamically, write to a database by itself, provide trusted
+authorization, store secrets, process payments, or act as backend authority.
+Password fields are allowed as HTML controls, but static HTML does not protect
+secrets by itself; use server-side security and transport protections.
+
 String content is escaped during HTML serialization. Raw HTML content must be
 explicit:
 
@@ -246,6 +337,10 @@ The current no-JS dispatch target is finite one-of-many state only. It does not
 compile arbitrary TypeScript, execute actions, mutate data, fetch data, bind
 backend authority, route pages, or add a JavaScript runtime. M32d actions only
 mean "transition to this known state."
+
+The current static HTTP target is native GET/POST forms and links only. It does
+not add a JavaScript REST client, custom headers, JSON request bodies, response
+parsing, auth, secrets, payments, or backend persistence.
 
 DeusMachina may become a future source for richer static machines, but this
 target does not integrate it. MachinaStyle may provide shared styling later, but

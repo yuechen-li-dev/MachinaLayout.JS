@@ -69,7 +69,74 @@ export type StaticDispatch = {
   states: Record<string, StaticDispatchState>;
 };
 
-export type StaticNode = StaticTabs | StaticAccordion | StaticTimeline | StaticDispatch;
+export type StaticHttpMethod = "GET" | "POST";
+
+export type StaticHttpTarget = "self" | "blank";
+
+export type StaticHttpFieldKind =
+  | "text"
+  | "email"
+  | "number"
+  | "password"
+  | "search"
+  | "url"
+  | "tel"
+  | "textarea"
+  | "select"
+  | "hidden"
+  | "checkbox"
+  | "radio";
+
+export type StaticHttpFieldOption = {
+  value: string;
+  label: string;
+};
+
+export type StaticHttpField = {
+  id: string;
+  name?: string;
+  label?: string;
+  kind: StaticHttpFieldKind;
+  value?: string;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readonly?: boolean;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
+  pattern?: string;
+  autocomplete?: string;
+  options?: readonly StaticHttpFieldOption[];
+};
+
+export type StaticHttpAction = {
+  kind: "httpAction";
+  id: string;
+  method: StaticHttpMethod;
+  action: string;
+  title?: string;
+  description?: StaticContent;
+  target?: StaticHttpTarget;
+  submitLabel?: string;
+  fields: readonly StaticHttpField[];
+};
+
+export type StaticHttpLink = {
+  kind: "httpLink";
+  id: string;
+  href: string;
+  label: string;
+  target?: StaticHttpTarget;
+};
+
+export type StaticNode =
+  | StaticTabs
+  | StaticAccordion
+  | StaticTimeline
+  | StaticDispatch
+  | StaticHttpAction
+  | StaticHttpLink;
 
 export type StaticPage = {
   kind: "page";
