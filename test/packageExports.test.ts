@@ -7,7 +7,14 @@ vi.mock("react-native", () => ({
 
 import { parseMachinaText } from "../src/text";
 import { summarizeMachinaDom } from "../src/inspect";
-import { assertNever, enumTable, matchEnum } from "../src/match";
+import {
+  assertNever,
+  enumTable,
+  matchDiscriminated,
+  matchEnum,
+  matchKind,
+  MatchUnionError,
+} from "../src/match";
 import {
   createMachinaClassNames,
   createMachinaStyleArtifact,
@@ -55,8 +62,11 @@ describe("package export entrypoints", () => {
 
   it("exposes match subpath utilities", () => {
     expect(matchEnum).toBeTypeOf("function");
+    expect(matchDiscriminated).toBeTypeOf("function");
+    expect(matchKind).toBeTypeOf("function");
     expect(enumTable).toBeTypeOf("function");
     expect(assertNever).toBeTypeOf("function");
+    expect(MatchUnionError).toBeTypeOf("function");
   });
 
   it("exposes style subpath utilities", () => {

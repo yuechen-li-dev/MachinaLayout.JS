@@ -137,7 +137,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
 - [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
 - [Machina Static](docs/machina-static.md) — finite UI machines, timelines, and native HTTP forms lowered to no-JS HTML/CSS.
-- [Exhaustive enum matching](docs/exhaustive-match.md)
+- [Exhaustive match helpers](docs/exhaustive-match.md)
 
 ## Tiny `LayoutRow[]` example
 
@@ -422,7 +422,7 @@ This repo uses Biome.
 - [Forbidden concepts](docs/forbidden-concepts.md)
 - [Z-order and containment](docs/z-order-and-containment.md)
 - [Error code reference](docs/error-codes.md)
-- [Exhaustive enum matching](docs/exhaustive-match.md)
+- [Exhaustive match helpers](docs/exhaustive-match.md)
 - [MachinaDispatch runtime guide](docs/machina-dispatch.md)
 - [DeusMachina behavioral kernel and framework bindings](docs/deusmachina.md)
 - Dispatch sample: [`samples/dispatch-counter`](samples/dispatch-counter/README.md) (uses `machinalayout/dispatch`)

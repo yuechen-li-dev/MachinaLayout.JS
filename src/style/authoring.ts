@@ -10,6 +10,7 @@ import type {
   MachinaStyleTokens,
   MachinaTokenGroup,
 } from "./types";
+import { matchKind } from "../match";
 import { createMachinaTokenReference } from "./tokens";
 
 type PlainRecord = Record<string, unknown>;
@@ -117,10 +118,6 @@ export function isMachinaStyleSlot<T>(value: unknown): value is MachinaStyleSlot
   return kind === "set" || kind === "inherit" || kind === "unset";
 }
 
-function assertNever(value: never): never {
-  throw new Error(`Unhandled style slot kind: ${String(value)}`);
-}
-
 function assertSetValue(value: unknown): void {
   if (value === undefined) {
     throw new Error("MachinaStyle set slot value must not be undefined.");
@@ -148,17 +145,14 @@ function normalizeLayerValue(value: unknown): unknown {
     return undefined;
   }
   if (isMachinaStyleSlot(value)) {
-    switch (value.kind) {
-      case "set":
-        assertSetValue(value.value);
-        return setStyleSlot(value.value);
-      case "inherit":
-        return inheritStyleSlot();
-      case "unset":
-        return unsetStyleSlot();
-      default:
-        return assertNever(value);
-    }
+    return matchKind(value, {
+      set: (slot) => {
+        assertSetValue(slot.value);
+        return setStyleSlot(slot.value);
+      },
+      inherit: () => inheritStyleSlot(),
+      unset: () => unsetStyleSlot(),
+    });
   }
   return setStyleSlot(value);
 }
@@ -186,16 +180,11 @@ export function layer(record: MachinaStyleLayer): MachinaStyleLayer {
 }
 
 function resolveSlotValue(slot: MachinaStyleSlot<unknown>, baseValue: unknown): unknown {
-  switch (slot.kind) {
-    case "set":
-      return slot.value;
-    case "inherit":
-      return baseValue;
-    case "unset":
-      return undefined;
-    default:
-      return assertNever(slot);
-  }
+  return matchKind(slot, {
+    set: (resolvedSlot) => resolvedSlot.value,
+    inherit: () => baseValue,
+    unset: () => undefined,
+  });
 }
 
 function resolveRecord(input: MachinaStyleLayer | MachinaStyleRecord): MachinaStyleRecord {

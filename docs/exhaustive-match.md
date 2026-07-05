@@ -1,6 +1,6 @@
-# Exhaustive enum matching
+# Exhaustive match helpers
 
-MachinaLayout exposes small helpers at `machinalayout/match` for exhaustive matching over finite enum-like values. The intended use is TypeScript string-literal unions, such as UI modes, Deus event or mode helpers, debug overlay behavior, Atlas section kinds, screen tags, and text variants.
+MachinaLayout exposes small helpers at `machinalayout/match` for exhaustive matching over finite case sets. The intended use is TypeScript string-literal unions, discriminated payload unions, UI modes, command kinds, node kinds, screen tags, and other frontend cases where exhaustiveness matters.
 
 This is a library substitute for common `if` and `switch` chains. It is not language syntax, structural pattern matching, destructuring match, algebraic data type matching, or Copeland.
 
@@ -31,6 +31,44 @@ matchEnum<Mode, string>(mode, {
 ```
 
 At runtime, a missing case throws `MatchEnumError` with `code: "MissingEnumCase"`. Handler errors are not swallowed.
+
+## Payload union matching
+
+Use `matchKind` for `{ kind: ... }` payload unions where the handler needs the narrowed payload.
+
+```ts
+import { matchKind } from "machinalayout/match";
+
+type Result =
+  | { kind: "ok"; value: number }
+  | { kind: "err"; message: string };
+
+const text = matchKind(result, {
+  ok: (result) => `value ${result.value}`,
+  err: (result) => `error ${result.message}`,
+});
+```
+
+Adding a new union member requires adding a new handler. The cases are exhaustive over the discriminant values in the union.
+
+## `matchDiscriminated`
+
+Use `matchDiscriminated` when the discriminator key is something other than `kind`, such as `type`.
+
+```ts
+import { matchDiscriminated } from "machinalayout/match";
+
+type Event =
+  | { type: "click"; x: number; y: number }
+  | { type: "submit"; formId: string };
+
+const output = matchDiscriminated(event, "type", {
+  click: (event) => `${event.x},${event.y}`,
+  submit: (event) => event.formId,
+});
+```
+
+At runtime, unchecked JavaScript or external data can still carry an unknown discriminant. In that case `matchKind` and `matchDiscriminated` throw `MatchUnionError`, which includes the discriminant key, the received discriminant value, and the available cases.
 
 ## `enumTable`
 
@@ -96,4 +134,4 @@ matchEnum(mode, {
 });
 ```
 
-In that example, TypeScript sees `mode` as any string, so it cannot know the finite set of required cases. Prefer explicit union types for enum-like application concepts.
+In that example, TypeScript sees `mode` as any string, so it cannot know the finite set of required cases. The same applies to discriminated unions whose discriminant is widened to `string`. Prefer explicit union types for enum-like and tagged-union application concepts.
