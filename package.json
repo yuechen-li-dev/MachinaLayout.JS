@@ -91,6 +91,10 @@
       "types": "./dist/iter/index.d.ts",
       "import": "./dist/iter/index.js"
     },
+    "./concept": {
+      "types": "./dist/concept/index.d.ts",
+      "import": "./dist/concept/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

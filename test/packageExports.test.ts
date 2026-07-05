@@ -30,6 +30,15 @@ import {
   validateIterMachine,
 } from "../src/iter";
 import {
+  ConceptError,
+  formatConceptDescription,
+  formatConceptDiagnostics,
+  formatTemplateDescription,
+  T,
+  validateConceptDefinition,
+  validateConceptValue,
+} from "../src/concept";
+import {
   C,
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
@@ -150,6 +159,33 @@ describe("package export entrypoints", () => {
     expect(validateIterMachine).toBeTypeOf("function");
     expect(formatIterDiagnostics).toBeTypeOf("function");
     expect(formatIterTrace).toBeTypeOf("function");
+  });
+
+  it("exposes concept subpath utilities", () => {
+    expect(T.concept).toBeTypeOf("function");
+    expect(T.compose).toBeTypeOf("function");
+    expect(T.validate).toBeTypeOf("function");
+    expect(T.assert).toBeTypeOf("function");
+    expect(T.describe).toBeTypeOf("function");
+    expect(T.template).toBeTypeOf("function");
+    expect(T.runTemplate).toBeTypeOf("function");
+    expect(T.describeTemplate).toBeTypeOf("function");
+    expect(T.fields).toBeTypeOf("function");
+    expect(T.string).toBeTypeOf("function");
+    expect(T.number).toBeTypeOf("function");
+    expect(T.boolean).toBeTypeOf("function");
+    expect(T.fn).toBeTypeOf("function");
+    expect(T.function).toBeTypeOf("function");
+    expect(T.object).toBeTypeOf("function");
+    expect(T.array).toBeTypeOf("function");
+    expect(T.literal).toBeTypeOf("function");
+    expect(T.optional).toBeTypeOf("function");
+    expect(validateConceptDefinition).toBeTypeOf("function");
+    expect(validateConceptValue).toBeTypeOf("function");
+    expect(formatConceptDescription).toBeTypeOf("function");
+    expect(formatConceptDiagnostics).toBeTypeOf("function");
+    expect(formatTemplateDescription).toBeTypeOf("function");
+    expect(ConceptError).toBeTypeOf("function");
   });
 
   it("exposes static subpath utilities", () => {

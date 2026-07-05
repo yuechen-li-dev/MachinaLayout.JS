@@ -20,6 +20,7 @@ export default defineConfig({
     "capture/index": "src/capture/index.ts",
     "async/index": "src/async/index.ts",
     "iter/index": "src/iter/index.ts",
+    "concept/index": "src/concept/index.ts",
     "style/index": "src/style/index.ts",
     "static/index": "src/static/index.ts",
   },
