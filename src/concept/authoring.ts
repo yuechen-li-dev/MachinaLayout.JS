@@ -1,6 +1,7 @@
 import { describeConcept, describeTemplate } from "./describe";
 import { runTemplate, template } from "./template";
 import { assertConceptValue, validateConceptValue } from "./validate";
+import type * as TypeHelpers from "./typeHelpers";
 import type { ConceptDefinition, ConceptFieldConstraint } from "./types";
 
 function cloneConstraint(constraint: ConceptFieldConstraint): ConceptFieldConstraint {
@@ -137,3 +138,30 @@ export const T = {
   literal,
   optional,
 } as const;
+
+export declare namespace T {
+  export type HasField<TKey extends PropertyKey, TValue> = TypeHelpers.ConceptTypeHelpers.HasField<
+    TKey,
+    TValue
+  >;
+  export type OptionalField<
+    TKey extends PropertyKey,
+    TValue,
+  > = TypeHelpers.ConceptTypeHelpers.OptionalField<TKey, TValue>;
+  export type HasId<TId = string> = TypeHelpers.ConceptTypeHelpers.HasId<TId>;
+  export type HasKind<TKind = string> = TypeHelpers.ConceptTypeHelpers.HasKind<TKind>;
+  export type And<TLeft, TRight> = TypeHelpers.ConceptTypeHelpers.And<TLeft, TRight>;
+  export type All<TItems extends readonly unknown[]> = TypeHelpers.ConceptTypeHelpers.All<TItems>;
+  export type ConceptType<TShape extends object> =
+    TypeHelpers.ConceptTypeHelpers.ConceptType<TShape>;
+  export type Extends<TValue, TExpected> = TypeHelpers.ConceptTypeHelpers.Extends<
+    TValue,
+    TExpected
+  >;
+  export type Equal<TLeft, TRight> = TypeHelpers.ConceptTypeHelpers.Equal<TLeft, TRight>;
+  export type Assert<TValue extends true> = TypeHelpers.ConceptTypeHelpers.Assert<TValue>;
+  export type Satisfies<TValue, TConcept> = TypeHelpers.ConceptTypeHelpers.Satisfies<
+    TValue,
+    TConcept
+  >;
+}

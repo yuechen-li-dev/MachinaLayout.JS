@@ -38,6 +38,18 @@ import {
   validateConceptDefinition,
   validateConceptValue,
 } from "../src/concept";
+import type {
+  All,
+  Assert,
+  ConceptType,
+  Equal,
+  Extends,
+  HasField,
+  HasId,
+  HasKind,
+  OptionalField,
+  Satisfies,
+} from "../src/concept";
 import {
   C,
   formatCaptureDiagnostics,
@@ -74,6 +86,26 @@ import {
 import { useDeusMachine as useReactDeusMachine } from "../src/react";
 import { useDeusMachine as useNativeDeusMachine } from "../src/react-native";
 import { useDeusMachine as useVueDeusMachine } from "../src/vue";
+
+type _conceptTypeExportSmoke = Assert<
+  Extends<
+    All<[HasField<"id", string>, OptionalField<"name", string>]>,
+    { readonly id: string; readonly name?: string }
+  >
+>;
+type _conceptTypeExportSmokeReverse = Assert<
+  Extends<
+    { readonly id: string; readonly name?: string },
+    All<[HasField<"id", string>, OptionalField<"name", string>]>
+  >
+>;
+type _conceptAliasExportSmoke = Assert<Equal<HasId, { readonly id: string }>>;
+type _conceptKindExportSmoke = Assert<Equal<HasKind<"image">, { readonly kind: "image" }>>;
+type _conceptShapeExportSmoke = Assert<Equal<ConceptType<{ value: number }>, { value: number }>>;
+type _conceptExtendsExportSmoke = Assert<Equal<Extends<{ readonly id: string }, HasId>, true>>;
+type _conceptSatisfiesExportSmoke = Assert<
+  Equal<Satisfies<{ readonly id: string }, HasId>, { readonly id: string }>
+>;
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
