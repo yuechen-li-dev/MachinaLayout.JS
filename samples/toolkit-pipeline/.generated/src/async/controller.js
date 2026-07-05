@@ -1,5 +1,5 @@
-import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus.js";
-import { cancelled, err, timeout } from "./result.js";
+import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus";
+import { cancelled, err, timeout } from "./result";
 const idlePath = ["idle"];
 const runningPath = ["running"];
 const succeededPath = ["succeeded"];
@@ -411,4 +411,13 @@ export function createController(task, options = {}) {
 }
 export async function run(task, input, options) {
     return createController(task, options).start(input);
+}
+export async function runAsyncTaskSnapshot(task, input, options) {
+    const controller = createController(task, options);
+    const result = await controller.start(input);
+    return {
+        result,
+        snapshot: controller.getSnapshot(),
+        board: controller.getBoard(),
+    };
 }

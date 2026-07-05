@@ -13,6 +13,7 @@ import type {
   AsyncTaskController,
   AsyncTaskControllerOptions,
   AsyncTaskResult,
+  AsyncTaskRunSnapshot,
   AsyncTaskSnapshot,
   AsyncTaskTraceEvent,
 } from "./types";
@@ -566,4 +567,19 @@ export async function run<TEnv, TInput, TOutput, TError>(
   options?: AsyncTaskControllerOptions,
 ): Promise<AsyncTaskResult<TOutput, TError>> {
   return createController(task, options).start(input);
+}
+
+export async function runAsyncTaskSnapshot<TEnv, TInput, TOutput, TError>(
+  task: AsyncTask<TEnv, TInput, TOutput, TError>,
+  input: TInput,
+  options?: AsyncTaskControllerOptions,
+): Promise<AsyncTaskRunSnapshot<TInput, TOutput, TError>> {
+  const controller = createController(task, options);
+  const result = await controller.start(input);
+
+  return {
+    result,
+    snapshot: controller.getSnapshot(),
+    board: controller.getBoard(),
+  };
 }

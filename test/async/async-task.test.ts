@@ -83,6 +83,58 @@ describe("async task authoring", () => {
       error: { kind: "blocked" },
     });
   });
+
+  it("runs a task once with A.runSnapshot and returns result, snapshot, and board", async () => {
+    let now = 1000;
+    const task = A.task({
+      id: "snapshotUppercase",
+      env: {},
+      run: async (_env, input: string, ctx) => {
+        ctx.trace({
+          kind: "domain",
+          taskId: "ignored",
+          runId: 999,
+          at: ctx.startedAt + 1,
+          message: `processing ${input}`,
+        });
+        return A.ok(input.toUpperCase());
+      },
+    });
+
+    const run = await A.runSnapshot(task, "machina", {
+      now: () => now++,
+    });
+
+    expect(run.result).toEqual({
+      kind: "ok",
+      value: "MACHINA",
+    });
+    expect(run.snapshot).toEqual({
+      statePath: ["succeeded"],
+      board: {
+        taskId: "snapshotUppercase",
+        status: "succeeded",
+        runId: 1,
+        input: "machina",
+        result: "MACHINA",
+        startedAt: 1001,
+        finishedAt: 1002,
+        trace: [
+          { kind: "created", taskId: "snapshotUppercase", runId: 0, at: 1000 },
+          { kind: "started", taskId: "snapshotUppercase", runId: 1, at: 1001 },
+          {
+            kind: "domain",
+            taskId: "snapshotUppercase",
+            runId: 1,
+            at: 1002,
+            message: "processing machina",
+          },
+          { kind: "resolved", taskId: "snapshotUppercase", runId: 1, at: 1002 },
+        ],
+      },
+    });
+    expect(run.board).toEqual(run.snapshot.board);
+  });
 });
 
 describe("async task controller lifecycle", () => {
@@ -422,6 +474,77 @@ describe("async task controller lifecycle", () => {
 
     expect(message).toBe("Ada");
   });
+
+  it("returns failed board state from A.runSnapshot for err results", async () => {
+    const task = A.task({
+      id: "errSnapshot",
+      env: {},
+      run: async () => A.err({ kind: "blocked" as const }),
+    });
+
+    const run = await A.runSnapshot(task, "ignored");
+
+    expect(run.result).toEqual({
+      kind: "err",
+      error: { kind: "blocked" },
+    });
+    expect(run.snapshot.statePath).toEqual(["failed"]);
+    expect(run.board.status).toBe("failed");
+    expect(run.board.trace.length).toBeGreaterThan(0);
+  });
+
+  it("returns failed board state from A.runSnapshot for thrown tasks", async () => {
+    const task = A.task<object, string, never, Error>({
+      id: "throwSnapshot",
+      env: {},
+      run: async () => {
+        throw new Error("boom");
+      },
+    });
+
+    const run = await A.runSnapshot(task, "ignored");
+
+    expect(run.result.kind).toBe("err");
+    expect(run.snapshot.statePath).toEqual(["failed"]);
+    expect(run.board.status).toBe("failed");
+    expect(run.board.error).toBeInstanceOf(Error);
+  });
+
+  it("returns cancelled board state from A.runSnapshot for cancelled results", async () => {
+    const task = A.task({
+      id: "cancelSnapshot",
+      env: {},
+      run: async () => A.cancelled("stop"),
+    });
+
+    const run = await A.runSnapshot(task, "ignored");
+
+    expect(run.result).toEqual({
+      kind: "cancelled",
+      reason: "stop",
+    });
+    expect(run.snapshot.statePath).toEqual(["cancelled"]);
+    expect(run.board.status).toBe("cancelled");
+    expect(run.board.cancelReason).toBe("stop");
+  });
+
+  it("returns timedOut board state from A.runSnapshot for timeout results", async () => {
+    const task = A.task({
+      id: "timeoutSnapshot",
+      env: {},
+      run: async () => A.timeout(15),
+    });
+
+    const run = await A.runSnapshot(task, "ignored");
+
+    expect(run.result).toEqual({
+      kind: "timeout",
+      timeoutMs: 15,
+    });
+    expect(run.snapshot.statePath).toEqual(["timedOut"]);
+    expect(run.board.status).toBe("timedOut");
+    expect(run.board.timeoutMs).toBe(15);
+  });
 });
 
 describe("async task description, validation, typing, and exports", () => {
@@ -504,9 +627,64 @@ describe("async task description, validation, typing, and exports", () => {
     expect(typed.kind).toBe("err");
   });
 
+  it("preserves input, output, and error inference through A.runSnapshot", async () => {
+    const loadUser = A.task({
+      id: "loadUserSnapshot",
+      env: { baseUrl: "/api" },
+      run: async (env, input: { id: string }, ctx) => {
+        const url: string = `${env.baseUrl}/users/${input.id}`;
+        const signal: AbortSignal = ctx.signal;
+        void url;
+        void signal;
+        return A.ok({
+          id: input.id,
+          name: "Ada",
+        });
+      },
+    });
+
+    const run = await A.runSnapshot(loadUser, { id: "42" });
+    const typed:
+      | { kind: "ok"; value: { id: string; name: string } }
+      | { kind: "err"; error: never }
+      | { kind: "cancelled"; reason?: string }
+      | { kind: "timeout"; timeoutMs: number } = run.result;
+    const name: string | undefined = run.result.kind === "ok" ? run.result.value.name : undefined;
+    const status: "idle" | "running" | "succeeded" | "failed" | "cancelled" | "timedOut" =
+      run.board.status;
+    const trace = run.board.trace;
+
+    // @ts-expect-error input must include id
+    A.runSnapshot(loadUser, {});
+
+    expect(typed.kind).toBe("ok");
+    expect(name).toBe("Ada");
+    expect(status).toBe("succeeded");
+    expect(Array.isArray(trace)).toBe(true);
+  });
+
+  it("works with matchKind on the result returned by A.runSnapshot", async () => {
+    const task = A.task({
+      id: "matchSnapshot",
+      env: {},
+      run: async () => A.ok({ id: "42", name: "Ada" }),
+    });
+
+    const run = await A.runSnapshot(task, {});
+    const message = matchKind(run.result, {
+      ok: (value) => value.value.name,
+      err: (value) => `Error: ${String(value.error)}`,
+      cancelled: (value) => `Cancelled: ${value.reason ?? "no reason"}`,
+      timeout: (value) => `Timed out after ${value.timeoutMs}ms`,
+    });
+
+    expect(message).toBe("Ada");
+  });
+
   it("exports async helpers only from the async subpath", () => {
     expect(A.task).toBeTypeOf("function");
     expect(A.run).toBeTypeOf("function");
+    expect(A.runSnapshot).toBeTypeOf("function");
     expect(A.createController).toBeTypeOf("function");
     expect("A" in root).toBe(false);
   });

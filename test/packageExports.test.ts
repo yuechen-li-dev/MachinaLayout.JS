@@ -20,6 +20,7 @@ import {
   formatAsyncTaskDescription,
   formatAsyncTaskDiagnostics,
   formatAsyncTaskTrace,
+  type AsyncTaskRunSnapshot,
   validateAsyncTask,
 } from "../src/async";
 import {
@@ -153,6 +154,11 @@ type _comptimeNonEmptyExportSmoke = CompileTimeAssert<CompileTimeEqual<NonEmptyT
 type _comptimeIsNonEmptyExportSmoke = CompileTimeAssert<
   CompileTimeEqual<IsNonEmptyTuple<[1]>, true>
 >;
+type _asyncRunSnapshotExportSmoke = AsyncTaskRunSnapshot<
+  { readonly id: string },
+  { readonly name: string },
+  { readonly code: string }
+>;
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
@@ -217,6 +223,7 @@ describe("package export entrypoints", () => {
     expect(A.timeout).toBeTypeOf("function");
     expect(A.createController).toBeTypeOf("function");
     expect(A.run).toBeTypeOf("function");
+    expect(A.runSnapshot).toBeTypeOf("function");
     expect(A.describe).toBeTypeOf("function");
     expect(A.validate).toBeTypeOf("function");
     expect(formatAsyncTaskDescription).toBeTypeOf("function");

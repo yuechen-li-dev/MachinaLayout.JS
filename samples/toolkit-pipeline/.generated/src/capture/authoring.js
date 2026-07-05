@@ -1,5 +1,5 @@
-import { describeCaptureTask } from "./describe.js";
-import { validateCaptureTask } from "./validate.js";
+import { describeCaptureTask } from "./describe";
+import { validateCaptureTask } from "./validate";
 function assertTaskId(id) {
     if (id.trim().length === 0) {
         throw new Error("Capture task id must be non-empty.");

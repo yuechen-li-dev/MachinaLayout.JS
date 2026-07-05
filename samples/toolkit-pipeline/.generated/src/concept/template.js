@@ -1,4 +1,4 @@
-import { assertConceptValue } from "./validate.js";
+import { assertConceptValue } from "./validate";
 function assertTemplateId(id) {
     if (typeof id !== "string" || id.trim().length === 0) {
         throw new Error("Template id must be non-empty.");

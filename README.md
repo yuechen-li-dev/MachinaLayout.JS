@@ -63,7 +63,7 @@ Static no-JS lowering for tabs, accordions, timelines, finite dispatch machines,
 
 Explicit capture records for visible-env closure-like authoring are available at `machinalayout/capture`; see [Explicit capture](docs/explicit-capture.md).
 
-Deus-backed explicit async task lifecycles are available at `machinalayout/async`; see [Deus async tasks](docs/deus-async-tasks.md).
+Deus-backed explicit async task lifecycles are available at `machinalayout/async`, including `A.run` for result-only runs and `A.runSnapshot` for one-shot result plus lifecycle receipts; see [Deus async tasks](docs/deus-async-tasks.md).
 
 Explicit iterator machines with visible cursor, board, and trace are available at `machinalayout/iter`; see [Explicit iterators](docs/explicit-iterators.md).
 

@@ -81,6 +81,12 @@ export type AsyncTaskSnapshot<TInput, TOutput, TError> = {
   readonly board: AsyncTaskBoard<TInput, TOutput, TError>;
 };
 
+export type AsyncTaskRunSnapshot<TInput, TOutput, TError> = {
+  readonly result: AsyncTaskResult<TOutput, TError>;
+  readonly snapshot: AsyncTaskSnapshot<TInput, TOutput, TError>;
+  readonly board: AsyncTaskBoard<TInput, TOutput, TError>;
+};
+
 export type AsyncTaskController<TEnv, TInput, TOutput, TError> = {
   readonly task: AsyncTask<TEnv, TInput, TOutput, TError>;
   start(input: TInput): Promise<AsyncTaskResult<TOutput, TError>>;

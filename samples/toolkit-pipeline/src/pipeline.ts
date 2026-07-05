@@ -445,21 +445,18 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
     T.assert(summarizeOrder.requires, validation.order);
 
     const clock = createClock(1_000 + asyncBoards.length * 100);
-    const controller = A.createController(enrichOrder, {
+    const run = await A.runSnapshot(enrichOrder, validation.order, {
       now: clock,
     });
-    const result = await controller.start(validation.order);
-    const snapshot = controller.getSnapshot();
-    const board = controller.getBoard();
 
     asyncBoards.push({
       orderId: validation.order.id,
-      status: board.status,
-      statePath: snapshot.statePath,
-      traceKinds: board.trace.map((event) => event.kind),
+      status: run.board.status,
+      statePath: run.snapshot.statePath,
+      traceKinds: run.board.trace.map((event) => event.kind),
     });
 
-    matchKind(result, {
+    matchKind(run.result, {
       ok: (value) => {
         asyncCounts.ok += 1;
         events.push({

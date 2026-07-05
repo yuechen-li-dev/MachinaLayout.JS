@@ -44,3 +44,8 @@ M34h dogfooded the new utility subpaths together in [`samples/toolkit-pipeline`]
 - Updated `toolkit-pipeline` to use named formatter variants.
 - Clarified async trace ownership.
 - Updated sample traces to avoid duplicate lifecycle events.
+
+## M34j Follow-up
+
+- Added `A.runSnapshot` to reduce one-shot controller ceremony without hiding the lifecycle receipt.
+- Updated `toolkit-pipeline` to use `A.runSnapshot` for async result plus board/trace collection.

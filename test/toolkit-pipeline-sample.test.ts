@@ -12,6 +12,7 @@ import {
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sampleRoot = resolve(repoRoot, "samples/toolkit-pipeline");
+const sampleSourcePath = resolve(sampleRoot, "src/pipeline.ts");
 const reportJsonPath = resolve(sampleRoot, "dist/report.json");
 const reportTextPath = resolve(sampleRoot, "dist/report.txt");
 
@@ -105,6 +106,13 @@ describe("toolkit pipeline sample", () => {
         traceKinds: ["created", "started", "domain", "timedOut"],
       },
     ]);
+  });
+
+  it("uses A.runSnapshot for one-shot async receipt collection", () => {
+    const source = readFileSync(sampleSourcePath, "utf8");
+
+    expect(source).toContain("A.runSnapshot(");
+    expect(source).not.toContain("A.createController(enrichOrder");
   });
 
   it("does not make external network calls", async () => {

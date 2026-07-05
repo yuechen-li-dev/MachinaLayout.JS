@@ -1,5 +1,5 @@
-import { defineDeusMachine } from "./machine.js";
-import { matchEnum } from "../match.js";
+import { defineDeusMachine } from "./machine";
+import { matchEnum } from "../match";
 const collapsed = ["debugOverlay", "collapsed"];
 const overlay = ["debugOverlay", "nonInteractiveOverlay"];
 const panel = ["debugOverlay", "interactivePanel"];

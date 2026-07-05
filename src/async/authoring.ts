@@ -1,4 +1,4 @@
-import { createController, run } from "./controller";
+import { createController, run, runAsyncTaskSnapshot } from "./controller";
 import { describeAsyncTask } from "./describe";
 import { cancelled, err, ok, timeout } from "./result";
 import { validateAsyncTask } from "./validate";
@@ -61,6 +61,7 @@ export const A = {
   timeout,
   createController,
   run,
+  runSnapshot: runAsyncTaskSnapshot,
   describe: describeAsyncTask,
   validate: validateAsyncTask,
 } as const;

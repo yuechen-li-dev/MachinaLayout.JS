@@ -1,7 +1,7 @@
-import { createController, collect, next, reset } from "./controller.js";
-import { describeIterMachine } from "./describe.js";
-import { done, fail, yieldValue } from "./result.js";
-import { validateIterMachine } from "./validate.js";
+import { createController, collect, next, reset } from "./controller";
+import { describeIterMachine } from "./describe";
+import { done, fail, yieldValue } from "./result";
+import { validateIterMachine } from "./validate";
 function assertMachineId(id) {
     if (typeof id !== "string" || id.trim().length === 0) {
         throw new Error("Iter machine id must be non-empty.");

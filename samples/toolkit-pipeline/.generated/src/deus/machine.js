@@ -1,5 +1,5 @@
-import { DeusMachinaError, } from "./types.js";
-import { judgeUtility } from "./utility.js";
+import { DeusMachinaError, } from "./types";
+import { judgeUtility } from "./utility";
 function assertValidDeusPath(path, label) {
     if (!Array.isArray(path) || path.length === 0) {
         throw new DeusMachinaError("InvalidDeusPath", `${label} must be a non-empty path`);

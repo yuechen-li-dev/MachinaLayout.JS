@@ -1,4 +1,4 @@
-import { ConceptError, } from "./types.js";
+import { ConceptError, } from "./types";
 const CONSTRAINT_KINDS = new Set([
     "string",
     "number",

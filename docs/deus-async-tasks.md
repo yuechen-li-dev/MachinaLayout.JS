@@ -51,6 +51,7 @@ DeusMachina backs the lifecycle transitions. `machinalayout/async` does not expo
 - `AsyncTaskStatus`
 - `AsyncTaskBoard`
 - `AsyncTaskSnapshot`
+- `AsyncTaskRunSnapshot`
 - `AsyncTaskController`
 - `AsyncTaskControllerOptions`
 - `AsyncTaskDiagnostic`
@@ -63,8 +64,10 @@ DeusMachina backs the lifecycle transitions. `machinalayout/async` does not expo
 - `A.timeout`
 - `A.createController`
 - `A.run`
+- `A.runSnapshot`
 - `A.describe`
 - `A.validate`
+- `runAsyncTaskSnapshot`
 - `describeAsyncTask`
 - `formatAsyncTaskDescription`
 - `validateAsyncTask`
@@ -178,6 +181,54 @@ The controller:
 - protects against stale completions from older runs
 
 Starting a new run cancels the previous running one with reason `"restarted"`.
+
+## Convenience runners
+
+`A.run(task, input)` returns only the result union:
+
+```ts
+const result = await A.run(enrichOrder, order);
+```
+
+`A.runSnapshot(task, input)` returns the result plus the final lifecycle receipt:
+
+```ts
+const run = await A.runSnapshot(enrichOrder, order);
+```
+
+That receipt includes:
+
+- `run.result`
+- `run.snapshot`
+- `run.board`
+
+Use the controller manually when:
+
+- you need mid-run inspection
+- you need to cancel externally
+- you need to start multiple runs from the same controller
+
+Use `A.runSnapshot` when:
+
+- you want one-shot execution with trace and board receipt
+
+Example:
+
+```ts
+import { A } from "machinalayout/async";
+import { matchKind } from "machinalayout/match";
+
+const run = await A.runSnapshot(enrichOrder, order);
+
+const message = matchKind(run.result, {
+  ok: (result) => `Enriched ${result.value.id}`,
+  err: (result) => `Failed: ${String(result.error)}`,
+  cancelled: (result) => `Cancelled: ${result.reason ?? "unknown"}`,
+  timeout: (result) => `Timed out after ${result.timeoutMs}ms`,
+});
+
+console.log(run.board.trace);
+```
 
 ## Boundaries
 
