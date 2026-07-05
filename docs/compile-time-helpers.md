@@ -180,3 +180,5 @@ type AtLeastOne = NonEmptyTuple<[1, 2]>;
 
 Use `concept` when you want runtime concept records and validation.
 Use `machinalayout/comptime` when you want useful facts proven before runtime.
+
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a real sample that uses `CT.tuple`, `TupleValues`, `KindValues`, `Assert`, `Equal`, and `KebabCase` together.

@@ -193,3 +193,5 @@ This module does not:
 - replace raw Promises
 
 It is a narrow explicit async task primitive: one task, one visible lifecycle, one inspectable board.
+
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a backend-style sample that uses async tasks with iterator and concept diagnostics.

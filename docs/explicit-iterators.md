@@ -218,3 +218,5 @@ const result = controller.collect();
 ```
 
 That default keeps the blade narrow and practical for diagnostics, artifact generation, and scripted workflows without growing into a general stream framework.
+
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a batch-processing sample that uses iterator machines in a backend-style pipeline.

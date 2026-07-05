@@ -228,3 +228,5 @@ M34e concepts are runtime authoring and diagnostics tools first.
 - They do not replace TypeScript generics.
 
 The blade stays narrow: named capability constraints and template records.
+
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a runtime-validation sample that pairs concepts with policy diagnostics, iterator traversal, and async enrichment.

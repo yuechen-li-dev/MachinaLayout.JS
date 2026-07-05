@@ -144,3 +144,5 @@ This module does not:
 - require JSON serialization
 
 It is just a narrow authoring surface for visible-env tasks.
+
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a backend-style sample that uses capture tasks alongside concepts, iterators, async tasks, and match helpers.

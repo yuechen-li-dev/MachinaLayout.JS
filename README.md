@@ -153,6 +153,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
+- [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
 
 ## Tiny `LayoutRow[]` example
 
@@ -365,6 +366,7 @@ const views = {
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
 - [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
+- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `iter`, `concept`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts.
 - [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
 - [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.
