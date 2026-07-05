@@ -24,11 +24,15 @@ import {
 } from "../src/static";
 import { writeMachinaHandoffBundle } from "../src/handoff";
 import {
+  assertDeusStatePath,
   createDeusSnapshot,
   createMachinaDebugOverlayMachine,
   defineDeusMachine,
   getMachinaDebugOverlayBehavior,
+  hasDeusStatePath,
+  hydrateDeusSnapshot,
   judgeUtility,
+  parseDeusPath,
   stepDeusMachine,
 } from "../src/deus";
 import { useDeusMachine as useReactDeusMachine } from "../src/react";
@@ -90,7 +94,11 @@ describe("package export entrypoints", () => {
     expect(judgeUtility).toBeTypeOf("function");
     expect(defineDeusMachine).toBeTypeOf("function");
     expect(createDeusSnapshot).toBeTypeOf("function");
+    expect(hydrateDeusSnapshot).toBeTypeOf("function");
     expect(stepDeusMachine).toBeTypeOf("function");
+    expect(parseDeusPath).toBeTypeOf("function");
+    expect(hasDeusStatePath).toBeTypeOf("function");
+    expect(assertDeusStatePath).toBeTypeOf("function");
     expect(createMachinaDebugOverlayMachine).toBeTypeOf("function");
     expect(getMachinaDebugOverlayBehavior).toBeTypeOf("function");
   });

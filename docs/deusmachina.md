@@ -12,9 +12,10 @@ DeusMachina combines three narrow pieces:
 
 1. `judgeUtility(context, candidates, options)` for deterministic utility selection.
 2. `defineDeusMachine(machine)` for validating row-first stack HFSM definitions.
-3. `stepDeusMachine(machine, snapshot, event)` for one synchronous deterministic step with trace output.
+3. `createDeusSnapshot(machine, boardOrOptions)` and `hydrateDeusSnapshot(machine, options)` for initial snapshots and explicit snapshot hydration.
+4. `stepDeusMachine(machine, snapshot, event)` for one synchronous deterministic step with trace output.
 
-State paths are non-empty arrays of non-empty strings. Segments are not trimmed; empty or whitespace-only segments are invalid. `formatDeusPath(["a", "b"])` formats paths as `a/b`. DeusMachina treats a path as its own ancestor for transition candidate collection.
+State paths are non-empty arrays of non-empty strings. Segments are not trimmed; empty or whitespace-only segments are invalid. `formatDeusPath(["a", "b"])` formats paths as `a/b`, and `parseDeusPath("a/b")` parses the inverse form. DeusMachina treats a path as its own ancestor for transition candidate collection.
 
 ## Row-first authoring
 
@@ -29,6 +30,25 @@ defineDeusMachine({
 ```
 
 Hierarchy comes from stack paths such as `debugOverlay/nonInteractiveOverlay`, not from nested authoring syntax.
+
+## Snapshot hydration
+
+`createDeusSnapshot(machine, board)` preserves the original behavior and starts at `machine.initial`.
+
+For explicit hydration, pass an options object or use `hydrateDeusSnapshot`:
+
+```ts
+const snapshot = createDeusSnapshot(machine, {
+  board,
+  statePath: "authenticated/home",
+});
+```
+
+`statePath` accepts either a path array or a slash-delimited string. DeusMachina validates that the requested state path exists in the machine before creating the snapshot.
+
+Hydration creates the snapshot directly at the requested active path. It does not replay transition history and does not run transition actions.
+
+By default, explicit hydration does not run `onEnter` hooks, which keeps restore flows free of entry side effects. If a caller needs entry setup, pass `runEnter: true` or use `hydrateDeusSnapshot(machine, { board, statePath, runEnter: true })`.
 
 ## Mutable board convention
 
@@ -57,6 +77,31 @@ All gathered eligible candidates compete by score regardless of depth. Highest s
 If no transition is selected, state and board reference are unchanged, but `stepIndex` increments because a step occurred. If a selected transition has no `to`, state remains the same. Same-state transitions do not run exit or enter hooks.
 
 Dynamic `to` functions are validated at runtime. They must return a valid path that exists in the machine.
+
+## Hierarchical transition fallback
+
+Transition lookup searches the active state path first, then walks upward through parent paths to root. `stateBefore = ["app", "authenticated", "home"]` searches:
+
+1. `app/authenticated/home`
+2. `app/authenticated`
+3. `app`
+
+Leaf-first search order is reflected in the trace as `searchedTransitionPaths`. When a selected transition comes from an ancestor, `transitionOwnerPath` records that owner path and `usedParentTransition` is `true`.
+
+Selection semantics otherwise stay the same: all eligible candidates gathered from the searched paths still compete by score, with stable tie order favoring earlier search order and earlier author rows.
+
+Parent-level transitions are useful for app-wide commands such as `logout`, `navigateSettings`, and `closeModal`, without copying the same transition onto every child state.
+
+## Parent transition target resolution
+
+Array `to` paths keep the existing absolute semantics.
+
+String `to` targets support both absolute and relative forms:
+
+- `"settings"` resolves relative to the selected transition owner path, so a transition from `["app", "authenticated"]` targets `["app", "authenticated", "settings"]`.
+- `"/signedOut"` resolves from the machine root and targets `["signedOut"]`.
+
+This means a parent transition can naturally target sibling children without repeating the full absolute path.
 
 ## Utility judgment semantics
 
@@ -89,7 +134,7 @@ For `root/a/x -> root/b/y`, exit order is `root/a/x`, then `root/a`; enter order
 
 ## Trace contract
 
-`stepDeusMachine` returns a trace containing state before, state after, event type, considered transitions, selected transition, transition eligibility, transition score, transition search index, reasons when provided, and inner utility judgment when applicable.
+`stepDeusMachine` returns a trace containing state before, state after, event type, searched transition paths, selected transition owner path when present, parent-fallback usage, considered transitions, selected transition, transition eligibility, transition score, transition search index, reasons when provided, and inner utility judgment when applicable.
 
 Trace data is intended to be JSON-serializable. It does not include function references, the board object, or arbitrary event payloads. `formatDeusStepTrace(trace)` provides a small deterministic one-line summary for selected and unselected steps.
 

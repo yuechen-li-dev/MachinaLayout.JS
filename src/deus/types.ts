@@ -32,6 +32,7 @@ export type JudgeUtilityOptions<TKey extends string = string> = {
 };
 
 export type DeusStatePath = readonly string[];
+export type DeusPathInput = DeusStatePath | string;
 export type DeusEvent = { type: string };
 export type DeusAction<TBoard, TEvent extends DeusEvent> = (board: TBoard, event: TEvent) => void;
 export type DeusStateRow<TBoard, TEvent extends DeusEvent> = {
@@ -54,7 +55,7 @@ export type DeusTransitionRow<TBoard, TEvent extends DeusEvent> = {
   key: string;
   from: DeusStatePath;
   event?: TEvent["type"];
-  to?: DeusStatePath | ((board: TBoard, event: TEvent) => DeusStatePath);
+  to?: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput);
   when?: (board: TBoard, event: TEvent) => boolean;
   score?: number | ((board: TBoard, event: TEvent) => number);
   do?: DeusAction<TBoard, TEvent>;
@@ -68,6 +69,11 @@ export type DeusMachine<TBoard, TEvent extends DeusEvent> = {
   transitions: readonly DeusTransitionRow<TBoard, TEvent>[];
 };
 export type DeusSnapshot<TBoard> = { state: DeusStatePath; board: TBoard; stepIndex: number };
+export type CreateDeusSnapshotOptions<TBoard> = {
+  board: TBoard;
+  statePath?: DeusPathInput;
+  runEnter?: boolean;
+};
 export type DeusTransitionTrace = {
   key: string;
   from: DeusStatePath;
@@ -83,6 +89,9 @@ export type DeusStepTrace = {
   stateBefore: DeusStatePath;
   stateAfter: DeusStatePath;
   event: string;
+  searchedTransitionPaths?: DeusStatePath[];
+  transitionOwnerPath?: DeusStatePath;
+  usedParentTransition?: boolean;
   selectedTransition?: DeusTransitionTrace;
   transitions: DeusTransitionTrace[];
 };

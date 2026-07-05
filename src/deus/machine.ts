@@ -1,7 +1,9 @@
 import {
+  type CreateDeusSnapshotOptions,
   DeusMachinaError,
   type DeusEvent,
   type DeusMachine,
+  type DeusPathInput,
   type DeusSnapshot,
   type DeusStatePath,
   type DeusStepResult,
@@ -29,6 +31,15 @@ export function formatDeusPath(path: DeusStatePath): string {
   assertValidDeusPath(path, "path");
   return path.join("/");
 }
+export function parseDeusPath(path: string): DeusStatePath {
+  if (typeof path !== "string" || path.length === 0) {
+    throw new DeusMachinaError("InvalidDeusPath", "path string must be non-empty");
+  }
+  const normalized = path.startsWith("/") ? path.slice(1) : path;
+  const parsed = normalized.split("/");
+  assertValidDeusPath(parsed, "path");
+  return parsed;
+}
 export function sameDeusPath(a: DeusStatePath, b: DeusStatePath): boolean {
   assertValidDeusPath(a, "left path");
   assertValidDeusPath(b, "right path");
@@ -45,6 +56,43 @@ function finite(value: number, code: string, label: string): number {
 }
 function pathKey(path: DeusStatePath): string {
   return formatDeusPath(path);
+}
+function copyPath(path: DeusStatePath): DeusStatePath {
+  return [...path];
+}
+function normalizeDeusPathInput(path: DeusPathInput, label: string): DeusStatePath {
+  if (typeof path === "string") return parseDeusPath(path);
+  assertValidDeusPath(path, label);
+  return copyPath(path);
+}
+function resolveTransitionTargetPath(
+  target: DeusPathInput,
+  ownerPath: DeusStatePath,
+  label: string,
+): DeusStatePath {
+  if (typeof target === "string") {
+    if (target.startsWith("/")) return parseDeusPath(target);
+    const relative = parseDeusPath(target);
+    return [...ownerPath, ...relative];
+  }
+  assertValidDeusPath(target, label);
+  return copyPath(target);
+}
+export function hasDeusStatePath<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  path: DeusPathInput,
+): boolean {
+  const candidate = normalizeDeusPathInput(path, "path");
+  return machine.states.some((state) => sameDeusPath(state.path, candidate));
+}
+export function assertDeusStatePath<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  path: DeusPathInput,
+  label = "path",
+): asserts path is DeusPathInput {
+  if (!hasDeusStatePath(machine, path)) {
+    throw new DeusMachinaError("UnknownDeusStatePath", `${label} must exist`);
+  }
 }
 
 function validateReason(reason: unknown, code: string, label: string): void {
@@ -91,9 +139,9 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
         "UnknownDeusStatePath",
         `transition ${t.key} from path must exist`,
       );
-    if (Array.isArray(t.to)) {
-      assertValidDeusPath(t.to, `transition ${t.key} to`);
-      if (!stateKeys.has(pathKey(t.to)))
+    if (Array.isArray(t.to) || typeof t.to === "string") {
+      const resolved = resolveTransitionTargetPath(t.to, t.from, `transition ${t.key} to`);
+      if (!stateKeys.has(pathKey(resolved)))
         throw new DeusMachinaError(
           "UnknownDeusStatePath",
           `transition ${t.key} to path must exist`,
@@ -139,16 +187,90 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
         finite(u.score, "InvalidUtilityScore", `utility score for ${u.key}`);
       validateReason(u.reason, "InvalidDeusTransition", `utility ${u.key}`);
     }
-    return { ...t, from: [...t.from], to: Array.isArray(t.to) ? [...t.to] : t.to };
+    return {
+      ...t,
+      from: copyPath(t.from),
+      to: Array.isArray(t.to) ? copyPath(t.to) : t.to,
+    };
   });
   return { initial: [...machine.initial], states, transitions };
 }
 
+export function hydrateDeusSnapshot<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  options: CreateDeusSnapshotOptions<TBoard>,
+): DeusSnapshot<TBoard> {
+  const state = options.statePath
+    ? normalizeDeusPathInput(options.statePath, "statePath")
+    : copyPath(machine.initial);
+  assertDeusStatePath(machine, state, "statePath");
+  const snapshot = { state: copyPath(state), board: options.board, stepIndex: 0 };
+  if (options.runEnter) {
+    const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
+    const event = { type: "@@deus/hydrate" } as TEvent;
+    for (let i = 1; i <= snapshot.state.length; i++) {
+      stateMap.get(pathKey(snapshot.state.slice(0, i)))?.onEnter?.(snapshot.board, event);
+    }
+  }
+  return snapshot;
+}
+
+function resolveSnapshotCreation(
+  machine: DeusMachine<unknown, DeusEvent>,
+  boardOrOptions: unknown,
+): { board: unknown; state: DeusStatePath; runEnter: boolean; hydrated: boolean } {
+  const hasOptionsShape =
+    !!boardOrOptions &&
+    typeof boardOrOptions === "object" &&
+    ("statePath" in (boardOrOptions as Record<string, unknown>) ||
+      "runEnter" in (boardOrOptions as Record<string, unknown>));
+  if (!hasOptionsShape) {
+    return {
+      board: boardOrOptions,
+      state: copyPath(machine.initial),
+      runEnter: false,
+      hydrated: false,
+    };
+  }
+  const options = boardOrOptions as CreateDeusSnapshotOptions<unknown>;
+  const board = options.board;
+  const state = options.statePath
+    ? normalizeDeusPathInput(options.statePath, "statePath")
+    : copyPath(machine.initial);
+  assertDeusStatePath(machine, state, "statePath");
+  return {
+    board,
+    state,
+    runEnter: options.runEnter ?? false,
+    hydrated: options.statePath !== undefined,
+  };
+}
+
+export function createDeusSnapshot<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  options: CreateDeusSnapshotOptions<TBoard>,
+): DeusSnapshot<TBoard>;
+export function createDeusSnapshot<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  board: TBoard,
+): DeusSnapshot<TBoard>;
 export function createDeusSnapshot<TBoard, TEvent extends DeusEvent>(
   machine: DeusMachine<TBoard, TEvent>,
   board: TBoard,
 ): DeusSnapshot<TBoard> {
-  return { state: [...machine.initial], board, stepIndex: 0 };
+  const resolved = resolveSnapshotCreation(
+    machine as unknown as DeusMachine<unknown, DeusEvent>,
+    board,
+  ) as { board: TBoard; state: DeusStatePath; runEnter: boolean; hydrated: boolean };
+  const snapshot = { state: copyPath(resolved.state), board: resolved.board, stepIndex: 0 };
+  if (resolved.runEnter) {
+    const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
+    const event = { type: "@@deus/hydrate" } as TEvent;
+    for (let i = 1; i <= snapshot.state.length; i++) {
+      stateMap.get(pathKey(snapshot.state.slice(0, i)))?.onEnter?.(snapshot.board, event);
+    }
+  }
+  return snapshot;
 }
 
 export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
@@ -160,6 +282,7 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
   assertValidDeusPath(stateBefore, "snapshot state");
   const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
   const orderedFrom = stateBefore.map((_, i) => stateBefore.slice(0, stateBefore.length - i));
+  const searchedTransitionPaths = orderedFrom.map((path) => copyPath(path));
   const candidates = orderedFrom.flatMap((from) =>
     machine.transitions.map((t) => ({ t })).filter(({ t }) => sameDeusPath(t.from, from)),
   );
@@ -208,9 +331,11 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
     }
     const to =
       eligible && t.to
-        ? typeof t.to === "function"
-          ? [...t.to(snapshot.board, event)]
-          : [...t.to]
+        ? resolveTransitionTargetPath(
+            typeof t.to === "function" ? t.to(snapshot.board, event) : t.to,
+            t.from,
+            `transition ${t.key} to`,
+          )
         : undefined;
     if (to) {
       assertValidDeusPath(to, `transition ${t.key} to`);
@@ -239,7 +364,13 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
   if (!selected)
     return {
       snapshot: { state: stateBefore, board: snapshot.board, stepIndex: snapshot.stepIndex + 1 },
-      trace: { stateBefore, stateAfter: stateBefore, event: event.type, transitions: traces },
+      trace: {
+        stateBefore,
+        stateAfter: stateBefore,
+        event: event.type,
+        searchedTransitionPaths,
+        transitions: traces,
+      },
     };
   const target = selected.trace.to ?? stateBefore;
   const common = stateBefore.findIndex((v, i) => target[i] !== v);
@@ -257,6 +388,9 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
       stateBefore,
       stateAfter: [...target],
       event: event.type,
+      searchedTransitionPaths,
+      transitionOwnerPath: copyPath(selected.t.from),
+      usedParentTransition: selected.t.from.length < stateBefore.length,
       selectedTransition: selected.trace,
       transitions: traces,
     },
