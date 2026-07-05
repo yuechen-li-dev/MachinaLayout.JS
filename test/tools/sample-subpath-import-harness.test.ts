@@ -19,6 +19,7 @@ async function createTempRepo() {
   tempRoots.push(rootPath);
 
   await mkdir(path.join(rootPath, "dist", "async"), { recursive: true });
+  await mkdir(path.join(rootPath, "dist", "text"), { recursive: true });
   await mkdir(path.join(rootPath, "dist", "text", "react"), { recursive: true });
   await mkdir(path.join(rootPath, "sample"), { recursive: true });
 
@@ -36,6 +37,10 @@ async function createTempRepo() {
           "./async": {
             types: "./dist/async/index.d.ts",
             import: "./dist/async/index.js",
+          },
+          "./text": {
+            types: "./dist/text/index.d.ts",
+            import: "./dist/text/index.js",
           },
           "./text/react": {
             types: "./dist/text/react/index.d.ts",
@@ -68,6 +73,16 @@ async function createTempRepo() {
   await writeFile(
     path.join(rootPath, "dist", "async", "index.d.ts"),
     'export declare const asyncValue: "async";\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(rootPath, "dist", "text", "index.js"),
+    'export const textValue = "text";\n',
+    "utf8",
+  );
+  await writeFile(
+    path.join(rootPath, "dist", "text", "index.d.ts"),
+    'export declare const textValue: "text";\n',
     "utf8",
   );
   await writeFile(
@@ -125,6 +140,7 @@ describe("prepareSampleSubpathImports", () => {
     const firstRun = await prepareSampleSubpathImports(["sample"], { repoRoot, cwd: repoRoot });
     const packageJsonPath = path.join(sampleRoot, "node_modules", "machinalayout", "package.json");
     const asyncBridgePath = path.join(sampleRoot, "node_modules", "machinalayout", "async.js");
+    const textBridgePath = path.join(sampleRoot, "node_modules", "machinalayout", "text.js");
     const nestedBridgePath = path.join(
       sampleRoot,
       "node_modules",
@@ -134,10 +150,11 @@ describe("prepareSampleSubpathImports", () => {
     );
 
     expect(firstRun).toHaveLength(1);
-    expect(firstRun[0]?.exportCount).toBe(3);
+    expect(firstRun[0]?.exportCount).toBe(4);
 
     const packageJsonText = await readFile(packageJsonPath, "utf8");
     const asyncBridgeText = await readFile(asyncBridgePath, "utf8");
+    const textBridgeText = await readFile(textBridgePath, "utf8");
     const nestedBridgeText = await readFile(nestedBridgePath, "utf8");
 
     expect(JSON.parse(packageJsonText)).toEqual({
@@ -153,6 +170,10 @@ describe("prepareSampleSubpathImports", () => {
           types: "./async.d.ts",
           import: "./async.js",
         },
+        "./text": {
+          types: "./text.d.ts",
+          import: "./text.js",
+        },
         "./text/react": {
           types: "./text/react.d.ts",
           import: "./text/react.js",
@@ -160,12 +181,14 @@ describe("prepareSampleSubpathImports", () => {
       },
     });
     expect(asyncBridgeText).toBe('export * from "../../../dist/async/index.js";\n');
+    expect(textBridgeText).toBe('export * from "../../../dist/text/index.js";\n');
     expect(nestedBridgeText).toBe('export * from "../../../../dist/text/react/index.js";\n');
 
     await prepareSampleSubpathImports(["sample"], { repoRoot, cwd: repoRoot });
 
     expect(await readFile(packageJsonPath, "utf8")).toBe(packageJsonText);
     expect(await readFile(asyncBridgePath, "utf8")).toBe(asyncBridgeText);
+    expect(await readFile(textBridgePath, "utf8")).toBe(textBridgeText);
     expect(await readFile(nestedBridgePath, "utf8")).toBe(nestedBridgeText);
   });
 

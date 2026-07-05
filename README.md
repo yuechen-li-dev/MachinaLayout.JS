@@ -48,6 +48,7 @@ Machina adapters ask you to learn one layout model: Machina records. The framewo
 ### Text
 
 - Parser/core text: `machinalayout/text`
+- Text utilities: `machinalayout/text`
 
 ### Text renderers
 
@@ -72,6 +73,8 @@ Named capability constraints and template records are available at `machinalayou
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
 Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
+
+Dependency-free text utilities, including `leftPad`, are available at `machinalayout/text`; see [Text utilities](docs/text-utilities.md).
 
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
@@ -156,6 +159,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
+- [Text utilities](docs/text-utilities.md) — tiny deterministic helpers for padding, truncation, casing, and slugs.
 - [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
 - [Local sample subpath imports](docs/local-sample-subpath-imports.md) — standard local harness for nested samples that dogfood `machinalayout/*` subpaths before publish.
 

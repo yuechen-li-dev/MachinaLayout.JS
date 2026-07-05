@@ -18,3 +18,11 @@ export type {
 } from "./types";
 
 export { parseMachinaText, parseMachinaTextInline } from "./parseMachinaText";
+export { TextFormatError } from "./errors";
+export type { TextFormatErrorCode } from "./errors";
+export { leftPad, rightPad, centerPad } from "./pad";
+export type { TruncateOptions } from "./truncate";
+export { truncate } from "./truncate";
+export { kebab, camel, pascal } from "./case";
+export { slug } from "./slug";
+export { Text } from "./utilities";

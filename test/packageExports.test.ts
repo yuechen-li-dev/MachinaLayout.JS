@@ -165,6 +165,9 @@ describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
     const textCore = await import("../src/text");
     expect(parseMachinaText).toBeTypeOf("function");
+    expect(textCore.leftPad("7", 3, "0")).toBe("007");
+    expect(textCore.Text.leftPad("7", 3, "0")).toBe("007");
+    expect(textCore.TextFormatError).toBeTypeOf("function");
     expect("MachinaTextView" in textCore).toBe(false);
     expect("MachinaNativeTextView" in textCore).toBe(false);
     expect("MachinaVueTextView" in textCore).toBe(false);
