@@ -65,6 +65,8 @@ Explicit capture records for visible-env closure-like authoring are available at
 
 Deus-backed explicit async task lifecycles are available at `machinalayout/async`; see [Deus async tasks](docs/deus-async-tasks.md).
 
+Explicit iterator machines with visible cursor, board, and trace are available at `machinalayout/iter`; see [Explicit iterators](docs/explicit-iterators.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -144,6 +146,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Exhaustive match helpers](docs/exhaustive-match.md)
 - [Explicit capture](docs/explicit-capture.md) — visible-env closure-like tasks for inspectable authoring.
 - [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
+- [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 
 ## Tiny `LayoutRow[]` example
 

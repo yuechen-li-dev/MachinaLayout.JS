@@ -87,6 +87,10 @@
       "types": "./dist/async/index.d.ts",
       "import": "./dist/async/index.js"
     },
+    "./iter": {
+      "types": "./dist/iter/index.d.ts",
+      "import": "./dist/iter/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

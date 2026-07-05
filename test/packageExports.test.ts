@@ -23,6 +23,13 @@ import {
   validateAsyncTask,
 } from "../src/async";
 import {
+  formatIterDiagnostics,
+  formatIterMachineDescription,
+  formatIterTrace,
+  I,
+  validateIterMachine,
+} from "../src/iter";
+import {
   C,
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
@@ -126,6 +133,23 @@ describe("package export entrypoints", () => {
     expect(validateAsyncTask).toBeTypeOf("function");
     expect(formatAsyncTaskDiagnostics).toBeTypeOf("function");
     expect(formatAsyncTaskTrace).toBeTypeOf("function");
+  });
+
+  it("exposes iter subpath utilities", () => {
+    expect(I.machine).toBeTypeOf("function");
+    expect(I.yield).toBeTypeOf("function");
+    expect(I.done).toBeTypeOf("function");
+    expect(I.fail).toBeTypeOf("function");
+    expect(I.createController).toBeTypeOf("function");
+    expect(I.next).toBeTypeOf("function");
+    expect(I.collect).toBeTypeOf("function");
+    expect(I.reset).toBeTypeOf("function");
+    expect(I.describe).toBeTypeOf("function");
+    expect(I.validate).toBeTypeOf("function");
+    expect(formatIterMachineDescription).toBeTypeOf("function");
+    expect(validateIterMachine).toBeTypeOf("function");
+    expect(formatIterDiagnostics).toBeTypeOf("function");
+    expect(formatIterTrace).toBeTypeOf("function");
   });
 
   it("exposes static subpath utilities", () => {
