@@ -350,7 +350,7 @@ describe("async task controller lifecycle", () => {
     });
   });
 
-  it("supports task-authored trace events", async () => {
+  it("supports task-authored domain trace events without reusing lifecycle kinds", async () => {
     const now = 1000;
     const controller = A.createController(
       A.task({
@@ -358,11 +358,11 @@ describe("async task controller lifecycle", () => {
         env: {},
         run: async (_env, input: string, ctx) => {
           ctx.trace({
-            kind: "started",
+            kind: "domain",
             taskId: "ignored",
             runId: 999,
             at: now + 5,
-            message: `working on ${input}`,
+            message: `validated input ${input}`,
           });
           return A.ok(input.toUpperCase());
         },
@@ -375,11 +375,11 @@ describe("async task controller lifecycle", () => {
       value: "ADA",
     });
     expect(controller.getBoard().trace).toContainEqual({
-      kind: "started",
+      kind: "domain",
       taskId: "traceable",
       runId: 1,
       at: 1005,
-      message: "working on ada",
+      message: "validated input ada",
     });
   });
 
@@ -467,15 +467,15 @@ describe("async task description, validation, typing, and exports", () => {
   it("formats traces readably", () => {
     const formatted = formatAsyncTaskTrace([
       {
-        kind: "started",
+        kind: "domain",
         taskId: "fetchUser",
         runId: 3,
         at: 1500,
-        message: "begin",
+        message: "computed risk score",
       },
     ]);
 
-    expect(formatted).toContain("fetchUser#3 started @ 1500");
+    expect(formatted).toContain("fetchUser#3 domain @ 1500");
   });
 
   it("infers input, output, error, and context signal types", async () => {

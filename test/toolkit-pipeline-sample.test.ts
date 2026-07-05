@@ -67,7 +67,7 @@ describe("toolkit pipeline sample", () => {
 
     expect(report.captureDescriptions.map((entry) => entry.id)).toEqual([
       "formatMoney",
-      "formatMoney",
+      "formatMoneyFr",
       "formatDiagnostics",
       "formatReportRow",
     ]);
@@ -86,6 +86,25 @@ describe("toolkit pipeline sample", () => {
     expect(text).toContain("timed out order-002: 15ms");
     expect(text).toContain("matchKind");
     expect(text).toContain("matchDiscriminated");
+  });
+
+  it("records controller lifecycle traces plus domain-specific task traces without duplicate started events", async () => {
+    const report = await runToolkitPipeline();
+
+    expect(report.asyncBoards).toEqual([
+      {
+        orderId: "order-001",
+        status: "succeeded",
+        statePath: ["succeeded"],
+        traceKinds: ["created", "started", "domain", "resolved"],
+      },
+      {
+        orderId: "order-002",
+        status: "timedOut",
+        statePath: ["timedOut"],
+        traceKinds: ["created", "started", "domain", "timedOut"],
+      },
+    ]);
   });
 
   it("does not make external network calls", async () => {

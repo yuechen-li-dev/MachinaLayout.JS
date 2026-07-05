@@ -1,5 +1,5 @@
-import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus";
-import { cancelled, err, timeout } from "./result";
+import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus.js";
+import { cancelled, err, timeout } from "./result.js";
 const idlePath = ["idle"];
 const runningPath = ["running"];
 const succeededPath = ["succeeded"];

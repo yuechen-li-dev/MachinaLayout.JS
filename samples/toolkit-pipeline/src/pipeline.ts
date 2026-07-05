@@ -162,8 +162,12 @@ const formatMoney = C.task({
     }).format(cents / 100),
 });
 
-const formatMoneyFr = C.withEnv(formatMoney, {
-  locale: "fr-FR",
+const formatMoneyFr = C.rebind(formatMoney, {
+  id: "formatMoneyFr",
+  description: "Format order totals for the French report locale.",
+  envPatch: {
+    locale: "fr-FR",
+  },
 });
 
 const formatDiagnostics = C.task({
@@ -276,11 +280,11 @@ const enrichOrder = A.task({
     ctx,
   ): Promise<AsyncTaskResult<EnrichedOrder, EnrichmentError>> => {
     ctx.trace({
-      kind: "started",
+      kind: "domain",
       taskId: "ignored",
       runId: ctx.runId,
       at: ctx.startedAt + 1,
-      message: `Enriching ${order.id}.`,
+      message: `prepared fake persistence payload for ${order.id}`,
     });
 
     if (ctx.signal.aborted) {

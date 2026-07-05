@@ -194,4 +194,25 @@ This module does not:
 
 It is a narrow explicit async task primitive: one task, one visible lifecycle, one inspectable board.
 
+## Trace ownership
+
+The controller owns lifecycle trace events:
+
+- `created`
+- `started`
+- `resolved`
+- `failed`
+- `cancelled`
+- `timedOut`
+- `staleCompletionIgnored`
+
+Task-authored trace events should add domain detail instead of repeating lifecycle state. Use `kind: "domain"` for task-authored notes such as:
+
+- `validated input`
+- `computed risk score`
+- `prepared persistence payload`
+- `received fake persistence response`
+
+Avoid task-authored duplicates like `started`, `resolved`, or `failed` when the controller already records those lifecycle events.
+
 See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a backend-style sample that uses async tasks with iterator and concept diagnostics.

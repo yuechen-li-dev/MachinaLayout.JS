@@ -70,6 +70,7 @@ import {
   C,
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
+  rebindCaptureTask,
   validateCaptureTask,
 } from "../src/capture";
 import {
@@ -198,9 +199,11 @@ describe("package export entrypoints", () => {
     expect(C.task).toBeTypeOf("function");
     expect(C.run).toBeTypeOf("function");
     expect(C.withEnv).toBeTypeOf("function");
+    expect(C.rebind).toBeTypeOf("function");
     expect(C.map).toBeTypeOf("function");
     expect(C.describe).toBeTypeOf("function");
     expect(C.validate).toBeTypeOf("function");
+    expect(rebindCaptureTask).toBeTypeOf("function");
     expect(formatCaptureTaskDescription).toBeTypeOf("function");
     expect(validateCaptureTask).toBeTypeOf("function");
     expect(formatCaptureDiagnostics).toBeTypeOf("function");

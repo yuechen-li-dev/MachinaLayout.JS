@@ -37,3 +37,10 @@ M34h dogfooded the new utility subpaths together in [`samples/toolkit-pipeline`]
 - Do not add orchestration, retries, or workflow features to `machinalayout/async` yet. The current friction is mostly verbosity and docs clarity, not a missing scheduler.
 - Do not turn `machinalayout/iter` into a streaming abstraction. The existing explicit-machine surface is enough for batch/report workflows.
 - Do not add compile-time derivation from runtime concepts in M34h. Naming runtime concepts beside TypeScript aliases was acceptable for this sample.
+
+## M34i Follow-up
+
+- Added `C.rebind` for named env variants.
+- Updated `toolkit-pipeline` to use named formatter variants.
+- Clarified async trace ownership.
+- Updated sample traces to avoid duplicate lifecycle events.

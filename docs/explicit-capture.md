@@ -65,9 +65,11 @@ That means the environment is:
 - `C.task`
 - `C.run`
 - `C.withEnv`
+- `C.rebind`
 - `C.map`
 - `C.describe`
 - `C.validate`
+- `rebindCaptureTask`
 - `describeCaptureTask`
 - `formatCaptureTaskDescription`
 - `validateCaptureTask`
@@ -110,6 +112,29 @@ const darkRender = C.withEnv(renderCard, {
 ```
 
 `C.withEnv` performs a shallow merge and returns a new task. It does not mutate the original task or environment.
+
+`C.withEnv` intentionally preserves task identity. Use it when you mean "same task, different env values."
+
+## Rebind named variants
+
+```ts
+import { C } from "machinalayout/capture";
+
+const formatMoneyFr = C.rebind(formatMoney, {
+  id: "formatMoneyFr",
+  description: "Format money for French report output.",
+  envPatch: {
+    locale: "fr-FR",
+  },
+});
+```
+
+`C.rebind` is the named variant helper. It returns a new task, preserves `run`, and lets you update identity and environment together without mutating the original task.
+
+Use this distinction:
+
+- `C.withEnv`: same task identity, different env values
+- `C.rebind`: new task identity/description, optionally different env
 
 ## Description and validation
 

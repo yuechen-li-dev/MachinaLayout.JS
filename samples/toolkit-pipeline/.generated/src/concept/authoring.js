@@ -1,6 +1,6 @@
-import { describeConcept, describeTemplate } from "./describe";
-import { runTemplate, template } from "./template";
-import { assertConceptValue, validateConceptValue } from "./validate";
+import { describeConcept, describeTemplate } from "./describe.js";
+import { runTemplate, template } from "./template.js";
+import { assertConceptValue, validateConceptValue } from "./validate.js";
 function cloneConstraint(constraint) {
     if (constraint.kind === "literal") {
         return {

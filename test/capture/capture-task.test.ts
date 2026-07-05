@@ -4,6 +4,7 @@ import {
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
   type CaptureTask,
+  rebindCaptureTask,
   validateCaptureTask,
 } from "../../src/capture";
 import * as root from "../../src/index";
@@ -78,6 +79,123 @@ describe("capture task authoring", () => {
       dispatch: "dispatch-a",
       locale: "en-US",
     });
+  });
+
+  it("rebinds a task with a new id while preserving run", () => {
+    const run = vi.fn((env: { locale: string }, cents: number) => `${env.locale}:${cents}`);
+    const captureTask = C.task({
+      id: "formatMoney",
+      env: { locale: "en-US" },
+      run,
+    });
+
+    const rebound = C.rebind(captureTask, {
+      id: "formatMoneyFr",
+      envPatch: { locale: "fr-FR" },
+    });
+
+    expect(rebound).not.toBe(captureTask);
+    expect(rebound.id).toBe("formatMoneyFr");
+    expect(rebound.run).toBe(captureTask.run);
+    expect(C.run(rebound, 1200)).toBe("fr-FR:1200");
+    expect(run).toHaveBeenCalledWith({ locale: "fr-FR" }, 1200);
+  });
+
+  it("rebinds a task with a new description", () => {
+    const captureTask = C.task({
+      id: "formatMoney",
+      description: "Format money for the primary locale.",
+      env: { locale: "en-US" },
+      run: (env, cents: number) => `${env.locale}:${cents}`,
+    });
+
+    const rebound = C.rebind(captureTask, {
+      description: "Format money for French report output.",
+    });
+
+    expect(rebound.description).toBe("Format money for French report output.");
+    expect(rebound.id).toBe("formatMoney");
+  });
+
+  it("rebind can replace env entirely", () => {
+    const captureTask = C.task({
+      id: "formatMoney",
+      env: { locale: "en-US", currency: "USD" },
+      run: (env, cents: number) => `${env.locale}:${env.currency}:${cents}`,
+    });
+
+    const rebound = C.rebind(captureTask, {
+      env: { locale: "fr-FR", currency: "EUR" },
+    });
+
+    expect(rebound.env).toEqual({
+      locale: "fr-FR",
+      currency: "EUR",
+    });
+    expect(captureTask.env).toEqual({
+      locale: "en-US",
+      currency: "USD",
+    });
+  });
+
+  it("rebind can patch env without mutating the original task env", () => {
+    const originalEnv = { locale: "en-US", currency: "USD" };
+    const captureTask = C.task({
+      id: "formatMoney",
+      env: originalEnv,
+      run: (env, cents: number) => `${env.locale}:${env.currency}:${cents}`,
+    });
+
+    const rebound = C.rebind(captureTask, {
+      envPatch: { locale: "fr-FR" },
+    });
+
+    expect(rebound.env).toEqual({
+      locale: "fr-FR",
+      currency: "USD",
+    });
+    expect(rebound.env).not.toBe(originalEnv);
+    expect(captureTask.env).toBe(originalEnv);
+    expect(captureTask.env).toEqual({
+      locale: "en-US",
+      currency: "USD",
+    });
+  });
+
+  it("rebind rejects env and envPatch together", () => {
+    const captureTask = C.task({
+      id: "formatMoney",
+      env: { locale: "en-US", currency: "USD" },
+      run: (env, cents: number) => `${env.locale}:${env.currency}:${cents}`,
+    });
+
+    expect(() =>
+      C.rebind(captureTask, {
+        env: { locale: "fr-FR", currency: "EUR" },
+        envPatch: { locale: "de-DE" },
+      }),
+    ).toThrowError("Capture task rebind cannot accept both env and envPatch.");
+  });
+
+  it("rebind description output shows the new id", () => {
+    const rebound = C.rebind(
+      C.task({
+        id: "formatMoney",
+        description: "Format money for the primary locale.",
+        env: { locale: "en-US", currency: "USD" },
+        run: (env, cents: number) => `${env.locale}:${env.currency}:${cents}`,
+      }),
+      {
+        id: "formatMoneyFr",
+        description: "Format money for French report output.",
+        envPatch: { locale: "fr-FR" },
+      },
+    );
+
+    const text = formatCaptureTaskDescription(C.describe(rebound));
+
+    expect(text).toContain("Task: formatMoneyFr");
+    expect(text).toContain("Description: Format money for French report output.");
   });
 
   it("maps inputs through the task runner", () => {
@@ -197,7 +315,7 @@ describe("capture task validation", () => {
 });
 
 describe("capture task typing and exports", () => {
-  it("infers env, input, output, and withEnv patch types", () => {
+  it("infers env, input, output, and env update types", () => {
     const formatPrice = C.task({
       id: "formatPrice",
       env: {
@@ -213,8 +331,13 @@ describe("capture task typing and exports", () => {
 
     const text: string = C.run(formatPrice, 1299);
     const updated = C.withEnv(formatPrice, { locale: "fr-FR" });
+    const rebound = C.rebind(formatPrice, {
+      id: "formatPriceFr",
+      envPatch: { locale: "fr-FR" },
+    });
     const locale: string = updated.env.locale;
     const currency: string = updated.env.currency;
+    const reboundId: string = rebound.id;
 
     const handler = C.task({
       id: "selectObject",
@@ -230,10 +353,13 @@ describe("capture task typing and exports", () => {
     C.run(formatPrice, "1299");
     // @ts-expect-error withEnv patch must match Partial<TEnv>
     C.withEnv(formatPrice, { missing: true });
+    // @ts-expect-error rebind envPatch must match Partial<TEnv>
+    C.rebind(formatPrice, { envPatch: { missing: true } });
 
     expect(text).toContain("$");
     expect(locale).toBe("fr-FR");
     expect(currency).toBe("USD");
+    expect(reboundId).toBe("formatPriceFr");
     expect(handlerResult).toBe("object-1");
   });
 
@@ -241,9 +367,11 @@ describe("capture task typing and exports", () => {
     expect(C.task).toBeTypeOf("function");
     expect(C.run).toBeTypeOf("function");
     expect(C.withEnv).toBeTypeOf("function");
+    expect(C.rebind).toBeTypeOf("function");
     expect(C.map).toBeTypeOf("function");
     expect(C.describe).toBeTypeOf("function");
     expect(C.validate).toBeTypeOf("function");
+    expect(rebindCaptureTask).toBeTypeOf("function");
     expect("C" in root).toBe(false);
   });
 });

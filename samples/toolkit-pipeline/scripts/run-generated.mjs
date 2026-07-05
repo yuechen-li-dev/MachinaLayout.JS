@@ -1,9 +1,10 @@
-import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const sampleRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const generatedRoot = path.join(sampleRoot, ".generated");
+const generatedSampleRoot = path.join(generatedRoot, "samples", "toolkit-pipeline", "src");
 
 async function listJsFiles(root) {
   const entries = await readdir(root);
@@ -40,4 +41,17 @@ for (const filePath of await listJsFiles(generatedRoot)) {
   }
 }
 
-await import(pathToFileURL(path.join(generatedRoot, "index.js")).href);
+const { runToolkitPipeline } = await import(
+  pathToFileURL(path.join(generatedSampleRoot, "pipeline.js")).href
+);
+const { renderReportArtifacts } = await import(
+  pathToFileURL(path.join(generatedSampleRoot, "report.js")).href
+);
+
+const report = await runToolkitPipeline();
+const distRoot = path.join(sampleRoot, "dist");
+await mkdir(distRoot, { recursive: true });
+
+for (const artifact of renderReportArtifacts(report)) {
+  await writeFile(path.join(distRoot, artifact.path), artifact.content, "utf8");
+}

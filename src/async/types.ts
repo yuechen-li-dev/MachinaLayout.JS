@@ -53,7 +53,8 @@ export type AsyncTaskTraceEvent = {
     | "failed"
     | "cancelled"
     | "timedOut"
-    | "staleCompletionIgnored";
+    | "staleCompletionIgnored"
+    | "domain";
   readonly taskId: string;
   readonly runId: number;
   readonly at: number;
