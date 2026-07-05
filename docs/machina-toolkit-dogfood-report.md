@@ -49,3 +49,9 @@ M34h dogfooded the new utility subpaths together in [`samples/toolkit-pipeline`]
 
 - Added `A.runSnapshot` to reduce one-shot controller ceremony without hiding the lifecycle receipt.
 - Updated `toolkit-pipeline` to use `A.runSnapshot` for async result plus board/trace collection.
+
+## M34k Follow-up
+
+- Added `machinalayout/diagnostics` as a small shared diagnostics helper surface.
+- Updated `toolkit-pipeline` to keep concept diagnostics and domain-policy diagnostics separate, but report them together through one shared shape.
+- Kept concepts focused on shape and capability validation rather than expanding them into general business-policy validation.

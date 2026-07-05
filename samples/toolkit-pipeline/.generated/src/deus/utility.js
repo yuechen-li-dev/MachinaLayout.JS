@@ -1,4 +1,4 @@
-import { DeusMachinaError, } from "./types";
+import { DeusMachinaError, } from "./types.js";
 function finite(value, code, label) {
     if (!Number.isFinite(value))
         throw new DeusMachinaError(code, `${label} must be finite`);

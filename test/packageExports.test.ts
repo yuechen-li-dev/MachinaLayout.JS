@@ -67,6 +67,7 @@ import {
   type TupleValues,
   type ValueOf,
 } from "../src/comptime";
+import { D } from "../src/diagnostics";
 import {
   C,
   formatCaptureDiagnostics,
@@ -274,6 +275,21 @@ describe("package export entrypoints", () => {
     expect(formatConceptDiagnostics).toBeTypeOf("function");
     expect(formatTemplateDescription).toBeTypeOf("function");
     expect(ConceptError).toBeTypeOf("function");
+  });
+
+  it("exposes diagnostics subpath utilities", () => {
+    expect(D.error).toBeTypeOf("function");
+    expect(D.warning).toBeTypeOf("function");
+    expect(D.info).toBeTypeOf("function");
+    expect(D.ok).toBeTypeOf("function");
+    expect(D.err).toBeTypeOf("function");
+    expect(D.collect).toBeTypeOf("function");
+    expect(D.hasErrors).toBeTypeOf("function");
+    expect(D.hasWarnings).toBeTypeOf("function");
+    expect(D.sort).toBeTypeOf("function");
+    expect(D.groupBySource).toBeTypeOf("function");
+    expect(D.format).toBeTypeOf("function");
+    expect(D.from).toBeTypeOf("function");
   });
 
   it("exposes compile-time helper utilities", () => {

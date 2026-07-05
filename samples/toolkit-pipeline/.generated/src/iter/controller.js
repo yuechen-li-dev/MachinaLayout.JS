@@ -1,5 +1,5 @@
-import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus";
-import { doneNext, failNext, yieldedNext } from "./result";
+import { createDeusSnapshot, defineDeusMachine, stepDeusMachine, } from "../deus.js";
+import { doneNext, failNext, yieldedNext } from "./result.js";
 const defaultMaxSteps = 10_000;
 const idlePath = ["idle"];
 const runningPath = ["running"];

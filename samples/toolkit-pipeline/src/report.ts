@@ -1,3 +1,4 @@
+import { D } from "machinalayout/diagnostics";
 import { matchDiscriminated, matchKind } from "machinalayout/match";
 import { asyncSummarySlug, type PipelineEventKind } from "./data.js";
 import type { PipelineReport } from "./pipeline.js";
@@ -28,6 +29,16 @@ function renderEventCount(kind: PipelineEventKind, counts: PipelineReport["event
 }
 
 export function renderTextReport(report: PipelineReport): string {
+  const invalidOrderLines =
+    report.invalidOrders.length === 0
+      ? ["- none"]
+      : report.invalidOrders.flatMap((order) => [
+          `- ${order.id}`,
+          ...D.format(order.sharedDiagnostics)
+            .split("\n")
+            .map((line) => `  ${line}`),
+        ]);
+
   const lines = [
     "Machina Toolkit Pipeline Report",
     "",
@@ -35,8 +46,8 @@ export function renderTextReport(report: PipelineReport): string {
     `Valid orders: ${report.validCount}`,
     `Invalid orders: ${report.invalidCount}`,
     "",
-    "Concept diagnostics:",
-    ...report.invalidOrders.map((order) => `- ${order.id}: ${order.diagnosticsText}`),
+    "Combined diagnostics:",
+    ...invalidOrderLines,
     "",
     "Iterator:",
     `- status: ${report.iterator.status}`,

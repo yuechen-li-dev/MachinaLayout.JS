@@ -48,9 +48,30 @@ describe("toolkit pipeline sample", () => {
     expect(report.invalidOrders).toEqual([
       {
         id: "bad-order",
-        diagnostics: ["MissingConceptField", "NegativeTotalCents"],
+        diagnostics: ["MissingConceptField", "ORDER_NEGATIVE_TOTAL"],
+        groupedDiagnostics: {
+          concept: ["MissingConceptField"],
+          "toolkit-pipeline": ["ORDER_NEGATIVE_TOTAL"],
+        },
+        sharedDiagnostics: [
+          {
+            severity: "error",
+            code: "MissingConceptField",
+            message: "Required concept field 'customerId' is missing.",
+            path: "orders[2].customerId",
+            source: "concept",
+          },
+          {
+            severity: "error",
+            code: "ORDER_NEGATIVE_TOTAL",
+            message: "Order total must be non-negative.",
+            path: "orders[2].totalCents",
+            source: "toolkit-pipeline",
+            details: ["value: -100"],
+          },
+        ],
         diagnosticsText:
-          "[error] MissingConceptField at customerId: Required concept field 'customerId' is missing.; [error] NegativeTotalCents at totalCents: Order totals must not be negative for export.",
+          "error MissingConceptField at orders[2].customerId\n  source: concept\n  Required concept field 'customerId' is missing.\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100",
       },
     ]);
     expect(report.iterator.status).toBe("done");
@@ -72,7 +93,11 @@ describe("toolkit pipeline sample", () => {
       "formatDiagnostics",
       "formatReportRow",
     ]);
-    expect(report.captureDescriptions[2]?.envKeys).toEqual(["includeSeverity"]);
+    expect(report.captureDescriptions[2]?.envKeys).toEqual([
+      "includeSeverity",
+      "includeSource",
+      "includePath",
+    ]);
     expect(report.conceptDescriptions[2]).toContain("Concept: PricedOrder");
     expect(report.templateDescriptions[0]).toContain("Template: summarizeOrder");
   });
@@ -85,8 +110,27 @@ describe("toolkit pipeline sample", () => {
     expect(reportA).toEqual(reportB);
     expect(text).toContain("accepted order-001");
     expect(text).toContain("timed out order-002: 15ms");
+    expect(text).toContain("error ORDER_NEGATIVE_TOTAL at orders[2].totalCents");
     expect(text).toContain("matchKind");
     expect(text).toContain("matchDiscriminated");
+  });
+
+  it("includes both concept and domain diagnostics in the combined report", async () => {
+    const report = await runToolkitPipeline();
+
+    expect(report.invalidOrders[0]?.groupedDiagnostics).toEqual({
+      concept: ["MissingConceptField"],
+      "toolkit-pipeline": ["ORDER_NEGATIVE_TOTAL"],
+    });
+  });
+
+  it("uses the shared formatter output for text diagnostics", async () => {
+    const report = await runToolkitPipeline();
+    const text = renderTextReport(report);
+
+    expect(text).toContain("Combined diagnostics:");
+    expect(text).toContain("source: concept");
+    expect(text).toContain("source: toolkit-pipeline");
   });
 
   it("records controller lifecycle traces plus domain-specific task traces without duplicate started events", async () => {

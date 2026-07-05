@@ -1,6 +1,7 @@
 import { A } from "machinalayout/async";
 import { C, formatCaptureTaskDescription } from "machinalayout/capture";
 import { T } from "machinalayout/concept";
+import { D } from "machinalayout/diagnostics";
 import { I, formatIterMachineDescription, formatIterTrace } from "machinalayout/iter";
 import { matchKind } from "machinalayout/match";
 import { conceptDescriptions, findConceptDiagnostics, summarizeOrder, templateDescriptions, } from "./concepts.js";
@@ -13,31 +14,37 @@ function createClock(startAt) {
         return current;
     };
 }
-function validateBusinessRules(order) {
+function toOrderPath(index, path) {
+    return path ? `orders[${index}].${path}` : `orders[${index}]`;
+}
+function validateOrderPolicy(order, index) {
     const diagnostics = [];
     if (order.totalCents < 0) {
-        diagnostics.push({
-            severity: "error",
-            code: "NegativeTotalCents",
-            message: "Order totals must not be negative for export.",
-            path: "totalCents",
-        });
+        diagnostics.push(D.error({
+            source: "toolkit-pipeline",
+            path: toOrderPath(index, "totalCents"),
+            code: "ORDER_NEGATIVE_TOTAL",
+            message: "Order total must be non-negative.",
+            details: [`value: ${order.totalCents}`],
+        }));
     }
     if (!orderStatuses.includes(order.status)) {
-        diagnostics.push({
-            severity: "error",
-            code: "InvalidOrderStatus",
+        diagnostics.push(D.error({
+            source: "toolkit-pipeline",
+            path: toOrderPath(index, "status"),
+            code: "ORDER_UNSUPPORTED_STATUS",
             message: `Order status '${order.status}' is not part of the allowed status tuple.`,
-            path: "status",
-        });
+            details: [`value: ${order.status}`],
+        }));
     }
     if (order.items <= 0) {
-        diagnostics.push({
-            severity: "error",
-            code: "InvalidItemCount",
+        diagnostics.push(D.error({
+            source: "toolkit-pipeline",
+            path: toOrderPath(index, "items"),
+            code: "ORDER_INVALID_ITEM_COUNT",
             message: "Orders must contain at least one item.",
-            path: "items",
-        });
+            details: [`value: ${order.items}`],
+        }));
     }
     return diagnostics;
 }
@@ -65,14 +72,10 @@ const formatDiagnostics = C.task({
     description: "Render concept and policy diagnostics into a stable text summary.",
     env: {
         includeSeverity: true,
+        includeSource: true,
+        includePath: true,
     },
-    run: (env, diagnostics) => diagnostics
-        .map((diagnostic) => {
-        const prefix = env.includeSeverity ? `[${diagnostic.severity}] ` : "";
-        const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-        return `${prefix}${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-        .join("; "),
+    run: (env, diagnostics) => D.format(diagnostics, env),
 });
 const formatReportRow = C.task({
     id: "formatReportRow",
@@ -176,23 +179,24 @@ function describeCaptureTasks() {
         describeTask(formatReportRow),
     ];
 }
-function validateOrder(order) {
-    const conceptDiagnostics = findConceptDiagnostics(order);
-    const policyDiagnostics = validateBusinessRules(order);
-    const diagnostics = [...conceptDiagnostics, ...policyDiagnostics];
-    return matchKind(diagnostics.length === 0
-        ? {
-            kind: "valid",
-            order: order,
-            summary: T.runTemplate(summarizeOrder, order),
-        }
-        : {
-            kind: "invalid",
-            id: order.id,
-            diagnostics,
-        }, {
-        valid: (value) => value,
-        invalid: (value) => value,
+function findOrderDiagnostics(order, index) {
+    const conceptDiagnostics = D.from(findConceptDiagnostics(order), {
+        source: "concept",
+    }).map((diagnostic) => ({
+        ...diagnostic,
+        path: toOrderPath(index, diagnostic.path),
+    }));
+    const policyDiagnostics = validateOrderPolicy(order, index);
+    return D.sort(D.collect(conceptDiagnostics, policyDiagnostics));
+}
+function validateOrder(order, index) {
+    const diagnostics = findOrderDiagnostics(order, index);
+    if (diagnostics.length > 0) {
+        return D.err(diagnostics);
+    }
+    return D.ok({
+        order: order,
+        summary: T.runTemplate(summarizeOrder, order),
     });
 }
 function createEventCounts(events) {
@@ -230,52 +234,58 @@ export async function runToolkitPipeline() {
         cancelled: 0,
         timeout: 0,
     };
-    for (const order of orders) {
-        const validation = validateOrder(order);
+    for (const [index, order] of orders.entries()) {
+        const validation = validateOrder(order, index);
         matchKind(validation, {
-            valid: (value) => {
+            ok: (value) => {
                 events.push({
                     kind: "accepted",
-                    orderId: value.order.id,
-                    summary: value.summary,
+                    orderId: value.value.order.id,
+                    summary: value.value.summary,
                 });
                 rows.push(C.run(formatReportRow, {
-                    orderId: value.order.id,
+                    orderId: value.value.order.id,
                     status: "accepted",
-                    totalCents: value.order.totalCents,
-                    detailText: value.summary,
+                    totalCents: value.value.order.totalCents,
+                    detailText: value.value.summary,
                 }));
             },
-            invalid: (value) => {
+            err: (value) => {
                 const diagnosticsText = C.run(formatDiagnostics, value.diagnostics);
+                const groupedDiagnostics = Object.fromEntries(Object.entries(D.groupBySource(value.diagnostics)).map(([source, diagnostics]) => [
+                    source,
+                    diagnostics.map((diagnostic) => diagnostic.code),
+                ]));
                 invalidOrders.push({
-                    id: value.id,
+                    id: order.id,
                     diagnostics: value.diagnostics.map((diagnostic) => diagnostic.code),
+                    groupedDiagnostics,
+                    sharedDiagnostics: value.diagnostics,
                     diagnosticsText,
                 });
                 rows.push(C.run(formatReportRow, {
-                    orderId: value.id,
+                    orderId: order.id,
                     status: "rejected",
                     totalCents: order.totalCents,
                     detailDiagnostics: value.diagnostics,
                 }));
                 events.push({
                     kind: "rejected",
-                    orderId: value.id,
+                    orderId: order.id,
                     reason: diagnosticsText,
                 });
             },
         });
-        if (validation.kind !== "valid") {
+        if (validation.kind !== "ok") {
             continue;
         }
-        T.assert(summarizeOrder.requires, validation.order);
+        T.assert(summarizeOrder.requires, validation.value.order);
         const clock = createClock(1_000 + asyncBoards.length * 100);
-        const run = await A.runSnapshot(enrichOrder, validation.order, {
+        const run = await A.runSnapshot(enrichOrder, validation.value.order, {
             now: clock,
         });
         asyncBoards.push({
-            orderId: validation.order.id,
+            orderId: validation.value.order.id,
             status: run.board.status,
             statePath: run.snapshot.statePath,
             traceKinds: run.board.trace.map((event) => event.kind),
@@ -293,18 +303,18 @@ export async function runToolkitPipeline() {
             err: (value) => {
                 asyncCounts.err += 1;
                 rows.push(C.run(formatReportRow, {
-                    orderId: validation.order.id,
+                    orderId: validation.value.order.id,
                     status: "failed",
-                    totalCents: validation.order.totalCents,
+                    totalCents: validation.value.order.totalCents,
                     detailText: value.error.message,
                 }));
             },
             cancelled: (value) => {
                 asyncCounts.cancelled += 1;
                 rows.push(C.run(formatReportRow, {
-                    orderId: validation.order.id,
+                    orderId: validation.value.order.id,
                     status: "failed",
-                    totalCents: validation.order.totalCents,
+                    totalCents: validation.value.order.totalCents,
                     detailText: value.reason ?? "cancelled",
                 }));
             },
@@ -312,13 +322,13 @@ export async function runToolkitPipeline() {
                 asyncCounts.timeout += 1;
                 events.push({
                     kind: "timedOut",
-                    orderId: validation.order.id,
+                    orderId: validation.value.order.id,
                     timeoutMs: value.timeoutMs,
                 });
                 rows.push(C.run(formatReportRow, {
-                    orderId: validation.order.id,
+                    orderId: validation.value.order.id,
                     status: "timedOut",
-                    totalCents: validation.order.totalCents,
+                    totalCents: validation.value.order.totalCents,
                     detailText: `Timed out after ${value.timeoutMs}ms`,
                 }));
             },

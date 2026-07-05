@@ -24,6 +24,10 @@
       "types": "./bridge/concept.d.ts",
       "import": "./bridge/concept.js"
     },
+    "./diagnostics": {
+      "types": "./bridge/diagnostics.d.ts",
+      "import": "./bridge/diagnostics.js"
+    },
     "./comptime": {
       "types": "./bridge/comptime.d.ts",
       "import": "./bridge/comptime.js"

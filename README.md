@@ -69,6 +69,8 @@ Explicit iterator machines with visible cursor, board, and trace are available a
 
 Named capability constraints and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
 
+Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
+
 Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
 
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
@@ -152,6 +154,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
+- [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
 - [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
 
@@ -366,7 +369,7 @@ const views = {
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
 - [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
-- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `iter`, `concept`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts.
+- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `iter`, `concept`, `diagnostics`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts.
 - [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
 - [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.

@@ -95,6 +95,10 @@
       "types": "./dist/concept/index.d.ts",
       "import": "./dist/concept/index.js"
     },
+    "./diagnostics": {
+      "types": "./dist/diagnostics/index.d.ts",
+      "import": "./dist/diagnostics/index.js"
+    },
     "./comptime": {
       "types": "./dist/comptime/index.d.ts",
       "import": "./dist/comptime/index.js"

@@ -15,6 +15,7 @@
       "machinalayout/async": ["../../src/async/index.ts"],
       "machinalayout/iter": ["../../src/iter/index.ts"],
       "machinalayout/concept": ["../../src/concept/index.ts"],
+      "machinalayout/diagnostics": ["../../src/diagnostics/index.ts"],
       "machinalayout/comptime": ["../../src/comptime/index.ts"]
     }
   },

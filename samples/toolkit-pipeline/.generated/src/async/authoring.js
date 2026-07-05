@@ -1,7 +1,7 @@
-import { createController, run, runAsyncTaskSnapshot } from "./controller";
-import { describeAsyncTask } from "./describe";
-import { cancelled, err, ok, timeout } from "./result";
-import { validateAsyncTask } from "./validate";
+import { createController, run, runAsyncTaskSnapshot } from "./controller.js";
+import { describeAsyncTask } from "./describe.js";
+import { cancelled, err, ok, timeout } from "./result.js";
+import { validateAsyncTask } from "./validate.js";
 function assertTaskId(id) {
     if (id.trim().length === 0) {
         throw new Error("Async task id must be non-empty.");

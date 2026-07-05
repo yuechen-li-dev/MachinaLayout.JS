@@ -1,3 +1,4 @@
+import { D } from "machinalayout/diagnostics";
 import { matchDiscriminated, matchKind } from "machinalayout/match";
 import { asyncSummarySlug } from "./data.js";
 function renderEventSummary(event) {
@@ -12,6 +13,14 @@ function renderEventCount(kind, counts) {
     return `${kind}: ${counts[kind]}`;
 }
 export function renderTextReport(report) {
+    const invalidOrderLines = report.invalidOrders.length === 0
+        ? ["- none"]
+        : report.invalidOrders.flatMap((order) => [
+            `- ${order.id}`,
+            ...D.format(order.sharedDiagnostics)
+                .split("\n")
+                .map((line) => `  ${line}`),
+        ]);
     const lines = [
         "Machina Toolkit Pipeline Report",
         "",
@@ -19,8 +28,8 @@ export function renderTextReport(report) {
         `Valid orders: ${report.validCount}`,
         `Invalid orders: ${report.invalidCount}`,
         "",
-        "Concept diagnostics:",
-        ...report.invalidOrders.map((order) => `- ${order.id}: ${order.diagnosticsText}`),
+        "Combined diagnostics:",
+        ...invalidOrderLines,
         "",
         "Iterator:",
         `- status: ${report.iterator.status}`,
