@@ -63,6 +63,8 @@ Static no-JS lowering for tabs, accordions, timelines, finite dispatch machines,
 
 Explicit capture records for visible-env closure-like authoring are available at `machinalayout/capture`; see [Explicit capture](docs/explicit-capture.md).
 
+Deus-backed explicit async task lifecycles are available at `machinalayout/async`; see [Deus async tasks](docs/deus-async-tasks.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -141,6 +143,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Machina Static](docs/machina-static.md) — finite UI machines, timelines, and native HTTP forms lowered to no-JS HTML/CSS.
 - [Exhaustive match helpers](docs/exhaustive-match.md)
 - [Explicit capture](docs/explicit-capture.md) — visible-env closure-like tasks for inspectable authoring.
+- [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
 
 ## Tiny `LayoutRow[]` example
 

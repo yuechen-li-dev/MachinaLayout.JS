@@ -83,6 +83,10 @@
       "types": "./dist/capture/index.d.ts",
       "import": "./dist/capture/index.js"
     },
+    "./async": {
+      "types": "./dist/async/index.d.ts",
+      "import": "./dist/async/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

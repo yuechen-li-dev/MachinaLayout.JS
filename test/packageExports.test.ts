@@ -16,6 +16,13 @@ import {
   MatchUnionError,
 } from "../src/match";
 import {
+  A,
+  formatAsyncTaskDescription,
+  formatAsyncTaskDiagnostics,
+  formatAsyncTaskTrace,
+  validateAsyncTask,
+} from "../src/async";
+import {
   C,
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
@@ -103,6 +110,22 @@ describe("package export entrypoints", () => {
     expect(formatCaptureTaskDescription).toBeTypeOf("function");
     expect(validateCaptureTask).toBeTypeOf("function");
     expect(formatCaptureDiagnostics).toBeTypeOf("function");
+  });
+
+  it("exposes async subpath utilities", () => {
+    expect(A.task).toBeTypeOf("function");
+    expect(A.ok).toBeTypeOf("function");
+    expect(A.err).toBeTypeOf("function");
+    expect(A.cancelled).toBeTypeOf("function");
+    expect(A.timeout).toBeTypeOf("function");
+    expect(A.createController).toBeTypeOf("function");
+    expect(A.run).toBeTypeOf("function");
+    expect(A.describe).toBeTypeOf("function");
+    expect(A.validate).toBeTypeOf("function");
+    expect(formatAsyncTaskDescription).toBeTypeOf("function");
+    expect(validateAsyncTask).toBeTypeOf("function");
+    expect(formatAsyncTaskDiagnostics).toBeTypeOf("function");
+    expect(formatAsyncTaskTrace).toBeTypeOf("function");
   });
 
   it("exposes static subpath utilities", () => {
