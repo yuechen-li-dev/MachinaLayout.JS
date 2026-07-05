@@ -61,3 +61,9 @@ M34h dogfooded the new utility subpaths together in [`samples/toolkit-pipeline`]
 - Added `tools/prepare-sample-subpath-imports.mjs` as the shared local harness for nested sample packages that dogfood `machinalayout/*` subpaths before publish.
 - Updated `toolkit-pipeline` to use the shared harness instead of owning bespoke checked-in bridge files.
 - Moved generated-JS relative import patching onto the shared sample tooling path so the sample run flow stays deterministic and easier to repeat.
+
+## M34n Follow-up
+
+- Added `machinalayout/batch` as a small Promise-backed ordered async batch helper.
+- Updated `toolkit-pipeline` to keep `I.machine` for raw record traversal and use `B.task`/`B.run` for concurrent enrichment of valid orders.
+- Added batch status, input count, concurrency, completed count, trace count, and result kind to the checked-in toolkit report.

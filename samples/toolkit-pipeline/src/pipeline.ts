@@ -1,4 +1,5 @@
-import { A, type AsyncTaskResult } from "machinalayout/async";
+import { A, type AsyncTaskResult, type AsyncTaskRunSnapshot } from "machinalayout/async";
+import { B, formatBatchTaskDescription, formatBatchTrace } from "machinalayout/batch";
 import { C, formatCaptureTaskDescription } from "machinalayout/capture";
 import { T } from "machinalayout/concept";
 import { D, type DiagnosticResult, type FormatDiagnosticsOptions } from "machinalayout/diagnostics";
@@ -33,6 +34,11 @@ type EnrichedOrder = ValidOrder & {
   persistedAt: string;
 };
 
+type EnrichmentBatchOutput = {
+  order: ValidOrder;
+  run: AsyncTaskRunSnapshot<ValidOrder, EnrichedOrder, EnrichmentError>;
+};
+
 type ReportRow = {
   orderId: string;
   status: "accepted" | "rejected" | "timedOut" | "failed";
@@ -60,6 +66,17 @@ export type PipelineReport = {
     err: number;
     cancelled: number;
     timeout: number;
+  };
+  batch: {
+    status: string;
+    resultKind: "ok" | "err" | "cancelled";
+    inputCount: number;
+    concurrency: number;
+    completedCount: number;
+    traceCount: number;
+    description: string;
+    trace: string;
+    failedIndex?: number;
   };
   eventCounts: Record<PipelineEvent["kind"], number>;
   captureDescriptions: readonly {
@@ -301,6 +318,32 @@ const enrichOrder = A.task({
   },
 });
 
+const enrichValidOrders = B.task<ValidOrder, EnrichmentBatchOutput>({
+  id: "enrichValidOrders",
+  description: "Enrich valid orders concurrently while preserving input order.",
+  inputs: [] as readonly ValidOrder[],
+  concurrency: 2,
+  map: async (order: ValidOrder, ctx) => {
+    ctx.trace({
+      kind: "itemStarted",
+      batchId: "ignored",
+      at: 2_000 + ctx.index,
+      index: ctx.index,
+      message: `running async enrichment for ${order.id}`,
+    });
+
+    const clock = createClock(1_000 + ctx.index * 100);
+    const run = await A.runSnapshot(enrichOrder, order, {
+      now: clock,
+    });
+
+    return B.ok({
+      order,
+      run,
+    });
+  },
+});
+
 function describeCaptureTasks() {
   const describeTask = <TEnv, TInput, TOutput>(
     task: import("machinalayout/capture").CaptureTask<TEnv, TInput, TOutput>,
@@ -391,6 +434,7 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
   const rows: ReportRow[] = [];
   const events: PipelineEvent[] = [];
   const asyncBoards: Array<PipelineReport["asyncBoards"][number]> = [];
+  const validOrders: ValidOrder[] = [];
   const asyncCounts = {
     ok: 0,
     err: 0,
@@ -454,14 +498,31 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
     }
 
     T.assert(summarizeOrder.requires, validation.value.order);
+    validOrders.push(validation.value.order);
+  }
 
-    const clock = createClock(1_000 + asyncBoards.length * 100);
-    const run = await A.runSnapshot(enrichOrder, validation.value.order, {
-      now: clock,
-    });
+  const enrichmentBatch = B.task<ValidOrder, EnrichmentBatchOutput>({
+    ...enrichValidOrders,
+    inputs: validOrders,
+  });
+  const batchResult = await B.run<ValidOrder, EnrichmentBatchOutput>(enrichmentBatch, {
+    now: createClock(5_000),
+  });
 
+  const enrichmentOutputs: readonly EnrichmentBatchOutput[] = matchKind(batchResult, {
+    ok: (value) => value.values,
+    err: (value) => {
+      throw new Error(`Enrichment batch failed at index ${value.failedIndex}.`);
+    },
+    cancelled: (value) => {
+      throw new Error(`Enrichment batch cancelled: ${value.reason ?? "unknown"}.`);
+    },
+  });
+
+  for (const output of enrichmentOutputs) {
+    const run = output.run;
     asyncBoards.push({
-      orderId: validation.value.order.id,
+      orderId: output.order.id,
       status: run.board.status,
       statePath: run.snapshot.statePath,
       traceKinds: run.board.trace.map((event) => event.kind),
@@ -481,9 +542,9 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
         asyncCounts.err += 1;
         rows.push(
           C.run(formatReportRow, {
-            orderId: validation.value.order.id,
+            orderId: output.order.id,
             status: "failed",
-            totalCents: validation.value.order.totalCents,
+            totalCents: output.order.totalCents,
             detailText: value.error.message,
           }),
         );
@@ -492,9 +553,9 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
         asyncCounts.cancelled += 1;
         rows.push(
           C.run(formatReportRow, {
-            orderId: validation.value.order.id,
+            orderId: output.order.id,
             status: "failed",
-            totalCents: validation.value.order.totalCents,
+            totalCents: output.order.totalCents,
             detailText: value.reason ?? "cancelled",
           }),
         );
@@ -503,14 +564,14 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
         asyncCounts.timeout += 1;
         events.push({
           kind: "timedOut",
-          orderId: validation.value.order.id,
+          orderId: output.order.id,
           timeoutMs: value.timeoutMs,
         });
         rows.push(
           C.run(formatReportRow, {
-            orderId: validation.value.order.id,
+            orderId: output.order.id,
             status: "timedOut",
-            totalCents: validation.value.order.totalCents,
+            totalCents: output.order.totalCents,
             detailText: `Timed out after ${value.timeoutMs}ms`,
           }),
         );
@@ -533,6 +594,17 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
       snapshotState: iteratorController.getSnapshot().statePath,
     },
     asyncCounts,
+    batch: {
+      status: batchResult.board.status,
+      resultKind: batchResult.kind,
+      inputCount: batchResult.board.inputCount,
+      concurrency: batchResult.board.concurrency,
+      completedCount: batchResult.board.completedCount,
+      traceCount: batchResult.board.trace.length,
+      description: formatBatchTaskDescription(B.describe(enrichmentBatch)),
+      trace: formatBatchTrace(batchResult.board.trace),
+      failedIndex: batchResult.kind === "err" ? batchResult.failedIndex : undefined,
+    },
     eventCounts: createEventCounts(events),
     captureDescriptions: describeCaptureTasks(),
     conceptDescriptions: conceptDescriptions.map((entry) => entry.text),

@@ -66,6 +66,8 @@ Explicit capture records for visible-env closure-like authoring are available at
 
 Deus-backed explicit async task lifecycles are available at `machinalayout/async`, including `A.run` for result-only runs and `A.runSnapshot` for one-shot result plus lifecycle receipts; see [Deus async tasks](docs/deus-async-tasks.md).
 
+Promise-backed ordered async batch mapping with explicit concurrency, cancellation, board, and trace is available at `machinalayout/batch`; see [Batch concurrency](docs/batch-concurrency.md).
+
 Explicit iterator machines with visible cursor, board, and trace are available at `machinalayout/iter`; see [Explicit iterators](docs/explicit-iterators.md).
 
 Named capability constraints and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
@@ -155,6 +157,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Exhaustive match helpers](docs/exhaustive-match.md)
 - [Explicit capture](docs/explicit-capture.md) — visible-env closure-like tasks for inspectable authoring.
 - [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
+- [Batch concurrency](docs/batch-concurrency.md) — ordered async batch mapping with explicit concurrency, fail-fast semantics, cancellation, board, and trace.
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
@@ -374,7 +377,7 @@ const views = {
 - [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
 - [`samples/codex-product-page`](samples/codex-product-page/README.md)
 - [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
-- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `iter`, `concept`, `diagnostics`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts and the shared local sample subpath import harness.
+- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `batch`, `iter`, `concept`, `diagnostics`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts and the shared local sample subpath import harness.
 - [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
 - [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.

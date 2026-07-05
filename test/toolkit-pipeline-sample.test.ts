@@ -39,7 +39,7 @@ describe("toolkit pipeline sample", () => {
     expect(renderTextReport(report)).toBe(checkedText);
   });
 
-  it("includes processed counts, invalid diagnostics, iterator summary, and async summary", async () => {
+  it("includes processed counts, invalid diagnostics, iterator, batch, and async summaries", async () => {
     const report = await runToolkitPipeline();
 
     expect(report.processedCount).toBe(3);
@@ -76,6 +76,14 @@ describe("toolkit pipeline sample", () => {
     ]);
     expect(report.iterator.status).toBe("done");
     expect(report.iterator.yieldCount).toBe(3);
+    expect(report.batch).toMatchObject({
+      status: "succeeded",
+      resultKind: "ok",
+      inputCount: 2,
+      concurrency: 2,
+      completedCount: 2,
+      traceCount: 9,
+    });
     expect(report.asyncCounts).toEqual({
       ok: 1,
       err: 0,
@@ -113,6 +121,10 @@ describe("toolkit pipeline sample", () => {
     expect(text).toContain("error ORDER_NEGATIVE_TOTAL at orders[2].totalCents");
     expect(text).toContain("matchKind");
     expect(text).toContain("matchDiscriminated");
+    expect(text).toContain("Batch:");
+    expect(text).toContain("- result: ok");
+    expect(text).toContain("B.task");
+    expect(text).toContain("B.run");
   });
 
   it("includes both concept and domain diagnostics in the combined report", async () => {
@@ -156,6 +168,8 @@ describe("toolkit pipeline sample", () => {
     const source = readFileSync(sampleSourcePath, "utf8");
 
     expect(source).toContain("A.runSnapshot(");
+    expect(source).toContain("B.task");
+    expect(source).toContain("B.run");
     expect(source).not.toContain("A.createController(enrichOrder");
   });
 

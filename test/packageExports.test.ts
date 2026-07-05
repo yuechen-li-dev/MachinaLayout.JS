@@ -24,6 +24,13 @@ import {
   validateAsyncTask,
 } from "../src/async";
 import {
+  B,
+  formatBatchDiagnostics,
+  formatBatchTaskDescription,
+  formatBatchTrace,
+  validateBatchTask,
+} from "../src/batch";
+import {
   formatIterDiagnostics,
   formatIterMachineDescription,
   formatIterTrace,
@@ -234,6 +241,20 @@ describe("package export entrypoints", () => {
     expect(validateAsyncTask).toBeTypeOf("function");
     expect(formatAsyncTaskDiagnostics).toBeTypeOf("function");
     expect(formatAsyncTaskTrace).toBeTypeOf("function");
+  });
+
+  it("exposes batch subpath utilities", () => {
+    expect(B.task).toBeTypeOf("function");
+    expect(B.run).toBeTypeOf("function");
+    expect(B.ok).toBeTypeOf("function");
+    expect(B.err).toBeTypeOf("function");
+    expect(B.cancel).toBeTypeOf("function");
+    expect(B.describe).toBeTypeOf("function");
+    expect(B.validate).toBeTypeOf("function");
+    expect(formatBatchTaskDescription).toBeTypeOf("function");
+    expect(validateBatchTask).toBeTypeOf("function");
+    expect(formatBatchDiagnostics).toBeTypeOf("function");
+    expect(formatBatchTrace).toBeTypeOf("function");
   });
 
   it("exposes iter subpath utilities", () => {

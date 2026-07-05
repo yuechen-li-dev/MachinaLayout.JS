@@ -19,6 +19,7 @@ export default defineConfig({
     "match/index": "src/match/index.ts",
     "capture/index": "src/capture/index.ts",
     "async/index": "src/async/index.ts",
+    "batch/index": "src/batch/index.ts",
     "iter/index": "src/iter/index.ts",
     "concept/index": "src/concept/index.ts",
     "diagnostics/index": "src/diagnostics/index.ts",
