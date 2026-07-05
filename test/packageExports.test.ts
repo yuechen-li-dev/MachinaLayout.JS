@@ -51,6 +51,22 @@ import type {
   Satisfies,
 } from "../src/concept";
 import {
+  CT,
+  type Assert as CompileTimeAssert,
+  type DiscriminantValues,
+  type Equal as CompileTimeEqual,
+  type Extends as CompileTimeExtends,
+  type IsNonEmptyTuple,
+  type KebabCase,
+  type KindValues,
+  type KeysOf,
+  type NonEmptyTuple,
+  type Not,
+  type Or,
+  type TupleValues,
+  type ValueOf,
+} from "../src/comptime";
+import {
   C,
   formatCaptureDiagnostics,
   formatCaptureTaskDescription,
@@ -105,6 +121,36 @@ type _conceptShapeExportSmoke = Assert<Equal<ConceptType<{ value: number }>, { v
 type _conceptExtendsExportSmoke = Assert<Equal<Extends<{ readonly id: string }, HasId>, true>>;
 type _conceptSatisfiesExportSmoke = Assert<
   Equal<Satisfies<{ readonly id: string }, HasId>, { readonly id: string }>
+>;
+type _comptimeAssertExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<KebabCase<"ButtonPrimary">, "button-primary">
+>;
+type _comptimeExtendsExportSmoke = CompileTimeAssert<
+  CompileTimeExtends<TupleValues<readonly ["a", "b"]>, "a" | "b">
+>;
+type _comptimeValueOfExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<ValueOf<{ a: 1; b: 2 }>, 1 | 2>
+>;
+type _comptimeKeysOfExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<KeysOf<{ a: 1; b: 2 }>, "a" | "b">
+>;
+type _comptimeDiscriminantExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<
+    DiscriminantValues<{ type: "a"; value: 1 } | { type: "b"; value: 2 }, "type">,
+    "a" | "b"
+  >
+>;
+type _comptimeKindExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<
+    KindValues<{ kind: "rect"; value: 1 } | { kind: "circle"; value: 2 }>,
+    "rect" | "circle"
+  >
+>;
+type _comptimeNotExportSmoke = CompileTimeAssert<CompileTimeEqual<Not<false>, true>>;
+type _comptimeOrExportSmoke = CompileTimeAssert<CompileTimeEqual<Or<[false, true]>, true>>;
+type _comptimeNonEmptyExportSmoke = CompileTimeAssert<CompileTimeEqual<NonEmptyTuple<[1]>, [1]>>;
+type _comptimeIsNonEmptyExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<IsNonEmptyTuple<[1]>, true>
 >;
 
 describe("package export entrypoints", () => {
@@ -218,6 +264,12 @@ describe("package export entrypoints", () => {
     expect(formatConceptDiagnostics).toBeTypeOf("function");
     expect(formatTemplateDescription).toBeTypeOf("function");
     expect(ConceptError).toBeTypeOf("function");
+  });
+
+  it("exposes compile-time helper utilities", () => {
+    expect(CT.tuple).toBeTypeOf("function");
+    expect(CT.object).toBeTypeOf("function");
+    expect(CT.keys).toBeTypeOf("function");
   });
 
   it("exposes static subpath utilities", () => {

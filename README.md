@@ -69,6 +69,8 @@ Explicit iterator machines with visible cursor, board, and trace are available a
 
 Named capability constraints and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
 
+Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -150,6 +152,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
+- [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
 
 ## Tiny `LayoutRow[]` example
 

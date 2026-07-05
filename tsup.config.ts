@@ -21,6 +21,7 @@ export default defineConfig({
     "async/index": "src/async/index.ts",
     "iter/index": "src/iter/index.ts",
     "concept/index": "src/concept/index.ts",
+    "comptime/index": "src/comptime/index.ts",
     "style/index": "src/style/index.ts",
     "static/index": "src/static/index.ts",
   },

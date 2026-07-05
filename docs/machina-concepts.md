@@ -139,6 +139,9 @@ Invalid inputs throw `ConceptError` with the concept id and collected diagnostic
 Runtime concepts validate unknown values and produce diagnostics.
 Type helpers express generic constraints at compile time.
 
+If you want the general compile-time helper toolkit, use `machinalayout/comptime`.
+`machinalayout/concept` keeps a concept-oriented subset for ergonomics around concept constraints.
+
 M34f intentionally does not derive TypeScript types from runtime concept objects.
 Pair runtime concepts and type aliases by naming convention for now.
 
