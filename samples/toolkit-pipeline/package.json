@@ -1,40 +1,11 @@
 {
-  "name": "machinalayout",
+  "name": "toolkit-pipeline-sample",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "exports": {
-    "./match": {
-      "types": "./bridge/match.d.ts",
-      "import": "./bridge/match.js"
-    },
-    "./capture": {
-      "types": "./bridge/capture.d.ts",
-      "import": "./bridge/capture.js"
-    },
-    "./async": {
-      "types": "./bridge/async.d.ts",
-      "import": "./bridge/async.js"
-    },
-    "./iter": {
-      "types": "./bridge/iter.d.ts",
-      "import": "./bridge/iter.js"
-    },
-    "./concept": {
-      "types": "./bridge/concept.d.ts",
-      "import": "./bridge/concept.js"
-    },
-    "./diagnostics": {
-      "types": "./bridge/diagnostics.d.ts",
-      "import": "./bridge/diagnostics.js"
-    },
-    "./comptime": {
-      "types": "./bridge/comptime.d.ts",
-      "import": "./bridge/comptime.js"
-    }
-  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "prepare:local-package": "node ../../tools/prepare-sample-subpath-imports.mjs .",
+    "build": "npm run prepare:local-package && node --input-type=module -e \"import { rm } from 'node:fs/promises'; await rm('.generated', { recursive: true, force: true });\" && tsc -p tsconfig.json",
     "run": "node scripts/run-generated.mjs",
     "generate": "npm run build && npm run run"
   },

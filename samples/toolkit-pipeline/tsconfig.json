@@ -6,18 +6,8 @@
     "strict": true,
     "skipLibCheck": true,
     "outDir": ".generated",
-    "rootDir": "../..",
-    "declaration": false,
-    "baseUrl": ".",
-    "paths": {
-      "machinalayout/match": ["../../src/match/index.ts"],
-      "machinalayout/capture": ["../../src/capture/index.ts"],
-      "machinalayout/async": ["../../src/async/index.ts"],
-      "machinalayout/iter": ["../../src/iter/index.ts"],
-      "machinalayout/concept": ["../../src/concept/index.ts"],
-      "machinalayout/diagnostics": ["../../src/diagnostics/index.ts"],
-      "machinalayout/comptime": ["../../src/comptime/index.ts"]
-    }
+    "rootDir": "src",
+    "declaration": false
   },
   "include": ["src", "node-builtins.d.ts"]
 }

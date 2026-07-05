@@ -55,3 +55,9 @@ M34h dogfooded the new utility subpaths together in [`samples/toolkit-pipeline`]
 - Added `machinalayout/diagnostics` as a small shared diagnostics helper surface.
 - Updated `toolkit-pipeline` to keep concept diagnostics and domain-policy diagnostics separate, but report them together through one shared shape.
 - Kept concepts focused on shape and capability validation rather than expanding them into general business-policy validation.
+
+## M34l Follow-up
+
+- Added `tools/prepare-sample-subpath-imports.mjs` as the shared local harness for nested sample packages that dogfood `machinalayout/*` subpaths before publish.
+- Updated `toolkit-pipeline` to use the shared harness instead of owning bespoke checked-in bridge files.
+- Moved generated-JS relative import patching onto the shared sample tooling path so the sample run flow stays deterministic and easier to repeat.
