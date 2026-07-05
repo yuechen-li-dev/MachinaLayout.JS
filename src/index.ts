@@ -19,11 +19,17 @@ export * from "./formatRect";
 export * from "./stackGeometry";
 
 export type {
+  MachinaReactErrorBoundaryProps,
   MachinaReactDebugOverlayOptions,
+  MachinaReactErrorSurfaceProps,
   MachinaReactViewProps,
   MachinaSlotProps,
 } from "./react";
-export { MachinaReactView } from "./react";
+export {
+  MachinaReactErrorBoundary,
+  MachinaReactErrorSurface,
+  MachinaReactView,
+} from "./react";
 
 export * from "./text";
 export * from "./text/react";

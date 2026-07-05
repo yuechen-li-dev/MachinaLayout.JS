@@ -1,6 +1,7 @@
 import React from "react";
 
 import { getMachinaDebugOverlayBehavior, type MachinaDebugOverlayMode } from "../deus";
+import { normalizeMachinaError, type MachinaErrorDiagnostic } from "../errors";
 import { toResolvedTree } from "../toResolvedTree";
 import type {
   NodeId,
@@ -9,6 +10,11 @@ import type {
   ResolvedLayoutNode,
   ResolvedLayoutTree,
 } from "../types";
+import {
+  MachinaReactErrorBoundary,
+  type MachinaReactErrorSurfaceProps,
+  renderMachinaReactErrorSurface,
+} from "./errorSurface";
 
 export type MachinaSlotProps<TViewData = unknown, TNodeData = unknown> = {
   id: NodeId;
@@ -46,6 +52,10 @@ export type MachinaReactViewProps = {
   layers?: Record<string, MachinaRenderLayer>;
   defaultLayer?: string;
   debugOverlay?: MachinaReactDebugOverlayOptions;
+  errorBoundary?: boolean;
+  errorFallback?: React.ComponentType<MachinaReactErrorSurfaceProps>;
+  showErrorStack?: boolean;
+  onMachinaError?: (diagnostic: MachinaErrorDiagnostic, error: unknown) => void;
 };
 
 function normalizeLayerZ(value: number | undefined): number {
@@ -255,7 +265,7 @@ function renderDebugOverlay(
   );
 }
 
-export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element {
+function renderMachinaReactViewUnsafe(props: MachinaReactViewProps): React.JSX.Element {
   const {
     layout,
     views = {},
@@ -301,4 +311,31 @@ export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Elemen
       {debugOverlay ? renderDebugOverlay(tree, debugOverlay) : null}
     </div>
   );
+}
+
+export function MachinaReactView(props: MachinaReactViewProps): React.JSX.Element {
+  const { errorBoundary = true, errorFallback, showErrorStack, onMachinaError } = props;
+
+  if (errorBoundary === false) {
+    return renderMachinaReactViewUnsafe(props);
+  }
+
+  try {
+    return (
+      <MachinaReactErrorBoundary
+        fallback={errorFallback}
+        showStack={showErrorStack}
+        onError={onMachinaError}
+      >
+        {renderMachinaReactViewUnsafe(props)}
+      </MachinaReactErrorBoundary>
+    );
+  } catch (error) {
+    const diagnostic = normalizeMachinaError(error);
+    onMachinaError?.(diagnostic, error);
+    return renderMachinaReactErrorSurface(diagnostic, {
+      fallback: errorFallback,
+      showStack: showErrorStack,
+    });
+  }
 }

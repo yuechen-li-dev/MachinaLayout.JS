@@ -95,6 +95,24 @@ React components render payload UI inside adapter-owned rectangles; React does n
 
 React DOM rendering includes the standard Machina `data-machina-*` debug attributes used by the framework-light DOM summary helpers. See [Inspection and handoff bundles](inspection-and-handoff.md) for the `machinalayout/inspect` and `machinalayout/handoff` workflow.
 
+## Runtime error surface
+
+`MachinaReactView` can render a visible diagnostic surface when adapter-side layout preparation or descendant React rendering fails.
+
+- default title: `MachinaLayout render failed`
+- visible diagnostic fields: code, name, message, details, optional stack
+- console remains secondary; the surface notes that the error was also reported there
+- stable attributes include `data-machina-error-surface`, `data-machina-error-code`, and `data-machina-error-name`
+
+Relevant props:
+
+- `errorBoundary?: boolean`
+- `errorFallback?: React.ComponentType<MachinaReactErrorSurfaceProps>`
+- `showErrorStack?: boolean`
+- `onMachinaError?: (diagnostic, error) => void`
+
+Use `errorBoundary={false}` when a test should preserve throw-through behavior. See [Machina React error surface](machina-react-error-surface.md) for examples and details.
+
 ## Debug overlay
 
 `MachinaReactView` accepts an optional controlled `debugOverlay` prop:

@@ -6,3 +6,5 @@ export type {
   MachinaSlotProps,
 } from "./MachinaReactView";
 export { MachinaReactView } from "./MachinaReactView";
+export type { MachinaReactErrorBoundaryProps, MachinaReactErrorSurfaceProps } from "./errorSurface";
+export { MachinaReactErrorBoundary, MachinaReactErrorSurface } from "./errorSurface";
