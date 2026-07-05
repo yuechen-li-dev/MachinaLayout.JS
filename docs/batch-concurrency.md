@@ -4,13 +4,16 @@
 progress board state, and trace.
 
 ```txt
-Promise.all hides the scheduler.
-MachinaBatch exposes the scheduler.
+Promise.all hides the batch.
+MachinaBatch exposes the batch.
 ```
 
-M34n uses a Promise-backed scheduler. It limits how many async mappers are active at once, but it
-does not provide CPU parallelism, Web Workers, Node `worker_threads`, work stealing, retries, or
-workflow orchestration. Worker and work-stealing backends are future work.
+M34o uses an internal Promise work queue. It limits how many async mappers are active at once and
+dynamically assigns the next item to whichever worker slot becomes free.
+
+This is useful for variable-duration async work, but it is not true CPU parallelism. It does not add
+Web Workers, Node `worker_threads`, CPU work-stealing, retries, or workflow orchestration. Future
+worker backends can use the same batch semantics across a different execution backend.
 
 ## Model
 
@@ -42,6 +45,32 @@ if (result.kind === "ok") {
 
 `options.concurrency` overrides `task.concurrency`; if neither is provided, the default is `4`.
 Concurrency must be a positive finite integer.
+
+## Internal Scheduler
+
+Batch scheduling is an implementation detail. Batch semantics are the user contract.
+
+`B.run` uses a diagnostic-only `promiseWorkQueue` scheduler internally:
+
+```txt
+next item -> next free worker slot -> original output index
+```
+
+The scheduler starts up to `concurrency` worker slots. Each slot pulls the next available item when
+it becomes free, so shorter async work can naturally make progress on later items while longer work
+is still running. Output placement still uses the original input index, so completion order does not
+change result order.
+
+The board may expose scheduler diagnostics:
+
+```ts
+result.board.scheduler?.kind; // "promiseWorkQueue"
+result.board.scheduler?.workerCount;
+result.board.scheduler?.maxActiveCount;
+```
+
+The scheduler is an optimization detail. The public contract remains ordered batch mapping with
+explicit concurrency and fail-fast semantics.
 
 ## Fail Fast
 

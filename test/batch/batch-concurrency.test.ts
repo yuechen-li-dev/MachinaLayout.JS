@@ -78,6 +78,12 @@ describe("batch runner", () => {
         completedCount: 3,
         failedCount: 0,
         activeCount: 0,
+        scheduler: {
+          kind: "promiseWorkQueue",
+          workerCount: 2,
+          nextIndex: 3,
+          maxActiveCount: 2,
+        },
       },
     });
   });
@@ -109,10 +115,17 @@ describe("batch runner", () => {
     await expect(pending).resolves.toMatchObject({
       kind: "ok",
       values: ["first", "second", "third"],
+      board: {
+        scheduler: {
+          kind: "promiseWorkQueue",
+          workerCount: 3,
+          maxActiveCount: 3,
+        },
+      },
     });
   });
 
-  it("enforces the concurrency limit without flaky timers", async () => {
+  it("uses a dynamic work queue so faster worker slots pull additional items", async () => {
     const deferreds = [0, 1, 2, 3].map(() => createDeferred<ReturnType<typeof B.ok<number>>>());
     let active = 0;
     let maxActive = 0;
@@ -154,6 +167,12 @@ describe("batch runner", () => {
     expect(result.kind).toBe("ok");
     if (result.kind === "ok") {
       expect(result.values).toEqual([0, 10, 20, 30]);
+      expect(result.board.scheduler).toEqual({
+        kind: "promiseWorkQueue",
+        workerCount: 2,
+        nextIndex: 4,
+        maxActiveCount: 2,
+      });
     }
   });
 
@@ -198,7 +217,32 @@ describe("batch runner", () => {
       board: {
         status: "succeeded",
         inputCount: 0,
+        scheduler: {
+          kind: "promiseWorkQueue",
+          workerCount: 0,
+          nextIndex: 0,
+          maxActiveCount: 0,
+        },
       },
+    });
+  });
+
+  it("uses only one worker per input when concurrency exceeds input length", async () => {
+    const result = await B.run(
+      B.task({
+        id: "moreConcurrencyThanInputs",
+        inputs: [1, 2],
+        concurrency: 10,
+        map: (value: number) => B.ok(value * 10),
+      }),
+    );
+
+    expect(result.kind).toBe("ok");
+    expect(result.board.scheduler).toMatchObject({
+      kind: "promiseWorkQueue",
+      workerCount: 2,
+      nextIndex: 2,
+      maxActiveCount: 2,
     });
   });
 
@@ -244,6 +288,65 @@ describe("batch runner", () => {
     }
   });
 
+  it("stops scheduling new items after failure", async () => {
+    const deferreds = [0, 1].map(() => createDeferred<ReturnType<typeof B.ok<number>>>());
+    const started: number[] = [];
+
+    const pending = B.run(
+      B.task<number, number, string>({
+        id: "failStopsQueue",
+        inputs: [0, 1, 2, 3, 4],
+        concurrency: 2,
+        map: (value) => {
+          started.push(value);
+          if (value === 1) {
+            return B.err("bad");
+          }
+
+          return deferreds[value]?.promise ?? B.ok(value);
+        },
+      }),
+    );
+
+    await flushMicrotasks();
+    expect(started).toEqual([0, 1]);
+    deferreds[0]!.resolve(B.ok(0));
+
+    const result = await pending;
+
+    expect(result.kind).toBe("err");
+    expect(started).toEqual([0, 1]);
+    expect(result.board.scheduler?.maxActiveCount).toBeLessThanOrEqual(2);
+    expect("values" in result).toBe(false);
+  });
+
+  it("does not let in-flight ignored cancellation overwrite the final err result", async () => {
+    const slow = createDeferred<ReturnType<typeof B.ok<number>>>();
+    const started: number[] = [];
+
+    const pending = B.run(
+      B.task<number, number, string>({
+        id: "ignoredAbortAfterFailure",
+        inputs: [0, 1, 2],
+        concurrency: 2,
+        map: (value) => {
+          started.push(value);
+          return value === 1 ? B.err("failed") : slow.promise;
+        },
+      }),
+    );
+
+    await flushMicrotasks();
+    expect(started).toEqual([0, 1]);
+    slow.resolve(B.ok(0));
+
+    const result = await pending;
+
+    expect(result.kind).toBe("err");
+    expect(result.board.outputs).toEqual([undefined, undefined, undefined]);
+    expect("values" in result).toBe(false);
+  });
+
   it("cancels from an external AbortSignal and stops scheduling new items", async () => {
     const controller = new AbortController();
     const first = createDeferred<ReturnType<typeof B.ok<number>>>();
@@ -275,8 +378,40 @@ describe("batch runner", () => {
       expect(result.reason).toBe("user");
       expect(result.board.status).toBe("cancelled");
       expect(result.board.cancelReason).toBe("user");
+      expect(result.board.scheduler).toMatchObject({
+        kind: "promiseWorkQueue",
+        workerCount: 1,
+        nextIndex: 1,
+        maxActiveCount: 1,
+      });
       expect(started).toEqual([1]);
     }
+  });
+
+  it("avoids unhandled rejections from in-flight work after fail-fast", async () => {
+    const slowReject = createDeferred<ReturnType<typeof B.ok<number>>>();
+    const started: number[] = [];
+
+    const pending = B.run(
+      B.task<number, number, string>({
+        id: "inFlightRejectAfterFailure",
+        inputs: [0, 1, 2],
+        concurrency: 2,
+        map: (value) => {
+          started.push(value);
+          return value === 1 ? B.err("failed") : slowReject.promise;
+        },
+      }),
+    );
+
+    await flushMicrotasks();
+    slowReject.reject(new Error("late rejection"));
+
+    const result = await pending;
+
+    expect(result.kind).toBe("err");
+    expect(started).toEqual([0, 1]);
+    expect(result.board.failedCount).toBe(1);
   });
 
   it("records success and failure traces", async () => {
@@ -302,9 +437,11 @@ describe("batch runner", () => {
     expect(success.board.trace.map((event) => event.kind)).toEqual([
       "created",
       "started",
+      "workerStarted",
       "itemStarted",
       "itemStarted",
       "itemSucceeded",
+      "queueDrained",
       "succeeded",
     ]);
     expect(formatBatchTrace(success.board.trace)).toContain("traceSuccess[0] itemSucceeded");
@@ -321,8 +458,10 @@ describe("batch runner", () => {
     expect(failure.board.trace.map((event) => event.kind)).toEqual([
       "created",
       "started",
+      "workerStarted",
       "itemStarted",
       "itemFailed",
+      "queueDrained",
       "failed",
     ]);
   });

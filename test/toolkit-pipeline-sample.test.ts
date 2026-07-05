@@ -82,7 +82,12 @@ describe("toolkit pipeline sample", () => {
       inputCount: 2,
       concurrency: 2,
       completedCount: 2,
-      traceCount: 9,
+      traceCount: 12,
+      scheduler: {
+        kind: "promiseWorkQueue",
+        workerCount: 2,
+        maxActiveCount: 2,
+      },
     });
     expect(report.asyncCounts).toEqual({
       ok: 1,
@@ -123,6 +128,7 @@ describe("toolkit pipeline sample", () => {
     expect(text).toContain("matchDiscriminated");
     expect(text).toContain("Batch:");
     expect(text).toContain("- result: ok");
+    expect(text).toContain("- scheduler: promiseWorkQueue");
     expect(text).toContain("B.task");
     expect(text).toContain("B.run");
   });

@@ -68,22 +68,33 @@ export type BatchBoard<TOutput, TError = unknown> = {
   readonly failedIndex?: number;
   readonly error?: BatchFailureError<TError>;
   readonly cancelReason?: string;
+  readonly scheduler?: BatchSchedulerBoard;
   readonly trace: readonly BatchTraceEvent[];
+};
+
+export type BatchSchedulerBoard = {
+  readonly kind: "promiseWorkQueue";
+  readonly workerCount: number;
+  readonly nextIndex: number;
+  readonly maxActiveCount: number;
 };
 
 export type BatchTraceEvent = {
   readonly kind:
     | "created"
     | "started"
+    | "workerStarted"
     | "itemStarted"
     | "itemSucceeded"
     | "itemFailed"
+    | "queueDrained"
     | "cancelled"
     | "succeeded"
     | "failed";
   readonly batchId: string;
   readonly at: number;
   readonly index?: number;
+  readonly workerId?: number;
   readonly message?: string;
 };
 

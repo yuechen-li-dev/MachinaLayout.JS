@@ -74,6 +74,11 @@ export type PipelineReport = {
     concurrency: number;
     completedCount: number;
     traceCount: number;
+    scheduler?: {
+      kind: string;
+      workerCount: number;
+      maxActiveCount: number;
+    };
     description: string;
     trace: string;
     failedIndex?: number;
@@ -579,6 +584,16 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
     });
   }
 
+  const batchScheduler = (
+    batchResult.board as typeof batchResult.board & {
+      scheduler?: {
+        kind: string;
+        workerCount: number;
+        maxActiveCount: number;
+      };
+    }
+  ).scheduler;
+
   return {
     sampleName: "toolkit-pipeline",
     processedCount: orders.length,
@@ -601,6 +616,13 @@ export async function runToolkitPipeline(): Promise<PipelineReport> {
       concurrency: batchResult.board.concurrency,
       completedCount: batchResult.board.completedCount,
       traceCount: batchResult.board.trace.length,
+      scheduler: batchScheduler
+        ? {
+            kind: batchScheduler.kind,
+            workerCount: batchScheduler.workerCount,
+            maxActiveCount: batchScheduler.maxActiveCount,
+          }
+        : undefined,
       description: formatBatchTaskDescription(B.describe(enrichmentBatch)),
       trace: formatBatchTrace(batchResult.board.trace),
       failedIndex: batchResult.kind === "err" ? batchResult.failedIndex : undefined,

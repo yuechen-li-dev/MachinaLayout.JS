@@ -6,8 +6,15 @@ import type {
   BatchTask,
   BatchTraceEvent,
   BatchRunOptions,
+  BatchSchedulerBoard,
 } from "./types";
 import { isValidBatchConcurrency } from "./validate";
+
+type BatchSchedulerKind = "promiseWorkQueue";
+
+type NormalizedBatchRunOptions = {
+  readonly concurrency: number;
+};
 
 type MutableBatchBoard<TOutput, TError> = {
   batchId: string;
@@ -22,7 +29,19 @@ type MutableBatchBoard<TOutput, TError> = {
   failedIndex?: number;
   error?: BatchFailureError<TError>;
   cancelReason?: string;
+  scheduler?: BatchSchedulerBoard;
   trace: BatchTraceEvent[];
+};
+
+type BatchSchedulerContext<TInput, TOutput, TError> = {
+  task: BatchTask<TInput, TOutput, TError>;
+  options: NormalizedBatchRunOptions;
+  board: MutableBatchBoard<TOutput, TError>;
+  signal: AbortSignal;
+  abort: (reason?: unknown) => void;
+  now: () => number;
+  trace: (event: Omit<BatchTraceEvent, "batchId">) => void;
+  externallyAborted: () => boolean;
 };
 
 const defaultConcurrency = 4;
@@ -47,6 +66,7 @@ function cloneBoard<TOutput, TError>(
     failedIndex: board.failedIndex,
     error: board.error,
     cancelReason: board.cancelReason,
+    scheduler: board.scheduler ? { ...board.scheduler } : undefined,
     trace: cloneTrace(board.trace),
   };
 }
@@ -64,12 +84,136 @@ function resolveConcurrency<TInput, TOutput, TError>(
   return concurrency;
 }
 
+async function runPromiseWorkQueue<TInput, TOutput, TError>(
+  context: BatchSchedulerContext<TInput, TOutput, TError>,
+): Promise<void> {
+  const { task, options, board, signal, abort, now, trace, externallyAborted } = context;
+  const inputs = task.inputs;
+  const workerCount = Math.min(options.concurrency, inputs.length);
+  let nextIndex = 0;
+  let stopScheduling = false;
+
+  function updateScheduler(): void {
+    board.scheduler = {
+      kind: "promiseWorkQueue" satisfies BatchSchedulerKind,
+      workerCount,
+      nextIndex,
+      maxActiveCount: Math.max(board.scheduler?.maxActiveCount ?? 0, board.activeCount),
+    };
+  }
+
+  function fail(index: number, error: BatchFailureError<TError>): void {
+    if (board.status === "failed" || board.status === "cancelled") {
+      return;
+    }
+
+    board.failedCount += 1;
+    board.status = "failed";
+    board.failedIndex = index;
+    board.error = error;
+    stopScheduling = true;
+    abort(error);
+    trace({
+      kind: "itemFailed",
+      at: now(),
+      index,
+      message: error instanceof Error ? error.message : undefined,
+    });
+  }
+
+  function recordTaskTrace(event: BatchTraceEvent): void {
+    trace({
+      kind: event.kind,
+      at: Number.isFinite(event.at) ? event.at : now(),
+      index: event.index,
+      workerId: event.workerId,
+      message: event.message,
+    });
+  }
+
+  async function runOne(index: number): Promise<void> {
+    const input = inputs[index] as TInput;
+    board.startedCount += 1;
+    board.activeCount += 1;
+    updateScheduler();
+    trace({
+      kind: "itemStarted",
+      at: now(),
+      index,
+    });
+
+    try {
+      const result = await task.map(input, {
+        index,
+        input,
+        batchId: task.id,
+        signal,
+        trace: recordTaskTrace,
+      });
+
+      if (board.status === "failed" || board.status === "cancelled" || externallyAborted()) {
+        return;
+      }
+
+      if (result.kind === "ok") {
+        board.outputs[index] = result.value;
+        trace({
+          kind: "itemSucceeded",
+          at: now(),
+          index,
+        });
+        return;
+      }
+
+      fail(index, result.error);
+    } catch (error) {
+      if (externallyAborted() || board.status === "cancelled") {
+        return;
+      }
+      fail(index, error as BatchFailureError<TError>);
+    } finally {
+      board.completedCount += 1;
+      board.activeCount -= 1;
+      updateScheduler();
+    }
+  }
+
+  async function worker(workerId: number): Promise<void> {
+    trace({
+      kind: "workerStarted",
+      at: now(),
+      workerId,
+    });
+
+    while (!stopScheduling && !externallyAborted() && nextIndex < inputs.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      updateScheduler();
+      await runOne(index);
+    }
+  }
+
+  updateScheduler();
+  await Promise.all(Array.from({ length: workerCount }, (_, workerId) => worker(workerId)));
+  updateScheduler();
+
+  if (nextIndex >= inputs.length) {
+    trace({
+      kind: "queueDrained",
+      at: now(),
+    });
+  }
+}
+
 export async function run<TInput, TOutput, TError = unknown>(
   task: BatchTask<TInput, TOutput, TError>,
   options: BatchRunOptions = {},
 ): Promise<BatchResult<TOutput, TError>> {
   const now = options.now ?? (() => Date.now());
   const concurrency = resolveConcurrency(task, options);
+  const normalizedOptions: NormalizedBatchRunOptions = {
+    concurrency,
+  };
   const inputs = task.inputs;
   const controller = new AbortController();
   const board: MutableBatchBoard<TOutput, TError> = {
@@ -82,6 +226,12 @@ export async function run<TInput, TOutput, TError = unknown>(
     failedCount: 0,
     activeCount: 0,
     outputs: Array.from<TOutput | undefined>({ length: inputs.length }).fill(undefined),
+    scheduler: {
+      kind: "promiseWorkQueue",
+      workerCount: Math.min(concurrency, inputs.length),
+      nextIndex: 0,
+      maxActiveCount: 0,
+    },
     trace: [],
   };
 
@@ -89,15 +239,6 @@ export async function run<TInput, TOutput, TError = unknown>(
     board.trace.push({
       batchId: task.id,
       ...event,
-    });
-  }
-
-  function recordTaskTrace(event: BatchTraceEvent): void {
-    recordTrace({
-      kind: event.kind,
-      at: Number.isFinite(event.at) ? event.at : now(),
-      index: event.index,
-      message: event.message,
     });
   }
 
@@ -158,76 +299,20 @@ export async function run<TInput, TOutput, TError = unknown>(
       };
     }
 
-    let nextIndex = 0;
-    let stopScheduling = false;
-
-    async function runOne(index: number): Promise<void> {
-      const input = inputs[index] as TInput;
-      board.startedCount += 1;
-      board.activeCount += 1;
-      recordTrace({
-        kind: "itemStarted",
-        at: now(),
-        index,
-      });
-
-      try {
-        const result = await task.map(input, {
-          index,
-          input,
-          batchId: task.id,
-          signal: controller.signal,
-          trace: recordTaskTrace,
-        });
-
-        if (result.kind === "ok") {
-          board.outputs[index] = result.value;
-          recordTrace({
-            kind: "itemSucceeded",
-            at: now(),
-            index,
-          });
-          return;
+    await runPromiseWorkQueue({
+      task,
+      options: normalizedOptions,
+      board,
+      signal: controller.signal,
+      abort: (reason) => {
+        if (!controller.signal.aborted) {
+          controller.abort(reason);
         }
-
-        fail(index, result.error);
-      } catch (error) {
-        fail(index, error as BatchFailureError<TError>);
-      } finally {
-        board.completedCount += 1;
-        board.activeCount -= 1;
-      }
-    }
-
-    function fail(index: number, error: BatchFailureError<TError>): void {
-      board.failedCount += 1;
-      if (board.status === "failed" || board.status === "cancelled") {
-        return;
-      }
-
-      board.status = "failed";
-      board.failedIndex = index;
-      board.error = error;
-      stopScheduling = true;
-      controller.abort(error);
-      recordTrace({
-        kind: "itemFailed",
-        at: now(),
-        index,
-        message: error instanceof Error ? error.message : undefined,
-      });
-    }
-
-    async function worker(): Promise<void> {
-      while (!stopScheduling && !externallyAborted && nextIndex < inputs.length) {
-        const index = nextIndex;
-        nextIndex += 1;
-        await runOne(index);
-      }
-    }
-
-    const workerCount = Math.min(concurrency, inputs.length);
-    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+      },
+      now,
+      trace: recordTrace,
+      externallyAborted: () => externallyAborted,
+    });
 
     if (externallyAborted) {
       return cancel(String(options.signal?.reason ?? "aborted"));
