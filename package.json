@@ -79,6 +79,10 @@
       "types": "./dist/match/index.d.ts",
       "import": "./dist/match/index.js"
     },
+    "./capture": {
+      "types": "./dist/capture/index.d.ts",
+      "import": "./dist/capture/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

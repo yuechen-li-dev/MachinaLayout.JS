@@ -61,6 +61,8 @@ Typed semantic style authoring is available at `machinalayout/style`; see [Machi
 
 Static no-JS lowering for tabs, accordions, timelines, finite dispatch machines, and native GET/POST HTTP forms is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
 
+Explicit capture records for visible-env closure-like authoring are available at `machinalayout/capture`; see [Explicit capture](docs/explicit-capture.md).
+
 Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
 
 Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
@@ -138,6 +140,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
 - [Machina Static](docs/machina-static.md) — finite UI machines, timelines, and native HTTP forms lowered to no-JS HTML/CSS.
 - [Exhaustive match helpers](docs/exhaustive-match.md)
+- [Explicit capture](docs/explicit-capture.md) — visible-env closure-like tasks for inspectable authoring.
 
 ## Tiny `LayoutRow[]` example
 

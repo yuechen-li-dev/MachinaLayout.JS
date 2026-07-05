@@ -16,6 +16,12 @@ import {
   MatchUnionError,
 } from "../src/match";
 import {
+  C,
+  formatCaptureDiagnostics,
+  formatCaptureTaskDescription,
+  validateCaptureTask,
+} from "../src/capture";
+import {
   createMachinaClassNames,
   createMachinaStyleArtifact,
   S,
@@ -85,6 +91,18 @@ describe("package export entrypoints", () => {
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");
     expect(validateMachinaStyleSheet).toBeTypeOf("function");
+  });
+
+  it("exposes capture subpath utilities", () => {
+    expect(C.task).toBeTypeOf("function");
+    expect(C.run).toBeTypeOf("function");
+    expect(C.withEnv).toBeTypeOf("function");
+    expect(C.map).toBeTypeOf("function");
+    expect(C.describe).toBeTypeOf("function");
+    expect(C.validate).toBeTypeOf("function");
+    expect(formatCaptureTaskDescription).toBeTypeOf("function");
+    expect(validateCaptureTask).toBeTypeOf("function");
+    expect(formatCaptureDiagnostics).toBeTypeOf("function");
   });
 
   it("exposes static subpath utilities", () => {
