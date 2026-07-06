@@ -4,6 +4,8 @@
 
 MachinaAtlas is an optional app-composition map for large single-file or few-file apps. It gives humans and LLM agents stable landmarks without requiring file-based routing, generated files, or framework structure.
 
+In 0.6.0, Atlas tables are project cartography authoring inside the typed table authoring and derivation substrate. They do not scan the filesystem, infer dependencies, or replace the existing Atlas runtime shape.
+
 ## What MachinaAtlas is
 
 - A typed metadata table for app sections.

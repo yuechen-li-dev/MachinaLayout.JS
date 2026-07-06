@@ -2,6 +2,8 @@
 
 DeusMachina is MachinaLayout's tiny behavioral kernel. It is deliberately small: utility judgment, explicit row-first state machines, stack-style state paths, deterministic stepping, and trace output.
 
+In 0.6.0, tables extend Deus authoring without changing Deus runtime semantics: transition tables and template tables are typed table-authored inputs that lower into the existing deterministic machine surface.
+
 ```ts
 import { defineDeusMachine, judgeUtility, stepDeusMachine } from "machinalayout/deus";
 ```

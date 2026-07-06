@@ -2,15 +2,15 @@
 
 M36c adds pure chunked columnar JSON table artifacts to `machinalayout/table`.
 
-Chunked columnar tables are pure JSON-compatible storage records. M36c does not read files, write files, fetch URLs, or provide database transactions.
+In 0.6.0, chunked tables are pure JSON-compatible artifact records for the typed table authoring surface. M36c does not read files, write files, fetch URLs, or provide database transactions.
 
 Core ideas:
 
-- chunks are storage records
+- chunks are artifact records
 - tables are runtime records
 - queries derive tables
 - canonical chunk JSON stays columnar
-- row-object JSON is an adapter shape, not chunk storage
+- row-object JSON is an adapter shape, not canonical chunk storage
 
 ## Record shapes
 
@@ -131,4 +131,4 @@ M36c stays intentionally narrow:
 - no SQL or parser
 - no async chunk scans
 
-Chunk records are inspectable storage artifacts, not a database engine.
+Chunk records are inspectable artifacts over already-loaded data, not a database engine.

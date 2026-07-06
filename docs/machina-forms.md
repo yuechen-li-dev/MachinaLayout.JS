@@ -2,6 +2,8 @@
 
 `machinalayout/form` adds a narrow bridge from columnar field tables to explicit form field render records.
 
+In 0.6.0, form tables are part of the typed table authoring and derivation substrate: the table is the source, validation stays cell-oriented, and emitted records stop short of rendering or state management.
+
 Core thesis:
 
 - forms are tables of fields

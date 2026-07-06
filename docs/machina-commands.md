@@ -2,6 +2,8 @@
 
 `machinalayout/command` adds a narrow bridge from columnar command tables to explicit command render records.
 
+In 0.6.0, command tables are part of the typed table authoring and derivation substrate: the table is canonical, validation stays cell-oriented, and emitted records stop short of rendering or orchestration.
+
 Core thesis:
 
 - buttons are renderings of commands

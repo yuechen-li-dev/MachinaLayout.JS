@@ -153,6 +153,14 @@ import {
   serializeStaticPageHtml,
   validateStaticPage,
 } from "../src/static";
+import {
+  Atlas,
+  defineAtlasFromTable,
+  describeAtlasSections,
+  sectionTableSchema,
+  sectionsFromTable,
+  validateAtlasSectionTable,
+} from "../src/atlas";
 import { writeMachinaHandoffBundle } from "../src/handoff";
 import {
   incrementDispatchTableFromTable,
@@ -501,6 +509,14 @@ describe("package export entrypoints", () => {
     expect(TableQueryError).toBeTypeOf("function");
   });
 
+  it("exposes atlas subpath utilities", () => {
+    expect(Atlas.sectionTableSchema).toBe(sectionTableSchema);
+    expect(Atlas.sectionsFromTable).toBe(sectionsFromTable);
+    expect(Atlas.validateAtlasSectionTable).toBe(validateAtlasSectionTable);
+    expect(Atlas.defineAtlasFromTable).toBe(defineAtlasFromTable);
+    expect(Atlas.describeAtlasSections).toBe(describeAtlasSections);
+  });
+
   it("exposes form subpath utilities", () => {
     expect(Form.fieldSchema).toBe(fieldSchema);
     expect(Form.fieldsFromTable).toBe(fieldsFromTable);
@@ -574,5 +590,156 @@ describe("package export entrypoints", () => {
     expect(useVueDeusMachine).toBeTypeOf("function");
     expect("useDeusMachine" in root).toBe(false);
     expect("useDeusMachine" in deus).toBe(false);
+  });
+
+  it("supports the 0.6.0 release smoke surface across table-authored modules", () => {
+    const orders = Table.define({
+      id: "orders",
+      columns: {
+        id: ["order-001", "order-002"],
+        status: ["paid", "new"],
+        totalCents: [1299, 4599],
+      },
+    });
+
+    const queried = Q.from(orders)
+      .filterRows(({ getCell }) => getCell("status") === "paid")
+      .select(["id", "totalCents"] as const)
+      .toTable();
+
+    const chunked = Table.chunkedFromTable(orders, { chunkSize: 1 });
+
+    const concepts = T.conceptsFromTable(
+      Table.defineWithSchema({
+        id: "concepts",
+        schema: T.conceptTableSchema(),
+        columns: {
+          concept: ["name"],
+          type: ["string"],
+          label: ["Name"],
+          required: [true],
+          description: [undefined],
+          diagnosticLabel: [undefined],
+          controlHint: ["input"],
+          valuePath: [undefined],
+          changeKey: ["name"],
+          enumValues: [undefined],
+          literalValue: [undefined],
+          placeholder: [undefined],
+          testId: [undefined],
+        },
+      }),
+    );
+
+    const fields = Form.fieldsFromConcepts(concepts, {
+      values: { name: "Ada" },
+    });
+
+    const commands = Command.commandsFromTable(
+      Table.defineWithSchema({
+        id: "commands",
+        schema: Command.commandSchema(),
+        columns: {
+          command: ["save"],
+          label: ["Save"],
+          busyLabel: [undefined],
+          doneLabel: [undefined],
+          testId: ["save-button"],
+          disabled: [false],
+          busy: [false],
+          done: [false],
+          description: [undefined],
+          variant: [undefined],
+        },
+      }),
+    );
+
+    const tokens = S.tokensFromTable(
+      Table.defineWithSchema({
+        id: "tokens",
+        schema: S.tokenTableSchema(["light", "dark"]),
+        columns: {
+          token: ["background"],
+          light: ["oklch(1 0 0)"],
+          dark: ["oklch(0.145 0 0)"],
+          description: [undefined],
+        },
+      }),
+    );
+
+    const sheet = S.sheetFromTables({
+      id: "styles",
+      tokens: Table.defineWithSchema({
+        id: "styleTokens",
+        schema: S.tokenTableSchema(["light", "dark"]),
+        columns: {
+          token: ["background"],
+          light: ["oklch(1 0 0)"],
+          dark: ["oklch(0.145 0 0)"],
+          description: [undefined],
+        },
+      }),
+      rules: Table.defineWithSchema({
+        id: "styleRules",
+        schema: S.ruleTableSchema(),
+        columns: {
+          selector: [".page"],
+          property: ["background"],
+          value: ["var(--light-background)"],
+          state: [undefined],
+          breakpoint: [undefined],
+          description: [undefined],
+        },
+      }),
+    });
+
+    const atlas = Atlas.defineAtlasFromTable({
+      app: "Scheduling",
+      sections: Table.defineWithSchema({
+        id: "atlas",
+        schema: Atlas.sectionTableSchema(),
+        columns: {
+          key: ["setup"],
+          name: ["Setup"],
+          kind: ["page"],
+          route: ["/setup"],
+          file: [undefined],
+          fixture: [undefined],
+          owns: [["SetupView"]],
+          uses: [[]],
+          usedBy: [[]],
+          tags: [["setup"]],
+          notes: [undefined],
+        },
+      }),
+    });
+
+    const batch = B.task({
+      id: "double",
+      inputs: [1, 2],
+      map: (value) => B.ok(value * 2),
+    });
+
+    expect(queried.rowCount).toBe(1);
+    expect(chunked.chunks).toHaveLength(2);
+    expect(fields).toHaveLength(1);
+    expect(commands).toHaveLength(1);
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]?.values).toEqual({
+      light: "oklch(1 0 0)",
+      dark: "oklch(0.145 0 0)",
+    });
+    expect(sheet.tabular?.tokenRecords).toHaveLength(1);
+    expect(sheet.tabular?.ruleRecords).toHaveLength(1);
+    expect(atlas.app).toBe("Scheduling");
+    expect(batch.id).toBe("double");
+    expect(D.format([])).toBe("No diagnostics.");
+    expect(
+      I.describe(I.machine({ id: "iter", env: {}, initial: 0, step: () => I.done(1) })).id,
+    ).toBe("iter");
+    expect(formatIterDiagnostics([])).toBe("No iter diagnostics.");
+    expect(formatBatchDiagnostics([])).toBe("No batch diagnostics.");
+    expect(formatAsyncTaskDiagnostics([])).toBe("No async task diagnostics.");
+    expect(parseMachinaText("Hello").document.blocks[0]?.kind).toBe("paragraph");
   });
 });

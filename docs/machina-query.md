@@ -2,6 +2,8 @@
 
 MachinaQuery is an in-memory derivation-plan layer over ColumnarTable. It is not SQL and it is not a database.
 
+In 0.6.0, queryable tables stay deliberately narrow: tables are still the typed authoring substrate, query plans are explicit in-memory derivations, and chunk execution only scans already-loaded chunk records.
+
 M36 starts the queryable table runtime arc: tables are still ordinary `ColumnarTable` records, but query chains can now be represented as explicit plan records before they run.
 
 The core idea is narrow:

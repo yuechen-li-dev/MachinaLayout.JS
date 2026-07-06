@@ -2,6 +2,8 @@
 
 `machinalayout/table` adds a very small table record toolkit for TypeScript.
 
+In 0.6.0, tables become a typed authoring and derivation substrate: columnar tables stay canonical, object rows stay adapter shapes, and downstream surfaces lower from validated cells instead of inventing new runtime models.
+
 It is intentionally narrow:
 
 - columnar tables are the canonical form
@@ -239,11 +241,11 @@ Example Markdown:
 
 ## Chunked columnar JSON tables
 
-M36c adds pure chunked columnar storage records to the same `machinalayout/table` surface.
+M36c adds pure chunked columnar artifact records to the same `machinalayout/table` surface.
 
-Chunked columnar tables are pure JSON-compatible storage records. M36c does not read files, write files, fetch URLs, or provide database transactions.
+Chunked columnar tables are pure JSON-compatible artifact records. M36c does not read files, write files, fetch URLs, or provide database transactions.
 
-Chunks are storage records:
+Chunks are artifact records:
 
 - they keep `columns`, not `rows`
 - `rowOffset` is the logical start row
@@ -294,7 +296,7 @@ Canonical chunk JSON remains columnar:
 }
 ```
 
-Row-object JSON is not the storage shape for chunks.
+Row-object JSON is an adapter shape, not the canonical chunk shape.
 
 See [Chunked columnar tables](chunked-columnar-tables.md) for the focused M36c guide.
 

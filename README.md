@@ -10,6 +10,27 @@ MachinaLayout is a machine-native UI layout substrate: flat records in, determin
 npm install machinalayout
 ```
 
+## 0.6.0 — Tables as Authoring Primitives + Queryable Columnar Tables
+
+Machina 0.6.0 expands columnar tables into a typed authoring and derivation substrate.
+
+Tables can now describe:
+- data and schema records
+- concepts
+- form fields
+- command/action records
+- dispatch tables
+- Deus transition tables and transition template tables
+- tabular style sheets
+- Atlas/project cartography
+- in-memory query plans
+- chunked columnar JSON records
+- batch-backed chunk query execution
+
+The core rule remains: author as tables, validate by cell, lower to existing runtime/rendering surfaces.
+
+MachinaQuery and chunked tables are not SQL and not a database. They operate on in-memory `ColumnarTable` and already-loaded `ColumnarTableChunk` records. Storage adapters, indexes, transactions, joins, and query optimization are intentionally out of scope for 0.6.0.
+
 ## One-page mental model
 
 1. Author layout as flat `LayoutRow[]` records.
@@ -74,7 +95,7 @@ Named capability constraints, concept source records, and template records are a
 
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
-Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, chunked columnar JSON storage records, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
+Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, chunked columnar JSON artifact records, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
 In-memory query derivation plans over `ColumnarTable`, including inspectable operation-level iterator execution and chunk-query execution over already-loaded chunk records, are available at `machinalayout/query`; see [MachinaQuery](docs/machina-query.md).
 
@@ -176,7 +197,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints, concept source records, and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, chunked columnar JSON artifacts, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
-- [Chunked columnar tables](docs/chunked-columnar-tables.md) — pure chunk/manifest helpers for inspectable columnar JSON storage records.
+- [Chunked columnar tables](docs/chunked-columnar-tables.md) — pure chunk/manifest helpers for inspectable columnar JSON artifact records over already-loaded data.
 - [MachinaQuery](docs/machina-query.md) — in-memory derivation-plan queries over `ColumnarTable` with inspectable iterator execution and chunk-query execution over already-loaded chunks; not SQL, not a database.
 - [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.
 - [Machina Commands](docs/machina-commands.md) — command/button tables lowered into explicit command records with cell-oriented diagnostics.

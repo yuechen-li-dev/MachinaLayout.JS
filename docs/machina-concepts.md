@@ -2,6 +2,8 @@
 
 `machinalayout/concept` adds a small runtime utility surface for named capability constraints, concept source records, and template records.
 
+In 0.6.0, concept tables are source records inside the typed table authoring and derivation substrate. They are not Zod clones, and they lower into semantic concept records that downstream surfaces can project.
+
 This is inspired by C++ concepts/templates, but M34e is not compile-time metaprogramming, code generation, a schema compiler, or a validation framework clone.
 
 Machina concepts are source records for meaning, validation, diagnostics, and projection hints. They are not only validators.

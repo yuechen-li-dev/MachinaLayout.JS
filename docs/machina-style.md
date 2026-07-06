@@ -2,6 +2,8 @@
 
 MachinaStyle is a typed authoring surface for style intent. It is not a CSS-in-JS runtime, not styled-components, and not a cascade abstraction.
 
+In 0.6.0, tabular style sheets extend MachinaStyle rather than replacing it: tables author tokens and rules, validation stays cell-oriented, and the existing MachinaStyle lowering path still owns CSS generation.
+
 ```txt
 style.ts
   -> typed style records / MachinaStyle IR
