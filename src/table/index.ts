@@ -7,6 +7,7 @@ export * from "./format";
 export * from "./render";
 export * from "./keyed";
 export * from "./derive";
+export * from "./chunk";
 
 import { columnNames, getCell, getColumn, getRow, rowCount } from "./access";
 import {
@@ -26,6 +27,24 @@ import { fromObjects, fromRows, toObjects, toRows } from "./convert";
 import { drop, filter, filterRows, renameColumns, select, sortBy, take } from "./derive";
 import { formatTableDiagnostics } from "./format";
 import { describeKeyed, hasKey, keyBy, keys, lookup, requireLookup, validateKey } from "./keyed";
+import {
+  chunkFromTable,
+  chunkedFromTable,
+  chunksFromTable,
+  describeChunk,
+  describeChunkedTable,
+  describeManifest,
+  fromChunkJson,
+  fromManifestJson,
+  manifestFromChunks,
+  previewChunk,
+  tableFromChunks,
+  toChunkJson,
+  toManifestJson,
+  validateChunksAgainstManifest,
+  validateColumnarTableChunk,
+  validateColumnarTableManifest,
+} from "./chunk";
 import {
   describe,
   fromColumnarJson,
@@ -67,6 +86,20 @@ export const Table = {
   take,
   drop,
   renameColumns,
+  chunkFromTable,
+  chunksFromTable,
+  chunks: chunksFromTable,
+  manifestFromChunks,
+  chunkedFromTable,
+  tableFromChunks,
+  toChunkJson,
+  fromChunkJson,
+  toManifestJson,
+  fromManifestJson,
+  describeChunk,
+  describeManifest,
+  describeChunkedTable,
+  previewChunk,
   keyBy,
   lookup,
   requireLookup,
@@ -83,6 +116,9 @@ export const Table = {
   optional,
   schema,
   validate: validateTable,
+  validateChunk: validateColumnarTableChunk,
+  validateManifest: validateColumnarTableManifest,
+  validateChunksAgainstManifest,
   validateKey,
   formatDiagnostics: formatTableDiagnostics,
 } as const;

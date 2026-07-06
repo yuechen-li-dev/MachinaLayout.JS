@@ -237,6 +237,67 @@ Example Markdown:
 
 `Table.describe(table)` returns a compact table summary, and `Table.preview(table)` pairs that summary with a Markdown preview. `Table.toCsv(table)` is available for simple export when CSV is the target format.
 
+## Chunked columnar JSON tables
+
+M36c adds pure chunked columnar storage records to the same `machinalayout/table` surface.
+
+Chunked columnar tables are pure JSON-compatible storage records. M36c does not read files, write files, fetch URLs, or provide database transactions.
+
+Chunks are storage records:
+
+- they keep `columns`, not `rows`
+- `rowOffset` is the logical start row
+- `rowCount` is the number of rows in that chunk
+- manifests describe chunk layout and optional `href` metadata
+
+Create chunk artifacts from a runtime table:
+
+```ts
+const chunked = Table.chunkedFromTable(orders, {
+  chunkSize: 1000,
+  hrefForChunk: (chunk) => `${chunk.chunkId}.json`,
+});
+```
+
+Export JSON-compatible records explicitly:
+
+```ts
+const manifestJson = Table.toManifestJson(chunked.manifest);
+const chunkJson = Table.toChunkJson(chunked.chunks[0]);
+
+JSON.stringify(manifestJson);
+JSON.stringify(chunkJson);
+```
+
+Restore a canonical table later:
+
+```ts
+const restored = Table.tableFromChunks(chunked.chunks, {
+  manifest: chunked.manifest,
+});
+```
+
+Canonical chunk JSON remains columnar:
+
+```json
+{
+  "kind": "columnarTableChunk",
+  "tableId": "orders",
+  "chunkId": "orders-0000",
+  "rowOffset": 0,
+  "rowCount": 2,
+  "columns": {
+    "id": ["order-001", "order-002"],
+    "status": ["paid", "new"],
+    "totalCents": [1299, 4599]
+  }
+}
+```
+
+Row-object JSON is not the storage shape for chunks.
+
+See [Chunked columnar tables](chunked-columnar-tables.md) for the focused M36c guide.
+
 ## Deriving tables
 
 MachinaTable can derive new tables without leaving the canonical columnar shape:

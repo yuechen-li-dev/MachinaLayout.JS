@@ -74,7 +74,7 @@ Named capability constraints, concept source records, and template records are a
 
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
-Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
+Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, chunked columnar JSON storage records, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
 In-memory query derivation plans over `ColumnarTable`, including inspectable operation-level iterator execution, are available at `machinalayout/query`; see [MachinaQuery](docs/machina-query.md).
 
@@ -175,7 +175,8 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints, concept source records, and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
-- [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
+- [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, chunked columnar JSON artifacts, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
+- [Chunked columnar tables](docs/chunked-columnar-tables.md) — pure chunk/manifest helpers for inspectable columnar JSON storage records.
 - [MachinaQuery](docs/machina-query.md) — in-memory derivation-plan queries over `ColumnarTable` with inspectable iterator execution; not SQL, not a database.
 - [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.
 - [Machina Commands](docs/machina-commands.md) — command/button tables lowered into explicit command records with cell-oriented diagnostics.

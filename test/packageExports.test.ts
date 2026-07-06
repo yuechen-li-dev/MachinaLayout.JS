@@ -79,7 +79,27 @@ import {
   type ValueOf,
 } from "../src/comptime";
 import { D } from "../src/diagnostics";
-import { formatTableDiagnostics, Table, TableError, validateTable } from "../src/table";
+import {
+  chunkedFromTable,
+  chunksFromTable,
+  describeChunk,
+  describeChunkedTable,
+  describeManifest,
+  formatTableDiagnostics,
+  fromChunkJson,
+  fromManifestJson,
+  manifestFromChunks,
+  previewChunk,
+  Table,
+  TableError,
+  tableFromChunks,
+  toChunkJson,
+  toManifestJson,
+  validateChunksAgainstManifest,
+  validateColumnarTableChunk,
+  validateColumnarTableManifest,
+  validateTable,
+} from "../src/table";
 import { Q, TableQueryError } from "../src/query";
 import {
   C,
@@ -425,6 +445,20 @@ describe("package export entrypoints", () => {
     expect(Table.take).toBeTypeOf("function");
     expect(Table.drop).toBeTypeOf("function");
     expect(Table.renameColumns).toBeTypeOf("function");
+    expect(Table.chunkFromTable).toBeTypeOf("function");
+    expect(Table.chunksFromTable).toBe(chunksFromTable);
+    expect(Table.chunks).toBe(chunksFromTable);
+    expect(Table.manifestFromChunks).toBe(manifestFromChunks);
+    expect(Table.chunkedFromTable).toBe(chunkedFromTable);
+    expect(Table.tableFromChunks).toBe(tableFromChunks);
+    expect(Table.toChunkJson).toBe(toChunkJson);
+    expect(Table.fromChunkJson).toBe(fromChunkJson);
+    expect(Table.toManifestJson).toBe(toManifestJson);
+    expect(Table.fromManifestJson).toBe(fromManifestJson);
+    expect(Table.describeChunk).toBe(describeChunk);
+    expect(Table.describeManifest).toBe(describeManifest);
+    expect(Table.describeChunkedTable).toBe(describeChunkedTable);
+    expect(Table.previewChunk).toBe(previewChunk);
     expect(Table.keyBy).toBeTypeOf("function");
     expect(Table.lookup).toBeTypeOf("function");
     expect(Table.requireLookup).toBeTypeOf("function");
@@ -441,6 +475,9 @@ describe("package export entrypoints", () => {
     expect(Table.optional).toBeTypeOf("function");
     expect(Table.schema).toBeTypeOf("function");
     expect(Table.validate).toBe(validateTable);
+    expect(Table.validateChunk).toBe(validateColumnarTableChunk);
+    expect(Table.validateManifest).toBe(validateColumnarTableManifest);
+    expect(Table.validateChunksAgainstManifest).toBe(validateChunksAgainstManifest);
     expect(Table.validateKey).toBeTypeOf("function");
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");

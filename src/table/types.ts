@@ -110,6 +110,49 @@ export type ColumnarTableJson = {
   readonly schema?: unknown;
 };
 
+export type ColumnarTableChunk = {
+  readonly kind: "columnarTableChunk";
+  readonly tableId: string;
+  readonly chunkId: string;
+  readonly rowOffset: number;
+  readonly rowCount: number;
+  readonly columns: TableColumns;
+  readonly schema?: unknown;
+};
+
+export type ColumnarTableManifestChunk = {
+  readonly chunkId: string;
+  readonly rowOffset: number;
+  readonly rowCount: number;
+  readonly href?: string;
+};
+
+export type ColumnarTableManifest = {
+  readonly kind: "columnarTableManifest";
+  readonly tableId: string;
+  readonly rowCount: number;
+  readonly columnNames: readonly string[];
+  readonly chunks: readonly ColumnarTableManifestChunk[];
+  readonly schema?: unknown;
+};
+
+export type ChunkedColumnarTable = {
+  readonly kind: "chunkedColumnarTable";
+  readonly manifest: ColumnarTableManifest;
+  readonly chunks: readonly ColumnarTableChunk[];
+};
+
+export type TableChunkOptions = {
+  readonly chunkSize: number;
+  readonly chunkIdPrefix?: string;
+  readonly includeSchema?: boolean;
+};
+
+export type TableManifestOptions = {
+  readonly hrefForChunk?: (chunk: ColumnarTableChunk, index: number) => string | undefined;
+  readonly includeSchema?: boolean;
+};
+
 export type TableMarkdownOptions = {
   readonly maxRows?: number;
   readonly includeRowIndex?: boolean;
@@ -141,6 +184,25 @@ export type TablePreview = {
   readonly markdown: string;
 };
 
+export type ColumnarTableChunkDescription = {
+  readonly kind: "columnarTableChunkDescription";
+  readonly tableId: string;
+  readonly chunkId: string;
+  readonly rowOffset: number;
+  readonly rowCount: number;
+  readonly columnCount: number;
+  readonly columns: readonly string[];
+};
+
+export type ColumnarTableManifestDescription = {
+  readonly kind: "columnarTableManifestDescription";
+  readonly tableId: string;
+  readonly rowCount: number;
+  readonly chunkCount: number;
+  readonly columnCount: number;
+  readonly columns: readonly string[];
+};
+
 export type KeyedTableDescription = {
   readonly kind: "keyedTableDescription";
   readonly tableId: string;
@@ -170,6 +232,35 @@ export type TableDiagnosticCode =
   | "InvalidColumnarJsonKind"
   | "InvalidColumnarJsonRowCount"
   | "InvalidColumnarJsonSchema"
+  | "InvalidColumnarTableChunk"
+  | "InvalidChunkKind"
+  | "InvalidChunkTableId"
+  | "InvalidChunkId"
+  | "InvalidChunkRowOffset"
+  | "InvalidChunkRowCount"
+  | "InvalidChunkColumns"
+  | "InvalidChunkColumnLength"
+  | "InvalidChunkRowsField"
+  | "InvalidColumnarTableManifest"
+  | "InvalidManifestKind"
+  | "InvalidManifestTableId"
+  | "InvalidManifestRowCount"
+  | "InvalidManifestColumnNames"
+  | "DuplicateManifestColumnName"
+  | "InvalidManifestChunks"
+  | "InvalidManifestChunkId"
+  | "InvalidManifestChunkOffset"
+  | "InvalidManifestChunkRowCount"
+  | "InvalidManifestChunkHref"
+  | "OverlappingManifestChunks"
+  | "NonContiguousManifestChunks"
+  | "ManifestRowCountMismatch"
+  | "MissingManifestChunk"
+  | "ExtraManifestChunk"
+  | "ManifestChunkTableMismatch"
+  | "ManifestChunkOffsetMismatch"
+  | "ManifestChunkRowCountMismatch"
+  | "ManifestChunkColumnMismatch"
   | "InvalidRowWidth"
   | "MissingObjectColumn"
   | "ExtraObjectColumn"

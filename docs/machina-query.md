@@ -23,6 +23,8 @@ Current boundary:
 - no indexes
 - no storage, chunks, buckets, or persistence
 
+M36c adds chunked columnar storage records to `machinalayout/table`, but query execution still runs over restored in-memory `ColumnarTable` values. M36c does not add chunk-native query scans or storage-backed query execution.
+
 ## Fluent API
 
 ```ts
