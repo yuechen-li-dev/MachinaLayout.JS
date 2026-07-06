@@ -13,6 +13,8 @@ Current start modes:
 
 The sprite mode now includes a narrow visual frame editor for sprite sidecars. It is still intentionally not a full paint program or full Aseprite clone.
 
+MachinaCanvas uses a TOML syntax library for sidecar parsing/stringifying. MachinaCanvas still owns sidecar normalization, validation, diagnostics, and export dialects.
+
 Core thesis:
 
 ```txt

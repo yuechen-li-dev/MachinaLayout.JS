@@ -7,9 +7,7 @@ import type {
   ImageObject,
   SpriteSidecarObject,
 } from "./sceneModel";
-
-type TomlValue = string | number | boolean | readonly TomlValue[] | TomlTable;
-type TomlTable = { [key: string]: TomlValue };
+import { parseTomlDocument } from "./tomlSyntax";
 
 const defaultOverlay = {
   showBounds: true,
@@ -21,165 +19,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function asTable(value: TomlValue | undefined): TomlTable | undefined {
-  return isRecord(value) ? (value as TomlTable) : undefined;
+function asTable(value: unknown): Record<string, unknown> | undefined {
+  return isRecord(value) ? value : undefined;
 }
 
-function asString(value: TomlValue | undefined): string | undefined {
+function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function asNumber(value: TomlValue | undefined): number | undefined {
+function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function asBoolean(value: TomlValue | undefined): boolean | undefined {
+function asBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
 }
 
-function asArray(value: TomlValue | undefined): readonly TomlValue[] | undefined {
+function asArray(value: unknown): readonly unknown[] | undefined {
   return Array.isArray(value) ? value : undefined;
-}
-
-function parsePrimitive(value: string): TomlValue {
-  const trimmed = value.trim();
-  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return JSON.parse(trimmed) as string;
-  }
-  if (trimmed === "true") return true;
-  if (trimmed === "false") return false;
-  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-    return splitTomlArray(trimmed.slice(1, -1)).map(parsePrimitive);
-  }
-  const numeric = Number(trimmed);
-  if (Number.isFinite(numeric)) return numeric;
-  return trimmed;
-}
-
-function splitTomlArray(value: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let inString = false;
-  let escaped = false;
-
-  for (const char of value) {
-    if (escaped) {
-      current += char;
-      escaped = false;
-      continue;
-    }
-    if (char === "\\") {
-      current += char;
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      current += char;
-      continue;
-    }
-    if (char === "," && !inString) {
-      if (current.trim()) parts.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-
-  if (current.trim()) parts.push(current.trim());
-  return parts;
-}
-
-function splitTomlPath(path: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let inString = false;
-  let escaped = false;
-
-  for (const char of path) {
-    if (escaped) {
-      current += char;
-      escaped = false;
-      continue;
-    }
-    if (char === "\\") {
-      current += char;
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      current += char;
-      continue;
-    }
-    if (char === "." && !inString) {
-      parts.push(unquotePathPart(current.trim()));
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-
-  if (current.trim()) parts.push(unquotePathPart(current.trim()));
-  return parts;
-}
-
-function unquotePathPart(value: string): string {
-  if (value.startsWith('"') && value.endsWith('"')) return JSON.parse(value) as string;
-  return value;
-}
-
-function getOrCreateTable(root: TomlTable, path: readonly string[]): TomlTable {
-  let current = root;
-  for (const part of path) {
-    const existing = current[part];
-    if (!isRecord(existing)) current[part] = {};
-    current = current[part] as TomlTable;
-  }
-  return current;
-}
-
-export function parseTomlTables(text: string): TomlTable {
-  const root: TomlTable = {};
-  let current = root;
-
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = stripTomlComment(rawLine).trim();
-    if (!line) continue;
-
-    const tableMatch = /^\[([^\]]+)\]$/.exec(line);
-    if (tableMatch) {
-      current = getOrCreateTable(root, splitTomlPath(tableMatch[1]));
-      continue;
-    }
-
-    const equalsIndex = line.indexOf("=");
-    if (equalsIndex < 0) continue;
-    const key = line.slice(0, equalsIndex).trim();
-    const value = line.slice(equalsIndex + 1).trim();
-    current[key] = parsePrimitive(value);
-  }
-
-  return root;
-}
-
-function stripTomlComment(line: string): string {
-  let inString = false;
-  let escaped = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') inString = !inString;
-    if (char === "#" && !inString) return line.slice(0, index);
-  }
-  return line;
 }
 
 function pushDiagnostic(
@@ -191,7 +48,42 @@ function pushDiagnostic(
   diagnostics.push({ severity: "warning", code, message, frameIds });
 }
 
-function readGrid(id: string, table: TomlTable, diagnostics: CanvasSpriteDiagnostics[]) {
+function formatSpriteTomlError(
+  code: "InvalidTomlSyntax" | "InvalidSpriteTomlDocument",
+  detail: string,
+): string {
+  return `${code}: ${detail}`;
+}
+
+function parseSpriteTomlRoot(text: string): Record<string, unknown> {
+  try {
+    const root = parseTomlDocument(text);
+    if (!isRecord(root)) {
+      throw new Error(
+        formatSpriteTomlError(
+          "InvalidSpriteTomlDocument",
+          "Sprite sidecar TOML must contain a top-level table.",
+        ),
+      );
+    }
+    return root;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("InvalidSpriteTomlDocument:")) {
+      throw error;
+    }
+    const detail =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message.trim()
+        : "Sprite sidecar TOML could not be parsed.";
+    throw new Error(formatSpriteTomlError("InvalidTomlSyntax", detail));
+  }
+}
+
+function readGrid(
+  id: string,
+  table: Record<string, unknown>,
+  diagnostics: CanvasSpriteDiagnostics[],
+) {
   const grid: CanvasSpriteGridSpec = {
     id,
     x: asNumber(table.origin_x) ?? asNumber(table.x) ?? 0,
@@ -241,7 +133,10 @@ function makeGridFrame(
   };
 }
 
-function readExplicitFrame(id: string, table: TomlTable): CanvasSpriteFrame | undefined {
+function readExplicitFrame(
+  id: string,
+  table: Record<string, unknown>,
+): CanvasSpriteFrame | undefined {
   const x = asNumber(table.x);
   const y = asNumber(table.y);
   const width = asNumber(table.width) ?? asNumber(table.w);
@@ -356,14 +251,14 @@ export function parseSpriteSidecarToml(
   text: string,
   options: { id: string; name: string; targetId: string; sourceName?: string },
 ): CanvasSpriteSpec {
-  const root = parseTomlTables(text);
+  const root = parseSpriteTomlRoot(text);
   const diagnostics: CanvasSpriteDiagnostics[] = [];
   const atlas = asTable(root.atlas);
   const gridsTable = asTable(root.grids) ?? {};
   const spritesTable = asTable(root.sprites) ?? {};
   const framesTable = asTable(root.frames) ?? {};
   const grids = Object.entries(gridsTable)
-    .filter((entry): entry is [string, TomlTable] => isRecord(entry[1]))
+    .filter((entry): entry is [string, Record<string, unknown>] => isRecord(entry[1]))
     .map(([id, table]) => readGrid(id, table, diagnostics));
   const gridById = new Map(grids.map((grid) => [grid.id, grid]));
   const frames: CanvasSpriteFrame[] = [];

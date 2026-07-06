@@ -22,6 +22,7 @@ import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 import type { NormalizedRasterExportOptions } from "./rasterExport";
 import { lowerCanvasDocumentToTsx, type TsxExportOptions } from "./tsxExport";
 import { resolveSketchSpec } from "./sketchOverlay";
+import { stringifyTomlDocument } from "./tomlSyntax";
 
 export type CanvasExportFile = {
   path: string;
@@ -465,42 +466,60 @@ export function serializeCanvasSketchToml(object: SketchOverlayObject): string {
   return `${lines.join("\n")}\n`;
 }
 
-function pushSpriteFrameTables(lines: string[], object: SpriteSidecarObject) {
-  for (const frame of object.spec.frames) {
-    lines.push(
-      "",
-      `[frames.${quoteTomlString(frame.id)}]`,
-      `x = ${frame.x}`,
-      `y = ${frame.y}`,
-      `width = ${frame.width}`,
-      `height = ${frame.height}`,
-    );
-    if (frame.label !== frame.id) lines.push(`display_name = ${quoteTomlString(frame.label)}`);
-    if (frame.spriteId) lines.push(`sprite_id = ${quoteTomlString(frame.spriteId)}`);
-    if (frame.animationId) lines.push(`animation_id = ${quoteTomlString(frame.animationId)}`);
-    if (frame.row !== undefined) lines.push(`row = ${frame.row}`);
-    if (frame.column !== undefined) lines.push(`column = ${frame.column}`);
-    if (frame.gridId) lines.push(`grid = ${quoteTomlString(frame.gridId)}`);
-    if (frame.pivot) lines.push(`pivot = ${quoteTomlString(frame.pivot)}`);
-    if (frame.kind) lines.push(`kind = ${quoteTomlString(frame.kind)}`);
-  }
+function setTomlField(
+  target: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  include = value !== undefined,
+) {
+  if (include) target[key] = value;
 }
 
-function pushSpriteForgeToml(lines: string[], object: SpriteSidecarObject) {
-  for (const grid of object.spec.grids) {
-    lines.push(
-      "",
-      `[grids.${quoteTomlString(grid.id)}]`,
-      `origin_x = ${grid.x}`,
-      `origin_y = ${grid.y}`,
-      `columns = ${grid.columns}`,
-      `rows = ${grid.rows}`,
-      `cell_width = ${grid.cellWidth}`,
-      `cell_height = ${grid.cellHeight}`,
-    );
-    if (grid.pivot) lines.push(`default_pivot = ${quoteTomlString(grid.pivot)}`);
-  }
+function createSpriteFrameTomlTable(frame: CanvasSpriteFrame): Record<string, unknown> {
+  const table: Record<string, unknown> = {
+    x: frame.x,
+    y: frame.y,
+    width: frame.width,
+    height: frame.height,
+  };
+  setTomlField(table, "display_name", frame.label, frame.label !== frame.id);
+  setTomlField(table, "sprite_id", frame.spriteId);
+  setTomlField(table, "animation_id", frame.animationId);
+  setTomlField(table, "row", frame.row);
+  setTomlField(table, "column", frame.column);
+  setTomlField(table, "grid", frame.gridId);
+  setTomlField(table, "pivot", frame.pivot);
+  setTomlField(table, "kind", frame.kind);
+  return table;
+}
 
+function createSpriteFramesTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const frames: Record<string, unknown> = {};
+  for (const frame of object.spec.frames) {
+    frames[frame.id] = createSpriteFrameTomlTable(frame);
+  }
+  return frames;
+}
+
+function createSpriteGridsTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const grids: Record<string, unknown> = {};
+  for (const grid of object.spec.grids) {
+    const table: Record<string, unknown> = {
+      origin_x: grid.x,
+      origin_y: grid.y,
+      columns: grid.columns,
+      rows: grid.rows,
+      cell_width: grid.cellWidth,
+      cell_height: grid.cellHeight,
+    };
+    setTomlField(table, "default_pivot", grid.pivot);
+    grids[grid.id] = table;
+  }
+  return grids;
+}
+
+function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const sprites: Record<string, unknown> = {};
   const spriteIds = new Set<string>();
   for (const frame of object.spec.frames) {
     if (frame.spriteId) spriteIds.add(frame.spriteId);
@@ -515,28 +534,23 @@ function pushSpriteForgeToml(lines: string[], object: SpriteSidecarObject) {
       (frame) =>
         frame.animationId === undefined && frame.row !== undefined && frame.column !== undefined,
     );
-    lines.push("", `[sprites.${quoteTomlString(spriteId)}]`);
-    if (directFrame?.kind) lines.push(`kind = ${quoteTomlString(directFrame.kind)}`);
-    lines.push(
-      `display_name = ${quoteTomlString(directFrame?.label ?? spriteFrames[0]?.label ?? spriteId)}`,
-    );
-    if (directFrame?.gridId) lines.push(`grid = ${quoteTomlString(directFrame.gridId)}`);
-    if (directFrame?.row !== undefined) lines.push(`row = ${directFrame.row}`);
-    if (directFrame?.column !== undefined) lines.push(`col = ${directFrame.column}`);
-    if (directFrame?.pivot) lines.push(`pivot = ${quoteTomlString(directFrame.pivot)}`);
+    const spriteTable: Record<string, unknown> = {
+      display_name: directFrame?.label ?? spriteFrames[0]?.label ?? spriteId,
+    };
+    setTomlField(spriteTable, "kind", directFrame?.kind);
+    setTomlField(spriteTable, "grid", directFrame?.gridId);
+    setTomlField(spriteTable, "row", directFrame?.row);
+    setTomlField(spriteTable, "col", directFrame?.column);
+    setTomlField(spriteTable, "pivot", directFrame?.pivot);
 
-    for (const animation of object.spec.animations.filter(
+    const animationEntries = object.spec.animations.filter(
       (candidate) => candidate.spriteId === spriteId,
-    )) {
-      lines.push(
-        "",
-        `[sprites.${quoteTomlString(spriteId)}.animations.${quoteTomlString(animation.id)}]`,
-      );
-      if (animation.gridId) lines.push(`grid = ${quoteTomlString(animation.gridId)}`);
-      if (animation.row !== undefined) lines.push(`row = ${animation.row}`);
-      lines.push(
-        `frames = [${animation.frameIds
-          .map((frameId) => {
+    );
+    if (animationEntries.length > 0) {
+      const animationsTable: Record<string, unknown> = {};
+      for (const animation of animationEntries) {
+        const animationTable: Record<string, unknown> = {
+          frames: animation.frameIds.map((frameId) => {
             const frame = object.spec.frames.find((candidate) => candidate.id === frameId);
             if (
               frame &&
@@ -544,51 +558,65 @@ function pushSpriteForgeToml(lines: string[], object: SpriteSidecarObject) {
               frame.row === animation.row &&
               frame.column !== undefined
             ) {
-              return String(frame.column);
+              return frame.column;
             }
-            return quoteTomlString(frameId);
-          })
-          .join(", ")}]`,
-      );
-      if (animation.fps !== undefined) lines.push(`fps = ${animation.fps}`);
-      if (animation.loop !== undefined) lines.push(`loop = ${animation.loop}`);
+            return frameId;
+          }),
+        };
+        setTomlField(animationTable, "grid", animation.gridId);
+        setTomlField(animationTable, "row", animation.row);
+        setTomlField(animationTable, "fps", animation.fps);
+        setTomlField(animationTable, "loop", animation.loop);
+        animationsTable[animation.id] = animationTable;
+      }
+      spriteTable.animations = animationsTable;
     }
+
+    sprites[spriteId] = spriteTable;
   }
 
-  pushSpriteFrameTables(lines, object);
+  return {
+    grids: createSpriteGridsTomlRecord(object),
+    sprites,
+    frames: createSpriteFramesTomlRecord(object),
+  };
+}
+
+function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<string, unknown> {
+  const document: Record<string, unknown> = {
+    id: object.spec.id,
+    kind: object.kind,
+    name: object.spec.name,
+    target_id: object.targetId,
+    dialect: object.spec.dialect,
+    visible: object.visible,
+    overlay: {
+      show_bounds: object.spec.overlay.showBounds,
+      show_labels: object.spec.overlay.showLabels,
+      selected_only: object.spec.overlay.selectedOnly,
+    },
+  };
+
+  if (object.spec.atlasImage || object.spec.atlasWidth || object.spec.atlasHeight) {
+    const atlas: Record<string, unknown> = {};
+    setTomlField(atlas, "image", object.spec.atlasImage);
+    setTomlField(atlas, "width", object.spec.atlasWidth);
+    setTomlField(atlas, "height", object.spec.atlasHeight);
+    document.atlas = atlas;
+  }
+
+  if (object.spec.dialect === "spriteforge") {
+    Object.assign(document, createSpriteForgeTomlRecord(object));
+  } else {
+    document.frames = createSpriteFramesTomlRecord(object);
+  }
+
+  return document;
 }
 
 export function serializeCanvasSpriteToml(object: SpriteSidecarObject): string {
   if (object.spec.rawToml) return `${object.spec.rawToml.trimEnd()}\n`;
-
-  const lines = [
-    `id = ${quoteTomlString(object.spec.id)}`,
-    `kind = ${quoteTomlString(object.kind)}`,
-    `name = ${quoteTomlString(object.spec.name)}`,
-    `target_id = ${quoteTomlString(object.targetId)}`,
-    `dialect = ${quoteTomlString(object.spec.dialect)}`,
-    `visible = ${object.visible}`,
-    "",
-    "[overlay]",
-    `show_bounds = ${object.spec.overlay.showBounds}`,
-    `show_labels = ${object.spec.overlay.showLabels}`,
-    `selected_only = ${object.spec.overlay.selectedOnly}`,
-  ];
-
-  if (object.spec.atlasImage || object.spec.atlasWidth || object.spec.atlasHeight) {
-    lines.push("", "[atlas]");
-    if (object.spec.atlasImage) lines.push(`image = ${quoteTomlString(object.spec.atlasImage)}`);
-    if (object.spec.atlasWidth) lines.push(`width = ${object.spec.atlasWidth}`);
-    if (object.spec.atlasHeight) lines.push(`height = ${object.spec.atlasHeight}`);
-  }
-
-  if (object.spec.dialect === "spriteforge") {
-    pushSpriteForgeToml(lines, object);
-  } else {
-    pushSpriteFrameTables(lines, object);
-  }
-
-  return `${lines.join("\n")}\n`;
+  return `${stringifyTomlDocument(createCanvasSpriteTomlDocument(object)).trimEnd()}\n`;
 }
 
 export function serializeCanvasObjectToml(object: CanvasObject): string {
