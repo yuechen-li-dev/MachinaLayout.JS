@@ -31,6 +31,30 @@ defineDeusMachine({
 
 Hierarchy comes from stack paths such as `debugOverlay/nonInteractiveOverlay`, not from nested authoring syntax.
 
+Transition arrays are also table-shaped data. If you want an explicit columnar authoring surface, author them in `machinalayout/table` and lower them with `transitionsFromTable`:
+
+```ts
+import * as Deus from "machinalayout/deus";
+import { Table } from "machinalayout/table";
+
+const authenticated = ["app", "authenticated"] as const;
+const settings = ["app", "authenticated", "settings"] as const;
+
+const transitionTable = Table.define({
+  id: "appTransitions",
+  columns: {
+    key: ["openSettings"],
+    from: [authenticated],
+    event: ["openSettings"],
+    to: [settings],
+  },
+});
+
+const transitions = Deus.transitionsFromTable(transitionTable);
+```
+
+That does not create a second runtime. MachinaTable is the authoring and diagnostic surface; DeusMachina still validates, owns semantics, and runs the lowered transition rows.
+
 ## Snapshot hydration
 
 `createDeusSnapshot(machine, board)` preserves the original behavior and starts at `machine.initial`.

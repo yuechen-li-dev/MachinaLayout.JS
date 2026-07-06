@@ -9,7 +9,8 @@ import {
 } from "./helpers";
 import type { MachinaDispatchTables } from "./types";
 
-const hasOwn = (state: Record<string, unknown>, field: PropertyKey) => Object.hasOwn(state, field);
+const hasOwn = (state: Record<string, unknown>, field: PropertyKey) =>
+  Object.getOwnPropertyDescriptor(state, field) !== undefined;
 
 export function dispatchEvent<TState extends Record<string, unknown>>(
   state: TState,

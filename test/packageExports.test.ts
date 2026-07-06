@@ -116,6 +116,8 @@ import {
   judgeUtility,
   parseDeusPath,
   stepDeusMachine,
+  transitionsFromTable,
+  validateTransitionsTable,
 } from "../src/deus";
 import { useDeusMachine as useReactDeusMachine } from "../src/react";
 import { useDeusMachine as useNativeDeusMachine } from "../src/react-native";
@@ -409,6 +411,8 @@ describe("package export entrypoints", () => {
     expect(parseDeusPath).toBeTypeOf("function");
     expect(hasDeusStatePath).toBeTypeOf("function");
     expect(assertDeusStatePath).toBeTypeOf("function");
+    expect(transitionsFromTable).toBeTypeOf("function");
+    expect(validateTransitionsTable).toBeTypeOf("function");
     expect(createMachinaDebugOverlayMachine).toBeTypeOf("function");
     expect(getMachinaDebugOverlayBehavior).toBeTypeOf("function");
   });

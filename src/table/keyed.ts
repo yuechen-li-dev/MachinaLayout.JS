@@ -38,7 +38,7 @@ function isTableKeyValue(value: unknown): value is TableKeyValue {
 export function validateKey(table: ColumnarTable, keyColumn: string): TableDiagnostic[] {
   const diagnostics: TableDiagnostic[] = [];
 
-  if (!Object.hasOwn(table.columns, keyColumn)) {
+  if (Object.getOwnPropertyDescriptor(table.columns, keyColumn) === undefined) {
     diagnostics.push(
       createDiagnostic({
         code: "MissingTableKeyColumn",

@@ -41,7 +41,7 @@ function checkNonNegativeNumber(
 }
 
 function hasOwnValue(value: object, key: string): boolean {
-  return Object.hasOwn(value, key);
+  return Object.getOwnPropertyDescriptor(value, key) !== undefined;
 }
 
 function checkUnresolvedStyleSlot(
@@ -512,7 +512,7 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
   }
 
   for (const key of Object.keys(sheet.stateful ?? {})) {
-    if (Object.hasOwn(sheet.classes, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
       pushError(
         diagnostics,
         "DuplicateClassKey",
@@ -524,7 +524,7 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
   }
 
   for (const key of Object.keys(sheet.responsive ?? {})) {
-    if (Object.hasOwn(sheet.classes, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
       pushError(
         diagnostics,
         "DuplicateClassKey",
@@ -532,7 +532,7 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
         `responsive.${key}`,
       );
     }
-    if (Object.hasOwn(sheet.stateful ?? {}, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.stateful ?? {}, key) !== undefined) {
       pushError(
         diagnostics,
         "DuplicateClassKey",

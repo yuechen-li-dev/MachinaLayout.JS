@@ -414,6 +414,68 @@ This keeps the dependency direction clean:
 - MachinaDispatch is still the runtime form.
 - Failures point to table cells such as `routeActions.event[1]` or `routeActions.field[0]`.
 
+## State transition tables
+
+MachinaTable can also author rows for the existing DeusMachina runtime without replacing it.
+
+```ts
+import * as Deus from "machinalayout/deus";
+import { Table } from "machinalayout/table";
+
+const available = ["available"] as const;
+const picker = ["picker"] as const;
+
+const pickerTransitions = Table.defineWithSchema({
+  id: "pickerTransitions",
+  schema: Table.schema({
+    key: Table.string(),
+    from: Table.unknown(),
+    event: Table.string(),
+    to: Table.optional(Table.unknown()),
+    do: Table.optional(Table.unknown()),
+  }),
+  columns: {
+    key: [
+      "openPicker",
+      "keepCurrentTime",
+      "picker.slotsLoaded",
+      "picker.selectDate",
+    ],
+    from: [available, picker, picker, picker],
+    event: ["openPicker", "keepCurrentTime", "slotsLoaded", "selectDate"],
+    to: [picker, available, undefined, undefined],
+    do: [
+      undefined,
+      undefined,
+      (board, event) => {
+        if (event.type !== "slotsLoaded") return;
+        board.slots = event.slots;
+      },
+      (board, event) => {
+        if (event.type !== "selectDate") return;
+        board.selectedDateKey = event.dateKey;
+        board.selectedSlotKey = undefined;
+      },
+    ],
+  },
+});
+
+const machine = Deus.defineDeusMachine({
+  initial: available,
+  states: [{ path: available }, { path: picker }],
+  transitions: Deus.transitionsFromTable(pickerTransitions),
+});
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- DeusMachina still owns runtime semantics and stepping.
+- `Deus.transitionsFromTable(...)` is only a lowering bridge.
+- Failures point to cells such as `pickerTransitions.key[3]` or `pickerTransitions.do[2]`.
+
+Use `Deus.validateTransitionsTable(table)` when you want diagnostics without throwing. `Deus.transitionsFromTable(table)` throws `TableError` on invalid transition tables.
+
 ## Boundary
 
 MachinaTable is not:

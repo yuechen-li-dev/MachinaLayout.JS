@@ -457,7 +457,7 @@ export function createMachinaClassNames<
     ] = className;
   }
   for (const key of Object.keys(sheet.stateful ?? {})) {
-    if (Object.hasOwn(sheet.classes, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
       throw new Error(`Duplicate MachinaStyle class key "${key}" exists in classes and stateful.`);
     }
     classNames[
@@ -465,12 +465,12 @@ export function createMachinaClassNames<
     ] = (sheet.stateful as NonNullable<TStateful>)[key].className;
   }
   for (const key of Object.keys(sheet.responsive ?? {})) {
-    if (Object.hasOwn(sheet.classes, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
       throw new Error(
         `Duplicate MachinaStyle class key "${key}" exists in classes and responsive.`,
       );
     }
-    if (Object.hasOwn(sheet.stateful ?? {}, key)) {
+    if (Object.getOwnPropertyDescriptor(sheet.stateful ?? {}, key) !== undefined) {
       throw new Error(
         `Duplicate MachinaStyle class key "${key}" exists in stateful and responsive.`,
       );

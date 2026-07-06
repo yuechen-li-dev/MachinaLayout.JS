@@ -226,7 +226,7 @@ export function select<TTable extends ColumnarTable, const TColumns extends read
       ]);
     }
 
-    if (!Object.hasOwn(table.columns, column)) {
+    if (Object.getOwnPropertyDescriptor(table.columns, column) === undefined) {
       throw new TableError([
         createDeriveDiagnostic(table, {
           code: "MissingSelectedColumn",
@@ -324,7 +324,7 @@ export function sortBy<TTable extends ColumnarTable>(
   direction: TableSortDirection = "asc",
   options?: TableDeriveOptions,
 ): ColumnarTable {
-  if (!Object.hasOwn(table.columns, column)) {
+  if (Object.getOwnPropertyDescriptor(table.columns, column) === undefined) {
     throw new TableError([
       createDeriveDiagnostic(table, {
         code: "MissingSortColumn",
@@ -382,7 +382,7 @@ export function renameColumns<TTable extends ColumnarTable>(
   options?: TableDeriveOptions,
 ): ColumnarTable {
   for (const [source, target] of Object.entries(rename)) {
-    if (!Object.hasOwn(table.columns, source)) {
+    if (Object.getOwnPropertyDescriptor(table.columns, source) === undefined) {
       throw new TableError([
         createDeriveDiagnostic(table, {
           code: "MissingRenameColumn",

@@ -117,7 +117,7 @@ function getDispatchColumn(
   role: "key" | "handler",
   diagnostics: TableDiagnostic[],
 ): readonly unknown[] | undefined {
-  if (!Object.hasOwn(table.columns, column)) {
+  if (Object.getOwnPropertyDescriptor(table.columns, column) === undefined) {
     diagnostics.push(
       createDiagnostic(table, {
         code: role === "key" ? "MissingDispatchKeyColumn" : "MissingDispatchHandlerColumn",

@@ -110,7 +110,7 @@ export function tokenExists(tokens: MachinaStyleTokens | undefined, value: unkno
     return false;
   }
   const groupTokens = tokens?.[parsed.group] as Record<string, unknown> | undefined;
-  return !!groupTokens && Object.hasOwn(groupTokens, parsed.key);
+  return !!groupTokens && Object.getOwnPropertyDescriptor(groupTokens, parsed.key) !== undefined;
 }
 
 export function readTokenValue(

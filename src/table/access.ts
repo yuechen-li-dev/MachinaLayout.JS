@@ -11,7 +11,7 @@ function assertColumnExists<TColumns extends TableColumns, TKey extends keyof TC
   table: ColumnarTable<TColumns>,
   column: TKey,
 ): TColumns[TKey] {
-  if (!Object.hasOwn(table.columns, column)) {
+  if (Object.getOwnPropertyDescriptor(table.columns, column) === undefined) {
     throw new TableError([
       {
         severity: "error",

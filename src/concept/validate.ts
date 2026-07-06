@@ -163,7 +163,7 @@ function validateConceptDefinitionInner(
 }
 
 function hasField(value: Record<string, unknown>, fieldName: string): boolean {
-  return Object.hasOwn(value, fieldName);
+  return Object.getOwnPropertyDescriptor(value, fieldName) !== undefined;
 }
 
 function isObjectValue(value: unknown): value is Record<string, unknown> {

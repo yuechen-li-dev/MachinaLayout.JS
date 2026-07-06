@@ -517,7 +517,7 @@ export function validateObjectRowsInput(input: {
     }
 
     for (const column of columnOrder) {
-      if (!Object.hasOwn(row, column)) {
+      if (Object.getOwnPropertyDescriptor(row, column) === undefined) {
         diagnostics.push(
           createDiagnostic({
             code: "MissingObjectColumn",
