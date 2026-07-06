@@ -58,6 +58,121 @@ export const SchedulingAtlas = defineMachinaAtlas({
 });
 ```
 
+## Atlas tables
+
+Atlas tables are project symbol tables.
+
+Machina Atlas tables are an authoring surface for project cartography. They do not scan the filesystem or infer dependencies.
+
+Tables are the assembly code of frontend. Atlas tables are the symbol table.
+
+The existing object-array Atlas shape remains the runtime form:
+
+```ts
+import { defineMachinaAtlas } from "machinalayout/atlas";
+
+export const SchedulingAtlas = defineMachinaAtlas({
+  app: "Scheduling",
+  sections: [
+    {
+      key: "setup",
+      name: "Provider setup wizard",
+      kind: "page",
+      route: "/apps/scheduling/setup",
+      fixture: "provider-setup",
+      owns: ["ProviderSetupFlow", "ProviderSetupView"],
+      uses: ["shared/format", "shared/liveContext"],
+      usedBy: ["shared-shell"],
+      tags: ["scheduling", "setup", "m0"],
+      notes: "M0 deliverable.",
+    },
+    {
+      key: "shared-format",
+      name: "Shared formatters",
+      kind: "shared",
+      file: "shared/format.ts",
+      owns: ["slotKey", "statusLabel"],
+      usedBy: ["setup", "landing"],
+      tags: ["shared", "pure"],
+      notes: "Pure, no React.",
+    },
+  ],
+});
+```
+
+The new table-authored bridge lets you author the same Atlas as a columnar table and then lower it into the existing runtime:
+
+```ts
+import { Atlas } from "machinalayout/atlas";
+import { Table } from "machinalayout/table";
+
+const schedulingAtlasTable = Table.defineWithSchema({
+  id: "schedulingAtlas",
+  schema: Atlas.sectionTableSchema(),
+  columns: {
+    key: ["setup", "shared-format", "shared-live-context"],
+    name: [
+      "Provider setup wizard",
+      "Shared formatters",
+      "Live-mode routing & admin gate",
+    ],
+    kind: ["page", "shared", "shared"],
+    route: ["/apps/scheduling/setup", undefined, undefined],
+    file: [undefined, "shared/format.ts", "shared/liveContext.ts"],
+    fixture: ["provider-setup", undefined, undefined],
+    owns: [
+      ["ProviderSetupFlow", "ProviderSetupView"],
+      ["slotKey", "statusLabel"],
+      ["isFixtureMode", "loadLiveContext"],
+    ],
+    uses: [["shared/format", "shared/liveContext"], [], []],
+    usedBy: [["shared-shell"], ["setup", "landing"], ["setup", "landing"]],
+    tags: [
+      ["scheduling", "setup", "m0"],
+      ["shared", "pure"],
+      ["shared", "live-mode"],
+    ],
+    notes: [
+      "M0 deliverable.",
+      "Pure, no React.",
+      "Extracted specifically to avoid circular imports.",
+    ],
+  },
+});
+
+const sections = Atlas.sectionsFromTable(schedulingAtlasTable);
+
+const atlas = Atlas.defineAtlasFromTable({
+  app: "Scheduling",
+  sections: schedulingAtlasTable,
+});
+```
+
+Array cells stay arrays. `owns`, `uses`, `usedBy`, and `tags` are not stringified or collapsed into comma-separated text.
+
+If you prefer named helpers instead of the namespace, the atlas subpath also exports `sectionTableSchema`, `sectionsFromTable`, `validateAtlasSectionTable`, `defineMachinaAtlasFromTable`, `defineAtlasFromTable`, and `describeAtlasSections`.
+
+Use `validateAtlasSectionTable(table)` when you want diagnostics without throwing:
+
+```txt
+error DuplicateAtlasSectionKey at schedulingAtlas.key[4]
+  Atlas section key "setup" already appears at row 0.
+
+error InvalidAtlasSectionUses at schedulingAtlas.uses[2]
+  Atlas section "shared-format" uses value must be an array of strings.
+```
+
+The bridge is intentionally narrow:
+
+- tables author Atlas rows
+- Atlas still owns the runtime/project-cartography model
+- no filesystem scanning
+- no TypeScript import parsing
+- no inferred ownership
+- no graph database
+- no documentation generator
+- no LLM agent framework
+
 Then mark source sections in the same file:
 
 ```tsx

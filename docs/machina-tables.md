@@ -420,6 +420,45 @@ This keeps the dependency direction clean:
 - MachinaDispatch is still the runtime form.
 - Failures point to table cells such as `routeActions.event[1]` or `routeActions.field[0]`.
 
+## Atlas tables
+
+MachinaTable can also author rows for the existing MachinaAtlas runtime without replacing it.
+
+```ts
+import { Atlas } from "machinalayout/atlas";
+import { Table } from "machinalayout/table";
+
+const schedulingAtlas = Table.defineWithSchema({
+  id: "schedulingAtlas",
+  schema: Atlas.sectionTableSchema(),
+  columns: {
+    key: ["setup", "shared-format"],
+    name: ["Provider setup wizard", "Shared formatters"],
+    kind: ["page", "shared"],
+    route: ["/apps/scheduling/setup", undefined],
+    file: [undefined, "shared/format.ts"],
+    fixture: ["provider-setup", undefined],
+    owns: [["ProviderSetupFlow"], ["slotKey", "statusLabel"]],
+    uses: [["shared/format"], []],
+    usedBy: [["shared-shell"], ["setup", "landing"]],
+    tags: [["scheduling", "setup"], ["shared", "pure"]],
+    notes: ["M0 deliverable.", "Pure, no React."],
+  },
+});
+
+const atlas = Atlas.defineAtlasFromTable({
+  app: "Scheduling",
+  sections: schedulingAtlas,
+});
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- MachinaAtlas is still the runtime/project-cartography owner.
+- Array cells such as `owns`, `uses`, `usedBy`, and `tags` stay arrays.
+- No file scanning or dependency inference is added.
+
 ## Form field tables
 
 MachinaTable can also author form field definitions without turning Machina into a form framework.

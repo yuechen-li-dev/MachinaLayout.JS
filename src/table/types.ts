@@ -287,7 +287,20 @@ export type TableDiagnosticCode =
   | "InvalidStyleValue"
   | "InvalidStyleState"
   | "InvalidStyleBreakpoint"
-  | "InvalidStyleRuleDescription";
+  | "InvalidStyleRuleDescription"
+  | "MissingAtlasSectionColumn"
+  | "InvalidAtlasSectionKey"
+  | "InvalidAtlasSectionName"
+  | "InvalidAtlasSectionKind"
+  | "InvalidAtlasSectionRoute"
+  | "InvalidAtlasSectionFile"
+  | "InvalidAtlasSectionFixture"
+  | "InvalidAtlasSectionOwns"
+  | "InvalidAtlasSectionUses"
+  | "InvalidAtlasSectionUsedBy"
+  | "InvalidAtlasSectionTags"
+  | "InvalidAtlasSectionNotes"
+  | "DuplicateAtlasSectionKey";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

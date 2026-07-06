@@ -4,6 +4,15 @@ export {
   listMachinaAtlasSections,
 } from "./defineMachinaAtlas";
 export {
+  Atlas,
+  defineAtlasFromTable,
+  defineMachinaAtlasFromTable,
+  describeAtlasSections,
+  sectionTableSchema,
+  sectionsFromTable,
+  validateAtlasSectionTable,
+} from "./table";
+export {
   extractMachinaAtlasSection,
   extractMachinaSection,
   extractMachinaSections,
@@ -16,10 +25,12 @@ export type {
   MachinaAtlasErrorCode,
   MachinaAtlasSection,
   MachinaAtlasSectionKind,
+  MachinaAtlasSectionTableDescription,
   MachinaAtlasSummaryOptions,
   MachinaExtractedSection,
   MachinaSectionMarker,
 } from "./types";
+export type { AtlasSectionsFromTableOptions } from "./table";
 export type {
   MachinaAtlasValidationDiagnostic,
   MachinaAtlasValidationDiagnosticCode,

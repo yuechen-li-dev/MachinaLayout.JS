@@ -76,6 +76,8 @@ Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatti
 
 Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
+Machina Atlas also supports narrow table-authored lowering through `machinalayout/atlas`; see [MachinaAtlas](docs/machina-atlas.md).
+
 Dependency-free form field table lowering is available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
 
 Concept-to-form projection from `ConceptRecord[]` or concept tables into `FormFieldRecord[]` is also available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).

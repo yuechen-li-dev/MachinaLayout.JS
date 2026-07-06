@@ -64,6 +64,14 @@ export type MachinaAtlasSummaryOptions = {
   includeTags?: boolean;
 };
 
+export type MachinaAtlasSectionTableDescription = {
+  readonly kind: "atlasSectionTableDescription";
+  readonly tableId: string;
+  readonly sectionCount: number;
+  readonly kinds: readonly MachinaAtlasSectionKind[];
+  readonly tagCount: number;
+};
+
 export type MachinaAtlasErrorCode =
   | "InvalidAtlas"
   | "InvalidAtlasSection"
