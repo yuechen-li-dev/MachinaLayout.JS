@@ -231,6 +231,69 @@ Example Markdown:
 
 `Table.describe(table)` returns a compact table summary, and `Table.preview(table)` pairs that summary with a Markdown preview. `Table.toCsv(table)` is available for simple export when CSV is the target format.
 
+## Deriving tables
+
+MachinaTable can derive new tables without leaving the canonical columnar shape:
+
+- derivation helpers return new columnar tables
+- they do not mutate the input table
+- they preserve table shape instead of degrading into row-object JSON
+- canonical export remains columnar after derivation
+- schema is preserved where supported
+
+Available helpers:
+
+- `Table.select(table, columns)`
+- `Table.filter(table, predicate)`
+- `Table.filterRows(table, predicate)`
+- `Table.sortBy(table, column, direction?)`
+- `Table.take(table, count)`
+- `Table.drop(table, count)`
+- `Table.renameColumns(table, rename)`
+
+These are narrow table derivation helpers, not a query language:
+
+- no SQL
+- no joins
+- no groupBy
+- no aggregate
+- no dataframe API
+
+Use `Table.filterRows` when you want a columnar-friendly predicate that reads cells directly:
+
+```ts
+const paid = Table.filterRows(orders, ({ getCell }) => getCell("status") === "paid");
+```
+
+Use `Table.filter` when row-object convenience is more important than avoiding row projection:
+
+```ts
+const paidObjects = Table.filter(orders, (row) => row.status === "paid");
+```
+
+Projection keeps the table table-shaped:
+
+```ts
+const paidSummary = Table.select(paid, ["id", "totalCents"] as const);
+```
+
+Sorting reorders rows without mutating columns in place:
+
+```ts
+const topOrders = Table.take(
+  Table.sortBy(orders, "totalCents", "desc"),
+  10,
+);
+```
+
+Rename remains columnar too:
+
+```ts
+const display = Table.renameColumns(orders, {
+  totalCents: "total",
+});
+```
+
 ## Row array adapter
 
 ```ts

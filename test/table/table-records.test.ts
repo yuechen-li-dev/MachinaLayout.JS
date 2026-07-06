@@ -365,6 +365,13 @@ describe("table exports", () => {
     expect(table.Table.describeKeyed).toBeTypeOf("function");
     expect(table.Table.preview).toBeTypeOf("function");
     expect(table.Table.getCell).toBeTypeOf("function");
+    expect(table.Table.select).toBeTypeOf("function");
+    expect(table.Table.filter).toBeTypeOf("function");
+    expect(table.Table.filterRows).toBeTypeOf("function");
+    expect(table.Table.sortBy).toBeTypeOf("function");
+    expect(table.Table.take).toBeTypeOf("function");
+    expect(table.Table.drop).toBeTypeOf("function");
+    expect(table.Table.renameColumns).toBeTypeOf("function");
     expect(table.Table.keyBy).toBeTypeOf("function");
     expect(table.Table.lookup).toBeTypeOf("function");
     expect(table.Table.requireLookup).toBeTypeOf("function");
@@ -383,6 +390,13 @@ describe("table exports", () => {
     expect(table.kind).toBe("table");
     expect(typeof Table.define).toBe("function");
     expect(typeof Table.validate).toBe("function");
+    expect(typeof Table.select).toBe("function");
+    expect(typeof Table.filter).toBe("function");
+    expect(typeof Table.filterRows).toBe("function");
+    expect(typeof Table.sortBy).toBe("function");
+    expect(typeof Table.take).toBe("function");
+    expect(typeof Table.drop).toBe("function");
+    expect(typeof Table.renameColumns).toBe("function");
     expect(typeof Table.keyBy).toBe("function");
   });
 });

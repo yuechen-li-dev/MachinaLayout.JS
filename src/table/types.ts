@@ -120,6 +120,12 @@ export type TableCsvOptions = {
   readonly includeHeader?: boolean;
 };
 
+export type TableDeriveOptions = {
+  readonly id?: string;
+};
+
+export type TableSortDirection = "asc" | "desc";
+
 export type TableDescription = {
   readonly kind: "tableDescription";
   readonly id: string;
@@ -183,7 +189,15 @@ export type TableDiagnosticCode =
   | "MissingTableKeyColumn"
   | "InvalidTableKeyCell"
   | "DuplicateTableKey"
-  | "MissingTableKey";
+  | "MissingTableKey"
+  | "MissingSelectedColumn"
+  | "DuplicateSelectedColumn"
+  | "TableFilterPredicateError"
+  | "MissingSortColumn"
+  | "InvalidTableSliceCount"
+  | "MissingRenameColumn"
+  | "InvalidRenameColumnName"
+  | "DuplicateRenameColumn";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

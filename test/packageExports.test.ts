@@ -345,6 +345,13 @@ describe("package export entrypoints", () => {
     expect(Table.getColumn).toBeTypeOf("function");
     expect(Table.getCell).toBeTypeOf("function");
     expect(Table.getRow).toBeTypeOf("function");
+    expect(Table.select).toBeTypeOf("function");
+    expect(Table.filter).toBeTypeOf("function");
+    expect(Table.filterRows).toBeTypeOf("function");
+    expect(Table.sortBy).toBeTypeOf("function");
+    expect(Table.take).toBeTypeOf("function");
+    expect(Table.drop).toBeTypeOf("function");
+    expect(Table.renameColumns).toBeTypeOf("function");
     expect(Table.keyBy).toBeTypeOf("function");
     expect(Table.lookup).toBeTypeOf("function");
     expect(Table.requireLookup).toBeTypeOf("function");

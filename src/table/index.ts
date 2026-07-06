@@ -6,6 +6,7 @@ export * from "./validate";
 export * from "./format";
 export * from "./render";
 export * from "./keyed";
+export * from "./derive";
 
 import { columnNames, getCell, getColumn, getRow, rowCount } from "./access";
 import {
@@ -22,6 +23,7 @@ import {
   withSchema,
 } from "./authoring";
 import { fromObjects, fromRows, toObjects, toRows } from "./convert";
+import { drop, filter, filterRows, renameColumns, select, sortBy, take } from "./derive";
 import { formatTableDiagnostics } from "./format";
 import { describeKeyed, hasKey, keyBy, keys, lookup, requireLookup, validateKey } from "./keyed";
 import {
@@ -58,6 +60,13 @@ export const Table = {
   getColumn,
   getRow,
   getCell,
+  select,
+  filter,
+  filterRows,
+  sortBy,
+  take,
+  drop,
+  renameColumns,
   keyBy,
   lookup,
   requireLookup,
