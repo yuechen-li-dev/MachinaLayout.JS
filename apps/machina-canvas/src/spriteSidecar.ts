@@ -343,6 +343,15 @@ function validateFrames(
   }
 }
 
+function createValidatedSpriteSpec(spec: Omit<CanvasSpriteSpec, "diagnostics">): CanvasSpriteSpec {
+  const diagnostics: CanvasSpriteDiagnostics[] = [];
+  validateFrames(spec, diagnostics);
+  if (spec.frames.length === 0) {
+    pushDiagnostic(diagnostics, "EmptySpriteSidecar", "Sprite sidecar did not produce any frames.");
+  }
+  return { ...spec, diagnostics };
+}
+
 export function parseSpriteSidecarToml(
   text: string,
   options: { id: string; name: string; targetId: string; sourceName?: string },
@@ -488,13 +497,7 @@ export function parseSpriteSidecarToml(
     selectedFrameId: frames[0]?.id,
     rawToml: text,
   } satisfies Omit<CanvasSpriteSpec, "diagnostics">;
-  validateFrames(specWithoutDiagnostics, diagnostics);
-
-  if (frames.length === 0) {
-    pushDiagnostic(diagnostics, "EmptySpriteSidecar", "Sprite sidecar did not produce any frames.");
-  }
-
-  return { ...specWithoutDiagnostics, diagnostics };
+  return createValidatedSpriteSpec(specWithoutDiagnostics);
 }
 
 export function createSpriteSidecarObject(
@@ -526,4 +529,53 @@ export function getSpriteFrameSummary(frame: CanvasSpriteFrame): string {
       ? ` row ${frame.row ?? "?"}, col ${frame.column ?? "?"}`
       : "";
   return `${frame.id}: ${frame.x},${frame.y} ${frame.width}x${frame.height}${rowColumn}`;
+}
+
+export function revalidateSpriteSpec(spec: CanvasSpriteSpec): CanvasSpriteSpec {
+  const selectedFrameId = spec.selectedFrameId
+    ? spec.frames.some((frame) => frame.id === spec.selectedFrameId)
+      ? spec.selectedFrameId
+      : spec.frames[0]?.id
+    : spec.frames[0]?.id;
+  return createValidatedSpriteSpec({
+    ...spec,
+    selectedFrameId,
+  });
+}
+
+export function selectSpriteFrameInSpec(
+  spec: CanvasSpriteSpec,
+  frameId: string | undefined,
+): CanvasSpriteSpec {
+  const resolvedFrameId =
+    frameId === undefined || spec.frames.some((frame) => frame.id === frameId)
+      ? frameId
+      : spec.selectedFrameId;
+  return revalidateSpriteSpec({
+    ...spec,
+    selectedFrameId: resolvedFrameId,
+  });
+}
+
+export function updateSpriteFrameRectInSpec(
+  spec: CanvasSpriteSpec,
+  frameId: string,
+  rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+): CanvasSpriteSpec {
+  return revalidateSpriteSpec({
+    ...spec,
+    rawToml: undefined,
+    frames: spec.frames.map((frame) =>
+      frame.id === frameId
+        ? {
+            ...frame,
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            source: "frame",
+          }
+        : frame,
+    ),
+  });
 }

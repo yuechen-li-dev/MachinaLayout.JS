@@ -8,12 +8,14 @@ import {
   type ChangeEvent,
   type ComponentType,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import type { Rect } from "machinalayout";
 import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { CanvasModeStart } from "./CanvasModeStart";
+import { CanvasCommandTerminal } from "./CanvasCommandTerminal";
 import { resolveAppLayout } from "./appLayout";
 import {
   createCanvasExportBundle,
@@ -45,6 +47,10 @@ import {
   type CanvasExportValidationResult,
 } from "./canvasExportValidation";
 import {
+  executeCanvasTerminalCommand,
+  type CanvasTerminalLogEntry,
+} from "./canvasCommandsTerminal";
+import {
   applyCanvasCommands,
   type CanvasCommand,
   type CanvasCommandApplyResult,
@@ -70,6 +76,12 @@ import {
   getSpriteFrameSummary,
   parseSpriteSidecarToml,
 } from "./spriteSidecar";
+import {
+  hitTestSpriteFrameAtPoint,
+  mapSpriteFrameToCanvasRect,
+  snapSpriteFrameRect,
+  type SpriteFrameRect,
+} from "./spriteFrameEditor";
 import type {
   CanvasDocument,
   CanvasFrame,
@@ -138,6 +150,9 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   setSpriteSidecarVisible: "Set sprite sidecar visible",
   setSpriteOverlayOption: "Set sprite overlay option",
   selectSpriteFrame: "Select sprite frame",
+  updateSpriteFrameRect: "Set sprite frame rect",
+  nudgeSpriteFrame: "Nudge sprite frame",
+  resizeSpriteFrame: "Resize sprite frame",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -194,6 +209,21 @@ type CanvasAidToggles = {
   showGeometryDiagnostics: boolean;
 };
 
+type SpriteFrameEditSettings = {
+  snapToGrid: boolean;
+  gridSize: number;
+};
+
+type SpriteDragState = {
+  sidecarId: string;
+  frameId: string;
+  imageId: string;
+  mode: "move" | "resize";
+  startPoint: { x: number; y: number };
+  currentPoint: { x: number; y: number };
+  startRect: SpriteFrameRect;
+};
+
 type AppViewData = {
   activeMode: CanvasEditorModeTemplate;
   document: CanvasDocument;
@@ -204,6 +234,10 @@ type AppViewData = {
   commandValidation: CanvasCommandValidationResult | undefined;
   commandLog: CommandLogEntry[];
   lastApplyResults: CanvasCommandApplyResult[];
+  terminalLog: CanvasTerminalLogEntry[];
+  terminalCollapsed: boolean;
+  terminalInput: string;
+  spriteFrameEditSettings: SpriteFrameEditSettings;
   lastToolResult: CanvasToolResult | undefined;
   geometryDiagnostics: GeometryDiagnostic[];
   exportBundle: CanvasExportBundle | undefined;
@@ -224,6 +258,11 @@ type AppViewData = {
   zoomToGridRef: (ref: string) => void;
   zoomToGridSpan: (span: string) => void;
   runCommand: (command: CanvasCommand) => void;
+  runCommands: (commands: CanvasCommand[]) => void;
+  runTerminalCommand: (input: string) => void;
+  setTerminalCollapsed: (collapsed: boolean) => void;
+  setSpriteFrameEditSettings: (settings: SpriteFrameEditSettings) => void;
+  setTerminalInput: (input: string) => void;
   runCanvasTool: (
     toolId: string,
     input: { targetObjectId?: string; options?: Record<string, unknown> },
@@ -789,27 +828,23 @@ function SketchOverlaySvg({
   );
 }
 
-function mapSpriteFrameToCanvasRect(object: ImageObject, frame: CanvasSpriteFrame) {
-  const sourceWidth = object.intrinsicWidth ?? object.width;
-  const sourceHeight = object.intrinsicHeight ?? object.height;
-  const scaleX = object.width / sourceWidth;
-  const scaleY = object.height / sourceHeight;
-  return {
-    x: object.x + frame.x * scaleX,
-    y: object.y + frame.y * scaleY,
-    width: frame.width * scaleX,
-    height: frame.height * scaleY,
-  };
-}
-
 function SpriteSidecarSvg({
   image,
   sidecar,
   selected,
+  draftRect,
+  onFramePointerDown,
+  onResizeHandlePointerDown,
 }: {
   image: ImageObject;
   sidecar: SpriteSidecarObject;
   selected: boolean;
+  draftRect?: SpriteFrameRect;
+  onFramePointerDown: (event: ReactPointerEvent<SVGRectElement>, frame: CanvasSpriteFrame) => void;
+  onResizeHandlePointerDown: (
+    event: ReactPointerEvent<SVGRectElement>,
+    frame: CanvasSpriteFrame,
+  ) => void;
 }) {
   if (!sidecar.visible) return null;
 
@@ -824,13 +859,27 @@ function SpriteSidecarSvg({
       data-canvas-object-id={sidecar.id}
       data-canvas-kind={sidecar.kind}
       data-canvas-name={sidecar.name}
-      pointerEvents="none"
     >
       {frames.map((frame) => {
-        const rect = mapSpriteFrameToCanvasRect(image, frame);
+        const rect =
+          draftRect && frame.id === selectedFrameId
+            ? mapSpriteFrameToCanvasRect(image, draftRect)
+            : mapSpriteFrameToCanvasRect(image, frame);
         const frameSelected = frame.id === selectedFrameId;
         return (
           <Fragment key={frame.id}>
+            <rect
+              className="canvas-sprite-frame-hit"
+              data-canvas-sprite-frame-id={frame.id}
+              fill="transparent"
+              height={rect.height}
+              onPointerDown={(event) => onFramePointerDown(event, frame)}
+              stroke="transparent"
+              strokeWidth={12}
+              width={rect.width}
+              x={rect.x}
+              y={rect.y}
+            />
             {sidecar.spec.overlay.showBounds ? (
               <rect
                 className={`canvas-sprite-frame ${frameSelected ? "is-selected" : ""}`}
@@ -852,6 +901,17 @@ function SpriteSidecarSvg({
               >
                 {frame.label}
               </text>
+            ) : null}
+            {frameSelected ? (
+              <rect
+                className="canvas-sprite-resize-handle"
+                fill="#ffb000"
+                height={10}
+                onPointerDown={(event) => onResizeHandlePointerDown(event, frame)}
+                width={10}
+                x={rect.x + rect.width - 5}
+                y={rect.y + rect.height - 5}
+              />
             ) : null}
           </Fragment>
         );
@@ -977,8 +1037,18 @@ function MeasurementLabelsOverlay({ document }: { document: CanvasDocument }) {
 }
 
 function CanvasPanel(props: MachinaSlotProps) {
-  const { activeMode, document, viewport, aidToggles, runCommand } = readViewData(props);
+  const {
+    activeMode,
+    document,
+    viewport,
+    aidToggles,
+    runCommand,
+    runCommands,
+    spriteFrameEditSettings,
+  } = readViewData(props);
   const viewBox = getCanvasViewportViewBox(document, viewport);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [dragState, setDragState] = useState<SpriteDragState>();
   const alphaMappedImages = document.layers
     .filter((layer) => layer.visible)
     .flatMap((layer) => layer.objectIds.map((id) => document.objects[id]))
@@ -988,6 +1058,172 @@ function CanvasPanel(props: MachinaSlotProps) {
         object.alphaMapId !== undefined &&
         document.objects[object.alphaMapId]?.kind === "image",
     );
+
+  const getSvgPoint = useCallback(
+    (clientX: number, clientY: number) => {
+      const svg = svgRef.current;
+      if (!svg) return undefined;
+      const bounds = svg.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return undefined;
+      return {
+        x: viewBox.x + ((clientX - bounds.left) / bounds.width) * viewBox.width,
+        y: viewBox.y + ((clientY - bounds.top) / bounds.height) * viewBox.height,
+      };
+    },
+    [viewBox],
+  );
+
+  const getDraftRect = useCallback(
+    (state: SpriteDragState) => {
+      const image = document.objects[state.imageId];
+      if (image?.kind !== "image") return state.startRect;
+      const sourceWidth = image.intrinsicWidth ?? image.width;
+      const sourceHeight = image.intrinsicHeight ?? image.height;
+      const scaleX = image.width / sourceWidth;
+      const scaleY = image.height / sourceHeight;
+      const dx = (state.currentPoint.x - state.startPoint.x) / scaleX;
+      const dy = (state.currentPoint.y - state.startPoint.y) / scaleY;
+      const unsnapped =
+        state.mode === "move"
+          ? {
+              x: state.startRect.x + dx,
+              y: state.startRect.y + dy,
+              width: state.startRect.width,
+              height: state.startRect.height,
+            }
+          : {
+              x: state.startRect.x,
+              y: state.startRect.y,
+              width: state.startRect.width + dx,
+              height: state.startRect.height + dy,
+            };
+      return snapSpriteFrameRect(
+        {
+          x: Math.max(0, unsnapped.x),
+          y: Math.max(0, unsnapped.y),
+          width: Math.max(1, unsnapped.width),
+          height: Math.max(1, unsnapped.height),
+        },
+        {
+          enabled: spriteFrameEditSettings.snapToGrid,
+          gridSize: spriteFrameEditSettings.gridSize,
+        },
+      );
+    },
+    [document.objects, spriteFrameEditSettings.gridSize, spriteFrameEditSettings.snapToGrid],
+  );
+
+  useEffect(() => {
+    if (!dragState) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const point = getSvgPoint(event.clientX, event.clientY);
+      if (!point) return;
+      setDragState((current) => (current ? { ...current, currentPoint: point } : current));
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const point = getSvgPoint(event.clientX, event.clientY);
+      const current = dragState;
+      setDragState(undefined);
+      if (!current || !point) return;
+      const finalRect = getDraftRect({ ...current, currentPoint: point });
+      if (
+        finalRect.x !== current.startRect.x ||
+        finalRect.y !== current.startRect.y ||
+        finalRect.width !== current.startRect.width ||
+        finalRect.height !== current.startRect.height
+      ) {
+        runCommand({
+          kind: "updateSpriteFrameRect",
+          sidecarId: current.sidecarId,
+          frameId: current.frameId,
+          rect: finalRect,
+        });
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [dragState, getDraftRect, getSvgPoint, runCommand]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable) {
+        return;
+      }
+      const selected = document.selectedObjectId
+        ? document.objects[document.selectedObjectId]
+        : undefined;
+      if (selected?.kind !== "spriteSidecar" || !selected.spec.selectedFrameId) return;
+      const step = event.shiftKey ? 10 : 1;
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      const delta =
+        event.key === "ArrowLeft"
+          ? { dx: -step, dy: 0 }
+          : event.key === "ArrowRight"
+            ? { dx: step, dy: 0 }
+            : event.key === "ArrowUp"
+              ? { dx: 0, dy: -step }
+              : { dx: 0, dy: step };
+      runCommand({
+        kind: "nudgeSpriteFrame",
+        sidecarId: selected.id,
+        frameId: selected.spec.selectedFrameId,
+        ...delta,
+      });
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [document, runCommand]);
+
+  const beginFrameDrag = useCallback(
+    (
+      event: ReactPointerEvent<SVGRectElement>,
+      image: ImageObject,
+      sidecar: SpriteSidecarObject,
+      frame: CanvasSpriteFrame,
+      mode: "move" | "resize",
+    ) => {
+      event.stopPropagation();
+      const point = getSvgPoint(event.clientX, event.clientY);
+      if (!point) return;
+      const hit = hitTestSpriteFrameAtPoint(sidecar, image, point);
+      const resolvedFrame = hit?.frame ?? frame;
+      if (
+        document.selectedObjectId !== sidecar.id ||
+        sidecar.spec.selectedFrameId !== resolvedFrame.id
+      ) {
+        runCommands([
+          { kind: "select", id: sidecar.id },
+          { kind: "selectSpriteFrame", sidecarId: sidecar.id, frameId: resolvedFrame.id },
+        ]);
+      }
+      setDragState({
+        sidecarId: sidecar.id,
+        frameId: resolvedFrame.id,
+        imageId: image.id,
+        mode,
+        startPoint: point,
+        currentPoint: point,
+        startRect: {
+          x: resolvedFrame.x,
+          y: resolvedFrame.y,
+          width: resolvedFrame.width,
+          height: resolvedFrame.height,
+        },
+      });
+    },
+    [document.selectedObjectId, getSvgPoint, runCommands],
+  );
 
   return (
     <main className="canvas-panel panel">
@@ -1002,6 +1238,7 @@ function CanvasPanel(props: MachinaSlotProps) {
       <div className="artboard-wrap">
         <svg
           className="artboard"
+          ref={svgRef}
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           role="img"
           aria-label={`${document.name} scene graph`}
@@ -1060,7 +1297,20 @@ function CanvasPanel(props: MachinaSlotProps) {
                   ) : null}
                   {object.kind === "image" && spriteSidecar ? (
                     <SpriteSidecarSvg
+                      draftRect={
+                        dragState &&
+                        dragState.sidecarId === spriteSidecar.id &&
+                        dragState.frameId === spriteSidecar.spec.selectedFrameId
+                          ? getDraftRect(dragState)
+                          : undefined
+                      }
                       image={object}
+                      onFramePointerDown={(event, frame) =>
+                        beginFrameDrag(event, object, spriteSidecar, frame, "move")
+                      }
+                      onResizeHandlePointerDown={(event, frame) =>
+                        beginFrameDrag(event, object, spriteSidecar, frame, "resize")
+                      }
                       sidecar={spriteSidecar}
                       selected={document.selectedObjectId === spriteSidecar.id}
                     />
@@ -1467,6 +1717,33 @@ function ToggleField({
   );
 }
 
+function NumberField({
+  label,
+  value,
+  min,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="ui-prop-row">
+      <span>{label}</span>
+      <input
+        min={min}
+        onChange={(event) => {
+          const next = event.currentTarget.valueAsNumber;
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        type="number"
+        value={value}
+      />
+    </label>
+  );
+}
+
 function ViewportSection(props: MachinaSlotProps) {
   const {
     document,
@@ -1831,7 +2108,14 @@ function ExportPanel(props: MachinaSlotProps) {
 }
 
 function Inspector(props: MachinaSlotProps) {
-  const { document, aidToggles, isToolGroupVisible, runCommand } = readViewData(props);
+  const {
+    document,
+    aidToggles,
+    isToolGroupVisible,
+    runCommand,
+    spriteFrameEditSettings,
+    setSpriteFrameEditSettings,
+  } = readViewData(props);
   const selected = getSelectedObject(document);
   const layer = getObjectLayer(document, selected);
   const unitSystem = getCanvasUnitSystem(document);
@@ -1878,6 +2162,8 @@ function Inspector(props: MachinaSlotProps) {
   const nextFill = selected.fill === "#e34747" ? "#111111" : "#e34747";
   const selectedGrid = objectToGridRef(selected, document);
   const topLeftGrid = objectToGridRef({ ...selected, width: 0, height: 0 }, document).center.ref;
+  const spriteEditStep =
+    spriteFrameEditSettings.gridSize > 0 ? spriteFrameEditSettings.gridSize : 1;
 
   return (
     <aside className="inspector panel">
@@ -2199,6 +2485,27 @@ function Inspector(props: MachinaSlotProps) {
               })
             }
           />
+          <ToggleField
+            label="Snap frame edits"
+            checked={spriteFrameEditSettings.snapToGrid}
+            onChange={(snapToGrid) =>
+              setSpriteFrameEditSettings({
+                ...spriteFrameEditSettings,
+                snapToGrid,
+              })
+            }
+          />
+          <NumberField
+            label="Grid size"
+            min={1}
+            value={spriteFrameEditSettings.gridSize}
+            onChange={(gridSize) =>
+              setSpriteFrameEditSettings({
+                ...spriteFrameEditSettings,
+                gridSize: Math.max(1, Math.round(gridSize)),
+              })
+            }
+          />
           <label className="sprite-frame-select">
             <span>Selected frame</span>
             <select
@@ -2218,6 +2525,205 @@ function Inspector(props: MachinaSlotProps) {
               ))}
             </select>
           </label>
+          {(() => {
+            const selectedFrame = selected.spec.frames.find(
+              (frame) => frame.id === selected.spec.selectedFrameId,
+            );
+            if (!selectedFrame) return <Field label="Selected frame" value="none" />;
+            const imageTarget = getSpriteSidecarTarget(document, selected);
+            const atlasWidth = selected.spec.atlasWidth ?? imageTarget?.intrinsicWidth;
+            const atlasHeight = selected.spec.atlasHeight ?? imageTarget?.intrinsicHeight;
+            const updateRect = (rect: SpriteFrameRect) =>
+              runCommand({
+                kind: "updateSpriteFrameRect",
+                sidecarId: selected.id,
+                frameId: selectedFrame.id,
+                rect: snapSpriteFrameRect(rect, {
+                  enabled: spriteFrameEditSettings.snapToGrid,
+                  gridSize: spriteFrameEditSettings.gridSize,
+                }),
+              });
+            return (
+              <>
+                <Field label="Frame ID" value={selectedFrame.id} />
+                <Field label="Label" value={selectedFrame.label} />
+                <Field label="Sprite" value={selectedFrame.spriteId ?? "none"} />
+                <Field label="Animation" value={selectedFrame.animationId ?? "none"} />
+                <NumberField
+                  label="X"
+                  min={0}
+                  value={selectedFrame.x}
+                  onChange={(x) =>
+                    updateRect({
+                      x,
+                      y: selectedFrame.y,
+                      width: selectedFrame.width,
+                      height: selectedFrame.height,
+                    })
+                  }
+                />
+                <NumberField
+                  label="Y"
+                  min={0}
+                  value={selectedFrame.y}
+                  onChange={(y) =>
+                    updateRect({
+                      x: selectedFrame.x,
+                      y,
+                      width: selectedFrame.width,
+                      height: selectedFrame.height,
+                    })
+                  }
+                />
+                <NumberField
+                  label="Width"
+                  min={1}
+                  value={selectedFrame.width}
+                  onChange={(width) =>
+                    updateRect({
+                      x: selectedFrame.x,
+                      y: selectedFrame.y,
+                      width: Math.max(1, width),
+                      height: selectedFrame.height,
+                    })
+                  }
+                />
+                <NumberField
+                  label="Height"
+                  min={1}
+                  value={selectedFrame.height}
+                  onChange={(height) =>
+                    updateRect({
+                      x: selectedFrame.x,
+                      y: selectedFrame.y,
+                      width: selectedFrame.width,
+                      height: Math.max(1, height),
+                    })
+                  }
+                />
+                <p className="empty-note">
+                  x/y must stay at or above 0. width/height must stay above 0.
+                  {atlasWidth && atlasHeight
+                    ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.`
+                    : ""}
+                </p>
+                <div className="command-row sprite-edit-buttons">
+                  <button
+                    type="button"
+                    onClick={(event) =>
+                      runCommand({
+                        kind: "nudgeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dx: event.shiftKey ? -10 : -1,
+                        dy: 0,
+                      })
+                    }
+                  >
+                    Nudge Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) =>
+                      runCommand({
+                        kind: "nudgeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dx: event.shiftKey ? 10 : 1,
+                        dy: 0,
+                      })
+                    }
+                  >
+                    Nudge Right
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) =>
+                      runCommand({
+                        kind: "nudgeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dx: 0,
+                        dy: event.shiftKey ? -10 : -1,
+                      })
+                    }
+                  >
+                    Nudge Up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) =>
+                      runCommand({
+                        kind: "nudgeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dx: 0,
+                        dy: event.shiftKey ? 10 : 1,
+                      })
+                    }
+                  >
+                    Nudge Down
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "resizeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dw: spriteEditStep,
+                        dh: 0,
+                      })
+                    }
+                  >
+                    Grow W
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "resizeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dw: -spriteEditStep,
+                        dh: 0,
+                      })
+                    }
+                  >
+                    Shrink W
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "resizeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dw: 0,
+                        dh: spriteEditStep,
+                      })
+                    }
+                  >
+                    Grow H
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "resizeSpriteFrame",
+                        sidecarId: selected.id,
+                        frameId: selectedFrame.id,
+                        dw: 0,
+                        dh: -spriteEditStep,
+                      })
+                    }
+                  >
+                    Shrink H
+                  </button>
+                </div>
+              </>
+            );
+          })()}
           <div className="sprite-frame-list">
             {selected.spec.frames.slice(0, 36).map((frame) => (
               <button
@@ -2297,7 +2803,18 @@ function Inspector(props: MachinaSlotProps) {
 }
 
 function SceneSummaryShelf(props: MachinaSlotProps) {
-  const { document, viewport, runCommand, commandLog } = readViewData(props);
+  const {
+    document,
+    viewport,
+    runCommand,
+    commandLog,
+    terminalLog,
+    terminalCollapsed,
+    terminalInput,
+    runTerminalCommand,
+    setTerminalCollapsed,
+    setTerminalInput,
+  } = readViewData(props);
   const objects = Object.values(document.objects).filter((object) =>
     ["logo", "headline", "generated-product-image", "cta-bg", "feature-chip-1"].includes(object.id),
   );
@@ -2327,6 +2844,14 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
             </button>
           ))}
         </div>
+        <CanvasCommandTerminal
+          collapsed={terminalCollapsed}
+          inputValue={terminalInput}
+          log={terminalLog}
+          onChangeInput={setTerminalInput}
+          onSubmitCommand={runTerminalCommand}
+          onToggleCollapsed={() => setTerminalCollapsed(!terminalCollapsed)}
+        />
       </div>
       <aside className="command-log" aria-label="Command log">
         <header>
@@ -2401,6 +2926,9 @@ export function App() {
     CanvasCommandValidationResult | undefined
   >();
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
+  const [terminalLog, setTerminalLog] = useState<CanvasTerminalLogEntry[]>([]);
+  const [terminalCollapsed, setTerminalCollapsed] = useState(true);
+  const [terminalInput, setTerminalInput] = useState("");
   const [aidToggles, setAidToggles] = useState<CanvasAidToggles>({
     showReferenceGrid: true,
     showReferenceGridLines: false,
@@ -2416,6 +2944,8 @@ export function App() {
   const [rasterScale, setRasterScaleState] = useState(1);
   const [rasterBackground, setRasterBackgroundState] =
     useState<RasterExportBackground>("transparent");
+  const [spriteFrameEditSettings, setSpriteFrameEditSettingsState] =
+    useState<SpriteFrameEditSettings>({ snapToGrid: false, gridSize: 1 });
   const [rasterArtifact, setRasterArtifact] = useState<RasterExportArtifact>();
   const [rasterStatus, setRasterStatus] = useState("");
   const commandLogCounter = useRef(0);
@@ -2444,6 +2974,9 @@ export function App() {
     setCommandJson(exampleCommandJson);
     setCommandValidation(undefined);
     setCommandLog([]);
+    setTerminalLog([]);
+    setTerminalCollapsed(true);
+    setTerminalInput("");
     setLastApplyResults([]);
     setLastToolResult(undefined);
     setExportBundle(undefined);
@@ -2452,6 +2985,7 @@ export function App() {
     setExportStatus("");
     setRasterScaleState(1);
     setRasterBackgroundState("transparent");
+    setSpriteFrameEditSettingsState({ snapToGrid: false, gridSize: 1 });
     setRasterArtifact(undefined);
     setRasterStatus("");
     commandLogCounter.current = 0;
@@ -2500,10 +3034,33 @@ export function App() {
       setLastCommand(`${commands.length} command${commands.length === 1 ? "" : "s"} applied`);
     };
 
-    const runCommand = (command: CanvasCommand) => {
-      const applyResult = applyCanvasCommands(document, [command]);
+    const runCommands = (commands: CanvasCommand[]) => {
+      const applyResult = applyCanvasCommands(document, commands);
       setDocument(applyResult.document);
-      recordAppliedCommands([command], applyResult.results);
+      recordAppliedCommands(commands, applyResult.results);
+    };
+
+    const runCommand = (command: CanvasCommand) => {
+      runCommands([command]);
+    };
+
+    const runTerminalCommand = (input: string) => {
+      const result = executeCanvasTerminalCommand(input, { document });
+      if (result.clearLog) {
+        setTerminalLog([]);
+        setTerminalInput("");
+        setLastCommand("terminal log cleared");
+        return;
+      }
+      if (result.commands?.length) {
+        runCommands(result.commands);
+      }
+      const logEntry = result.logEntry;
+      if (logEntry) {
+        setTerminalLog((entries) => [logEntry, ...entries].slice(0, 50));
+        setLastCommand(logEntry.message);
+      }
+      setTerminalInput("");
     };
 
     const runCanvasTool: AppViewData["runCanvasTool"] = async (toolId, input) => {
@@ -2600,6 +3157,10 @@ export function App() {
 
     const setAidToggle = (key: keyof CanvasAidToggles, value: boolean) => {
       setAidToggles((current) => ({ ...current, [key]: value }));
+    };
+
+    const setSpriteFrameEditSettings = (settings: SpriteFrameEditSettings) => {
+      setSpriteFrameEditSettingsState(settings);
     };
 
     const fitViewport = () => {
@@ -2855,6 +3416,10 @@ export function App() {
       commandValidation,
       commandLog,
       lastApplyResults,
+      terminalLog,
+      terminalCollapsed,
+      terminalInput,
+      spriteFrameEditSettings,
       lastToolResult,
       geometryDiagnostics,
       exportBundle,
@@ -2875,6 +3440,11 @@ export function App() {
       zoomToGridRef,
       zoomToGridSpan,
       runCommand,
+      runCommands,
+      runTerminalCommand,
+      setTerminalCollapsed,
+      setSpriteFrameEditSettings,
+      setTerminalInput,
       runCanvasTool,
       loadImageFile,
       loadSpriteSidecarFile,
@@ -2903,6 +3473,10 @@ export function App() {
     commandValidation,
     commandLog,
     lastApplyResults,
+    terminalLog,
+    terminalCollapsed,
+    terminalInput,
+    spriteFrameEditSettings,
     lastToolResult,
     geometryDiagnostics,
     exportBundle,

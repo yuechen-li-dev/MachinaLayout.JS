@@ -11,7 +11,7 @@ Current start modes:
 - `webUi`
 - `sprites`
 
-The sprite editor proper remains future work. The current mode selector only changes the startup experience and initial tool focus.
+The sprite mode now includes a narrow visual frame editor for sprite sidecars. It is still intentionally not a full paint program or full Aseprite clone.
 
 Core thesis:
 
@@ -53,6 +53,40 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 - before/after command result summaries in a command log
 - geometry diagnostics for selected-object and scene inspection
 - `machinalayout/match` for object-kind presentation
+
+## Sprite Frame Editing
+
+MachinaCanvas now treats sprite cuts as editable geometry instead of passive overlay decoration.
+
+- click visible sprite frame rectangles on the canvas to select them
+- edit selected frame `x`, `y`, `width`, and `height` in the inspector
+- nudge frames with inspector buttons or arrow keys
+- drag a selected frame to move it and drag the resize handle to change width and height
+- optionally snap frame edits to a simple grid
+- export updated frame cuts back into `objects/*.sprite.toml`
+- keep validation active so bad cuts surface as diagnostics
+
+This is frame slicing and sidecar editing, not raster painting. MachinaCanvas still does not add brush tools, pixel editing, or an animation timeline here.
+
+## Command Terminal
+
+MachinaCanvas includes a small in-app command terminal for editor commands and quick Codex/manual testing.
+
+The MachinaCanvas command terminal runs editor commands only. It does not execute shell commands, JavaScript, or arbitrary code.
+
+Supported commands:
+
+- `help`
+- `summary`
+- `select <objectId>`
+- `select-frame <sidecarId> <frameId>`
+- `nudge-frame <dx> <dy>`
+- `set-frame-rect <x> <y> <w> <h>`
+- `toggle-sprite-overlay`
+- `toggle-sprite-labels`
+- `toggle-selected-only`
+- `export-summary`
+- `clear`
 
 ## Command JSON Workflow
 

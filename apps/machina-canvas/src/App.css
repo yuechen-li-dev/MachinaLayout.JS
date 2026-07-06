@@ -585,6 +585,17 @@ button {
   stroke-width: 2px;
 }
 
+.canvas-sprite-frame-hit,
+.canvas-sprite-resize-handle {
+  cursor: pointer;
+}
+
+.canvas-sprite-resize-handle {
+  stroke: #ffffff;
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
 .canvas-sprite-frame.is-selected {
   stroke-width: 4px;
 }
@@ -1213,6 +1224,89 @@ button {
   gap: 8px;
   max-height: 320px;
   overflow: auto;
+}
+
+.sprite-edit-buttons {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.command-terminal {
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  padding: 10px;
+}
+
+.command-terminal__header,
+.command-terminal__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.command-terminal__header button,
+.command-terminal__form button {
+  min-height: 32px;
+  border: 1px solid #111111;
+  background: #ffffff;
+  color: #111111;
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.command-terminal__log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  margin-top: 10px;
+  overflow: auto;
+}
+
+.command-terminal__form {
+  margin-top: 10px;
+}
+
+.command-terminal__input {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid #d7d7d2;
+  background: #ffffff;
+  color: #111111;
+  font: inherit;
+  padding: 0 8px;
+}
+
+.terminal-entry {
+  border: 1px solid #e1e1dc;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.terminal-entry p,
+.terminal-entry__command {
+  margin: 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.terminal-entry__command {
+  color: #111111;
+  font-weight: 700;
+}
+
+.terminal-entry-success {
+  border-left: 3px solid #6f967c;
+}
+
+.terminal-entry-error {
+  border-left: 3px solid #c78373;
+}
+
+.terminal-entry-info {
+  border-left: 3px solid #6c8cab;
 }
 
 .sprite-frame-card {

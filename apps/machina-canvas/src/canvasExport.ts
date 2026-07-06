@@ -465,6 +465,99 @@ export function serializeCanvasSketchToml(object: SketchOverlayObject): string {
   return `${lines.join("\n")}\n`;
 }
 
+function pushSpriteFrameTables(lines: string[], object: SpriteSidecarObject) {
+  for (const frame of object.spec.frames) {
+    lines.push(
+      "",
+      `[frames.${quoteTomlString(frame.id)}]`,
+      `x = ${frame.x}`,
+      `y = ${frame.y}`,
+      `width = ${frame.width}`,
+      `height = ${frame.height}`,
+    );
+    if (frame.label !== frame.id) lines.push(`display_name = ${quoteTomlString(frame.label)}`);
+    if (frame.spriteId) lines.push(`sprite_id = ${quoteTomlString(frame.spriteId)}`);
+    if (frame.animationId) lines.push(`animation_id = ${quoteTomlString(frame.animationId)}`);
+    if (frame.row !== undefined) lines.push(`row = ${frame.row}`);
+    if (frame.column !== undefined) lines.push(`column = ${frame.column}`);
+    if (frame.gridId) lines.push(`grid = ${quoteTomlString(frame.gridId)}`);
+    if (frame.pivot) lines.push(`pivot = ${quoteTomlString(frame.pivot)}`);
+    if (frame.kind) lines.push(`kind = ${quoteTomlString(frame.kind)}`);
+  }
+}
+
+function pushSpriteForgeToml(lines: string[], object: SpriteSidecarObject) {
+  for (const grid of object.spec.grids) {
+    lines.push(
+      "",
+      `[grids.${quoteTomlString(grid.id)}]`,
+      `origin_x = ${grid.x}`,
+      `origin_y = ${grid.y}`,
+      `columns = ${grid.columns}`,
+      `rows = ${grid.rows}`,
+      `cell_width = ${grid.cellWidth}`,
+      `cell_height = ${grid.cellHeight}`,
+    );
+    if (grid.pivot) lines.push(`default_pivot = ${quoteTomlString(grid.pivot)}`);
+  }
+
+  const spriteIds = new Set<string>();
+  for (const frame of object.spec.frames) {
+    if (frame.spriteId) spriteIds.add(frame.spriteId);
+  }
+  for (const animation of object.spec.animations) {
+    spriteIds.add(animation.spriteId);
+  }
+
+  for (const spriteId of [...spriteIds].sort()) {
+    const spriteFrames = object.spec.frames.filter((frame) => frame.spriteId === spriteId);
+    const directFrame = spriteFrames.find(
+      (frame) =>
+        frame.animationId === undefined && frame.row !== undefined && frame.column !== undefined,
+    );
+    lines.push("", `[sprites.${quoteTomlString(spriteId)}]`);
+    if (directFrame?.kind) lines.push(`kind = ${quoteTomlString(directFrame.kind)}`);
+    lines.push(
+      `display_name = ${quoteTomlString(directFrame?.label ?? spriteFrames[0]?.label ?? spriteId)}`,
+    );
+    if (directFrame?.gridId) lines.push(`grid = ${quoteTomlString(directFrame.gridId)}`);
+    if (directFrame?.row !== undefined) lines.push(`row = ${directFrame.row}`);
+    if (directFrame?.column !== undefined) lines.push(`col = ${directFrame.column}`);
+    if (directFrame?.pivot) lines.push(`pivot = ${quoteTomlString(directFrame.pivot)}`);
+
+    for (const animation of object.spec.animations.filter(
+      (candidate) => candidate.spriteId === spriteId,
+    )) {
+      lines.push(
+        "",
+        `[sprites.${quoteTomlString(spriteId)}.animations.${quoteTomlString(animation.id)}]`,
+      );
+      if (animation.gridId) lines.push(`grid = ${quoteTomlString(animation.gridId)}`);
+      if (animation.row !== undefined) lines.push(`row = ${animation.row}`);
+      lines.push(
+        `frames = [${animation.frameIds
+          .map((frameId) => {
+            const frame = object.spec.frames.find((candidate) => candidate.id === frameId);
+            if (
+              frame &&
+              frame.gridId === animation.gridId &&
+              frame.row === animation.row &&
+              frame.column !== undefined
+            ) {
+              return String(frame.column);
+            }
+            return quoteTomlString(frameId);
+          })
+          .join(", ")}]`,
+      );
+      if (animation.fps !== undefined) lines.push(`fps = ${animation.fps}`);
+      if (animation.loop !== undefined) lines.push(`loop = ${animation.loop}`);
+    }
+  }
+
+  pushSpriteFrameTables(lines, object);
+}
+
 export function serializeCanvasSpriteToml(object: SpriteSidecarObject): string {
   if (object.spec.rawToml) return `${object.spec.rawToml.trimEnd()}\n`;
 
@@ -489,22 +582,10 @@ export function serializeCanvasSpriteToml(object: SpriteSidecarObject): string {
     if (object.spec.atlasHeight) lines.push(`height = ${object.spec.atlasHeight}`);
   }
 
-  for (const frame of object.spec.frames) {
-    lines.push(
-      "",
-      `[[frame]]`,
-      `id = ${quoteTomlString(frame.id)}`,
-      `label = ${quoteTomlString(frame.label)}`,
-      `x = ${frame.x}`,
-      `y = ${frame.y}`,
-      `width = ${frame.width}`,
-      `height = ${frame.height}`,
-    );
-    if (frame.spriteId) lines.push(`sprite_id = ${quoteTomlString(frame.spriteId)}`);
-    if (frame.animationId) lines.push(`animation_id = ${quoteTomlString(frame.animationId)}`);
-    if (frame.row !== undefined) lines.push(`row = ${frame.row}`);
-    if (frame.column !== undefined) lines.push(`column = ${frame.column}`);
-    if (frame.gridId) lines.push(`grid_id = ${quoteTomlString(frame.gridId)}`);
+  if (object.spec.dialect === "spriteforge") {
+    pushSpriteForgeToml(lines, object);
+  } else {
+    pushSpriteFrameTables(lines, object);
   }
 
   return `${lines.join("\n")}\n`;
@@ -754,6 +835,32 @@ export function serializeCanvasCommandsToml(
         if (command.frameId !== undefined) {
           lines.push(`frame_id = ${quoteTomlString(command.frameId)}`);
         }
+        break;
+      case "updateSpriteFrameRect":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `frame_id = ${quoteTomlString(command.frameId)}`,
+          `x = ${command.rect.x}`,
+          `y = ${command.rect.y}`,
+          `width = ${command.rect.width}`,
+          `height = ${command.rect.height}`,
+        );
+        break;
+      case "nudgeSpriteFrame":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `frame_id = ${quoteTomlString(command.frameId)}`,
+          `dx = ${command.dx}`,
+          `dy = ${command.dy}`,
+        );
+        break;
+      case "resizeSpriteFrame":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `frame_id = ${quoteTomlString(command.frameId)}`,
+          `dw = ${command.dw}`,
+          `dh = ${command.dh}`,
+        );
         break;
     }
   }

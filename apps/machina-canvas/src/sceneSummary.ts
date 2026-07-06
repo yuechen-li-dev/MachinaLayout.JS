@@ -46,7 +46,20 @@ export function summarizeScene(document: CanvasDocument): string {
     .join("; ");
 
   const selectionText = selected
-    ? ` Selected ${selected.name} spans ${objectToGridRef(selected, document).span}; size ${formatCanvasMeasurement(selected.width, unitSystem)} x ${formatCanvasMeasurement(selected.height, unitSystem)}; center ${objectToGridRef(selected, document).center.ref}.`
+    ? ` Selected ${selected.name} spans ${objectToGridRef(selected, document).span}; size ${formatCanvasMeasurement(selected.width, unitSystem)} x ${formatCanvasMeasurement(selected.height, unitSystem)}; center ${objectToGridRef(selected, document).center.ref}.${
+        selected.kind === "spriteSidecar"
+          ? (
+              () => {
+                const frame = selected.spec.frames.find(
+                  (candidate) => candidate.id === selected.spec.selectedFrameId,
+                );
+                return frame
+                  ? ` Selected frame ${frame.id} is ${frame.x},${frame.y} ${frame.width}x${frame.height}.`
+                  : "";
+              }
+            )()
+          : ""
+      }`
     : " No object selected.";
 
   return `${document.name} is ${formatCanvasMeasurement(document.width, unitSystem)} x ${formatCanvasMeasurement(document.height, unitSystem)} with ${objects.length} objects across ${document.layers.length} layers.${selectionText} Notable geometry: ${notableObjects || "none yet"}.`;

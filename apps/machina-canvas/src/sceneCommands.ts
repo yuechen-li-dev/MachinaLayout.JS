@@ -1,10 +1,12 @@
 import { resolveCanvasFrame } from "./canvasFrames";
+import { selectSpriteFrameInSpec, updateSpriteFrameRectInSpec } from "./spriteSidecar";
 import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type {
   CanvasDocument,
   CanvasFrame,
   CanvasObject,
+  CanvasSpriteFrame,
   CanvasUiPropValue,
   ImageObject,
   SpriteSidecarObject,
@@ -122,6 +124,26 @@ export type CanvasCommand =
       kind: "selectSpriteFrame";
       sidecarId: string;
       frameId?: string;
+    }
+  | {
+      kind: "updateSpriteFrameRect";
+      sidecarId: string;
+      frameId: string;
+      rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">;
+    }
+  | {
+      kind: "nudgeSpriteFrame";
+      sidecarId: string;
+      frameId: string;
+      dx: number;
+      dy: number;
+    }
+  | {
+      kind: "resizeSpriteFrame";
+      sidecarId: string;
+      frameId: string;
+      dw: number;
+      dh: number;
     };
 
 export type CanvasCommandValidationContext = {
@@ -236,6 +258,15 @@ function validateObjectId(
       objectId,
     });
   }
+}
+
+function getSpriteSidecar(document: CanvasDocument, sidecarId: string) {
+  const sidecar = document.objects[sidecarId];
+  return sidecar?.kind === "spriteSidecar" ? sidecar : undefined;
+}
+
+function getSpriteFrame(sidecar: SpriteSidecarObject, frameId: string) {
+  return sidecar.spec.frames.find((frame) => frame.id === frameId);
 }
 
 function validateNumber(
@@ -951,6 +982,39 @@ function validateSpriteSidecarMutationCommand(
   }
 }
 
+function validateSpriteFrameMutationCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
+
+  if (!isString(command.frameId) || command.frameId.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCommand",
+      message: "frameId must be a non-empty string.",
+      commandIndex,
+    });
+    return;
+  }
+
+  if (!isString(command.sidecarId)) return;
+  const sidecar = getSpriteSidecar(document, command.sidecarId);
+  if (!sidecar) return;
+
+  if (!getSpriteFrame(sidecar, command.frameId)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "MissingObject",
+      message: `Sprite frame "${command.frameId}" does not exist on ${command.sidecarId}.`,
+      commandIndex,
+      objectId: command.sidecarId,
+    });
+  }
+}
+
 export function validateCanvasCommand(
   document: CanvasDocument,
   command: unknown,
@@ -1143,6 +1207,78 @@ export function validateCanvasCommand(
           message: "frameId must be a string when present.",
           commandIndex,
         });
+      }
+      break;
+    case "updateSpriteFrameRect":
+      validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
+      if (!isRecord(command.rect)) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "rect must be an object with x, y, width, and height.",
+          commandIndex,
+        });
+        break;
+      }
+      validateNumber(diagnostics, command.rect.x, "rect.x", commandIndex);
+      validateNumber(diagnostics, command.rect.y, "rect.y", commandIndex);
+      validateSize(diagnostics, command.rect.width, "rect.width", commandIndex);
+      validateSize(diagnostics, command.rect.height, "rect.height", commandIndex);
+      if (isFiniteNumber(command.rect.x) && command.rect.x < 0) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "rect.x must be greater than or equal to 0.",
+          commandIndex,
+        });
+      }
+      if (isFiniteNumber(command.rect.y) && command.rect.y < 0) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "rect.y must be greater than or equal to 0.",
+          commandIndex,
+        });
+      }
+      break;
+    case "nudgeSpriteFrame":
+      validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
+      validateNumber(diagnostics, command.dx, "dx", commandIndex);
+      validateNumber(diagnostics, command.dy, "dy", commandIndex);
+      break;
+    case "resizeSpriteFrame":
+      validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
+      validateNumber(diagnostics, command.dw, "dw", commandIndex);
+      validateNumber(diagnostics, command.dh, "dh", commandIndex);
+      if (isString(command.sidecarId) && isString(command.frameId)) {
+        const sidecar = getSpriteSidecar(document, command.sidecarId);
+        const frame = sidecar ? getSpriteFrame(sidecar, command.frameId) : undefined;
+        if (
+          frame &&
+          isFiniteNumber(command.dw) &&
+          isFiniteNumber(command.dh) &&
+          frame.width + command.dw <= 0
+        ) {
+          addDiagnostic(diagnostics, {
+            severity: "error",
+            code: "InvalidSize",
+            message: "resizeSpriteFrame would produce a non-positive width.",
+            commandIndex,
+          });
+        }
+        if (
+          frame &&
+          isFiniteNumber(command.dw) &&
+          isFiniteNumber(command.dh) &&
+          frame.height + command.dh <= 0
+        ) {
+          addDiagnostic(diagnostics, {
+            severity: "error",
+            code: "InvalidSize",
+            message: "resizeSpriteFrame would produce a non-positive height.",
+            commandIndex,
+          });
+        }
       }
       break;
     default:
@@ -1404,6 +1540,21 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Sprite frame selection was already ${command.frameId ?? "none"}.`
       : `Selected sprite frame ${command.frameId ?? "none"}.`;
+  }
+  if (command.kind === "updateSpriteFrameRect") {
+    return changes.length === 0
+      ? `Sprite frame ${command.frameId} rect was already current.`
+      : `Updated sprite frame ${command.frameId} to x=${command.rect.x} y=${command.rect.y} w=${command.rect.width} h=${command.rect.height}.`;
+  }
+  if (command.kind === "nudgeSpriteFrame") {
+    return changes.length === 0
+      ? `Sprite frame ${command.frameId} did not move.`
+      : `Moved sprite frame ${command.frameId} by dx=${command.dx} dy=${command.dy}.`;
+  }
+  if (command.kind === "resizeSpriteFrame") {
+    return changes.length === 0
+      ? `Sprite frame ${command.frameId} size was unchanged.`
+      : `Resized sprite frame ${command.frameId} by dw=${command.dw} dh=${command.dh}.`;
   }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
@@ -1895,13 +2046,162 @@ export function applyCanvasCommand(
         message: `selectSpriteFrame skipped invalid sprite sidecar "${command.sidecarId}".`,
       };
     }
-    changeField(changes, sidecar, "spec.selectedFrameId", command.frameId);
+    const nextSpec = selectSpriteFrameInSpec(sidecar.spec, command.frameId);
+    if (sidecar.spec.selectedFrameId !== nextSpec.selectedFrameId) {
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.selectedFrameId",
+        before: sidecar.spec.selectedFrameId,
+        after: nextSpec.selectedFrameId,
+      });
+    }
     if (changes.length > 0) {
       nextDocument = replaceObject(document, sidecar.id, {
         ...sidecar,
-        spec: { ...sidecar.spec, selectedFrameId: command.frameId },
+        spec: nextSpec,
       });
     }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "updateSpriteFrameRect") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `updateSpriteFrameRect skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const frame = getSpriteFrame(sidecar, command.frameId);
+    if (!frame) {
+      return {
+        document,
+        command,
+        changes,
+        message: `updateSpriteFrameRect skipped missing sprite frame "${command.frameId}".`,
+      };
+    }
+
+    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, command.rect);
+    if (nextSpec !== sidecar.spec) {
+      changes.push({
+        objectId: sidecar.id,
+        field: `spec.frames.${command.frameId}`,
+        before: frame,
+        after: nextSpec.frames.find((candidate) => candidate.id === command.frameId),
+      });
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.diagnostics",
+        before: sidecar.spec.diagnostics,
+        after: nextSpec.diagnostics,
+      });
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.rawToml",
+        before: sidecar.spec.rawToml,
+        after: nextSpec.rawToml,
+      });
+      nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "nudgeSpriteFrame") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `nudgeSpriteFrame skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const frame = getSpriteFrame(sidecar, command.frameId);
+    if (!frame) {
+      return {
+        document,
+        command,
+        changes,
+        message: `nudgeSpriteFrame skipped missing sprite frame "${command.frameId}".`,
+      };
+    }
+    const rect = {
+      x: frame.x + command.dx,
+      y: frame.y + command.dy,
+      width: frame.width,
+      height: frame.height,
+    };
+    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, rect);
+    changes.push({
+      objectId: sidecar.id,
+      field: `spec.frames.${command.frameId}`,
+      before: frame,
+      after: nextSpec.frames.find((candidate) => candidate.id === command.frameId),
+    });
+    changes.push({
+      objectId: sidecar.id,
+      field: "spec.diagnostics",
+      before: sidecar.spec.diagnostics,
+      after: nextSpec.diagnostics,
+    });
+    changes.push({
+      objectId: sidecar.id,
+      field: "spec.rawToml",
+      before: sidecar.spec.rawToml,
+      after: nextSpec.rawToml,
+    });
+    nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "resizeSpriteFrame") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `resizeSpriteFrame skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const frame = getSpriteFrame(sidecar, command.frameId);
+    if (!frame) {
+      return {
+        document,
+        command,
+        changes,
+        message: `resizeSpriteFrame skipped missing sprite frame "${command.frameId}".`,
+      };
+    }
+    const rect = {
+      x: frame.x,
+      y: frame.y,
+      width: frame.width + command.dw,
+      height: frame.height + command.dh,
+    };
+    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, rect);
+    changes.push({
+      objectId: sidecar.id,
+      field: `spec.frames.${command.frameId}`,
+      before: frame,
+      after: nextSpec.frames.find((candidate) => candidate.id === command.frameId),
+    });
+    changes.push({
+      objectId: sidecar.id,
+      field: "spec.diagnostics",
+      before: sidecar.spec.diagnostics,
+      after: nextSpec.diagnostics,
+    });
+    changes.push({
+      objectId: sidecar.id,
+      field: "spec.rawToml",
+      before: sidecar.spec.rawToml,
+      after: nextSpec.rawToml,
+    });
+    nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
@@ -2003,6 +2303,60 @@ export function applyCanvasCommand(
   }
 
   return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+}
+
+export function selectSpriteFrame(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId?: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, { kind: "selectSpriteFrame", sidecarId, frameId }).document;
+}
+
+export function updateSpriteFrameRect(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+  rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "updateSpriteFrameRect",
+    sidecarId,
+    frameId,
+    rect,
+  }).document;
+}
+
+export function nudgeSpriteFrame(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+  dx: number,
+  dy: number,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "nudgeSpriteFrame",
+    sidecarId,
+    frameId,
+    dx,
+    dy,
+  }).document;
+}
+
+export function resizeSpriteFrame(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+  dw: number,
+  dh: number,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "resizeSpriteFrame",
+    sidecarId,
+    frameId,
+    dw,
+    dh,
+  }).document;
 }
 
 export function applyCanvasCommands(
