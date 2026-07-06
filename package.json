@@ -103,6 +103,10 @@
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
     },
+    "./table": {
+      "types": "./dist/table/index.d.ts",
+      "import": "./dist/table/index.js"
+    },
     "./comptime": {
       "types": "./dist/comptime/index.d.ts",
       "import": "./dist/comptime/index.js"

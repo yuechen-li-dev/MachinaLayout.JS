@@ -75,6 +75,7 @@ import {
   type ValueOf,
 } from "../src/comptime";
 import { D } from "../src/diagnostics";
+import { formatTableDiagnostics, Table, TableError, validateTable } from "../src/table";
 import {
   C,
   formatCaptureDiagnostics,
@@ -314,6 +315,22 @@ describe("package export entrypoints", () => {
     expect(D.groupBySource).toBeTypeOf("function");
     expect(D.format).toBeTypeOf("function");
     expect(D.from).toBeTypeOf("function");
+  });
+
+  it("exposes table subpath utilities", () => {
+    expect(Table.define).toBeTypeOf("function");
+    expect(Table.fromRows).toBeTypeOf("function");
+    expect(Table.fromObjects).toBeTypeOf("function");
+    expect(Table.toRows).toBeTypeOf("function");
+    expect(Table.toObjects).toBeTypeOf("function");
+    expect(Table.getColumn).toBeTypeOf("function");
+    expect(Table.getCell).toBeTypeOf("function");
+    expect(Table.getRow).toBeTypeOf("function");
+    expect(Table.rowCount).toBeTypeOf("function");
+    expect(Table.columnNames).toBeTypeOf("function");
+    expect(Table.validate).toBe(validateTable);
+    expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
+    expect(TableError).toBeTypeOf("function");
   });
 
   it("exposes compile-time helper utilities", () => {

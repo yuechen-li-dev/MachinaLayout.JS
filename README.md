@@ -74,6 +74,8 @@ Named capability constraints and template records are available at `machinalayou
 
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
+Dependency-free columnar table records, row/object adapters, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
+
 Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
 
 Dependency-free text utilities, including `leftPad`, are available at `machinalayout/text`; see [Text utilities](docs/text-utilities.md).
@@ -161,6 +163,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
 - [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
+- [MachinaTable](docs/machina-tables.md) — columnar table records with row/object adapters and cell-oriented diagnostics.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
 - [Text utilities](docs/text-utilities.md) — tiny deterministic helpers for padding, truncation, casing, and slugs.
 - [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
