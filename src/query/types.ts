@@ -72,6 +72,107 @@ export type TableQueryExecutionResult = {
   readonly table: ColumnarTable;
 };
 
+export type TableQueryIteratorStatus = "idle" | "running" | "done" | "failed";
+
+export type TableQueryIteratorTraceEvent = {
+  readonly kind:
+    | "created"
+    | "started"
+    | "operationStarted"
+    | "rowAccepted"
+    | "rowRejected"
+    | "operationFinished"
+    | "finished"
+    | "failed";
+  readonly planId: string;
+  readonly at: number;
+  readonly operationIndex?: number;
+  readonly operationKind?: string;
+  readonly row?: number;
+  readonly message?: string;
+};
+
+export type TableQueryIteratorBoard = {
+  readonly kind: "tableQueryIteratorBoard";
+  readonly planId: string;
+  readonly sourceTableId: string;
+  readonly status: TableQueryIteratorStatus;
+  readonly operationCount: number;
+  readonly currentOperationIndex: number;
+  readonly currentOperationKind?: TableQueryOperation["kind"];
+  readonly sourceRowCount: number;
+  readonly inputRowCount: number;
+  readonly outputRowCount: number;
+  readonly acceptedRowCount: number;
+  readonly rejectedRowCount: number;
+  readonly emittedRowCount: number;
+  readonly stepCount: number;
+  readonly trace: readonly TableQueryIteratorTraceEvent[];
+};
+
+export type TableQueryIteratorSnapshot = {
+  readonly kind: "tableQueryIteratorSnapshot";
+  readonly board: TableQueryIteratorBoard;
+};
+
+export type TableQueryIteratorStep =
+  | {
+      readonly kind: "yield";
+      readonly board: TableQueryIteratorBoard;
+      readonly table: ColumnarTable;
+    }
+  | {
+      readonly kind: "done";
+      readonly board: TableQueryIteratorBoard;
+      readonly table: ColumnarTable;
+    }
+  | {
+      readonly kind: "fail";
+      readonly board: TableQueryIteratorBoard;
+      readonly error: TableQueryErrorLike;
+    };
+
+export type TableQueryIteratorResult =
+  | {
+      readonly kind: "ok";
+      readonly board: TableQueryIteratorBoard;
+      readonly table: ColumnarTable;
+    }
+  | {
+      readonly kind: "err";
+      readonly board: TableQueryIteratorBoard;
+      readonly error: TableQueryErrorLike;
+    };
+
+export type TableQueryIteratorOptions = {
+  readonly now?: () => number;
+  readonly id?: string;
+};
+
+export type TableQueryIteratorCollectOptions = {
+  readonly maxSteps?: number;
+};
+
+export type TableQueryIteratorRunner<TTable extends ColumnarTable = ColumnarTable> = {
+  readonly kind: "tableQueryIteratorRunner";
+  readonly plan: TableQueryPlan<TTable>;
+
+  next(): TableQueryIteratorStep;
+  snapshot(): TableQueryIteratorSnapshot;
+  collect(options?: TableQueryIteratorCollectOptions): TableQueryIteratorResult;
+};
+
+export type TableQueryIteratorCursor = {
+  readonly operationIndex: number;
+  readonly table: ColumnarTable;
+};
+
+export type TableQueryIteratorMachineEnv<TTable extends ColumnarTable = ColumnarTable> = {
+  readonly plan: TableQueryPlan<TTable>;
+};
+
+export type TableQueryErrorLike = Error;
+
 export type TableQueryFromOptions = {
   readonly id?: string;
 };

@@ -453,6 +453,9 @@ describe("package export entrypoints", () => {
     expect(Q.validate).toBeTypeOf("function");
     expect(Q.describePlan).toBeTypeOf("function");
     expect(Q.formatPlan).toBeTypeOf("function");
+    expect(Q.iterate).toBeTypeOf("function");
+    expect(Q.toIterMachine).toBeTypeOf("function");
+    expect(Q.formatIteratorSnapshot).toBeTypeOf("function");
     expect(TableQueryError).toBeTypeOf("function");
   });
 

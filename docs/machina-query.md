@@ -57,6 +57,50 @@ query orders.query from orders
 
 `Q.describePlan(plan)` returns structured summary records for UI, docs, or debugging tools.
 
+## Iterator Execution
+
+M36a eager `.toTable()` and `Q.execute(plan)` remain the simplest way to run a whole query.
+M36b adds inspectable stepwise query execution for tools that need to watch a plan while it runs.
+
+M36b iterator execution exposes query progress and trace state for in-memory plans. It does not stream from storage or execute distributed chunk scans.
+
+The current runner is operation-level: each `next()` applies one query operation through the same in-memory `Table` helpers used by eager execution. Future row-level or chunk-level runners can build on the same idea without adding storage, SQL, joins, or database semantics here.
+
+```ts
+const plan = Q.from(orders)
+  .filterRows(({ getCell }) => getCell("status") === "paid")
+  .select(["id", "totalCents"] as const)
+  .sortBy("totalCents", "desc")
+  .take(10)
+  .toPlan();
+
+const runner = Q.iterate(plan);
+
+console.log(runner.snapshot());
+
+while (true) {
+  const step = runner.next();
+  if (step.kind === "done") {
+    console.log(step.table);
+    break;
+  }
+  if (step.kind === "fail") {
+    console.error(step.error);
+    break;
+  }
+}
+```
+
+Use `collect()` when you want the same runner surface but do not need to manually step:
+
+```ts
+const result = Q.iterate(plan).collect();
+```
+
+`runner.snapshot().board` includes the plan id, source table id, status, current operation,
+row counts, step count, and trace events such as `created`, `started`, `operationStarted`,
+`operationFinished`, `finished`, and `failed`.
+
 ## Function-First Plans
 
 ```ts

@@ -269,6 +269,8 @@ For inspectable in-memory query chains over these helpers, use `machinalayout/qu
 MachinaQuery stores a query as explicit derivation plan records, validates that plan,
 then executes it through the same `Table.select`, `Table.filterRows`, `Table.sortBy`,
 `Table.take`, `Table.drop`, and `Table.renameColumns` helpers.
+Its M36b iterator runner exposes operation-level progress, board state, and trace events for
+in-memory plans without adding storage, chunk scans, SQL, joins, or database semantics.
 
 Use `Table.filterRows` when you want a columnar-friendly predicate that reads cells directly:
 
