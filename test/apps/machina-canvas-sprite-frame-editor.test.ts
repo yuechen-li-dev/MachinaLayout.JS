@@ -118,7 +118,15 @@ describe("MachinaCanvas sprite frame editor", () => {
     const frame = getSidecar(updated).spec.frames.find(
       (entry) => entry.id === "maya.down.idle_exact",
     );
-    expect(frame).toEqual(expect.objectContaining({ x: 40, y: 12, width: 80, height: 100 }));
+    expect(frame).toEqual(
+      expect.objectContaining({
+        x: 40,
+        y: 12,
+        width: 80,
+        height: 100,
+        sourceKind: "exact",
+      }),
+    );
   });
 
   it("nudges a selected sprite frame", () => {
@@ -190,6 +198,25 @@ describe("MachinaCanvas sprite frame editor", () => {
     );
     expect(serializeCanvasObjectToml(getSidecar(updated))).toContain("x = 40");
     expect(serializeCanvasObjectToml(getSidecar(updated))).toContain("width = 80");
+  });
+
+  it("marks edited grid-derived frames as manual overrides when they leave the source cell", () => {
+    const updated = updateSpriteFrameRect(
+      createDocumentWithSidecar(),
+      "tinytown-sidecar",
+      "maya.down.1",
+      { x: 140, y: 4, width: 100, height: 112 },
+    );
+
+    const frame = getSidecar(updated).spec.frames.find((entry) => entry.id === "maya.down.1");
+    expect(frame).toEqual(
+      expect.objectContaining({
+        sourceKind: "manual",
+        sourceGridId: "villagers_down",
+        sourceRow: 0,
+        sourceColumn: 1,
+      }),
+    );
   });
 
   it("hit-tests sprite frames against canvas coordinates", () => {

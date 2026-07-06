@@ -22,6 +22,7 @@ import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
 import type { NormalizedRasterExportOptions } from "./rasterExport";
 import { lowerCanvasDocumentToTsx, type TsxExportOptions } from "./tsxExport";
 import { resolveSketchSpec } from "./sketchOverlay";
+import { getSpriteExpectedSourceRect, getSpriteFrameSourceKind } from "./spriteSidecar";
 import { stringifyTomlDocument } from "./tomlSyntax";
 
 export type CanvasExportFile = {
@@ -476,6 +477,7 @@ function setTomlField(
 }
 
 function createSpriteFrameTomlTable(frame: CanvasSpriteFrame): Record<string, unknown> {
+  const sourceKind = getSpriteFrameSourceKind(frame);
   const table: Record<string, unknown> = {
     x: frame.x,
     y: frame.y,
@@ -488,6 +490,11 @@ function createSpriteFrameTomlTable(frame: CanvasSpriteFrame): Record<string, un
   setTomlField(table, "row", frame.row);
   setTomlField(table, "column", frame.column);
   setTomlField(table, "grid", frame.gridId);
+  setTomlField(table, "source_kind", sourceKind, sourceKind !== "unknown");
+  setTomlField(table, "source_grid", frame.sourceGridId);
+  setTomlField(table, "source_row", frame.sourceRow);
+  setTomlField(table, "source_column", frame.sourceColumn);
+  setTomlField(table, "source_frame", frame.sourceFrameId);
   setTomlField(table, "pivot", frame.pivot);
   setTomlField(table, "kind", frame.kind);
   return table;
@@ -518,6 +525,27 @@ function createSpriteGridsTomlRecord(object: SpriteSidecarObject): Record<string
   return grids;
 }
 
+function isFrameExportableAsGridCell(
+  frame: CanvasSpriteFrame,
+  object: SpriteSidecarObject,
+  options?: { gridId?: string; row?: number },
+) {
+  if (getSpriteFrameSourceKind(frame) !== "grid") return false;
+  const expected = getSpriteExpectedSourceRect(frame, object.spec.grids);
+  if (!expected) return false;
+  if (
+    frame.x !== expected.x ||
+    frame.y !== expected.y ||
+    frame.width !== expected.width ||
+    frame.height !== expected.height
+  ) {
+    return false;
+  }
+  if (options?.gridId !== undefined && frame.sourceGridId !== options.gridId) return false;
+  if (options?.row !== undefined && frame.sourceRow !== options.row) return false;
+  return frame.sourceColumn !== undefined;
+}
+
 function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
   const sprites: Record<string, unknown> = {};
   const spriteIds = new Set<string>();
@@ -531,16 +559,15 @@ function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string
   for (const spriteId of [...spriteIds].sort()) {
     const spriteFrames = object.spec.frames.filter((frame) => frame.spriteId === spriteId);
     const directFrame = spriteFrames.find(
-      (frame) =>
-        frame.animationId === undefined && frame.row !== undefined && frame.column !== undefined,
+      (frame) => frame.animationId === undefined && isFrameExportableAsGridCell(frame, object),
     );
     const spriteTable: Record<string, unknown> = {
       display_name: directFrame?.label ?? spriteFrames[0]?.label ?? spriteId,
     };
     setTomlField(spriteTable, "kind", directFrame?.kind);
-    setTomlField(spriteTable, "grid", directFrame?.gridId);
-    setTomlField(spriteTable, "row", directFrame?.row);
-    setTomlField(spriteTable, "col", directFrame?.column);
+    setTomlField(spriteTable, "grid", directFrame?.sourceGridId ?? directFrame?.gridId);
+    setTomlField(spriteTable, "row", directFrame?.sourceRow ?? directFrame?.row);
+    setTomlField(spriteTable, "col", directFrame?.sourceColumn ?? directFrame?.column);
     setTomlField(spriteTable, "pivot", directFrame?.pivot);
 
     const animationEntries = object.spec.animations.filter(
@@ -554,11 +581,12 @@ function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string
             const frame = object.spec.frames.find((candidate) => candidate.id === frameId);
             if (
               frame &&
-              frame.gridId === animation.gridId &&
-              frame.row === animation.row &&
-              frame.column !== undefined
+              isFrameExportableAsGridCell(frame, object, {
+                gridId: animation.gridId,
+                row: animation.row,
+              })
             ) {
-              return frame.column;
+              return frame.sourceColumn;
             }
             return frameId;
           }),
@@ -594,6 +622,8 @@ function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<str
       show_bounds: object.spec.overlay.showBounds,
       show_labels: object.spec.overlay.showLabels,
       selected_only: object.spec.overlay.selectedOnly,
+      show_subgrids: object.spec.overlay.showSubgrids,
+      show_exact_frames: object.spec.overlay.showExactFrames,
     },
   };
 
@@ -1053,7 +1083,10 @@ function getVisibleSpriteSidecar(
   return sidecar;
 }
 
-function mapSpriteFrameToCanvasRect(object: ImageObject, frame: CanvasSpriteFrame) {
+function mapSpriteFrameToCanvasRect(
+  object: ImageObject,
+  frame: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+) {
   const sourceWidth = object.intrinsicWidth ?? object.width;
   const sourceHeight = object.intrinsicHeight ?? object.height;
   const scaleX = object.width / sourceWidth;
@@ -1074,19 +1107,49 @@ function serializeResolvedSpriteSidecar(
     `  <g class="canvas-sprite-overlay" data-canvas-object-id="${quoteXmlAttribute(sidecar.id)}" data-canvas-kind="spriteSidecar" data-canvas-name="${quoteXmlAttribute(sidecar.name)}">`,
   ];
   const selectedFrameId = sidecar.spec.selectedFrameId;
+  const selectedFrame = sidecar.spec.frames.find((frame) => frame.id === selectedFrameId);
   const frames = sidecar.spec.overlay.selectedOnly
     ? sidecar.spec.frames.filter((frame) => frame.id === selectedFrameId)
     : sidecar.spec.frames;
+  const subgrids = sidecar.spec.overlay.selectedOnly
+    ? sidecar.spec.grids.filter((grid) => grid.id === selectedFrame?.sourceGridId)
+    : sidecar.spec.grids;
+
+  if (sidecar.spec.overlay.showBounds && sidecar.spec.overlay.showSubgrids) {
+    for (const grid of subgrids) {
+      const rect = mapSpriteFrameToCanvasRect(object, grid);
+      lines.push(
+        `    <rect class="canvas-sprite-subgrid" data-canvas-sprite-subgrid-id="${quoteXmlAttribute(grid.id)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="rgba(23, 91, 201, 0.05)" stroke="#175bc9" stroke-dasharray="10 6" pointer-events="none" />`,
+      );
+      if (sidecar.spec.overlay.showLabels) {
+        lines.push(
+          `    <text class="canvas-sprite-subgrid-label" data-canvas-sprite-subgrid-id="${quoteXmlAttribute(grid.id)}" x="${rect.x + 6}" y="${rect.y + 16}" pointer-events="none">${escapeXmlText(grid.id)}</text>`,
+        );
+      }
+    }
+  }
 
   for (const frame of frames) {
     const rect = mapSpriteFrameToCanvasRect(object, frame);
     const selected = frame.id === selectedFrameId;
+    const sourceKind = getSpriteFrameSourceKind(frame);
+    const frameClass = [
+      "canvas-sprite-frame",
+      sourceKind === "grid" ? "is-grid" : "is-exact",
+      selected ? "is-selected" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const hiddenByExactToggle =
+      !sidecar.spec.overlay.showExactFrames && sourceKind !== "grid" && !selected;
     if (sidecar.spec.overlay.showBounds) {
-      lines.push(
-        `    <rect class="canvas-sprite-frame${selected ? " is-selected" : ""}" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${selected ? "rgba(255, 196, 0, 0.16)" : "rgba(0, 160, 140, 0.08)"}" stroke="${selected ? "#ffb000" : "#00a08c"}" pointer-events="none" />`,
-      );
+      if (!hiddenByExactToggle) {
+        lines.push(
+          `    <rect class="${frameClass}" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" data-canvas-sprite-source-kind="${quoteXmlAttribute(sourceKind)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${selected ? "rgba(255, 196, 0, 0.16)" : sourceKind === "grid" ? "rgba(0, 160, 140, 0.08)" : "rgba(201, 95, 23, 0.06)"}" stroke="${selected ? "#ffb000" : sourceKind === "grid" ? "#00a08c" : "#c95f17"}" pointer-events="none" />`,
+        );
+      }
     }
-    if (sidecar.spec.overlay.showLabels) {
+    if (sidecar.spec.overlay.showLabels && !hiddenByExactToggle) {
       lines.push(
         `    <text class="canvas-sprite-label" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" x="${rect.x + 4}" y="${rect.y + 14}" pointer-events="none">${escapeXmlText(frame.label)}</text>`,
       );

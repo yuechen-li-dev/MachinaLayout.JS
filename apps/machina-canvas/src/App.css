@@ -586,6 +586,24 @@ button {
   stroke-width: 2px;
 }
 
+.canvas-sprite-subgrid,
+.canvas-sprite-subgrid-label {
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-sprite-subgrid {
+  stroke-width: 3px;
+}
+
+.canvas-sprite-subgrid-label {
+  fill: #175bc9;
+  font-size: 12px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+}
+
 .canvas-sprite-frame-hit,
 .canvas-sprite-resize-handle {
   cursor: pointer;
@@ -599,6 +617,11 @@ button {
 
 .canvas-sprite-frame.is-selected {
   stroke-width: 4px;
+}
+
+.canvas-sprite-frame.is-exact {
+  stroke-dasharray: 6 4;
+  stroke-width: 3px;
 }
 
 .canvas-sprite-label {

@@ -73,6 +73,8 @@ import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import { resolveSketchSpec } from "./sketchOverlay";
 import {
   createSpriteSidecarObject,
+  getSpriteExpectedSourceRect,
+  getSpriteFrameSourceKind,
   getSpriteFrameSummary,
   parseSpriteSidecarToml,
 } from "./spriteSidecar";
@@ -414,6 +416,21 @@ function getSpriteSidecarTarget(document: CanvasDocument, object: SpriteSidecarO
 
 function formatSpriteAuditScope(scope: SpriteAuditScope) {
   return scope === "selectedFrame" ? "selected frame only" : "all frames";
+}
+
+function getSpriteOverlayFrames(sidecar: SpriteSidecarObject) {
+  if (!sidecar.spec.overlay.selectedOnly) return sidecar.spec.frames;
+  return sidecar.spec.frames.filter((frame) => frame.id === sidecar.spec.selectedFrameId);
+}
+
+function getSpriteOverlaySubgrids(sidecar: SpriteSidecarObject) {
+  if (!sidecar.spec.overlay.selectedOnly) return sidecar.spec.grids;
+  const selectedFrame = sidecar.spec.frames.find(
+    (frame) => frame.id === sidecar.spec.selectedFrameId,
+  );
+  return selectedFrame?.sourceGridId
+    ? sidecar.spec.grids.filter((grid) => grid.id === selectedFrame.sourceGridId)
+    : [];
 }
 
 function downloadBlobFile(blob: Blob, fileName: string) {
@@ -885,9 +902,8 @@ function SpriteSidecarSvg({
   if (!sidecar.visible) return null;
 
   const selectedFrameId = sidecar.spec.selectedFrameId;
-  const frames = sidecar.spec.overlay.selectedOnly
-    ? sidecar.spec.frames.filter((frame) => frame.id === selectedFrameId)
-    : sidecar.spec.frames;
+  const frames = getSpriteOverlayFrames(sidecar);
+  const subgrids = getSpriteOverlaySubgrids(sidecar);
 
   return (
     <g
@@ -896,12 +912,46 @@ function SpriteSidecarSvg({
       data-canvas-kind={sidecar.kind}
       data-canvas-name={sidecar.name}
     >
+      {sidecar.spec.overlay.showBounds && sidecar.spec.overlay.showSubgrids
+        ? subgrids.map((grid) => {
+            const rect = mapSpriteFrameToCanvasRect(image, grid);
+            return (
+              <Fragment key={`subgrid:${grid.id}`}>
+                <rect
+                  className="canvas-sprite-subgrid"
+                  data-canvas-sprite-subgrid-id={grid.id}
+                  fill="rgba(23, 91, 201, 0.05)"
+                  height={rect.height}
+                  stroke="#175bc9"
+                  strokeDasharray="10 6"
+                  width={rect.width}
+                  x={rect.x}
+                  y={rect.y}
+                />
+                {sidecar.spec.overlay.showLabels ? (
+                  <text
+                    className="canvas-sprite-subgrid-label"
+                    data-canvas-sprite-subgrid-id={grid.id}
+                    x={rect.x + 6}
+                    y={rect.y + 16}
+                  >
+                    {grid.id}
+                  </text>
+                ) : null}
+              </Fragment>
+            );
+          })
+        : null}
       {frames.map((frame) => {
         const rect =
           draftRect && frame.id === selectedFrameId
             ? mapSpriteFrameToCanvasRect(image, draftRect)
             : mapSpriteFrameToCanvasRect(image, frame);
         const frameSelected = frame.id === selectedFrameId;
+        const sourceKind = getSpriteFrameSourceKind(frame);
+        const isExactLike = sourceKind !== "grid";
+        const hiddenByExactToggle =
+          !sidecar.spec.overlay.showExactFrames && isExactLike && !frameSelected;
         return (
           <Fragment key={frame.id}>
             <rect
@@ -916,19 +966,26 @@ function SpriteSidecarSvg({
               x={rect.x}
               y={rect.y}
             />
-            {sidecar.spec.overlay.showBounds ? (
+            {sidecar.spec.overlay.showBounds && !hiddenByExactToggle ? (
               <rect
-                className={`canvas-sprite-frame ${frameSelected ? "is-selected" : ""}`}
+                className={`canvas-sprite-frame ${isExactLike ? "is-exact" : "is-grid"} ${frameSelected ? "is-selected" : ""}`}
                 data-canvas-sprite-frame-id={frame.id}
-                fill={frameSelected ? "rgba(255, 196, 0, 0.16)" : "rgba(0, 160, 140, 0.08)"}
+                data-canvas-sprite-source-kind={sourceKind}
+                fill={
+                  frameSelected
+                    ? "rgba(255, 196, 0, 0.16)"
+                    : isExactLike
+                      ? "rgba(201, 95, 23, 0.06)"
+                      : "rgba(0, 160, 140, 0.08)"
+                }
                 height={rect.height}
-                stroke={frameSelected ? "#ffb000" : "#00a08c"}
+                stroke={frameSelected ? "#ffb000" : isExactLike ? "#c95f17" : "#00a08c"}
                 width={rect.width}
                 x={rect.x}
                 y={rect.y}
               />
             ) : null}
-            {sidecar.spec.overlay.showLabels ? (
+            {sidecar.spec.overlay.showLabels && !hiddenByExactToggle ? (
               <text
                 className="canvas-sprite-label"
                 data-canvas-sprite-frame-id={frame.id}
@@ -2515,7 +2572,20 @@ function Inspector(props: MachinaSlotProps) {
                 <>
                   <Field label="Sidecar" value={sidecar.id} />
                   <Field label="Dialect" value={sidecar.spec.dialect} />
+                  <Field label="Subgrids" value={sidecar.spec.grids.length} />
                   <Field label="Frames" value={sidecar.spec.frames.length} />
+                  <Field
+                    label="Grid frames"
+                    value={
+                      sidecar.spec.frames.filter((frame) => frame.sourceKind === "grid").length
+                    }
+                  />
+                  <Field
+                    label="Exact/custom"
+                    value={
+                      sidecar.spec.frames.filter((frame) => frame.sourceKind === "exact").length
+                    }
+                  />
                   <Field label="Animations" value={sidecar.spec.animations.length} />
                   <Field
                     label="Selected"
@@ -2687,8 +2757,16 @@ function Inspector(props: MachinaSlotProps) {
                   : "unknown"
               }
             />
-            <Field label="Grids" value={selected.spec.grids.length} />
+            <Field label="Subgrids" value={selected.spec.grids.length} />
             <Field label="Frames" value={selected.spec.frames.length} />
+            <Field
+              label="Grid frames"
+              value={selected.spec.frames.filter((frame) => frame.sourceKind === "grid").length}
+            />
+            <Field
+              label="Exact/custom"
+              value={selected.spec.frames.filter((frame) => frame.sourceKind === "exact").length}
+            />
             <Field label="Animations" value={selected.spec.animations.length} />
             <label className="toggle-row">
               <span>Overlay visible</span>
@@ -2712,6 +2790,30 @@ function Inspector(props: MachinaSlotProps) {
                   kind: "setSpriteOverlayOption",
                   sidecarId: selected.id,
                   option: "showBounds",
+                  value,
+                })
+              }
+            />
+            <ToggleField
+              label="Subgrid regions"
+              checked={selected.spec.overlay.showSubgrids}
+              onChange={(value) =>
+                runCommand({
+                  kind: "setSpriteOverlayOption",
+                  sidecarId: selected.id,
+                  option: "showSubgrids",
+                  value,
+                })
+              }
+            />
+            <ToggleField
+              label="Exact/custom frames"
+              checked={selected.spec.overlay.showExactFrames}
+              onChange={(value) =>
+                runCommand({
+                  kind: "setSpriteOverlayOption",
+                  sidecarId: selected.id,
+                  option: "showExactFrames",
                   value,
                 })
               }
@@ -2802,8 +2904,46 @@ function Inspector(props: MachinaSlotProps) {
                 <>
                   <Field label="Frame ID" value={selectedFrame.id} />
                   <Field label="Label" value={selectedFrame.label} />
+                  <Field label="Source" value={getSpriteFrameSourceKind(selectedFrame)} />
                   <Field label="Sprite" value={selectedFrame.spriteId ?? "none"} />
                   <Field label="Animation" value={selectedFrame.animationId ?? "none"} />
+                  <Field label="Parent grid" value={selectedFrame.sourceGridId ?? "none"} />
+                  <Field
+                    label="Grid cell"
+                    value={
+                      selectedFrame.sourceRow !== undefined ||
+                      selectedFrame.sourceColumn !== undefined
+                        ? `row ${selectedFrame.sourceRow ?? "?"}, col ${selectedFrame.sourceColumn ?? "?"}`
+                        : "none"
+                    }
+                  />
+                  {(() => {
+                    const expectedRect = getSpriteExpectedSourceRect(
+                      selectedFrame,
+                      selected.spec.grids,
+                    );
+                    if (!expectedRect) return null;
+                    const dx = selectedFrame.x - expectedRect.x;
+                    const dy = selectedFrame.y - expectedRect.y;
+                    const dw = selectedFrame.width - expectedRect.width;
+                    const dh = selectedFrame.height - expectedRect.height;
+                    return (
+                      <>
+                        <Field
+                          label="Actual rect"
+                          value={`x=${selectedFrame.x} y=${selectedFrame.y} w=${selectedFrame.width} h=${selectedFrame.height}`}
+                        />
+                        <Field
+                          label="Expected cell"
+                          value={`x=${expectedRect.x} y=${expectedRect.y} w=${expectedRect.width} h=${expectedRect.height}`}
+                        />
+                        <Field
+                          label="Delta"
+                          value={`${dx >= 0 ? "+" : ""}${dx},${dy >= 0 ? "+" : ""}${dy},${dw >= 0 ? "+" : ""}${dw},${dh >= 0 ? "+" : ""}${dh}`}
+                        />
+                      </>
+                    );
+                  })()}
                   <NumberField
                     label="X"
                     min={0}

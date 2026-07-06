@@ -133,6 +133,14 @@ describe("MachinaCanvas sprite sidecars", () => {
     expect(spec.atlasWidth).toBe(1440);
     expect(spec.atlasHeight).toBe(720);
     expect(spec.grids).toHaveLength(2);
+    expect(spec.grids[0]).toEqual(
+      expect.objectContaining({
+        kind: "spriteSubgridRegion",
+        width: 360,
+        height: 480,
+        source: "spriteforgeGrid",
+      }),
+    );
     expect(spec.animations).toHaveLength(2);
     expect(spec.frames).toEqual(
       expect.arrayContaining([
@@ -142,6 +150,10 @@ describe("MachinaCanvas sprite sidecars", () => {
           y: 8,
           width: 72,
           height: 104,
+          sourceKind: "exact",
+          sourceGridId: "villagers_down",
+          sourceRow: 0,
+          sourceColumn: 0,
         }),
         expect.objectContaining({
           id: "maya.down.0",
@@ -151,6 +163,10 @@ describe("MachinaCanvas sprite sidecars", () => {
           height: 120,
           row: 0,
           column: 0,
+          sourceKind: "grid",
+          sourceGridId: "villagers_down",
+          sourceRow: 0,
+          sourceColumn: 0,
         }),
         expect.objectContaining({
           id: "well",
@@ -160,6 +176,7 @@ describe("MachinaCanvas sprite sidecars", () => {
           height: 120,
           row: 0,
           column: 0,
+          sourceKind: "grid",
         }),
       ]),
     );
@@ -235,7 +252,9 @@ describe("MachinaCanvas sprite sidecars", () => {
     expect(imageToml).toContain('sprite_sidecar_id = "tinytown-sidecar"');
     expect(handoff).toContain("[[sprite_sidecar]]");
     expect(svg).toContain('class="canvas-sprite-overlay"');
+    expect(svg).toContain('class="canvas-sprite-subgrid"');
     expect(svg).toContain('data-canvas-sprite-frame-id="maya.down.0"');
+    expect(svg).toContain('data-canvas-sprite-source-kind="exact"');
     expect(validateCanvasExportBundle(bundle).ok).toBe(true);
   });
 });

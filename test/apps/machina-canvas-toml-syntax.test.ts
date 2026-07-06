@@ -176,11 +176,14 @@ describe("MachinaCanvas TOML syntax adapter", () => {
           y: 8,
           width: 72,
           height: 104,
+          sourceKind: "exact",
+          sourceGridId: "villagers_down",
         }),
         expect.objectContaining({
           id: "well",
           row: 1,
           column: 0,
+          sourceKind: "grid",
         }),
       ]),
     );
@@ -239,6 +242,7 @@ x = 24
           y: 12,
           width: 80,
           height: 100,
+          sourceKind: "exact",
         }),
       ]),
     );

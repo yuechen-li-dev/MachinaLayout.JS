@@ -5,6 +5,7 @@ import type {
   CanvasSpriteGridSpec,
   CanvasSpriteSpec,
   ImageObject,
+  SpriteFrameSourceKind,
   SpriteSidecarObject,
 } from "./sceneModel";
 import { parseTomlDocument } from "./tomlSyntax";
@@ -13,6 +14,8 @@ const defaultOverlay = {
   showBounds: true,
   showLabels: true,
   selectedOnly: false,
+  showSubgrids: true,
+  showExactFrames: true,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -85,6 +88,7 @@ function readGrid(
   diagnostics: CanvasSpriteDiagnostics[],
 ) {
   const grid: CanvasSpriteGridSpec = {
+    kind: "spriteSubgridRegion",
     id,
     x: asNumber(table.origin_x) ?? asNumber(table.x) ?? 0,
     y: asNumber(table.origin_y) ?? asNumber(table.y) ?? 0,
@@ -92,8 +96,14 @@ function readGrid(
     rows: asNumber(table.rows) ?? 0,
     cellWidth: asNumber(table.cell_width) ?? asNumber(table.width) ?? 0,
     cellHeight: asNumber(table.cell_height) ?? asNumber(table.height) ?? 0,
+    width: 0,
+    height: 0,
+    source: "spriteforgeGrid",
     pivot: asString(table.default_pivot) ?? asString(table.pivot),
   };
+
+  grid.width = grid.columns * grid.cellWidth;
+  grid.height = grid.rows * grid.cellHeight;
 
   if (grid.columns <= 0 || grid.rows <= 0 || grid.cellWidth <= 0 || grid.cellHeight <= 0) {
     pushDiagnostic(diagnostics, "InvalidSpriteGrid", `Grid ${id} has invalid dimensions.`);
@@ -111,7 +121,7 @@ function makeGridFrame(
     spriteId?: string;
     animationId?: string;
     kind?: string;
-    source?: "grid" | "frame" | "inline";
+    sourceKind?: SpriteFrameSourceKind;
     pivot?: string;
   },
 ): CanvasSpriteFrame {
@@ -127,8 +137,12 @@ function makeGridFrame(
     height: grid.cellHeight,
     row,
     column,
-    source: options.source ?? "grid",
+    source: "grid",
     gridId: grid.id,
+    sourceKind: options.sourceKind ?? "grid",
+    sourceGridId: grid.id,
+    sourceRow: row,
+    sourceColumn: column,
     pivot: options.pivot ?? grid.pivot,
   };
 }
@@ -154,7 +168,113 @@ function readExplicitFrame(
     row: asNumber(table.row),
     column: asNumber(table.col) ?? asNumber(table.column),
     source: "frame",
+    gridId: asString(table.grid) ?? asString(table.source_grid),
+    sourceKind: (asString(table.source_kind) as SpriteFrameSourceKind | undefined) ?? "exact",
+    sourceGridId: asString(table.source_grid) ?? asString(table.grid),
+    sourceRow: asNumber(table.source_row) ?? asNumber(table.row),
+    sourceColumn:
+      asNumber(table.source_col) ??
+      asNumber(table.source_column) ??
+      asNumber(table.col) ??
+      asNumber(table.column),
+    sourceFrameId: asString(table.source_frame) ?? asString(table.source_frame_id),
     pivot: asString(table.pivot),
+  };
+}
+
+type SpriteCellRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export function getSpriteGridCellRect(
+  grid: CanvasSpriteGridSpec,
+  row: number,
+  column: number,
+): SpriteCellRect {
+  return {
+    x: grid.x + column * grid.cellWidth,
+    y: grid.y + row * grid.cellHeight,
+    width: grid.cellWidth,
+    height: grid.cellHeight,
+  };
+}
+
+export function getSpriteExpectedSourceRect(
+  frame: Pick<CanvasSpriteFrame, "sourceGridId" | "sourceRow" | "sourceColumn">,
+  grids: readonly CanvasSpriteGridSpec[],
+): SpriteCellRect | undefined {
+  if (
+    frame.sourceGridId === undefined ||
+    frame.sourceRow === undefined ||
+    frame.sourceColumn === undefined
+  ) {
+    return undefined;
+  }
+  const grid = grids.find((candidate) => candidate.id === frame.sourceGridId);
+  if (!grid) return undefined;
+  return getSpriteGridCellRect(grid, frame.sourceRow, frame.sourceColumn);
+}
+
+export function getSpriteFrameSourceKind(
+  frame: Pick<CanvasSpriteFrame, "sourceKind" | "source" | "gridId" | "sourceGridId">,
+): SpriteFrameSourceKind {
+  if (frame.sourceKind) return frame.sourceKind;
+  if (frame.source === "grid") return "grid";
+  if (frame.source === "frame") return frame.gridId || frame.sourceGridId ? "exact" : "manual";
+  if (frame.source === "inline") return "manual";
+  return frame.gridId || frame.sourceGridId ? "exact" : "unknown";
+}
+
+function frameMatchesRect(
+  frame: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+  rect: SpriteCellRect,
+) {
+  return (
+    frame.x === rect.x &&
+    frame.y === rect.y &&
+    frame.width === rect.width &&
+    frame.height === rect.height
+  );
+}
+
+function inferCellColumn(grid: CanvasSpriteGridSpec, frame: CanvasSpriteFrame) {
+  const column = Math.floor((frame.x - grid.x) / grid.cellWidth);
+  return column >= 0 && column < grid.columns ? column : undefined;
+}
+
+function frameContainedWithinCell(frame: CanvasSpriteFrame, cell: SpriteCellRect) {
+  return (
+    frame.x >= cell.x &&
+    frame.y >= cell.y &&
+    frame.x + frame.width <= cell.x + cell.width &&
+    frame.y + frame.height <= cell.y + cell.height
+  );
+}
+
+function applyInferredFrameSourceContext(
+  frame: CanvasSpriteFrame,
+  grid: CanvasSpriteGridSpec,
+  row: number,
+): CanvasSpriteFrame {
+  const sourceColumn =
+    frame.sourceColumn ??
+    frame.column ??
+    (() => {
+      const inferred = inferCellColumn(grid, frame);
+      if (inferred === undefined) return undefined;
+      const cell = getSpriteGridCellRect(grid, row, inferred);
+      return frameContainedWithinCell(frame, cell) ? inferred : undefined;
+    })();
+  return {
+    ...frame,
+    gridId: frame.gridId ?? grid.id,
+    sourceGridId: frame.sourceGridId ?? grid.id,
+    sourceRow: frame.sourceRow ?? row,
+    sourceColumn,
+    sourceKind: frame.sourceKind === "unknown" ? "exact" : frame.sourceKind,
   };
 }
 
@@ -306,6 +426,7 @@ export function parseSpriteSidecarToml(
           label: spriteLabel,
           spriteId,
           kind: spriteKind,
+          sourceKind: "grid",
           pivot: asString(sprite.pivot),
         }),
         diagnostics,
@@ -343,6 +464,7 @@ export function parseSpriteSidecarToml(
               spriteId,
               animationId,
               kind: spriteKind,
+              sourceKind: "grid",
             }),
             diagnostics,
           );
@@ -357,6 +479,10 @@ export function parseSpriteSidecarToml(
               [frameRef],
             );
           } else {
+            const enrichedFrame = applyInferredFrameSourceContext(exact, grid, row);
+            frameById.set(frameRef, enrichedFrame);
+            const indexToReplace = frames.findIndex((candidate) => candidate.id === frameRef);
+            if (indexToReplace >= 0) frames[indexToReplace] = enrichedFrame;
             animationFrameIds.push(frameRef);
           }
         }
@@ -388,7 +514,14 @@ export function parseSpriteSidecarToml(
     grids,
     frames,
     animations,
-    overlay: defaultOverlay,
+    overlay: {
+      showBounds: asBoolean(asTable(root.overlay)?.show_bounds) ?? defaultOverlay.showBounds,
+      showLabels: asBoolean(asTable(root.overlay)?.show_labels) ?? defaultOverlay.showLabels,
+      selectedOnly: asBoolean(asTable(root.overlay)?.selected_only) ?? defaultOverlay.selectedOnly,
+      showSubgrids: asBoolean(asTable(root.overlay)?.show_subgrids) ?? defaultOverlay.showSubgrids,
+      showExactFrames:
+        asBoolean(asTable(root.overlay)?.show_exact_frames) ?? defaultOverlay.showExactFrames,
+    },
     selectedFrameId: frames[0]?.id,
     rawToml: text,
   } satisfies Omit<CanvasSpriteSpec, "diagnostics">;
@@ -420,10 +553,10 @@ export function createSpriteSidecarObject(
 
 export function getSpriteFrameSummary(frame: CanvasSpriteFrame): string {
   const rowColumn =
-    frame.row !== undefined || frame.column !== undefined
-      ? ` row ${frame.row ?? "?"}, col ${frame.column ?? "?"}`
+    frame.sourceRow !== undefined || frame.sourceColumn !== undefined
+      ? ` row ${frame.sourceRow ?? "?"}, col ${frame.sourceColumn ?? "?"}`
       : "";
-  return `${frame.id}: ${frame.x},${frame.y} ${frame.width}x${frame.height}${rowColumn}`;
+  return `${frame.id}: ${frame.x},${frame.y} ${frame.width}x${frame.height}; ${frame.sourceKind}${rowColumn}`;
 }
 
 export function revalidateSpriteSpec(spec: CanvasSpriteSpec): CanvasSpriteSpec {
@@ -457,19 +590,43 @@ export function updateSpriteFrameRectInSpec(
   frameId: string,
   rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
 ): CanvasSpriteSpec {
+  const expectedRects = new Map(
+    spec.frames.map((frame) => [frame.id, getSpriteExpectedSourceRect(frame, spec.grids)]),
+  );
   return revalidateSpriteSpec({
     ...spec,
     rawToml: undefined,
     frames: spec.frames.map((frame) =>
       frame.id === frameId
-        ? {
-            ...frame,
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            source: "frame",
-          }
+        ? (() => {
+            const next = {
+              ...frame,
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+            };
+            const expectedRect = expectedRects.get(frame.id);
+            const stillGridAligned = expectedRect ? frameMatchesRect(next, expectedRect) : false;
+            const priorSourceKind = getSpriteFrameSourceKind(frame);
+            const nextSourceKind =
+              priorSourceKind === "exact"
+                ? "exact"
+                : priorSourceKind === "grid"
+                  ? stillGridAligned
+                    ? "grid"
+                    : "manual"
+                  : priorSourceKind === "manual"
+                    ? "manual"
+                    : expectedRect && stillGridAligned
+                      ? "grid"
+                      : "manual";
+            return {
+              ...next,
+              source: nextSourceKind === "grid" ? "grid" : "frame",
+              sourceKind: nextSourceKind,
+            };
+          })()
         : frame,
     ),
   });

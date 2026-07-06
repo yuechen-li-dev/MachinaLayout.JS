@@ -1,4 +1,5 @@
 import type { CanvasSpriteFrame, ImageObject, SpriteSidecarObject } from "./sceneModel";
+import { getSpriteFrameSourceKind } from "./spriteSidecar";
 
 export type SpriteFrameRect = {
   x: number;
@@ -54,8 +55,17 @@ export function hitTestSpriteFrameAtPoint(
 
   if (hits.length === 0) return undefined;
 
-  // Prefer the smallest containing frame so overlapping exact cuts win over broad grid cells.
+  const sourceRank = (frame: CanvasSpriteFrame) => {
+    const sourceKind = getSpriteFrameSourceKind(frame);
+    if (sourceKind === "exact" || sourceKind === "manual") return 0;
+    if (sourceKind === "grid") return 1;
+    return 2;
+  };
+
+  // Prefer exact/manual cuts first, then the smallest containing frame.
   hits.sort((a, b) => {
+    const rankDiff = sourceRank(a.frame) - sourceRank(b.frame);
+    if (rankDiff !== 0) return rankDiff;
     const areaDiff = a.rect.width * a.rect.height - b.rect.width * b.rect.height;
     if (areaDiff !== 0) return areaDiff;
     return (

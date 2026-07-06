@@ -6,6 +6,7 @@ import type {
   ImageObject,
   SpriteSidecarObject,
 } from "./sceneModel";
+import { getSpriteExpectedSourceRect, getSpriteFrameSourceKind } from "./spriteSidecar";
 
 export type SpriteAuditSeverity = "error" | "warning" | "note";
 
@@ -31,9 +32,21 @@ export type SpriteAuditFrameEntry = {
   y: number;
   width: number;
   height: number;
-  gridSource?: string;
-  cutSource: "grid" | "exact" | "manual" | "inline";
+  sourceKind: "grid" | "exact" | "manual" | "unknown";
+  sourceGrid?: string;
+  sourceRow?: number;
+  sourceColumn?: number;
   suspiciousFlags: string[];
+};
+
+export type SpriteAuditSubgridEntry = {
+  gridId: string;
+  x: number;
+  y: number;
+  cell: string;
+  rows: number;
+  cols: number;
+  frames: number;
 };
 
 export type SpriteAuditSummary = {
@@ -44,6 +57,7 @@ export type SpriteAuditSummary = {
   totalSprites: number;
   totalFrames: number;
   totalAnimations: number;
+  totalSubgrids: number;
   totalFindings: number;
   errors: number;
   warnings: number;
@@ -53,6 +67,7 @@ export type SpriteAuditSummary = {
 
 export type SpriteAuditReport = {
   summary: SpriteAuditSummary;
+  subgrids: SpriteAuditSubgridEntry[];
   frames: SpriteAuditFrameEntry[];
   findings: SpriteAuditFinding[];
   likelyIssues: string[];
@@ -67,12 +82,7 @@ type GridSnapResult = {
   nearestRow: number;
 };
 
-function toCutSource(frame: CanvasSpriteFrame): SpriteAuditFrameEntry["cutSource"] {
-  if (frame.source === "grid") return "grid";
-  if (frame.source === "inline") return "inline";
-  if (frame.source === "frame") return frame.gridId ? "exact" : "manual";
-  return frame.gridId ? "exact" : "manual";
-}
+type Rect = { x: number; y: number; width: number; height: number };
 
 function getEffectiveImageDimensions(image: ImageObject) {
   return {
@@ -100,7 +110,7 @@ function isFrameSelected(
   return scope === "allFrames" || frame.id === sidecar.spec.selectedFrameId;
 }
 
-function intersects(a: CanvasSpriteFrame, b: CanvasSpriteFrame) {
+function intersects(a: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">, b: Rect) {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
@@ -151,6 +161,36 @@ function pushFinding(
   findings.push(finding);
 }
 
+function formatDelta(value: number) {
+  return `${value >= 0 ? "+" : ""}${value}`;
+}
+
+function isGridParentExactCrop(
+  frame: CanvasSpriteFrame,
+  other: CanvasSpriteFrame,
+  sidecar: SpriteSidecarObject,
+) {
+  if (getSpriteFrameSourceKind(frame) === "grid" && getSpriteFrameSourceKind(other) !== "grid") {
+    const expected = getSpriteExpectedSourceRect(other, sidecar.spec.grids);
+    return expected
+      ? expected.x === frame.x &&
+          expected.y === frame.y &&
+          expected.width === frame.width &&
+          expected.height === frame.height
+      : false;
+  }
+  if (getSpriteFrameSourceKind(other) === "grid" && getSpriteFrameSourceKind(frame) !== "grid") {
+    const expected = getSpriteExpectedSourceRect(frame, sidecar.spec.grids);
+    return expected
+      ? expected.x === other.x &&
+          expected.y === other.y &&
+          expected.width === other.width &&
+          expected.height === other.height
+      : false;
+  }
+  return false;
+}
+
 export function buildSpriteAuditReport(
   sidecar: SpriteSidecarObject,
   image: ImageObject,
@@ -197,6 +237,10 @@ export function buildSpriteAuditReport(
   const rectOwners = new Map<string, string>();
 
   for (const frame of frames) {
+    const sourceKind = getSpriteFrameSourceKind(frame);
+    const expectedRect = getSpriteExpectedSourceRect(frame, sidecar.spec.grids);
+    const parentGrid = frame.sourceGridId ? grids.get(frame.sourceGridId) : undefined;
+
     if (frame.width <= 0 || frame.height <= 0) {
       addFlag(frame.id, "invalid-size");
       pushFinding(
@@ -286,64 +330,133 @@ export function buildSpriteAuditReport(
       rectOwners.set(rectKey, frame.id);
     }
 
-    if (frame.gridId) {
-      const grid = grids.get(frame.gridId);
-      if (!grid) {
-        addFlag(frame.id, "missing-grid");
+    if (frame.sourceGridId && !parentGrid) {
+      addFlag(frame.id, "missing-grid");
+      pushFinding(
+        findings,
+        {
+          severity: "error",
+          code: "MissingGrid",
+          frameId: frame.id,
+          spriteId: frame.spriteId,
+          animationId: frame.animationId,
+          message: `${frame.id} references missing grid ${frame.sourceGridId}.`,
+          reason: "The frame keeps source grid context but the grid definition is unavailable.",
+          suggestedFix: "Restore the grid definition or remove the stale grid reference.",
+        },
+        seenFindings,
+      );
+    }
+
+    if (sourceKind === "grid" && expectedRect) {
+      if (frame.x !== expectedRect.x || frame.y !== expectedRect.y) {
+        addFlag(frame.id, "off-grid");
         pushFinding(
           findings,
           {
             severity: "error",
-            code: "MissingGrid",
+            code: "OffGridFrame",
             frameId: frame.id,
             spriteId: frame.spriteId,
             animationId: frame.animationId,
-            message: `${frame.id} references missing grid ${frame.gridId}.`,
-            reason: "The frame claims grid alignment but the grid definition is unavailable.",
-            suggestedFix: "Restore the grid definition or remove the stale grid reference.",
+            message: `${frame.id} is offset by ${frame.x - expectedRect.x}px x and ${frame.y - expectedRect.y}px y from its source grid cell.`,
+            reason: "A grid-derived frame should land exactly on its source cell origin.",
+            suggestedFix: "Snap the frame back to its source grid cell bounds.",
           },
           seenFindings,
         );
-      } else {
-        const snap = getGridSnap(frame, grid);
-        if (snap.columnOffset !== 0 || snap.rowOffset !== 0) {
-          addFlag(frame.id, "off-grid");
-          pushFinding(
-            findings,
-            {
-              severity: frame.source === "grid" ? "error" : "warning",
-              code: "OffGridFrame",
-              frameId: frame.id,
-              spriteId: frame.spriteId,
-              animationId: frame.animationId,
-              message: `${frame.id} is offset by ${snap.columnOffset}px x and ${snap.rowOffset}px y from grid ${grid.id}.`,
-              reason:
-                "The frame origin does not land on the declared grid cell origin, so the cut appears shifted between cells.",
-              suggestedFix: `Snap the frame back to grid ${grid.id} near column ${snap.nearestColumn}, row ${snap.nearestRow}.`,
-            },
-            seenFindings,
-          );
-        }
-
-        if (frame.width !== grid.cellWidth || frame.height !== grid.cellHeight) {
-          addFlag(frame.id, "grid-size-mismatch");
-          pushFinding(
-            findings,
-            {
-              severity: frame.source === "grid" ? "error" : "warning",
-              code: "GridCellSizeMismatch",
-              frameId: frame.id,
-              spriteId: frame.spriteId,
-              animationId: frame.animationId,
-              message: `${frame.id} size ${frame.width}x${frame.height} differs from expected grid size ${grid.cellWidth}x${grid.cellHeight}.`,
-              reason:
-                "This cut is tied to a grid definition, but its dimensions do not match the grid cell size.",
-              suggestedFix:
-                "Resize the frame to the grid cell size or detach it from the grid-backed expectation.",
-            },
-            seenFindings,
-          );
-        }
+      }
+      if (frame.width !== expectedRect.width || frame.height !== expectedRect.height) {
+        addFlag(frame.id, "grid-size-mismatch");
+        pushFinding(
+          findings,
+          {
+            severity: "error",
+            code: "GridCellSizeMismatch",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} size ${frame.width}x${frame.height} differs from expected grid size ${expectedRect.width}x${expectedRect.height}.`,
+            reason: "A grid-derived frame should match its source grid cell dimensions exactly.",
+            suggestedFix: "Resize the frame back to the source grid cell size.",
+          },
+          seenFindings,
+        );
+      }
+    } else if (sourceKind === "manual" && expectedRect) {
+      if (
+        frame.x !== expectedRect.x ||
+        frame.y !== expectedRect.y ||
+        frame.width !== expectedRect.width ||
+        frame.height !== expectedRect.height
+      ) {
+        addFlag(frame.id, "manual-grid-override");
+        pushFinding(
+          findings,
+          {
+            severity: "warning",
+            code: "EditedGridFrameManualOverride",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} no longer matches source grid ${frame.sourceGridId} cell row ${frame.sourceRow ?? "?"}, col ${frame.sourceColumn ?? "?"}.`,
+            reason:
+              "This frame appears to have started from a grid cell but now preserves a manual override rectangle.",
+            suggestedFix:
+              "Keep it as an explicit frame override if intentional, or snap it back to the source grid cell.",
+          },
+          seenFindings,
+        );
+      }
+    } else if ((sourceKind === "exact" || sourceKind === "manual") && expectedRect) {
+      const dx = frame.x - expectedRect.x;
+      const dy = frame.y - expectedRect.y;
+      const dw = frame.width - expectedRect.width;
+      const dh = frame.height - expectedRect.height;
+      if (dx !== 0 || dy !== 0 || dw !== 0 || dh !== 0) {
+        addFlag(frame.id, "exact-crop-context");
+        pushFinding(
+          findings,
+          {
+            severity: "note",
+            code: "ExactCropInsideGridCell",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} is an exact crop inside grid ${frame.sourceGridId} at row ${frame.sourceRow ?? "?"}, col ${frame.sourceColumn ?? "?"}. It is offset ${formatDelta(dx)},${formatDelta(dy)} and smaller by ${Math.max(0, -dw)}x${Math.max(0, -dh)} px. This may be intentional; verify the crop bounds.`,
+            reason:
+              "Exact/custom crops can intentionally sit inside a larger parent grid cell for idle or asymmetrical art.",
+            suggestedFix:
+              "Confirm the crop bounds against the intended sprite silhouette and keep it explicit if the smaller cut is correct.",
+          },
+          seenFindings,
+        );
+      }
+    } else if ((sourceKind === "exact" || sourceKind === "manual") && parentGrid) {
+      const snap = getGridSnap(frame, parentGrid);
+      if (
+        snap.columnOffset !== 0 ||
+        snap.rowOffset !== 0 ||
+        frame.width !== parentGrid.cellWidth ||
+        frame.height !== parentGrid.cellHeight
+      ) {
+        addFlag(frame.id, "custom-frame");
+        pushFinding(
+          findings,
+          {
+            severity: "note",
+            code: "CustomFrameNearGrid",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} does not match full ${parentGrid.cellWidth}x${parentGrid.cellHeight} grid cells on ${parentGrid.id}; it may be an intentional custom crop.`,
+            reason:
+              "The frame keeps parent-grid context but does not fully describe a regular cell-sized cut.",
+            suggestedFix:
+              "Verify the crop bounds and keep it explicit if the custom frame is intentional.",
+          },
+          seenFindings,
+        );
       }
     }
   }
@@ -361,6 +474,35 @@ export function buildSpriteAuditReport(
       ) {
         continue;
       }
+
+      if (isGridParentExactCrop(frame, other, sidecar)) {
+        const exact = getSpriteFrameSourceKind(frame) === "grid" ? other : frame;
+        const grid = getSpriteFrameSourceKind(frame) === "grid" ? frame : other;
+        const expected = getSpriteExpectedSourceRect(exact, sidecar.spec.grids);
+        const dx = expected ? exact.x - expected.x : 0;
+        const dy = expected ? exact.y - expected.y : 0;
+        const dw = expected ? exact.width - expected.width : 0;
+        const dh = expected ? exact.height - expected.height : 0;
+        addFlag(exact.id, "parent-grid-overlap");
+        pushFinding(
+          findings,
+          {
+            severity: "note",
+            code: "ExactCropOverlapsParentGrid",
+            frameId: exact.id,
+            spriteId: exact.spriteId,
+            animationId: exact.animationId,
+            message: `${exact.id} is an exact crop inside grid frame ${grid.id}. It is offset ${formatDelta(dx)},${formatDelta(dy)} and smaller by ${Math.max(0, -dw)}x${Math.max(0, -dh)} px. This may be intentional; verify the crop bounds.`,
+            reason:
+              "An exact crop overlapping its parent full-cell frame is expected when the atlas mixes grid-derived cuts with explicit tighter crops.",
+            suggestedFix:
+              "Keep the overlap if the tighter crop is intentional, otherwise adjust the explicit frame bounds.",
+          },
+          seenFindings,
+        );
+        continue;
+      }
+
       addFlag(frame.id, "overlap");
       addFlag(other.id, "overlap");
       pushFinding(
@@ -373,7 +515,7 @@ export function buildSpriteAuditReport(
           animationId: frame.animationId,
           message: `${frame.id} overlaps ${other.id}.`,
           reason:
-            "Intersecting cuts can mean a frame leaks into a neighboring cell or two cuts are competing for the same pixels.",
+            "Intersecting cuts can mean a frame leaks into a neighboring cell or two unrelated cuts are competing for the same pixels.",
           suggestedFix: "Separate the frame bounds unless this overlap is intentional.",
         },
         seenFindings,
@@ -384,55 +526,12 @@ export function buildSpriteAuditReport(
   for (const animation of sidecar.spec.animations) {
     const animationFrames = getAnimationFrames(sidecar, animation, scope);
     if (animationFrames.length === 0) continue;
-    const animationGrid = animation.gridId ? grids.get(animation.gridId) : undefined;
-    if (animationGrid) {
-      for (const frame of animationFrames) {
-        if (frame.gridId) continue;
-        const snap = getGridSnap(frame, animationGrid);
-        if (snap.columnOffset !== 0 || snap.rowOffset !== 0) {
-          addFlag(frame.id, "off-grid");
-          pushFinding(
-            findings,
-            {
-              severity: "warning",
-              code: "OffGridFrame",
-              frameId: frame.id,
-              spriteId: animation.spriteId,
-              animationId: animation.id,
-              message: `${frame.id} is offset by ${snap.columnOffset}px x and ${snap.rowOffset}px y from animation grid ${animationGrid.id}.`,
-              reason:
-                "This exact frame sits between grid cells relative to the animation's declared grid, so it looks shifted beside its neighboring cuts.",
-              suggestedFix: `Move the frame toward grid ${animationGrid.id} near column ${snap.nearestColumn}, row ${snap.nearestRow}.`,
-            },
-            seenFindings,
-          );
-        }
-        if (frame.width !== animationGrid.cellWidth || frame.height !== animationGrid.cellHeight) {
-          addFlag(frame.id, "grid-size-mismatch");
-          pushFinding(
-            findings,
-            {
-              severity: "warning",
-              code: "GridCellSizeMismatch",
-              frameId: frame.id,
-              spriteId: animation.spriteId,
-              animationId: animation.id,
-              message: `${frame.id} size ${frame.width}x${frame.height} differs from animation grid size ${animationGrid.cellWidth}x${animationGrid.cellHeight}.`,
-              reason:
-                "The exact frame does not match the neighboring grid-backed cuts that the animation claims to follow.",
-              suggestedFix:
-                "Resize the exact frame to match the grid cell or intentionally document it as a custom non-grid cut.",
-            },
-            seenFindings,
-          );
-        }
-      }
-    }
+
     const sizeSet = new Set(animationFrames.map((frame) => `${frame.width}x${frame.height}`));
-    if (sizeSet.size > 1) {
-      for (const frame of animationFrames) {
-        addFlag(frame.id, "animation-size-mismatch");
-      }
+    const sourceSet = new Set(animationFrames.map((frame) => getSpriteFrameSourceKind(frame)));
+
+    if (sizeSet.size > 1 && sourceSet.size === 1 && sourceSet.has("grid")) {
+      for (const frame of animationFrames) addFlag(frame.id, "animation-size-mismatch");
       pushFinding(
         findings,
         {
@@ -440,11 +539,26 @@ export function buildSpriteAuditReport(
           code: "AnimationSizeMismatch",
           spriteId: animation.spriteId,
           animationId: animation.id,
-          message: `Animation ${animation.spriteId}.${animation.id} mixes frame sizes: ${[...sizeSet].join(", ")}.`,
+          message: `Animation ${animation.spriteId}.${animation.id} mixes grid-derived frame sizes: ${[...sizeSet].join(", ")}.`,
           reason:
-            "Mixed dimensions inside one animation often produce jitter or alignment drift when the frames are played in sequence.",
+            "Mixed dimensions across grid-derived frames usually produce visible jitter or broken atlas assumptions.",
+          suggestedFix: "Normalize the frame sizes or restore the expected grid cuts.",
+        },
+        seenFindings,
+      );
+    } else if (sizeSet.size > 1 && sourceSet.has("grid") && sourceSet.size > 1) {
+      pushFinding(
+        findings,
+        {
+          severity: "note",
+          code: "AnimationMixedGridAndExactFrames",
+          spriteId: animation.spriteId,
+          animationId: animation.id,
+          message: `Animation ${animation.spriteId}.${animation.id} mixes exact/custom crop frames with grid frames. This may be intentional, but may cause visual jitter if dimensions are expected to match.`,
+          reason:
+            "Atlases often use a tighter idle crop beside full grid cells; that mix is valid but can shift silhouettes if playback expects uniform extents.",
           suggestedFix:
-            "Normalize the frame sizes or verify the animation intentionally uses mixed crops.",
+            "Verify whether the mixed crop sizes are intentional for this animation and normalize only if playback should stay dimensionally stable.",
         },
         seenFindings,
       );
@@ -476,6 +590,16 @@ export function buildSpriteAuditReport(
     }
   }
 
+  const subgrids: SpriteAuditSubgridEntry[] = sidecar.spec.grids.map((grid) => ({
+    gridId: grid.id,
+    x: grid.x,
+    y: grid.y,
+    cell: `${grid.cellWidth}x${grid.cellHeight}`,
+    rows: grid.rows,
+    cols: grid.columns,
+    frames: sidecar.spec.frames.filter((frame) => frame.sourceGridId === grid.id).length,
+  }));
+
   const frameEntries: SpriteAuditFrameEntry[] = frames.map((frame) => ({
     frameId: frame.id,
     label: frame.label,
@@ -485,8 +609,10 @@ export function buildSpriteAuditReport(
     y: frame.y,
     width: frame.width,
     height: frame.height,
-    gridSource: frame.gridId,
-    cutSource: toCutSource(frame),
+    sourceKind: getSpriteFrameSourceKind(frame),
+    sourceGrid: frame.sourceGridId,
+    sourceRow: frame.sourceRow,
+    sourceColumn: frame.sourceColumn,
     suspiciousFlags: frameFlags.get(frame.id) ?? [],
   }));
 
@@ -520,7 +646,7 @@ export function buildSpriteAuditReport(
             (finding) =>
               `${finding.frameId ?? finding.animationId ?? finding.code}: ${finding.reason}`,
           )
-      : ["The current frames line up with the declared atlas and grid information."];
+      : ["The current frames line up with the declared subgrid and atlas information."];
   const whatToAdjustNext =
     orderedFindings.length > 0
       ? orderedFindings
@@ -546,12 +672,14 @@ export function buildSpriteAuditReport(
       totalSprites: spriteIds.size,
       totalFrames: frameEntries.length,
       totalAnimations: sidecar.spec.animations.length,
+      totalSubgrids: subgrids.length,
       totalFindings: orderedFindings.length,
       errors: errorCount,
       warnings: warningCount,
       notes: noteCount,
       scope,
     },
+    subgrids,
     frames: frameEntries,
     findings: orderedFindings,
     likelyIssues,
@@ -580,6 +708,8 @@ export function createSpriteAuditScreenshotDocument(
             ...sidecar.spec.overlay,
             showBounds: true,
             showLabels: true,
+            showSubgrids: true,
+            showExactFrames: true,
             selectedOnly: scope === "selectedFrame",
           },
         },
@@ -589,15 +719,30 @@ export function createSpriteAuditScreenshotDocument(
   };
 }
 
+function formatSubgridTable(report: SpriteAuditReport) {
+  const lines = [
+    "| Grid | X | Y | Cell | Rows | Cols | Frames |",
+    "| --- | ---: | ---: | --- | ---: | ---: | ---: |",
+  ];
+
+  for (const grid of report.subgrids) {
+    lines.push(
+      `| ${grid.gridId} | ${grid.x} | ${grid.y} | ${grid.cell} | ${grid.rows} | ${grid.cols} | ${grid.frames} |`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function formatFrameTable(report: SpriteAuditReport) {
   const lines = [
-    "| Frame | Sprite | Animation | X | Y | W | H | Grid | Source | Flags |",
-    "| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |",
+    "| Frame | Source | Grid | Row | Col | Sprite | Animation | X | Y | W | H | Flags |",
+    "| --- | --- | --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | --- |",
   ];
 
   for (const frame of report.frames) {
     lines.push(
-      `| ${frame.frameId} | ${frame.spriteId ?? "-"} | ${frame.animationId ?? "-"} | ${frame.x} | ${frame.y} | ${frame.width} | ${frame.height} | ${frame.gridSource ?? "-"} | ${frame.cutSource} | ${frame.suspiciousFlags.join(", ") || "-"} |`,
+      `| ${frame.frameId} | ${frame.sourceKind} | ${frame.sourceGrid ?? "-"} | ${frame.sourceRow ?? "-"} | ${frame.sourceColumn ?? "-"} | ${frame.spriteId ?? "-"} | ${frame.animationId ?? "-"} | ${frame.x} | ${frame.y} | ${frame.width} | ${frame.height} | ${frame.suspiciousFlags.join(", ") || "-"} |`,
     );
   }
 
@@ -614,11 +759,15 @@ export function formatSpriteAuditReport(report: SpriteAuditReport): string {
     `- linked image id: ${summary.imageId}`,
     `- image dimensions: ${summary.imageDimensions.width}x${summary.imageDimensions.height}`,
     `- atlas dimensions: ${summary.atlasDimensions ? `${summary.atlasDimensions.width}x${summary.atlasDimensions.height}` : "unknown"}`,
+    `- total subgrids: ${summary.totalSubgrids}`,
     `- total sprites: ${summary.totalSprites}`,
     `- total frames: ${summary.totalFrames}`,
     `- total animations: ${summary.totalAnimations}`,
     `- total diagnostics / suspicious findings: ${summary.totalFindings} (${summary.errors} error, ${summary.warnings} warning, ${summary.notes} note)`,
     `- audit scope: ${summary.scope === "selectedFrame" ? "selected frame only" : "all frames"}`,
+    "",
+    "## Subgrids",
+    formatSubgridTable(report),
     "",
     "## Frame list",
     formatFrameTable(report),

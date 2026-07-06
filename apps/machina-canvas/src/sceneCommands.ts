@@ -117,7 +117,7 @@ export type CanvasCommand =
   | {
       kind: "setSpriteOverlayOption";
       sidecarId: string;
-      option: "showBounds" | "showLabels" | "selectedOnly";
+      option: "showBounds" | "showLabels" | "selectedOnly" | "showSubgrids" | "showExactFrames";
       value: boolean;
     }
   | {
@@ -1181,11 +1181,16 @@ export function validateCanvasCommand(
       break;
     case "setSpriteOverlayOption":
       validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
-      if (!["showBounds", "showLabels", "selectedOnly"].includes(String(command.option))) {
+      if (
+        !["showBounds", "showLabels", "selectedOnly", "showSubgrids", "showExactFrames"].includes(
+          String(command.option),
+        )
+      ) {
         addDiagnostic(diagnostics, {
           severity: "error",
           code: "InvalidCommand",
-          message: "option must be showBounds, showLabels, or selectedOnly.",
+          message:
+            "option must be showBounds, showLabels, selectedOnly, showSubgrids, or showExactFrames.",
           commandIndex,
         });
       }

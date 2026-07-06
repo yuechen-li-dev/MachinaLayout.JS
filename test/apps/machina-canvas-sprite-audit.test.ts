@@ -102,6 +102,40 @@ display_name = "Edge"
 grid = "base"
 `;
 
+const tinytownExactToml = `
+[atlas]
+image = "sheet.png"
+width = 1440
+height = 720
+
+[grids.villagers_down]
+origin_x = 0
+origin_y = 0
+columns = 3
+rows = 4
+cell_width = 120
+cell_height = 120
+
+[sprites.maya]
+display_name = "Maya"
+
+[sprites.maya.animations.down]
+grid = "villagers_down"
+row = 0
+frames = [0, 1, 2]
+
+[sprites.maya.animations.down_exact]
+grid = "villagers_down"
+row = 0
+frames = ["maya.down.idle_exact", 1, 2]
+
+[frames."maya.down.idle_exact"]
+x = 24
+y = 8
+width = 72
+height = 104
+`;
+
 function createSidecar(toml: string) {
   const spec = parseSpriteSidecarToml(toml, {
     id: "sheet-sidecar",
@@ -140,15 +174,15 @@ describe("MachinaCanvas sprite audit", () => {
     expect(report.summary.totalFindings).toBe(0);
   });
 
-  it("detects out-of-bounds, off-grid, and grid-size mismatch frames", () => {
+  it("keeps hard geometry errors while treating custom cuts as softer findings", () => {
     const report = buildSpriteAuditReport(createSidecar(suspiciousToml), image);
     expect(report.findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: "FrameOutOfBounds", frameId: "hero.walk.edge" }),
-        expect.objectContaining({ code: "OffGridFrame", frameId: "hero.walk.bad_exact" }),
         expect.objectContaining({
-          code: "GridCellSizeMismatch",
+          code: "CustomFrameNearGrid",
           frameId: "hero.walk.bad_exact",
+          severity: "note",
         }),
       ]),
     );
@@ -164,14 +198,15 @@ describe("MachinaCanvas sprite audit", () => {
     );
   });
 
-  it("detects animation inconsistency and repeated frames", () => {
+  it("detects animation mix notes and repeated frames", () => {
     const report = buildSpriteAuditReport(createSidecar(suspiciousToml), image);
     expect(report.findings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "AnimationSizeMismatch",
+          code: "AnimationMixedGridAndExactFrames",
           animationId: "walk",
           spriteId: "hero",
+          severity: "note",
         }),
         expect.objectContaining({
           code: "RepeatedAnimationFrame",
@@ -205,14 +240,45 @@ describe("MachinaCanvas sprite audit", () => {
     expect(report.frames[0]?.frameId).toBe("hero.walk.bad_exact");
   });
 
+  it("treats a TinyTown-style exact crop inside its parent grid cell as a note", () => {
+    const report = buildSpriteAuditReport(createSidecar(tinytownExactToml), {
+      ...image,
+      intrinsicWidth: 1440,
+      intrinsicHeight: 720,
+      width: 1440,
+      height: 720,
+    });
+    expect(report.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ExactCropInsideGridCell",
+          frameId: "maya.down.idle_exact",
+          severity: "note",
+        }),
+        expect.objectContaining({
+          code: "ExactCropOverlapsParentGrid",
+          frameId: "maya.down.idle_exact",
+          severity: "note",
+        }),
+        expect.objectContaining({
+          code: "AnimationMixedGridAndExactFrames",
+          animationId: "down_exact",
+          severity: "note",
+        }),
+      ]),
+    );
+  });
+
   it("formats summary counts, frame entries, and explanation sections", () => {
     const report = buildSpriteAuditReport(createSidecar(suspiciousToml), image);
     const text = formatSpriteAuditReport(report);
 
     expect(text).toContain("# Sprite Audit Report");
     expect(text).toContain("total diagnostics / suspicious findings");
+    expect(text).toContain("## Subgrids");
+    expect(text).toContain("| Grid | X | Y | Cell | Rows | Cols | Frames |");
     expect(text).toContain(
-      "| Frame | Sprite | Animation | X | Y | W | H | Grid | Source | Flags |",
+      "| Frame | Source | Grid | Row | Col | Sprite | Animation | X | Y | W | H | Flags |",
     );
     expect(text).toContain("hero.walk.bad_exact");
     expect(text).toContain("## Why previous cuts were probably wrong");

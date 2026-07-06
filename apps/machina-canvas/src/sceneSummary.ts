@@ -1,6 +1,7 @@
 import type { CanvasDocument, CanvasObject } from "./sceneModel";
 import { formatCanvasMeasurement, formatCanvasRect, getCanvasUnitSystem } from "./canvasUnits";
 import { objectToGridRef } from "./referenceGrid";
+import { getSpriteFrameSourceKind } from "./spriteSidecar";
 
 export function getObjectFrameKind(object: CanvasObject): string {
   return object.frame?.kind ?? "implicit absolute";
@@ -25,7 +26,7 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
       : "";
   const spriteSummary =
     object.kind === "spriteSidecar"
-      ? `; target ${object.targetId}; frames ${object.spec.frames.length}; animations ${object.spec.animations.length}; dialect ${object.spec.dialect}`
+      ? `; target ${object.targetId}; subgrids ${object.spec.grids.length}; frames ${object.spec.frames.length}; animations ${object.spec.animations.length}; dialect ${object.spec.dialect}`
       : "";
   return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}`;
 }
@@ -54,7 +55,7 @@ export function summarizeScene(document: CanvasDocument): string {
                   (candidate) => candidate.id === selected.spec.selectedFrameId,
                 );
                 return frame
-                  ? ` Selected frame ${frame.id} is ${frame.x},${frame.y} ${frame.width}x${frame.height}.`
+                  ? ` Selected frame ${frame.id} is ${frame.x},${frame.y} ${frame.width}x${frame.height}; source ${getSpriteFrameSourceKind(frame)}${frame.sourceGridId ? ` on ${frame.sourceGridId}` : ""}.`
                   : "";
               }
             )()

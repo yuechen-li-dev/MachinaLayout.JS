@@ -194,9 +194,14 @@ export type CanvasSpriteOverlaySettings = {
   showBounds: boolean;
   showLabels: boolean;
   selectedOnly: boolean;
+  showSubgrids: boolean;
+  showExactFrames: boolean;
 };
 
-export type CanvasSpriteGridSpec = {
+export type SpriteFrameSourceKind = "grid" | "exact" | "manual" | "unknown";
+
+export type CanvasSpriteSubgridRegion = {
+  kind: "spriteSubgridRegion";
   id: string;
   x: number;
   y: number;
@@ -204,8 +209,13 @@ export type CanvasSpriteGridSpec = {
   rows: number;
   cellWidth: number;
   cellHeight: number;
+  width: number;
+  height: number;
+  source?: "spriteforgeGrid" | "derived" | "manual";
   pivot?: string;
 };
+
+export type CanvasSpriteGridSpec = CanvasSpriteSubgridRegion;
 
 export type CanvasSpriteFrame = {
   id: string;
@@ -222,6 +232,11 @@ export type CanvasSpriteFrame = {
   column?: number;
   source?: "grid" | "frame" | "inline";
   gridId?: string;
+  sourceKind?: SpriteFrameSourceKind;
+  sourceGridId?: string;
+  sourceRow?: number;
+  sourceColumn?: number;
+  sourceFrameId?: string;
   pivot?: string;
 };
 

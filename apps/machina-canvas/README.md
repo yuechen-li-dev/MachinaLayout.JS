@@ -60,13 +60,19 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 
 MachinaCanvas now treats sprite cuts as editable geometry instead of passive overlay decoration.
 
+Sprite atlases can contain multiple subgrid regions plus exact/custom frame crops. MachinaCanvas renders these as distinct overlay layers so grid-aligned cells and exact cuts are not confused.
+
 - click visible sprite frame rectangles on the canvas to select them
 - edit selected frame `x`, `y`, `width`, and `height` in the inspector
 - nudge frames with inspector buttons or arrow keys
 - drag a selected frame to move it and drag the resize handle to change width and height
 - optionally snap frame edits to a simple grid
+- inspect declared subgrid regions separately from individual frame rectangles
+- distinguish grid-derived frames from exact/custom/manual cuts in the overlay and inspector
 - export updated frame cuts back into `objects/*.sprite.toml`
 - keep validation active so bad cuts surface as diagnostics
+
+Sprite audits now distinguish errors, warnings, and notes. Exact/custom crops can keep parent-grid context, so an intentional crop inside a larger grid cell is reported as a softer note instead of a generic bad-grid warning when the geometry clearly looks like an exact cut.
 
 This is frame slicing and sidecar editing, not raster painting. MachinaCanvas still does not add brush tools, pixel editing, or an animation timeline here.
 
