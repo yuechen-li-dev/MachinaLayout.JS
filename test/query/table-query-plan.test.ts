@@ -357,6 +357,11 @@ describe("table query plans", () => {
     expect(query.validate).toBeTypeOf("function");
     expect(query.describePlan).toBeTypeOf("function");
     expect(query.formatPlan).toBeTypeOf("function");
+    expect(query.classifyQueryOperation).toBeTypeOf("function");
+    expect(query.splitQueryPlanForChunks).toBeTypeOf("function");
+    expect(query.executeOnChunks).toBeTypeOf("function");
+    expect(query.executeOnChunkedTable).toBeTypeOf("function");
+    expect(query.validateChunkQuery).toBeTypeOf("function");
     expect(query.TableQueryError).toBe(TableQueryError);
     expect("Q" in root).toBe(false);
   });

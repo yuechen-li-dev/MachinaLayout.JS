@@ -1,4 +1,5 @@
-import type { ColumnarTable, TableRow, TableSortDirection } from "../table";
+import type { ColumnarTable, TableDiagnostic, TableRow, TableSortDirection } from "../table";
+import type { BatchBoard } from "../batch";
 
 export type TableQueryRowPredicate<TTable extends ColumnarTable = ColumnarTable> = (
   row: TableRow<TTable>,
@@ -64,6 +65,16 @@ export type TableQueryPlan<TTable extends ColumnarTable = ColumnarTable> = {
   readonly id: string;
   readonly source: TTable;
   readonly operations: readonly TableQueryOperation[];
+};
+
+export type TableQueryOperationExecutionScope = "chunkLocal" | "global";
+
+export type SplitTableQueryPlan<TTable extends ColumnarTable = ColumnarTable> = {
+  readonly kind: "splitTableQueryPlan";
+  readonly plan: TableQueryPlan<TTable>;
+  readonly chunkLocalOperations: readonly TableQueryOperation[];
+  readonly globalOperations: readonly TableQueryOperation[];
+  readonly firstGlobalOperationIndex: number;
 };
 
 export type TableQueryExecutionResult = {
@@ -181,6 +192,66 @@ export type TableQueryExecuteOptions = {
   readonly id?: string;
 };
 
+export type TableChunkQueryOptions = {
+  readonly concurrency?: number;
+  readonly id?: string;
+  readonly now?: () => number;
+};
+
+export type TableChunkQueryStatus = "idle" | "running" | "succeeded" | "failed";
+
+export type TableChunkQueryTraceEvent = {
+  readonly kind:
+    | "created"
+    | "started"
+    | "splitPlan"
+    | "chunkScanStarted"
+    | "chunkScanSucceeded"
+    | "chunkScanFailed"
+    | "mergeStarted"
+    | "mergeFinished"
+    | "globalStarted"
+    | "globalFinished"
+    | "succeeded"
+    | "failed";
+  readonly at: number;
+  readonly queryId: string;
+  readonly planId: string;
+  readonly chunkId?: string;
+  readonly message?: string;
+};
+
+export type TableChunkQueryBoard = {
+  readonly kind: "tableChunkQueryBoard";
+  readonly id: string;
+  readonly planId: string;
+  readonly tableId: string;
+  readonly status: TableChunkQueryStatus;
+  readonly chunkCount: number;
+  readonly chunkLocalOperationCount: number;
+  readonly globalOperationCount: number;
+  readonly scannedChunkCount: number;
+  readonly failedChunkCount: number;
+  readonly mergedRowCount: number;
+  readonly outputRowCount: number;
+  readonly batchBoard?: BatchBoard<unknown, TableQueryErrorLike>;
+  readonly trace: readonly TableChunkQueryTraceEvent[];
+};
+
+export type TableChunkQueryResult =
+  | {
+      readonly kind: "ok";
+      readonly table: ColumnarTable;
+      readonly board: TableChunkQueryBoard;
+    }
+  | {
+      readonly kind: "err";
+      readonly error: TableQueryErrorLike;
+      readonly board: TableChunkQueryBoard;
+    };
+
+export type TableChunkQueryExecution = Promise<TableChunkQueryResult>;
+
 export type TableQueryDiagnostic = {
   readonly severity: "error" | "warning";
   readonly code: string;
@@ -191,6 +262,8 @@ export type TableQueryDiagnostic = {
   readonly column?: string;
   readonly path?: string;
 };
+
+export type TableChunkQueryDiagnostic = TableQueryDiagnostic | TableDiagnostic;
 
 export type TableQueryPlanDescription = {
   readonly kind: "tableQueryPlanDescription";

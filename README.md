@@ -76,7 +76,7 @@ Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatti
 
 Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, chunked columnar JSON storage records, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
-In-memory query derivation plans over `ColumnarTable`, including inspectable operation-level iterator execution, are available at `machinalayout/query`; see [MachinaQuery](docs/machina-query.md).
+In-memory query derivation plans over `ColumnarTable`, including inspectable operation-level iterator execution and chunk-query execution over already-loaded chunk records, are available at `machinalayout/query`; see [MachinaQuery](docs/machina-query.md).
 
 Machina Atlas also supports narrow table-authored lowering through `machinalayout/atlas`; see [MachinaAtlas](docs/machina-atlas.md).
 
@@ -177,7 +177,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, chunked columnar JSON artifacts, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
 - [Chunked columnar tables](docs/chunked-columnar-tables.md) — pure chunk/manifest helpers for inspectable columnar JSON storage records.
-- [MachinaQuery](docs/machina-query.md) — in-memory derivation-plan queries over `ColumnarTable` with inspectable iterator execution; not SQL, not a database.
+- [MachinaQuery](docs/machina-query.md) — in-memory derivation-plan queries over `ColumnarTable` with inspectable iterator execution and chunk-query execution over already-loaded chunks; not SQL, not a database.
 - [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.
 - [Machina Commands](docs/machina-commands.md) — command/button tables lowered into explicit command records with cell-oriented diagnostics.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.

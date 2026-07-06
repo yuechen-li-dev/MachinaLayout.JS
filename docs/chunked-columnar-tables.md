@@ -70,6 +70,19 @@ Manifests describe chunk layout without embedding all chunk data:
 
 `href` is metadata only in M36c. The package does not load it.
 
+## Chunk query execution
+
+M36d adds query execution over already-loaded chunk records through `machinalayout/query`.
+
+Chunk query execution works over already-loaded ColumnarTableChunk records. It does not read files, fetch URLs, use indexes, or provide database transactions.
+
+Core execution rule:
+
+- local operations run per chunk
+- global operations run after merge
+
+That means `where`, `filterRows`, `select`, and `renameColumns` can run independently on each chunk, while `sortBy`, `take`, and `drop` run only after the derived chunk tables are merged back into one in-memory table.
+
 ## Creating chunk artifacts
 
 ```ts

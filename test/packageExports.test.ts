@@ -493,6 +493,11 @@ describe("package export entrypoints", () => {
     expect(Q.iterate).toBeTypeOf("function");
     expect(Q.toIterMachine).toBeTypeOf("function");
     expect(Q.formatIteratorSnapshot).toBeTypeOf("function");
+    expect(Q.classifyOperation).toBeTypeOf("function");
+    expect(Q.splitQueryPlanForChunks).toBeTypeOf("function");
+    expect(Q.executeOnChunks).toBeTypeOf("function");
+    expect(Q.executeOnChunkedTable).toBeTypeOf("function");
+    expect(Q.validateChunkQuery).toBeTypeOf("function");
     expect(TableQueryError).toBeTypeOf("function");
   });
 

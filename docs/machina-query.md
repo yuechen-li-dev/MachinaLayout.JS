@@ -21,9 +21,11 @@ Current boundary:
 - no groupBy
 - no aggregate
 - no indexes
-- no storage, chunks, buckets, or persistence
+- no storage loading, buckets, or persistence
 
-M36c adds chunked columnar storage records to `machinalayout/table`, but query execution still runs over restored in-memory `ColumnarTable` values. M36c does not add chunk-native query scans or storage-backed query execution.
+M36d adds chunk query execution over already-loaded chunk records. Chunk query execution works over already-loaded ColumnarTableChunk records. It does not read files, fetch URLs, use indexes, or provide database transactions.
+
+Chunked query execution is not a database. It is deterministic table derivation over chunk records.
 
 ## Fluent API
 
@@ -102,6 +104,49 @@ const result = Q.iterate(plan).collect();
 `runner.snapshot().board` includes the plan id, source table id, status, current operation,
 row counts, step count, and trace events such as `created`, `started`, `operationStarted`,
 `operationFinished`, `finished`, and `failed`.
+
+## Chunk Query Execution
+
+For chunk execution, MachinaQuery runs a chunk-local prefix per chunk, merges the intermediate tables, then runs the global suffix once.
+
+Chunk-local operations:
+
+- `where`
+- `filterRows`
+- `select`
+- `renameColumns`
+
+Global operations:
+
+- `sortBy`
+- `take`
+- `drop`
+
+Batch scheduling handles concurrent chunk scans through `machinalayout/batch`, but the final output is still a single in-memory `ColumnarTable`.
+
+```ts
+const chunked = Table.chunkedFromTable(orders, {
+  chunkSize: 1000,
+});
+
+const plan = Q.from(orders)
+  .filterRows(({ getCell }) => getCell("status") === "paid")
+  .select(["id", "totalCents"] as const)
+  .sortBy("totalCents", "desc")
+  .take(100)
+  .toPlan();
+
+const result = await Q.executeOnChunkedTable(plan, chunked, {
+  concurrency: 4,
+  id: "paidOrders",
+});
+
+if (result.kind === "ok") {
+  console.log(result.table);
+}
+```
+
+Chunk query execution works over already-loaded `ColumnarTableChunk` records. It does not load chunks from files or storage, and it does not add joins, aggregates, SQL, optimizer behavior, or database transactions.
 
 ## Function-First Plans
 
