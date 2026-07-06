@@ -280,6 +280,7 @@ describe("MachinaCanvas sprite audit", () => {
     expect(text).toContain(
       "| Frame | Source | Grid | Row | Col | Sprite | Animation | X | Y | W | H | Flags |",
     );
+    expect(text).toContain("## Alpha-aware cut analysis");
     expect(text).toContain("hero.walk.bad_exact");
     expect(text).toContain("## Why previous cuts were probably wrong");
     expect(text).toContain("## What to adjust next");

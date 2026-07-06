@@ -62,13 +62,18 @@ MachinaCanvas now treats sprite cuts as editable geometry instead of passive ove
 
 Sprite atlases can contain multiple subgrid regions plus exact/custom frame crops. MachinaCanvas renders these as distinct overlay layers so grid-aligned cells and exact cuts are not confused.
 
+For non-tiling sprite sheets with transparency, MachinaCanvas can audit cut lines against the image alpha channel. Cut lines crossing opaque pixels are reported as likely slicing through a sprite, while exact/manual crops remain separate semantic cuts.
+
 - click visible sprite frame rectangles on the canvas to select them
 - edit selected frame `x`, `y`, `width`, and `height` in the inspector
 - nudge frames with inspector buttons or arrow keys
 - drag a selected frame to move it and drag the resize handle to change width and height
 - optionally snap frame edits to a simple grid
 - inspect declared subgrid regions separately from individual frame rectangles
+- describe rough multi-region sprite cuts with `[cut_grids.*]` sidecar entries when a sheet only approximates a regular grid
 - distinguish grid-derived frames from exact/custom/manual cuts in the overlay and inspector
+- audit rough cut boundaries against transparent gutters so likely sprite-slicing cuts surface as warnings instead of being mistaken for clean cells
+- keep parent-grid context visible for exact/custom/manual frames when a crop started from a larger grid cell
 - export updated frame cuts back into `objects/*.sprite.toml`
 - keep validation active so bad cuts surface as diagnostics
 

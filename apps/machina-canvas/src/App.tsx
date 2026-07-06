@@ -79,6 +79,7 @@ import {
   parseSpriteSidecarToml,
 } from "./spriteSidecar";
 import {
+  type SpriteAlphaMask,
   buildSpriteAuditReport,
   createSpriteAuditScreenshotDocument,
   formatSpriteAuditReport,
@@ -1528,6 +1529,82 @@ function formatImageSrcLabel(src: string): string {
   return src;
 }
 
+type SpriteAlphaMaskState =
+  | { status: "idle" | "loading" }
+  | { status: "ready"; mask: SpriteAlphaMask }
+  | { status: "unavailable"; reason: string };
+
+async function loadSpriteAlphaMask(image: ImageObject): Promise<SpriteAlphaMaskState> {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return {
+      status: "unavailable",
+      reason: "Alpha-aware cut validation unavailable outside the browser runtime.",
+    };
+  }
+
+  return new Promise((resolve) => {
+    const element = new window.Image();
+    element.decoding = "async";
+    element.crossOrigin = "anonymous";
+    element.onload = () => {
+      try {
+        const width = element.naturalWidth;
+        const height = element.naturalHeight;
+        if (width <= 0 || height <= 0) {
+          resolve({
+            status: "unavailable",
+            reason:
+              "Alpha-aware cut validation unavailable because the image has no readable size.",
+          });
+          return;
+        }
+        const canvas = window.document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) {
+          resolve({
+            status: "unavailable",
+            reason:
+              "Alpha-aware cut validation unavailable because the browser could not create a readable canvas context.",
+          });
+          return;
+        }
+        context.clearRect(0, 0, width, height);
+        context.drawImage(element, 0, 0, width, height);
+        const alpha = context.getImageData(0, 0, width, height).data;
+        resolve({
+          status: "ready",
+          mask: {
+            width,
+            height,
+            isOpaque: (x, y) => {
+              const ix = Math.trunc(x);
+              const iy = Math.trunc(y);
+              if (ix < 0 || iy < 0 || ix >= width || iy >= height) return false;
+              return alpha[(iy * width + ix) * 4 + 3] > 0;
+            },
+          },
+        });
+      } catch (error) {
+        resolve({
+          status: "unavailable",
+          reason:
+            error instanceof Error
+              ? `Alpha-aware cut validation unavailable for this image. ${error.message}`
+              : "Alpha-aware cut validation unavailable for this image.",
+        });
+      }
+    };
+    element.onerror = () =>
+      resolve({
+        status: "unavailable",
+        reason: "Alpha-aware cut validation unavailable because the image could not be decoded.",
+      });
+    element.src = image.src;
+  });
+}
+
 function SpriteAuditSectionContent({
   document,
   sidecar,
@@ -1542,6 +1619,24 @@ function SpriteAuditSectionContent({
   const [status, setStatus] = useState("");
   const [artifact, setArtifact] = useState<SpriteAuditArtifact>();
   const [screenshotArtifact, setScreenshotArtifact] = useState<SpriteAuditScreenshotArtifact>();
+  const [alphaAuditEnabled, setAlphaAuditEnabled] = useState(true);
+  const [alphaThreshold, setAlphaThreshold] = useState(1);
+  const [alphaMaskState, setAlphaMaskState] = useState<SpriteAlphaMaskState>({ status: "idle" });
+
+  useEffect(() => {
+    if (!alphaAuditEnabled) {
+      setAlphaMaskState({ status: "idle" });
+      return;
+    }
+    let cancelled = false;
+    setAlphaMaskState({ status: "loading" });
+    void loadSpriteAlphaMask(image).then((nextState) => {
+      if (!cancelled) setAlphaMaskState(nextState);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [alphaAuditEnabled, image]);
 
   useEffect(
     () => () => {
@@ -1553,7 +1648,18 @@ function SpriteAuditSectionContent({
   );
 
   const createArtifact = useCallback(() => {
-    const report = buildSpriteAuditReport(sidecar, image, { scope });
+    const report = buildSpriteAuditReport(sidecar, image, {
+      scope,
+      includeAlphaAnalysis: alphaAuditEnabled,
+      alphaMask: alphaMaskState.status === "ready" ? alphaMaskState.mask : undefined,
+      alphaUnavailableReason:
+        alphaMaskState.status === "unavailable"
+          ? alphaMaskState.reason
+          : alphaMaskState.status === "loading"
+            ? "Alpha-aware cut validation still loading image pixels."
+            : undefined,
+      alphaOptions: { alphaThreshold },
+    });
     const nextArtifact = {
       scope,
       report,
@@ -1561,7 +1667,7 @@ function SpriteAuditSectionContent({
     } satisfies SpriteAuditArtifact;
     setArtifact(nextArtifact);
     return nextArtifact;
-  }, [image, scope, sidecar]);
+  }, [alphaAuditEnabled, alphaMaskState, alphaThreshold, image, scope, sidecar]);
 
   const ensureArtifact = useCallback(() => {
     if (artifact && artifact.scope === scope) {
@@ -1663,6 +1769,23 @@ function SpriteAuditSectionContent({
           <option value="selectedFrame">Selected frame only</option>
         </select>
       </label>
+      <ToggleField
+        label="Alpha-aware cut check"
+        checked={alphaAuditEnabled}
+        onChange={setAlphaAuditEnabled}
+      />
+      <NumberField
+        label="Alpha threshold"
+        min={1}
+        value={alphaThreshold}
+        onChange={(value) => setAlphaThreshold(Math.max(1, Math.round(value)))}
+      />
+      {alphaAuditEnabled && alphaMaskState.status === "loading" ? (
+        <p className="empty-note">Reading image alpha for cut-line checks...</p>
+      ) : null}
+      {alphaAuditEnabled && alphaMaskState.status === "unavailable" ? (
+        <p className="empty-note">{alphaMaskState.reason}</p>
+      ) : null}
       <div className="sprite-audit-actions">
         <button type="button" onClick={runAudit}>
           Run audit

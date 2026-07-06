@@ -510,7 +510,7 @@ function createSpriteFramesTomlRecord(object: SpriteSidecarObject): Record<strin
 
 function createSpriteGridsTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
   const grids: Record<string, unknown> = {};
-  for (const grid of object.spec.grids) {
+  for (const grid of object.spec.grids.filter((candidate) => candidate.source !== "roughCutGrid")) {
     const table: Record<string, unknown> = {
       origin_x: grid.x,
       origin_y: grid.y,
@@ -520,6 +520,27 @@ function createSpriteGridsTomlRecord(object: SpriteSidecarObject): Record<string
       cell_height: grid.cellHeight,
     };
     setTomlField(table, "default_pivot", grid.pivot);
+    grids[grid.id] = table;
+  }
+  return grids;
+}
+
+function createSpriteCutGridsTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const grids: Record<string, unknown> = {};
+  for (const grid of object.spec.grids.filter((candidate) => candidate.source === "roughCutGrid")) {
+    const table: Record<string, unknown> = {
+      x: grid.x,
+      y: grid.y,
+      columns: grid.columns,
+      rows: grid.rows,
+      cell_width: grid.cellWidth,
+      cell_height: grid.cellHeight,
+    };
+    setTomlField(table, "kind", grid.gridKind);
+    setTomlField(table, "prefix", grid.framePrefix);
+    setTomlField(table, "start_index", grid.frameStartIndex);
+    setTomlField(table, "labels", grid.frameLabels);
+    setTomlField(table, "pivot", grid.pivot);
     grids[grid.id] = table;
   }
   return grids;
@@ -547,6 +568,8 @@ function isFrameExportableAsGridCell(
 }
 
 function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const grids = createSpriteGridsTomlRecord(object);
+  const cutGrids = createSpriteCutGridsTomlRecord(object);
   const sprites: Record<string, unknown> = {};
   const spriteIds = new Set<string>();
   for (const frame of object.spec.frames) {
@@ -603,11 +626,13 @@ function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string
     sprites[spriteId] = spriteTable;
   }
 
-  return {
-    grids: createSpriteGridsTomlRecord(object),
+  const record: Record<string, unknown> = {
     sprites,
     frames: createSpriteFramesTomlRecord(object),
   };
+  if (Object.keys(grids).length > 0) record.grids = grids;
+  if (Object.keys(cutGrids).length > 0) record.cut_grids = cutGrids;
+  return record;
 }
 
 function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<string, unknown> {

@@ -211,7 +211,11 @@ export type CanvasSpriteSubgridRegion = {
   cellHeight: number;
   width: number;
   height: number;
-  source?: "spriteforgeGrid" | "derived" | "manual";
+  source?: "spriteforgeGrid" | "roughCutGrid" | "derived" | "manual";
+  gridKind?: string;
+  framePrefix?: string;
+  frameStartIndex?: number;
+  frameLabels?: readonly string[];
   pivot?: string;
 };
 

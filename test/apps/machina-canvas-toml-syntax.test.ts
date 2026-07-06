@@ -66,6 +66,24 @@ pivot = "bottom_center"
 tags = ["exact", "custom"]
 `;
 
+const roughCutToml = `
+[atlas]
+image = "tinytown_sprite_alpha.png"
+width = 1440
+height = 720
+
+[cut_grids.props_top]
+x = 24
+y = 600
+cell_width = 144
+cell_height = 144
+columns = 3
+rows = 1
+kind = "prop"
+prefix = "prop"
+start_index = 0
+`;
+
 const image: ImageObject = {
   id: "tinytown-sheet",
   name: "TinyTown sprite sheet",
@@ -279,6 +297,42 @@ x = 24
           "maya.down.idle_exact": expect.objectContaining({ width: 72 }),
         }),
       }),
+    );
+  });
+
+  it("parses and re-exports rough cut grids without losing their source semantics", () => {
+    const spec = parseSpriteSidecarToml(roughCutToml, {
+      id: "rough-cut",
+      name: "Rough cut",
+      targetId: image.id,
+    });
+    const sidecar = createSpriteSidecarObject(image, spec);
+    const text = serializeCanvasObjectToml(sidecar);
+    const reparsed = parseSpriteSidecarToml(text, {
+      id: "rough-cut",
+      name: "Rough cut",
+      targetId: image.id,
+    });
+
+    expect(spec.grids).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "props_top",
+          source: "roughCutGrid",
+          framePrefix: "prop",
+        }),
+      ]),
+    );
+    expect(spec.frames).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "prop.0", sourceKind: "grid", sourceGridId: "props_top" }),
+      ]),
+    );
+    expect(text).toContain("[cut_grids.props_top]");
+    expect(reparsed.grids).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "props_top", source: "roughCutGrid" }),
+      ]),
     );
   });
 });

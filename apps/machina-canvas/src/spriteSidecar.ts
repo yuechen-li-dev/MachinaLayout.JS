@@ -86,6 +86,13 @@ function readGrid(
   id: string,
   table: Record<string, unknown>,
   diagnostics: CanvasSpriteDiagnostics[],
+  options?: {
+    source?: CanvasSpriteGridSpec["source"];
+    gridKind?: string;
+    framePrefix?: string;
+    frameStartIndex?: number;
+    frameLabels?: readonly string[];
+  },
 ) {
   const grid: CanvasSpriteGridSpec = {
     kind: "spriteSubgridRegion",
@@ -98,7 +105,11 @@ function readGrid(
     cellHeight: asNumber(table.cell_height) ?? asNumber(table.height) ?? 0,
     width: 0,
     height: 0,
-    source: "spriteforgeGrid",
+    source: options?.source ?? "spriteforgeGrid",
+    gridKind: options?.gridKind,
+    framePrefix: options?.framePrefix,
+    frameStartIndex: options?.frameStartIndex,
+    frameLabels: options?.frameLabels,
     pivot: asString(table.default_pivot) ?? asString(table.pivot),
   };
 
@@ -109,6 +120,35 @@ function readGrid(
     pushDiagnostic(diagnostics, "InvalidSpriteGrid", `Grid ${id} has invalid dimensions.`);
   }
   return grid;
+}
+
+function readStringArray(value: unknown): readonly string[] | undefined {
+  const items = asArray(value);
+  if (!items) return undefined;
+  return items.every((item) => typeof item === "string") ? (items as readonly string[]) : undefined;
+}
+
+function createCutGridFrameId(
+  grid: CanvasSpriteGridSpec,
+  row: number,
+  column: number,
+  index: number,
+) {
+  const labelId = grid.frameLabels?.[index];
+  if (labelId && labelId.trim().length > 0) return labelId.trim();
+  if (grid.framePrefix) {
+    return `${grid.framePrefix}.${(grid.frameStartIndex ?? 0) + index}`;
+  }
+  return `${grid.id}.${row}.${column}`;
+}
+
+function createCutGridFrameLabel(
+  grid: CanvasSpriteGridSpec,
+  row: number,
+  column: number,
+  index: number,
+) {
+  return grid.frameLabels?.[index] ?? createCutGridFrameId(grid, row, column, index);
 }
 
 function makeGridFrame(
@@ -358,8 +398,11 @@ function validateFrames(
   }
 }
 
-function createValidatedSpriteSpec(spec: Omit<CanvasSpriteSpec, "diagnostics">): CanvasSpriteSpec {
-  const diagnostics: CanvasSpriteDiagnostics[] = [];
+function createValidatedSpriteSpec(
+  spec: Omit<CanvasSpriteSpec, "diagnostics">,
+  baseDiagnostics: readonly CanvasSpriteDiagnostics[] = [],
+): CanvasSpriteSpec {
+  const diagnostics: CanvasSpriteDiagnostics[] = [...baseDiagnostics];
   validateFrames(spec, diagnostics);
   if (spec.frames.length === 0) {
     pushDiagnostic(diagnostics, "EmptySpriteSidecar", "Sprite sidecar did not produce any frames.");
@@ -375,11 +418,35 @@ export function parseSpriteSidecarToml(
   const diagnostics: CanvasSpriteDiagnostics[] = [];
   const atlas = asTable(root.atlas);
   const gridsTable = asTable(root.grids) ?? {};
+  const cutGridsTable = asTable(root.cut_grids) ?? {};
   const spritesTable = asTable(root.sprites) ?? {};
   const framesTable = asTable(root.frames) ?? {};
   const grids = Object.entries(gridsTable)
     .filter((entry): entry is [string, Record<string, unknown>] => isRecord(entry[1]))
     .map(([id, table]) => readGrid(id, table, diagnostics));
+  for (const [id, value] of Object.entries(cutGridsTable)) {
+    const table = asTable(value);
+    if (!table) continue;
+    const labels = readStringArray(table.labels);
+    const expectedLabels = (asNumber(table.columns) ?? 0) * (asNumber(table.rows) ?? 0);
+    const providedLabels = asArray(table.labels);
+    if (providedLabels && (!labels || labels.length !== expectedLabels)) {
+      pushDiagnostic(
+        diagnostics,
+        "InvalidCutGridLabels",
+        `Cut grid ${id} labels must contain exactly ${expectedLabels} string entries.`,
+      );
+    }
+    grids.push(
+      readGrid(id, table, diagnostics, {
+        source: "roughCutGrid",
+        gridKind: asString(table.kind),
+        framePrefix: asString(table.prefix),
+        frameStartIndex: asNumber(table.start_index) ?? 0,
+        frameLabels: labels && labels.length === expectedLabels ? labels : undefined,
+      }),
+    );
+  }
   const gridById = new Map(grids.map((grid) => [grid.id, grid]));
   const frames: CanvasSpriteFrame[] = [];
   const frameById = new Map<string, CanvasSpriteFrame>();
@@ -398,6 +465,28 @@ export function parseSpriteSidecarToml(
       continue;
     }
     addFrame(frames, frameById, frame, diagnostics);
+  }
+
+  for (const grid of grids) {
+    if (grid.source !== "roughCutGrid") continue;
+    let index = 0;
+    for (let row = 0; row < grid.rows; row += 1) {
+      for (let column = 0; column < grid.columns; column += 1) {
+        addFrame(
+          frames,
+          frameById,
+          makeGridFrame(grid, row, column, {
+            id: createCutGridFrameId(grid, row, column, index),
+            label: createCutGridFrameLabel(grid, row, column, index),
+            kind: grid.gridKind,
+            sourceKind: "grid",
+            pivot: grid.pivot,
+          }),
+          diagnostics,
+        );
+        index += 1;
+      }
+    }
   }
 
   for (const [spriteId, value] of Object.entries(spritesTable)) {
@@ -501,7 +590,11 @@ export function parseSpriteSidecarToml(
   }
 
   const dialect =
-    grids.length > 0 || Object.keys(spritesTable).length > 0 ? "spriteforge" : "sprite";
+    grids.length > 0 ||
+    Object.keys(spritesTable).length > 0 ||
+    Object.keys(cutGridsTable).length > 0
+      ? "spriteforge"
+      : "sprite";
   const specWithoutDiagnostics = {
     id: options.id,
     name: options.name,
@@ -525,7 +618,7 @@ export function parseSpriteSidecarToml(
     selectedFrameId: frames[0]?.id,
     rawToml: text,
   } satisfies Omit<CanvasSpriteSpec, "diagnostics">;
-  return createValidatedSpriteSpec(specWithoutDiagnostics);
+  return createValidatedSpriteSpec(specWithoutDiagnostics, diagnostics);
 }
 
 export function createSpriteSidecarObject(
@@ -565,10 +658,13 @@ export function revalidateSpriteSpec(spec: CanvasSpriteSpec): CanvasSpriteSpec {
       ? spec.selectedFrameId
       : spec.frames[0]?.id
     : spec.frames[0]?.id;
-  return createValidatedSpriteSpec({
-    ...spec,
-    selectedFrameId,
-  });
+  return createValidatedSpriteSpec(
+    {
+      ...spec,
+      selectedFrameId,
+    },
+    spec.diagnostics,
+  );
 }
 
 export function selectSpriteFrameInSpec(

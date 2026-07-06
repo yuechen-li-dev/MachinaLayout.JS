@@ -49,6 +49,34 @@ export type SpriteAuditSubgridEntry = {
   frames: number;
 };
 
+export type SpriteAlphaMask = {
+  width: number;
+  height: number;
+  isOpaque: (x: number, y: number) => boolean;
+};
+
+export type AlphaCutAnalysisOptions = {
+  alphaThreshold?: number;
+  sampleInset?: number;
+  maxReportedHitsPerLine?: number;
+};
+
+export type SpriteAlphaCutLineEntry = {
+  gridId: string;
+  orientation: "vertical" | "horizontal";
+  coordinate: number;
+  boundaryIndex: number;
+  opaqueHits: number;
+  hitPoints: readonly { x: number; y: number }[];
+  finding: string;
+};
+
+export type SpriteAlphaCutAnalysis = {
+  available: boolean;
+  entries: readonly SpriteAlphaCutLineEntry[];
+  note?: string;
+};
+
 export type SpriteAuditSummary = {
   sidecarId: string;
   imageId: string;
@@ -70,6 +98,7 @@ export type SpriteAuditReport = {
   subgrids: SpriteAuditSubgridEntry[];
   frames: SpriteAuditFrameEntry[];
   findings: SpriteAuditFinding[];
+  alphaCutAnalysis?: SpriteAlphaCutAnalysis;
   likelyIssues: string[];
   whyCutsWereProbablyWrong: string[];
   whatToAdjustNext: string[];
@@ -191,10 +220,105 @@ function isGridParentExactCrop(
   return false;
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function analyzeBoundaryLine(
+  mask: SpriteAlphaMask,
+  grid: CanvasSpriteGridSpec,
+  orientation: "vertical" | "horizontal",
+  boundaryIndex: number,
+  options: Required<AlphaCutAnalysisOptions>,
+): SpriteAlphaCutLineEntry | undefined {
+  const coordinate =
+    orientation === "vertical"
+      ? grid.x + boundaryIndex * grid.cellWidth
+      : grid.y + boundaryIndex * grid.cellHeight;
+  const maxHits = options.maxReportedHitsPerLine;
+  const hitPoints: { x: number; y: number }[] = [];
+  let opaqueHits = 0;
+
+  if (orientation === "vertical") {
+    const x = clamp(Math.round(coordinate), 0, mask.width - 1);
+    const minY = clamp(Math.ceil(grid.y + options.sampleInset), 0, mask.height - 1);
+    const maxY = clamp(
+      Math.floor(grid.y + grid.height - 1 - options.sampleInset),
+      0,
+      mask.height - 1,
+    );
+    for (let y = minY; y <= maxY; y += 1) {
+      if (!mask.isOpaque(x, y)) continue;
+      opaqueHits += 1;
+      if (hitPoints.length < maxHits) hitPoints.push({ x, y });
+    }
+  } else {
+    const y = clamp(Math.round(coordinate), 0, mask.height - 1);
+    const minX = clamp(Math.ceil(grid.x + options.sampleInset), 0, mask.width - 1);
+    const maxX = clamp(
+      Math.floor(grid.x + grid.width - 1 - options.sampleInset),
+      0,
+      mask.width - 1,
+    );
+    for (let x = minX; x <= maxX; x += 1) {
+      if (!mask.isOpaque(x, y)) continue;
+      opaqueHits += 1;
+      if (hitPoints.length < maxHits) hitPoints.push({ x, y });
+    }
+  }
+
+  if (opaqueHits < options.alphaThreshold) return undefined;
+  const between =
+    orientation === "vertical"
+      ? `between columns ${boundaryIndex - 1} and ${boundaryIndex}`
+      : `between rows ${boundaryIndex - 1} and ${boundaryIndex}`;
+  return {
+    gridId: grid.id,
+    orientation,
+    coordinate,
+    boundaryIndex,
+    opaqueHits,
+    hitPoints,
+    finding: `${grid.id} ${orientation} cut ${orientation === "vertical" ? "x" : "y"}=${coordinate} ${between} crosses ${opaqueHits} opaque pixel${opaqueHits === 1 ? "" : "s"}. This likely slices a sprite; verify grid origin or cell ${orientation === "vertical" ? "width" : "height"}.`,
+  };
+}
+
+export function analyzeSpriteCutAlpha(
+  grids: readonly CanvasSpriteGridSpec[],
+  mask: SpriteAlphaMask,
+  options?: AlphaCutAnalysisOptions,
+): readonly SpriteAlphaCutLineEntry[] {
+  const resolved = {
+    alphaThreshold: Math.max(1, Math.round(options?.alphaThreshold ?? 1)),
+    sampleInset: Math.max(0, options?.sampleInset ?? 0),
+    maxReportedHitsPerLine: Math.max(1, Math.round(options?.maxReportedHitsPerLine ?? 6)),
+  } satisfies Required<AlphaCutAnalysisOptions>;
+  const entries: SpriteAlphaCutLineEntry[] = [];
+
+  for (const grid of grids) {
+    for (let columnBoundary = 1; columnBoundary < grid.columns; columnBoundary += 1) {
+      const entry = analyzeBoundaryLine(mask, grid, "vertical", columnBoundary, resolved);
+      if (entry) entries.push(entry);
+    }
+    for (let rowBoundary = 1; rowBoundary < grid.rows; rowBoundary += 1) {
+      const entry = analyzeBoundaryLine(mask, grid, "horizontal", rowBoundary, resolved);
+      if (entry) entries.push(entry);
+    }
+  }
+
+  return entries;
+}
+
 export function buildSpriteAuditReport(
   sidecar: SpriteSidecarObject,
   image: ImageObject,
-  options?: { scope?: SpriteAuditScope },
+  options?: {
+    scope?: SpriteAuditScope;
+    alphaMask?: SpriteAlphaMask;
+    includeAlphaAnalysis?: boolean;
+    alphaUnavailableReason?: string;
+    alphaOptions?: AlphaCutAnalysisOptions;
+  },
 ): SpriteAuditReport {
   const scope = options?.scope ?? "allFrames";
   const findings: SpriteAuditFinding[] = [];
@@ -205,6 +329,10 @@ export function buildSpriteAuditReport(
   const frames = sidecar.spec.frames.filter((frame) => isFrameSelected(sidecar, frame, scope));
   const frameIds = new Set(frames.map((frame) => frame.id));
   const frameFlags = new Map<string, string[]>();
+  const selectedFrame =
+    scope === "selectedFrame"
+      ? sidecar.spec.frames.find((frame) => frame.id === sidecar.spec.selectedFrameId)
+      : undefined;
 
   const addFlag = (frameId: string, value: string) => {
     const current = frameFlags.get(frameId) ?? [];
@@ -590,6 +718,54 @@ export function buildSpriteAuditReport(
     }
   }
 
+  let alphaCutAnalysis: SpriteAlphaCutAnalysis | undefined;
+  if (options?.includeAlphaAnalysis) {
+    const alphaGrids =
+      scope === "selectedFrame" && selectedFrame?.sourceGridId
+        ? sidecar.spec.grids.filter((grid) => grid.id === selectedFrame.sourceGridId)
+        : sidecar.spec.grids;
+    if (options.alphaMask) {
+      const entries = analyzeSpriteCutAlpha(alphaGrids, options.alphaMask, options.alphaOptions);
+      alphaCutAnalysis = { available: true, entries };
+      for (const entry of entries) {
+        pushFinding(
+          findings,
+          {
+            severity: "warning",
+            code: "SpriteCutLineHitsOpaquePixels",
+            message: entry.finding,
+            reason:
+              "On non-tiling sprite sheets, transparent gutters usually mark the safe places to cut between cells.",
+            suggestedFix:
+              "Adjust the grid origin or cell size, or keep the rough grid and convert exceptions into exact/manual frame overrides.",
+          },
+          seenFindings,
+        );
+      }
+    } else {
+      const note =
+        options.alphaUnavailableReason ?? "Alpha-aware cut validation unavailable for this image.";
+      alphaCutAnalysis = {
+        available: false,
+        entries: [],
+        note,
+      };
+      pushFinding(
+        findings,
+        {
+          severity: "note",
+          code: "SpriteAlphaUnavailable",
+          message: note,
+          reason:
+            "Alpha-aware cut validation needs readable image pixels from the source atlas before it can inspect transparent gutters.",
+          suggestedFix:
+            "Use a same-origin or local image asset, or continue with geometric audit findings only.",
+        },
+        seenFindings,
+      );
+    }
+  }
+
   const subgrids: SpriteAuditSubgridEntry[] = sidecar.spec.grids.map((grid) => ({
     gridId: grid.id,
     x: grid.x,
@@ -682,6 +858,7 @@ export function buildSpriteAuditReport(
     subgrids,
     frames: frameEntries,
     findings: orderedFindings,
+    alphaCutAnalysis,
     likelyIssues,
     whyCutsWereProbablyWrong,
     whatToAdjustNext,
@@ -749,6 +926,37 @@ function formatFrameTable(report: SpriteAuditReport) {
   return lines.join("\n");
 }
 
+function formatAlphaCutTable(report: SpriteAuditReport) {
+  const lines = [
+    "| Grid | Line | Coordinate | Boundary | Opaque hits | Finding |",
+    "| --- | --- | ---: | --- | ---: | --- |",
+  ];
+
+  if (!report.alphaCutAnalysis) return lines.join("\n");
+  if (!report.alphaCutAnalysis.available) {
+    lines.push(
+      `| - | - | - | - | - | ${report.alphaCutAnalysis.note ?? "Alpha-aware cut analysis unavailable for this image."} |`,
+    );
+    return lines.join("\n");
+  }
+
+  for (const entry of report.alphaCutAnalysis.entries) {
+    const boundary =
+      entry.orientation === "vertical"
+        ? `cols ${entry.boundaryIndex - 1}-${entry.boundaryIndex}`
+        : `rows ${entry.boundaryIndex - 1}-${entry.boundaryIndex}`;
+    lines.push(
+      `| ${entry.gridId} | ${entry.orientation} | ${entry.coordinate} | ${boundary} | ${entry.opaqueHits} | ${entry.finding} |`,
+    );
+  }
+
+  if (report.alphaCutAnalysis.entries.length === 0) {
+    lines.push("| - | - | - | - | 0 | No cut lines crossed opaque pixels. |");
+  }
+
+  return lines.join("\n");
+}
+
 export function formatSpriteAuditReport(report: SpriteAuditReport): string {
   const { summary } = report;
   const lines = [
@@ -771,6 +979,9 @@ export function formatSpriteAuditReport(report: SpriteAuditReport): string {
     "",
     "## Frame list",
     formatFrameTable(report),
+    "",
+    "## Alpha-aware cut analysis",
+    formatAlphaCutTable(report),
     "",
     "## Suspicion analysis",
   ];
