@@ -55,6 +55,63 @@ const transitions = Deus.transitionsFromTable(transitionTable);
 
 That does not create a second runtime. MachinaTable is the authoring and diagnostic surface; DeusMachina still validates, owns semantics, and runs the lowered transition rows.
 
+## Transition template tables
+
+Concrete transition tables stay one row to one transition. Template tables cover the other repeated pattern: one source row describes a small transition family and lowers into ordinary `DeusTransitionRow[]`.
+
+The built-in pending-result template expands each source row into a success transition plus a failure transition:
+
+```ts
+import * as Deus from "machinalayout/deus";
+import { Table } from "machinalayout/table";
+
+const idle = ["idle"] as const;
+const providerPending = ["providerPending"] as const;
+const resourcePending = ["resourcePending"] as const;
+const servicePending = ["servicePending"] as const;
+const availabilityPending = ["availabilityPending"] as const;
+
+const pendingResults = Table.defineWithSchema({
+  id: "pendingResults",
+  schema: Table.schema({
+    entity: Table.string(),
+    pending: Table.unknown(),
+    successEvent: Table.string(),
+    failureEvent: Table.string(),
+    successTarget: Table.string(),
+    successPayload: Table.string(),
+    failurePayload: Table.string(),
+    to: Table.unknown(),
+  }),
+  columns: {
+    entity: ["provider", "resource", "service", "availability"],
+    pending: [providerPending, resourcePending, servicePending, availabilityPending],
+    successEvent: [
+      "providerCreated",
+      "resourceCreated",
+      "serviceCreated",
+      "availabilityCreated",
+    ],
+    failureEvent: ["providerFailed", "resourceFailed", "serviceFailed", "availabilityFailed"],
+    successTarget: ["provider", "resource", "service", "availabilityRule"],
+    successPayload: ["provider", "resource", "service", "rule"],
+    failurePayload: ["message", "message", "message", "message"],
+    to: [idle, idle, idle, idle],
+  },
+});
+
+const transitions = Deus.pendingResultTransitionsFromTable(pendingResults);
+```
+
+If you want the generic bridge explicitly:
+
+```ts
+const template = Deus.pendingResultTransitionTemplate();
+const transitions = Deus.transitionsFromTemplateTable(pendingResults, template);
+```
+
+Diagnostics still point back to the source table row and cell. This is a narrow lowering helper, not a macro system, code generator, or second state-machine runtime.
+
 ## Snapshot hydration
 
 `createDeusSnapshot(machine, board)` preserves the original behavior and starts at `machine.initial`.

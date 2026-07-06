@@ -114,9 +114,14 @@ import {
   hasDeusStatePath,
   hydrateDeusSnapshot,
   judgeUtility,
+  pendingResultTransitionTemplate,
+  pendingResultTransitionsFromTable,
   parseDeusPath,
   stepDeusMachine,
+  transitionsFromTemplateTable,
   transitionsFromTable,
+  validatePendingResultTransitionTable,
+  validateTransitionTemplateTable,
   validateTransitionsTable,
 } from "../src/deus";
 import { useDeusMachine as useReactDeusMachine } from "../src/react";
@@ -413,6 +418,11 @@ describe("package export entrypoints", () => {
     expect(assertDeusStatePath).toBeTypeOf("function");
     expect(transitionsFromTable).toBeTypeOf("function");
     expect(validateTransitionsTable).toBeTypeOf("function");
+    expect(transitionsFromTemplateTable).toBeTypeOf("function");
+    expect(validateTransitionTemplateTable).toBeTypeOf("function");
+    expect(pendingResultTransitionTemplate).toBeTypeOf("function");
+    expect(pendingResultTransitionsFromTable).toBeTypeOf("function");
+    expect(validatePendingResultTransitionTable).toBeTypeOf("function");
     expect(createMachinaDebugOverlayMachine).toBeTypeOf("function");
     expect(getMachinaDebugOverlayBehavior).toBeTypeOf("function");
   });

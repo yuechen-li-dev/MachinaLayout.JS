@@ -476,6 +476,69 @@ This keeps the dependency direction clean:
 
 Use `Deus.validateTransitionsTable(table)` when you want diagnostics without throwing. `Deus.transitionsFromTable(table)` throws `TableError` on invalid transition tables.
 
+## Transition template tables
+
+Concrete transition tables are for direct runtime rows: one source row becomes one transition.
+
+Template tables are for repeated intent: one source row expands into a repeated transition family, then lowers into ordinary Deus transition rows. Diagnostics still point back to the original source row and cell.
+
+The built-in pending-result template covers repeated pending-success-failure flows:
+
+```ts
+import * as Deus from "machinalayout/deus";
+import { Table } from "machinalayout/table";
+
+const idle = ["idle"] as const;
+const providerPending = ["providerPending"] as const;
+const resourcePending = ["resourcePending"] as const;
+const servicePending = ["servicePending"] as const;
+const availabilityPending = ["availabilityPending"] as const;
+
+const pendingResults = Table.defineWithSchema({
+  id: "pendingResults",
+  schema: Table.schema({
+    entity: Table.string(),
+    pending: Table.unknown(),
+    successEvent: Table.string(),
+    failureEvent: Table.string(),
+    successTarget: Table.string(),
+    successPayload: Table.string(),
+    failurePayload: Table.string(),
+    to: Table.unknown(),
+  }),
+  columns: {
+    entity: ["provider", "resource", "service", "availability"],
+    pending: [providerPending, resourcePending, servicePending, availabilityPending],
+    successEvent: [
+      "providerCreated",
+      "resourceCreated",
+      "serviceCreated",
+      "availabilityCreated",
+    ],
+    failureEvent: ["providerFailed", "resourceFailed", "serviceFailed", "availabilityFailed"],
+    successTarget: ["provider", "resource", "service", "availabilityRule"],
+    successPayload: ["provider", "resource", "service", "rule"],
+    failurePayload: ["message", "message", "message", "message"],
+    to: [idle, idle, idle, idle],
+  },
+});
+
+const transitions = Deus.pendingResultTransitionsFromTable(pendingResults);
+```
+
+If you want the generic template bridge:
+
+```ts
+const template = Deus.pendingResultTransitionTemplate();
+const transitions = Deus.transitionsFromTemplateTable(pendingResults, template);
+```
+
+This remains intentionally narrow:
+
+- MachinaTable is still the authoring and diagnostic surface.
+- DeusMachina still owns runtime semantics.
+- Template tables are not a macro system, query engine, or code generation framework.
+
 ## Boundary
 
 MachinaTable is not:
