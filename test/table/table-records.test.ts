@@ -352,8 +352,17 @@ describe("table exports", () => {
     expect(table.Table.withSchema).toBeTypeOf("function");
     expect(table.Table.fromRows).toBeTypeOf("function");
     expect(table.Table.fromObjects).toBeTypeOf("function");
+    expect(table.Table.fromJsonObjects).toBeTypeOf("function");
+    expect(table.Table.fromColumnarJson).toBeTypeOf("function");
     expect(table.Table.toRows).toBeTypeOf("function");
+    expect(table.Table.toJsonRows).toBeTypeOf("function");
     expect(table.Table.toObjects).toBeTypeOf("function");
+    expect(table.Table.toJsonObjects).toBeTypeOf("function");
+    expect(table.Table.toColumnarJson).toBeTypeOf("function");
+    expect(table.Table.toMarkdown).toBeTypeOf("function");
+    expect(table.Table.toCsv).toBeTypeOf("function");
+    expect(table.Table.describe).toBeTypeOf("function");
+    expect(table.Table.preview).toBeTypeOf("function");
     expect(table.Table.getCell).toBeTypeOf("function");
     expect(table.Table.string).toBeTypeOf("function");
     expect(table.Table.number).toBeTypeOf("function");

@@ -330,8 +330,17 @@ describe("package export entrypoints", () => {
     expect(Table.withSchema).toBeTypeOf("function");
     expect(Table.fromRows).toBeTypeOf("function");
     expect(Table.fromObjects).toBeTypeOf("function");
+    expect(Table.fromJsonObjects).toBeTypeOf("function");
+    expect(Table.fromColumnarJson).toBeTypeOf("function");
     expect(Table.toRows).toBeTypeOf("function");
+    expect(Table.toJsonRows).toBeTypeOf("function");
     expect(Table.toObjects).toBeTypeOf("function");
+    expect(Table.toJsonObjects).toBeTypeOf("function");
+    expect(Table.toColumnarJson).toBeTypeOf("function");
+    expect(Table.toMarkdown).toBeTypeOf("function");
+    expect(Table.toCsv).toBeTypeOf("function");
+    expect(Table.describe).toBeTypeOf("function");
+    expect(Table.preview).toBeTypeOf("function");
     expect(Table.getColumn).toBeTypeOf("function");
     expect(Table.getCell).toBeTypeOf("function");
     expect(Table.getRow).toBeTypeOf("function");

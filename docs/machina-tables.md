@@ -124,6 +124,62 @@ Result:
 ]
 ```
 
+## Export and render helpers
+
+`Table.toColumnarJson` preserves the canonical columnar table shape.
+
+```ts
+const json = Table.toColumnarJson(orders);
+```
+
+Expected shape:
+
+```json
+{
+  "kind": "columnarTable",
+  "id": "orders",
+  "rowCount": 2,
+  "columns": {
+    "id": ["order-001", "order-002"],
+    "status": ["new", "paid"]
+  }
+}
+```
+
+This is the canonical table JSON export:
+
+- columns stay columns
+- rowCount stays explicit
+- table shape is preserved for docs, diagnostics, and artifacts
+
+`Table.toJsonObjects` is the explicit consumer adapter:
+
+```ts
+const rows = Table.toJsonObjects(orders);
+```
+
+Use it when another consumer wants row objects. It is not canonical table JSON.
+
+You can restore canonical tables with `Table.fromColumnarJson(json)`.
+
+For readable source snippets, docs, and reports:
+
+```ts
+Table.toMarkdown(orders);
+Table.preview(orders);
+```
+
+Example Markdown:
+
+```md
+| id | status | totalCents |
+| --- | --- | --- |
+| order-001 | new | 1299 |
+| order-002 | paid | 4599 |
+```
+
+`Table.describe(table)` returns a compact table summary, and `Table.preview(table)` pairs that summary with a Markdown preview. `Table.toCsv(table)` is available for simple export when CSV is the target format.
+
 ## Row array adapter
 
 ```ts

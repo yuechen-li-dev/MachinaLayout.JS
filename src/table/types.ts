@@ -79,6 +79,39 @@ export type SchemaColumnarTable<
   readonly schema: TSchema;
 };
 
+export type ColumnarTableJson = {
+  readonly kind: "columnarTable";
+  readonly id: string;
+  readonly columns: Record<string, readonly unknown[]>;
+  readonly rowCount: number;
+  readonly schema?: unknown;
+};
+
+export type TableMarkdownOptions = {
+  readonly maxRows?: number;
+  readonly includeRowIndex?: boolean;
+  readonly emptyCell?: string;
+};
+
+export type TableCsvOptions = {
+  readonly includeHeader?: boolean;
+};
+
+export type TableDescription = {
+  readonly kind: "tableDescription";
+  readonly id: string;
+  readonly rowCount: number;
+  readonly columnCount: number;
+  readonly columns: readonly string[];
+  readonly hasSchema: boolean;
+};
+
+export type TablePreview = {
+  readonly kind: "tablePreview";
+  readonly description: TableDescription;
+  readonly markdown: string;
+};
+
 export type RowTableInput<
   TColumnNames extends readonly string[] = readonly string[],
   TRow extends readonly unknown[] = readonly unknown[],
@@ -96,6 +129,10 @@ export type TableDiagnosticCode =
   | "DuplicateColumnName"
   | "InvalidColumnValues"
   | "ColumnLengthMismatch"
+  | "InvalidColumnarJson"
+  | "InvalidColumnarJsonKind"
+  | "InvalidColumnarJsonRowCount"
+  | "InvalidColumnarJsonSchema"
   | "InvalidRowWidth"
   | "MissingObjectColumn"
   | "ExtraObjectColumn"

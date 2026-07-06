@@ -74,7 +74,7 @@ Named capability constraints and template records are available at `machinalayou
 
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
-Dependency-free columnar table records, row/object adapters, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
+Dependency-free columnar table records, canonical columnar JSON export, row/object adapters, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
 Table-authored bridges for the existing MachinaDispatch runtime are available at `machinalayout/dispatch`; see [MachinaDispatch runtime guide](docs/machina-dispatch.md).
 
