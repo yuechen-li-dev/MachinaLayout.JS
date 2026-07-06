@@ -1,0 +1,1131 @@
+# Corrected TinyTown SpriteForge sidecar generated for MachinaCanvas M37h.
+# Source atlas and source sidecar come from the Dominatus Godot TinyTown sample.
+# This artifact keeps semantic rough regions but resolves demo-facing cuts into exact villager frames and singleton prop grids.
+
+[atlas]
+image = "tinytown_sprite_alpha.png"
+width = 1440
+height = 720
+
+[grids."characters_down"]
+origin_x = 0
+origin_y = 0
+columns = 1
+rows = 1
+cell_width = 360
+cell_height = 480
+default_pivot = "bottom_center"
+
+[grids."characters_left"]
+origin_x = 360
+origin_y = 0
+columns = 1
+rows = 1
+cell_width = 360
+cell_height = 480
+default_pivot = "bottom_center"
+
+[grids."characters_right"]
+origin_x = 720
+origin_y = 0
+columns = 1
+rows = 1
+cell_width = 360
+cell_height = 480
+default_pivot = "bottom_center"
+
+[grids."characters_up"]
+origin_x = 1080
+origin_y = 0
+columns = 1
+rows = 1
+cell_width = 360
+cell_height = 480
+default_pivot = "bottom_center"
+
+[grids."props_top"]
+origin_x = 0
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 1440
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."props_bottom"]
+origin_x = 0
+origin_y = 600
+columns = 1
+rows = 1
+cell_width = 1440
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."prop.well"]
+origin_x = 33
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 83
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."prop.market"]
+origin_x = 147
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 93
+cell_height = 115
+default_pivot = "bottom_center"
+
+[grids."prop.garden"]
+origin_x = 240
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 120
+cell_height = 113
+default_pivot = "bottom_center"
+
+[grids."prop.home"]
+origin_x = 360
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 120
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."prop.social"]
+origin_x = 480
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 120
+cell_height = 112
+default_pivot = "bottom_center"
+
+[grids."prop.signpost"]
+origin_x = 600
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 110
+cell_height = 119
+default_pivot = "bottom_center"
+
+[grids."prop.mailbox"]
+origin_x = 761
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 72
+cell_height = 118
+default_pivot = "bottom_center"
+
+[grids."prop.streetlamp"]
+origin_x = 888
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 56
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."prop.crate"]
+origin_x = 986
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 79
+cell_height = 115
+default_pivot = "bottom_center"
+
+[grids."prop.barrel"]
+origin_x = 1107
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 69
+cell_height = 115
+default_pivot = "bottom_center"
+
+[grids."prop.flowers"]
+origin_x = 1212
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 96
+cell_height = 118
+default_pivot = "bottom_center"
+
+[grids."prop.tree"]
+origin_x = 1327
+origin_y = 480
+columns = 1
+rows = 1
+cell_width = 90
+cell_height = 120
+default_pivot = "bottom_center"
+
+[grids."prop.campfire"]
+origin_x = 23
+origin_y = 623
+columns = 1
+rows = 1
+cell_width = 94
+cell_height = 81
+default_pivot = "bottom_center"
+
+[grids."prop.table"]
+origin_x = 145
+origin_y = 623
+columns = 1
+rows = 1
+cell_width = 92
+cell_height = 83
+default_pivot = "bottom_center"
+
+[grids."prop.bucket"]
+origin_x = 274
+origin_y = 618
+columns = 1
+rows = 1
+cell_width = 70
+cell_height = 88
+default_pivot = "bottom_center"
+
+[grids."prop.basket"]
+origin_x = 391
+origin_y = 600
+columns = 1
+rows = 1
+cell_width = 89
+cell_height = 106
+default_pivot = "bottom_center"
+
+[grids."prop.sack"]
+origin_x = 518
+origin_y = 620
+columns = 1
+rows = 1
+cell_width = 78
+cell_height = 84
+default_pivot = "bottom_center"
+
+[grids."prop.bush"]
+origin_x = 629
+origin_y = 623
+columns = 1
+rows = 1
+cell_width = 87
+cell_height = 80
+default_pivot = "bottom_center"
+
+[grids."prop.fence"]
+origin_x = 742
+origin_y = 637
+columns = 1
+rows = 1
+cell_width = 98
+cell_height = 62
+default_pivot = "bottom_center"
+
+[grids."prop.arch"]
+origin_x = 840
+origin_y = 600
+columns = 1
+rows = 1
+cell_width = 116
+cell_height = 107
+default_pivot = "bottom_center"
+
+[grids."prop.stone"]
+origin_x = 982
+origin_y = 629
+columns = 1
+rows = 1
+cell_width = 87
+cell_height = 70
+default_pivot = "bottom_center"
+
+[grids."prop.fountain"]
+origin_x = 1105
+origin_y = 614
+columns = 1
+rows = 1
+cell_width = 86
+cell_height = 92
+default_pivot = "bottom_center"
+
+[grids."prop.heart"]
+origin_x = 1225
+origin_y = 633
+columns = 1
+rows = 1
+cell_width = 71
+cell_height = 63
+default_pivot = "bottom_center"
+
+[grids."prop.speech_bubble"]
+origin_x = 1333
+origin_y = 600
+columns = 1
+rows = 1
+cell_width = 76
+cell_height = 99
+default_pivot = "bottom_center"
+
+# ==========================================
+# VILLAGERS
+# ==========================================
+
+[sprites.maya]
+kind = "villager"
+display_name = "Maya"
+
+[sprites.maya.animations.down]
+grid = "characters_down"
+row = 0
+frames = ["maya.down.0", "maya.down.1", "maya.down.2"]
+fps = 6
+loop = true
+
+[sprites.maya.animations.left]
+grid = "characters_left"
+row = 0
+frames = ["maya.left.0", "maya.left.1", "maya.left.2"]
+fps = 6
+loop = true
+
+[sprites.maya.animations.right]
+grid = "characters_right"
+row = 0
+frames = ["maya.right.0", "maya.right.1", "maya.right.2"]
+fps = 6
+loop = true
+
+[sprites.maya.animations.up]
+grid = "characters_up"
+row = 0
+frames = ["maya.up.0", "maya.up.1", "maya.up.2"]
+fps = 6
+loop = true
+
+[sprites.maya.animations.down_exact]
+grid = "characters_down"
+row = 0
+frames = ["maya.down.idle_exact", "maya.down.1", "maya.down.2"]
+fps = 6
+loop = true
+
+[sprites.theo]
+kind = "villager"
+display_name = "Theo"
+
+[sprites.theo.animations.down]
+grid = "characters_down"
+row = 0
+frames = ["theo.down.0", "theo.down.1", "theo.down.2"]
+fps = 6
+loop = true
+
+[sprites.theo.animations.left]
+grid = "characters_left"
+row = 0
+frames = ["theo.left.0", "theo.left.1", "theo.left.2"]
+fps = 6
+loop = true
+
+[sprites.theo.animations.right]
+grid = "characters_right"
+row = 0
+frames = ["theo.right.0", "theo.right.1", "theo.right.2"]
+fps = 6
+loop = true
+
+[sprites.theo.animations.up]
+grid = "characters_up"
+row = 0
+frames = ["theo.up.0", "theo.up.1", "theo.up.2"]
+fps = 6
+loop = true
+
+[sprites.lina]
+kind = "villager"
+display_name = "Lina"
+
+[sprites.lina.animations.down]
+grid = "characters_down"
+row = 0
+frames = ["lina.down.0", "lina.down.1", "lina.down.2"]
+fps = 6
+loop = true
+
+[sprites.lina.animations.left]
+grid = "characters_left"
+row = 0
+frames = ["lina.left.0", "lina.left.1", "lina.left.2"]
+fps = 6
+loop = true
+
+[sprites.lina.animations.right]
+grid = "characters_right"
+row = 0
+frames = ["lina.right.0", "lina.right.1", "lina.right.2"]
+fps = 6
+loop = true
+
+[sprites.lina.animations.up]
+grid = "characters_up"
+row = 0
+frames = ["lina.up.0", "lina.up.1", "lina.up.2"]
+fps = 6
+loop = true
+
+[sprites.nia]
+kind = "villager"
+display_name = "Nia"
+
+[sprites.nia.animations.down]
+grid = "characters_down"
+row = 0
+frames = ["nia.down.0", "nia.down.1", "nia.down.2"]
+fps = 6
+loop = true
+
+[sprites.nia.animations.left]
+grid = "characters_left"
+row = 0
+frames = ["nia.left.0", "nia.left.1", "nia.left.2"]
+fps = 6
+loop = true
+
+[sprites.nia.animations.right]
+grid = "characters_right"
+row = 0
+frames = ["nia.right.0", "nia.right.1", "nia.right.2"]
+fps = 6
+loop = true
+
+[sprites.nia.animations.up]
+grid = "characters_up"
+row = 0
+frames = ["nia.up.0", "nia.up.1", "nia.up.2"]
+fps = 6
+loop = true
+
+# ==========================================
+# PROPS / OBJECTS
+# ==========================================
+
+[sprites.well]
+kind = "destination"
+display_name = "Well"
+grid = "prop.well"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.market]
+kind = "destination"
+display_name = "Market"
+grid = "prop.market"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.garden]
+kind = "destination"
+display_name = "Garden"
+grid = "prop.garden"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.home]
+kind = "destination"
+display_name = "Home"
+grid = "prop.home"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.social]
+kind = "destination"
+display_name = "Social"
+grid = "prop.social"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.signpost]
+kind = "prop"
+display_name = "Signpost"
+grid = "prop.signpost"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.mailbox]
+kind = "prop"
+display_name = "Mailbox"
+grid = "prop.mailbox"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.streetlamp]
+kind = "prop"
+display_name = "Streetlamp"
+grid = "prop.streetlamp"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.crate]
+kind = "prop"
+display_name = "Crate"
+grid = "prop.crate"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.barrel]
+kind = "prop"
+display_name = "Barrel"
+grid = "prop.barrel"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.flowers]
+kind = "prop"
+display_name = "Flowers"
+grid = "prop.flowers"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.tree]
+kind = "prop"
+display_name = "Tree"
+grid = "prop.tree"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.campfire]
+kind = "prop"
+display_name = "Campfire"
+grid = "prop.campfire"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.table]
+kind = "prop"
+display_name = "Table"
+grid = "prop.table"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.bucket]
+kind = "prop"
+display_name = "Bucket"
+grid = "prop.bucket"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.basket]
+kind = "prop"
+display_name = "Basket"
+grid = "prop.basket"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.sack]
+kind = "prop"
+display_name = "Sack"
+grid = "prop.sack"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.bush]
+kind = "prop"
+display_name = "Bush"
+grid = "prop.bush"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.fence]
+kind = "prop"
+display_name = "Fence"
+grid = "prop.fence"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.arch]
+kind = "prop"
+display_name = "Archway"
+grid = "prop.arch"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.stone]
+kind = "prop"
+display_name = "Stone Slab"
+grid = "prop.stone"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.fountain]
+kind = "prop"
+display_name = "Fountain"
+grid = "prop.fountain"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.heart]
+kind = "ui"
+display_name = "Heart"
+grid = "prop.heart"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+[sprites.speech_bubble]
+kind = "ui"
+display_name = "Speech Bubble"
+grid = "prop.speech_bubble"
+row = 0
+col = 0
+scale = 1.0
+pivot = "bottom_center"
+
+# ==========================================
+# EXACT / CUSTOM FRAMES
+# ==========================================
+
+[frames."maya.down.0"]
+x = 46
+y = 19
+width = 70
+height = 101
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.down.1"]
+x = 165
+y = 19
+width = 71
+height = 101
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.down.2"]
+x = 281
+y = 19
+width = 71
+height = 101
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.left.0"]
+x = 427
+y = 26
+width = 53
+height = 94
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.left.1"]
+x = 480
+y = 26
+width = 120
+height = 94
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.left.2"]
+x = 600
+y = 27
+width = 105
+height = 93
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.right.0"]
+x = 770
+y = 22
+width = 68
+height = 98
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.right.1"]
+x = 881
+y = 22
+width = 67
+height = 98
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.right.2"]
+x = 993
+y = 22
+width = 64
+height = 98
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.up.0"]
+x = 1117
+y = 16
+width = 60
+height = 104
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.up.1"]
+x = 1225
+y = 16
+width = 64
+height = 104
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.up.2"]
+x = 1336
+y = 16
+width = 62
+height = 104
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.down.0"]
+x = 42
+y = 120
+width = 67
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.down.1"]
+x = 162
+y = 120
+width = 67
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.down.2"]
+x = 278
+y = 120
+width = 68
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.left.0"]
+x = 425
+y = 120
+width = 55
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.left.1"]
+x = 480
+y = 120
+width = 119
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.left.2"]
+x = 635
+y = 120
+width = 66
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.right.0"]
+x = 776
+y = 120
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.right.1"]
+x = 887
+y = 120
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.right.2"]
+x = 993
+y = 120
+width = 65
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.up.0"]
+x = 1115
+y = 120
+width = 66
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.up.1"]
+x = 1224
+y = 120
+width = 66
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."theo.up.2"]
+x = 1333
+y = 120
+width = 67
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.down.0"]
+x = 37
+y = 240
+width = 79
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.down.1"]
+x = 155
+y = 240
+width = 79
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.down.2"]
+x = 271
+y = 240
+width = 79
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.left.0"]
+x = 422
+y = 240
+width = 58
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.left.1"]
+x = 480
+y = 240
+width = 120
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.left.2"]
+x = 600
+y = 240
+width = 109
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.right.0"]
+x = 772
+y = 240
+width = 68
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.right.1"]
+x = 840
+y = 240
+width = 119
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.right.2"]
+x = 989
+y = 240
+width = 77
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.up.0"]
+x = 1110
+y = 240
+width = 76
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.up.1"]
+x = 1220
+y = 240
+width = 76
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."lina.up.2"]
+x = 1330
+y = 240
+width = 76
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.down.0"]
+x = 44
+y = 360
+width = 65
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.down.1"]
+x = 162
+y = 360
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.down.2"]
+x = 277
+y = 360
+width = 66
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.left.0"]
+x = 425
+y = 360
+width = 55
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.left.1"]
+x = 480
+y = 360
+width = 118
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.left.2"]
+x = 636
+y = 360
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.right.0"]
+x = 779
+y = 360
+width = 61
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.right.1"]
+x = 840
+y = 360
+width = 113
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.right.2"]
+x = 1000
+y = 360
+width = 61
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.up.0"]
+x = 1117
+y = 360
+width = 62
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.up.1"]
+x = 1226
+y = 360
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."nia.up.2"]
+x = 1336
+y = 360
+width = 64
+height = 120
+pivot = "bottom_center"
+offset_x = 0
+offset_y = 0
+scale = 1.0
+
+[frames."maya.down.idle_exact"]
+x = 24
+y = 8
+width = 72
+height = 104
+pivot = "bottom_center"
+offset_x = 0
+offset_y = -4
+scale = 1.0
