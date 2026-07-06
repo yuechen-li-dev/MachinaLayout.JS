@@ -10,7 +10,9 @@ import type {
   ImageObject,
   CanvasLayer,
   CanvasObject,
+  CanvasSpriteFrame,
   SketchOverlayObject,
+  SpriteSidecarObject,
   TextObject,
   UiComponentObject,
 } from "./sceneModel";
@@ -124,9 +126,28 @@ function getSketchOverlayRelations(document: CanvasDocument) {
     }));
 }
 
+function getSpriteSidecarRelations(document: CanvasDocument) {
+  return getObjectOrder(document)
+    .map((objectId) => document.objects[objectId])
+    .filter(
+      (object): object is ImageObject =>
+        object.kind === "image" &&
+        object.spriteSidecarId !== undefined &&
+        document.objects[object.spriteSidecarId] !== undefined,
+    )
+    .map((object) => ({
+      kind: "spriteSidecarFor" as const,
+      sourceId: object.id,
+      sidecarId: object.spriteSidecarId as string,
+    }));
+}
+
 function getObjectAssetPath(object: CanvasObject): string {
   if (object.kind === "sketchOverlay" && object.spec.dialect === "sketch") {
     return `objects/${sanitizePathId(object.id)}.sketch.toml`;
+  }
+  if (object.kind === "spriteSidecar") {
+    return `objects/${sanitizePathId(object.id)}.sprite.toml`;
   }
   return `objects/${sanitizePathId(object.id)}.toml`;
 }
@@ -359,7 +380,11 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         objectIds: [...layer.objectIds],
       })),
       objects,
-      relations: [...getAlphaMapRelations(document), ...getSketchOverlayRelations(document)],
+      relations: [
+        ...getAlphaMapRelations(document),
+        ...getSketchOverlayRelations(document),
+        ...getSpriteSidecarRelations(document),
+      ],
     },
     null,
     2,
@@ -440,9 +465,57 @@ export function serializeCanvasSketchToml(object: SketchOverlayObject): string {
   return `${lines.join("\n")}\n`;
 }
 
+export function serializeCanvasSpriteToml(object: SpriteSidecarObject): string {
+  if (object.spec.rawToml) return `${object.spec.rawToml.trimEnd()}\n`;
+
+  const lines = [
+    `id = ${quoteTomlString(object.spec.id)}`,
+    `kind = ${quoteTomlString(object.kind)}`,
+    `name = ${quoteTomlString(object.spec.name)}`,
+    `target_id = ${quoteTomlString(object.targetId)}`,
+    `dialect = ${quoteTomlString(object.spec.dialect)}`,
+    `visible = ${object.visible}`,
+    "",
+    "[overlay]",
+    `show_bounds = ${object.spec.overlay.showBounds}`,
+    `show_labels = ${object.spec.overlay.showLabels}`,
+    `selected_only = ${object.spec.overlay.selectedOnly}`,
+  ];
+
+  if (object.spec.atlasImage || object.spec.atlasWidth || object.spec.atlasHeight) {
+    lines.push("", "[atlas]");
+    if (object.spec.atlasImage) lines.push(`image = ${quoteTomlString(object.spec.atlasImage)}`);
+    if (object.spec.atlasWidth) lines.push(`width = ${object.spec.atlasWidth}`);
+    if (object.spec.atlasHeight) lines.push(`height = ${object.spec.atlasHeight}`);
+  }
+
+  for (const frame of object.spec.frames) {
+    lines.push(
+      "",
+      `[[frame]]`,
+      `id = ${quoteTomlString(frame.id)}`,
+      `label = ${quoteTomlString(frame.label)}`,
+      `x = ${frame.x}`,
+      `y = ${frame.y}`,
+      `width = ${frame.width}`,
+      `height = ${frame.height}`,
+    );
+    if (frame.spriteId) lines.push(`sprite_id = ${quoteTomlString(frame.spriteId)}`);
+    if (frame.animationId) lines.push(`animation_id = ${quoteTomlString(frame.animationId)}`);
+    if (frame.row !== undefined) lines.push(`row = ${frame.row}`);
+    if (frame.column !== undefined) lines.push(`column = ${frame.column}`);
+    if (frame.gridId) lines.push(`grid_id = ${quoteTomlString(frame.gridId)}`);
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
 export function serializeCanvasObjectToml(object: CanvasObject): string {
   if (object.kind === "sketchOverlay") {
     return serializeCanvasSketchToml(object);
+  }
+  if (object.kind === "spriteSidecar") {
+    return serializeCanvasSpriteToml(object);
   }
 
   const lines = [
@@ -486,6 +559,9 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
     }
     if (object.sketchOverlayId !== undefined) {
       lines.push(`sketch_overlay_id = ${quoteTomlString(object.sketchOverlayId)}`);
+    }
+    if (object.spriteSidecarId !== undefined) {
+      lines.push(`sprite_sidecar_id = ${quoteTomlString(object.spriteSidecarId)}`);
     }
     if (object.fit !== undefined) lines.push(`fit = ${quoteTomlString(object.fit)}`);
     if (object.intrinsicWidth !== undefined) {
@@ -550,7 +626,7 @@ export function serializeCanvasCommandsToml(
   if (description) lines.push(`description = ${quoteTomlString(description)}`);
 
   for (const command of commands) {
-    if (command.kind === "addImageObject") continue;
+    if (command.kind === "addImageObject" || command.kind === "addSpriteSidecarObject") continue;
 
     lines.push("", "[[command]]", `kind = ${quoteTomlString(command.kind)}`);
     switch (command.kind) {
@@ -650,6 +726,34 @@ export function serializeCanvasCommandsToml(
           `overlay_id = ${quoteTomlString(command.overlayId)}`,
           `visible = ${command.visible}`,
         );
+        break;
+      case "attachSpriteSidecar":
+        lines.push(
+          `source_id = ${quoteTomlString(command.sourceId)}`,
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+        );
+        break;
+      case "detachSpriteSidecar":
+        lines.push(`source_id = ${quoteTomlString(command.sourceId)}`);
+        break;
+      case "setSpriteSidecarVisible":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `visible = ${command.visible}`,
+        );
+        break;
+      case "setSpriteOverlayOption":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `option = ${quoteTomlString(command.option)}`,
+          `value = ${command.value}`,
+        );
+        break;
+      case "selectSpriteFrame":
+        lines.push(`sidecar_id = ${quoteTomlString(command.sidecarId)}`);
+        if (command.frameId !== undefined) {
+          lines.push(`frame_id = ${quoteTomlString(command.frameId)}`);
+        }
         break;
     }
   }
@@ -765,6 +869,16 @@ export function serializeCanvasHandoffToml(
     );
   }
 
+  for (const relation of getSpriteSidecarRelations(document)) {
+    lines.push(
+      "",
+      "[[sprite_sidecar]]",
+      `source_id = ${quoteTomlString(relation.sourceId)}`,
+      `sidecar_id = ${quoteTomlString(relation.sidecarId)}`,
+      `path = ${quoteTomlString(getObjectAssetPath(document.objects[relation.sidecarId]))}`,
+    );
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
@@ -790,6 +904,62 @@ function getVisibleSketchOverlay(
     return undefined;
   }
   return overlay;
+}
+
+function getVisibleSpriteSidecar(
+  document: CanvasDocument,
+  object: ImageObject,
+): SpriteSidecarObject | undefined {
+  if (!object.visible || object.spriteSidecarId === undefined) return undefined;
+  const sidecar = document.objects[object.spriteSidecarId];
+  if (sidecar?.kind !== "spriteSidecar" || !sidecar.visible || sidecar.targetId !== object.id) {
+    return undefined;
+  }
+  return sidecar;
+}
+
+function mapSpriteFrameToCanvasRect(object: ImageObject, frame: CanvasSpriteFrame) {
+  const sourceWidth = object.intrinsicWidth ?? object.width;
+  const sourceHeight = object.intrinsicHeight ?? object.height;
+  const scaleX = object.width / sourceWidth;
+  const scaleY = object.height / sourceHeight;
+  return {
+    x: object.x + frame.x * scaleX,
+    y: object.y + frame.y * scaleY,
+    width: frame.width * scaleX,
+    height: frame.height * scaleY,
+  };
+}
+
+function serializeResolvedSpriteSidecar(
+  object: ImageObject,
+  sidecar: SpriteSidecarObject,
+): string[] {
+  const lines = [
+    `  <g class="canvas-sprite-overlay" data-canvas-object-id="${quoteXmlAttribute(sidecar.id)}" data-canvas-kind="spriteSidecar" data-canvas-name="${quoteXmlAttribute(sidecar.name)}">`,
+  ];
+  const selectedFrameId = sidecar.spec.selectedFrameId;
+  const frames = sidecar.spec.overlay.selectedOnly
+    ? sidecar.spec.frames.filter((frame) => frame.id === selectedFrameId)
+    : sidecar.spec.frames;
+
+  for (const frame of frames) {
+    const rect = mapSpriteFrameToCanvasRect(object, frame);
+    const selected = frame.id === selectedFrameId;
+    if (sidecar.spec.overlay.showBounds) {
+      lines.push(
+        `    <rect class="canvas-sprite-frame${selected ? " is-selected" : ""}" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${selected ? "rgba(255, 196, 0, 0.16)" : "rgba(0, 160, 140, 0.08)"}" stroke="${selected ? "#ffb000" : "#00a08c"}" pointer-events="none" />`,
+      );
+    }
+    if (sidecar.spec.overlay.showLabels) {
+      lines.push(
+        `    <text class="canvas-sprite-label" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" x="${rect.x + 4}" y="${rect.y + 14}" pointer-events="none">${escapeXmlText(frame.label)}</text>`,
+      );
+    }
+  }
+
+  lines.push("  </g>");
+  return lines;
 }
 
 function serializeResolvedSketchOverlay(
@@ -883,7 +1053,7 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
           `    <text x="${object.x + 12}" y="${object.y + object.height - 12}" fill="#555550" font-size="10">${escapeXmlText(object.componentId)}</text>`,
           "  </g>",
         );
-      } else if (object.kind !== "sketchOverlay") {
+      } else if (object.kind === "image") {
         lines.push(
           serializeImageElement(
             object,
@@ -893,6 +1063,10 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
         const overlay = getVisibleSketchOverlay(document, object);
         if (overlay) {
           lines.push(...serializeResolvedSketchOverlay(document, overlay));
+        }
+        const spriteSidecar = getVisibleSpriteSidecar(document, object);
+        if (spriteSidecar) {
+          lines.push(...serializeResolvedSpriteSidecar(object, spriteSidecar));
         }
       }
     }

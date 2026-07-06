@@ -184,6 +184,10 @@ button {
   background: #eef4ff;
 }
 
+.kind-sprite {
+  background: #e6f6f2;
+}
+
 .canvas-panel {
   display: flex;
   flex-direction: column;
@@ -415,6 +419,10 @@ button {
   pointer-events: none;
 }
 
+.canvas-sprite-overlay {
+  pointer-events: none;
+}
+
 .canvas-sketch-box,
 .canvas-sketch-line,
 .canvas-sketch-point,
@@ -435,6 +443,24 @@ button {
   paint-order: stroke;
   stroke: #ffffff;
   stroke-width: 4px;
+}
+
+.canvas-sprite-frame {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 2px;
+}
+
+.canvas-sprite-frame.is-selected {
+  stroke-width: 4px;
+}
+
+.canvas-sprite-label {
+  fill: #062f2a;
+  font-size: 11px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
 }
 
 .reference-grid-border,
@@ -1025,6 +1051,60 @@ button {
   margin: 6px 0 0;
   color: #555550;
   font-size: 11px;
+  line-height: 1.35;
+}
+
+.sprite-frame-select {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.sprite-frame-select span {
+  color: #777770;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sprite-frame-select select {
+  min-width: 0;
+}
+
+.sprite-frame-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.sprite-frame-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  border: 1px solid #e1e1dc;
+  background: #fbfbfa;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.sprite-frame-card.is-selected {
+  border-color: #ffb000;
+  background: #fff8df;
+}
+
+.sprite-frame-card strong {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.sprite-frame-card small {
+  color: #555550;
+  font-size: 10px;
   line-height: 1.35;
 }
 

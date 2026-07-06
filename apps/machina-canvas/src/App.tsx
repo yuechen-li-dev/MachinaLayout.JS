@@ -58,13 +58,20 @@ import { initialSceneDocument } from "./sceneDocument";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import { resolveSketchSpec } from "./sketchOverlay";
+import {
+  createSpriteSidecarObject,
+  getSpriteFrameSummary,
+  parseSpriteSidecarToml,
+} from "./spriteSidecar";
 import type {
   CanvasDocument,
   CanvasFrame,
   CanvasImageRole,
   CanvasObject,
   CanvasObjectKind,
+  CanvasSpriteFrame,
   ImageObject,
+  SpriteSidecarObject,
   TextObject,
 } from "./sceneModel";
 import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
@@ -93,6 +100,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   image: "Image",
   uiComponent: "UI Component",
   sketchOverlay: "Sketch Overlay",
+  spriteSidecar: "Sprite Sidecar",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -109,12 +117,18 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   setFrame: "Set frame",
   setUiProp: "Set UI prop",
   addImageObject: "Add image object",
+  addSpriteSidecarObject: "Add sprite sidecar",
   removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
   detachAlphaMap: "Detach alpha map",
   attachSketchOverlay: "Attach sketch overlay",
   detachSketchOverlay: "Detach sketch overlay",
   setSketchOverlayVisible: "Set sketch overlay visible",
+  attachSpriteSidecar: "Attach sprite sidecar",
+  detachSpriteSidecar: "Detach sprite sidecar",
+  setSpriteSidecarVisible: "Set sprite sidecar visible",
+  setSpriteOverlayOption: "Set sprite overlay option",
+  selectSpriteFrame: "Select sprite frame",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -203,6 +217,7 @@ type AppViewData = {
     input: { targetObjectId?: string; options?: Record<string, unknown> },
   ) => Promise<void>;
   loadImageFile: (file: File, role: CanvasImageRole) => Promise<void>;
+  loadSpriteSidecarFile: (file: File, targetId?: string) => Promise<void>;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
   validateCommandJson: () => void;
@@ -287,6 +302,7 @@ function getKindClass(object: CanvasObject): string {
     image: () => "kind-image",
     uiComponent: () => "kind-ui",
     sketchOverlay: () => "kind-sketch",
+    spriteSidecar: () => "kind-sprite",
   });
 }
 
@@ -305,6 +321,7 @@ function getKindShortLabel(object: CanvasObject): string {
         : "IMG",
     uiComponent: () => "UI",
     sketchOverlay: () => "SKETCH",
+    spriteSidecar: () => "SPRITE",
   });
 }
 
@@ -319,6 +336,19 @@ function getSketchOverlayTarget(
   document: CanvasDocument,
   object: Extract<CanvasObject, { kind: "sketchOverlay" }>,
 ) {
+  const target = document.objects[object.targetId];
+  if (target?.kind !== "image") return undefined;
+  return target;
+}
+
+function getSpriteSidecarForImage(document: CanvasDocument, object: ImageObject) {
+  if (!object.spriteSidecarId) return undefined;
+  const sidecar = document.objects[object.spriteSidecarId];
+  if (sidecar?.kind !== "spriteSidecar" || sidecar.targetId !== object.id) return undefined;
+  return sidecar;
+}
+
+function getSpriteSidecarTarget(document: CanvasDocument, object: SpriteSidecarObject) {
   const target = document.objects[object.targetId];
   if (target?.kind !== "image") return undefined;
   return target;
@@ -469,6 +499,12 @@ function SceneTree(props: MachinaSlotProps) {
                     : undefined;
                 const sketchOverlayId =
                   object.kind === "image" ? object.sketchOverlayId : undefined;
+                const spriteFor =
+                  object.kind === "spriteSidecar"
+                    ? getSpriteSidecarTarget(document, object)?.id
+                    : undefined;
+                const spriteSidecarId =
+                  object.kind === "image" ? object.spriteSidecarId : undefined;
                 return (
                   <button
                     className={`tree-object ${selected ? "is-selected" : ""}`}
@@ -485,9 +521,13 @@ function SceneTree(props: MachinaSlotProps) {
                         ? `alpha for ${alphaFor}`
                         : sketchFor
                           ? `overlay for ${sketchFor}`
-                          : sketchOverlayId
-                            ? `overlay ${sketchOverlayId}`
-                            : getObjectGridSpan(document, object)}
+                          : spriteFor
+                            ? `sprite for ${spriteFor}`
+                            : sketchOverlayId
+                              ? `overlay ${sketchOverlayId}`
+                              : spriteSidecarId
+                                ? `sprite ${spriteSidecarId}`
+                                : getObjectGridSpan(document, object)}
                     </small>
                   </button>
                 );
@@ -532,7 +572,7 @@ function SceneObjectSvg({
   onSelect: (id: string) => void;
 }) {
   if (!object.visible) return null;
-  if (object.kind === "sketchOverlay") return null;
+  if (object.kind === "sketchOverlay" || object.kind === "spriteSidecar") return null;
 
   const common = {
     "data-canvas-object-id": object.id,
@@ -724,6 +764,87 @@ function SketchOverlaySvg({
   );
 }
 
+function mapSpriteFrameToCanvasRect(object: ImageObject, frame: CanvasSpriteFrame) {
+  const sourceWidth = object.intrinsicWidth ?? object.width;
+  const sourceHeight = object.intrinsicHeight ?? object.height;
+  const scaleX = object.width / sourceWidth;
+  const scaleY = object.height / sourceHeight;
+  return {
+    x: object.x + frame.x * scaleX,
+    y: object.y + frame.y * scaleY,
+    width: frame.width * scaleX,
+    height: frame.height * scaleY,
+  };
+}
+
+function SpriteSidecarSvg({
+  image,
+  sidecar,
+  selected,
+}: {
+  image: ImageObject;
+  sidecar: SpriteSidecarObject;
+  selected: boolean;
+}) {
+  if (!sidecar.visible) return null;
+
+  const selectedFrameId = sidecar.spec.selectedFrameId;
+  const frames = sidecar.spec.overlay.selectedOnly
+    ? sidecar.spec.frames.filter((frame) => frame.id === selectedFrameId)
+    : sidecar.spec.frames;
+
+  return (
+    <g
+      className={`canvas-sprite-overlay ${selected ? "is-selected" : ""}`}
+      data-canvas-object-id={sidecar.id}
+      data-canvas-kind={sidecar.kind}
+      data-canvas-name={sidecar.name}
+      pointerEvents="none"
+    >
+      {frames.map((frame) => {
+        const rect = mapSpriteFrameToCanvasRect(image, frame);
+        const frameSelected = frame.id === selectedFrameId;
+        return (
+          <Fragment key={frame.id}>
+            {sidecar.spec.overlay.showBounds ? (
+              <rect
+                className={`canvas-sprite-frame ${frameSelected ? "is-selected" : ""}`}
+                data-canvas-sprite-frame-id={frame.id}
+                fill={frameSelected ? "rgba(255, 196, 0, 0.16)" : "rgba(0, 160, 140, 0.08)"}
+                height={rect.height}
+                stroke={frameSelected ? "#ffb000" : "#00a08c"}
+                width={rect.width}
+                x={rect.x}
+                y={rect.y}
+              />
+            ) : null}
+            {sidecar.spec.overlay.showLabels ? (
+              <text
+                className="canvas-sprite-label"
+                data-canvas-sprite-frame-id={frame.id}
+                x={rect.x + 4}
+                y={rect.y + 14}
+              >
+                {frame.label}
+              </text>
+            ) : null}
+          </Fragment>
+        );
+      })}
+      {selected ? (
+        <rect
+          className="selection-box"
+          height={sidecar.height + 10}
+          rx={4}
+          width={sidecar.width + 10}
+          x={sidecar.x - 5}
+          y={sidecar.y - 5}
+        />
+      ) : null}
+    </g>
+  );
+}
+
 function ReferenceGridOverlay({
   document,
   showLines,
@@ -894,6 +1015,8 @@ function CanvasPanel(props: MachinaSlotProps) {
                   : undefined;
               const sketchOverlay =
                 object.kind === "image" ? getSketchOverlayForImage(document, object) : undefined;
+              const spriteSidecar =
+                object.kind === "image" ? getSpriteSidecarForImage(document, object) : undefined;
               return (
                 <Fragment key={object.id}>
                   <SceneObjectSvg
@@ -907,6 +1030,13 @@ function CanvasPanel(props: MachinaSlotProps) {
                       document={document}
                       overlay={sketchOverlay}
                       selected={document.selectedObjectId === sketchOverlay.id}
+                    />
+                  ) : null}
+                  {object.kind === "image" && spriteSidecar ? (
+                    <SpriteSidecarSvg
+                      image={object}
+                      sidecar={spriteSidecar}
+                      selected={document.selectedObjectId === spriteSidecar.id}
                     />
                   ) : null}
                 </Fragment>
@@ -1030,9 +1160,10 @@ function formatImageSrcLabel(src: string): string {
 }
 
 function ImageAssetSection(props: MachinaSlotProps) {
-  const { document, loadImageFile, runCommand } = readViewData(props);
+  const { document, loadImageFile, loadSpriteSidecarFile, runCommand } = readViewData(props);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const alphaInputRef = useRef<HTMLInputElement>(null);
+  const spriteInputRef = useRef<HTMLInputElement>(null);
   const selected = getSelectedObject(document);
   const imageObjects = Object.values(document.objects).filter(
     (object): object is ImageObject =>
@@ -1042,10 +1173,15 @@ function ImageAssetSection(props: MachinaSlotProps) {
     (object): object is ImageObject =>
       object.kind === "image" && (object.role === "alphaMap" || object.role === "mask"),
   );
+  const spriteSidecars = Object.values(document.objects).filter(
+    (object): object is SpriteSidecarObject => object.kind === "spriteSidecar",
+  );
   const defaultAlphaId = alphaObjects[0]?.id ?? "";
   const defaultSourceId = imageObjects[0]?.id ?? "";
+  const defaultSpriteId = spriteSidecars[0]?.id ?? "";
   const [alphaId, setAlphaId] = useState(defaultAlphaId);
   const [sourceId, setSourceId] = useState(defaultSourceId);
+  const [spriteId, setSpriteId] = useState(defaultSpriteId);
 
   useEffect(() => {
     setAlphaId((current) =>
@@ -1059,10 +1195,23 @@ function ImageAssetSection(props: MachinaSlotProps) {
     );
   }, [imageObjects, defaultSourceId]);
 
+  useEffect(() => {
+    setSpriteId((current) =>
+      current && spriteSidecars.some((object) => object.id === current) ? current : defaultSpriteId,
+    );
+  }, [spriteSidecars, defaultSpriteId]);
+
   const loadFromInput = (role: CanvasImageRole) => (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (file) void loadImageFile(file, role);
+  };
+
+  const loadSpriteFromInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    const targetId = selected?.kind === "image" ? selected.id : undefined;
+    if (file) void loadSpriteSidecarFile(file, targetId);
   };
 
   return (
@@ -1081,12 +1230,26 @@ function ImageAssetSection(props: MachinaSlotProps) {
         accept="image/png,image/jpeg,image/webp,image/svg+xml"
         onChange={loadFromInput("alphaMap")}
       />
+      <input
+        ref={spriteInputRef}
+        className="asset-file-input"
+        type="file"
+        accept=".toml,.sprite.toml,.spriteforge.toml,text/plain"
+        onChange={loadSpriteFromInput}
+      />
       <div className="asset-actions">
         <button type="button" onClick={() => imageInputRef.current?.click()}>
           Load image
         </button>
         <button type="button" onClick={() => alphaInputRef.current?.click()}>
           Load alpha map
+        </button>
+        <button
+          type="button"
+          disabled={selected?.kind !== "image"}
+          onClick={() => spriteInputRef.current?.click()}
+        >
+          Load sprite sidecar
         </button>
       </div>
       {selected?.kind === "image" &&
@@ -1144,6 +1307,45 @@ function ImageAssetSection(props: MachinaSlotProps) {
           onClick={() => runCommand({ kind: "detachAlphaMap", sourceId: selected.id })}
         >
           Detach alpha map
+        </button>
+      ) : null}
+      {selected?.kind === "image" &&
+      (selected.role === undefined || selected.role === "image") &&
+      spriteSidecars.length > 0 ? (
+        <div className="asset-select-row">
+          <select
+            aria-label="Sprite sidecar object"
+            value={spriteId}
+            onChange={(event) => setSpriteId(event.currentTarget.value)}
+          >
+            {spriteSidecars.map((object) => (
+              <option key={object.id} value={object.id}>
+                {object.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={!spriteId}
+            onClick={() =>
+              runCommand({
+                kind: "attachSpriteSidecar",
+                sourceId: selected.id,
+                sidecarId: spriteId,
+              })
+            }
+          >
+            Attach sprite
+          </button>
+        </div>
+      ) : null}
+      {selected?.kind === "image" && selected.spriteSidecarId ? (
+        <button
+          className="asset-wide-button"
+          type="button"
+          onClick={() => runCommand({ kind: "detachSpriteSidecar", sourceId: selected.id })}
+        >
+          Detach sprite sidecar
         </button>
       ) : null}
       {selected ? (
@@ -1715,6 +1917,7 @@ function Inspector(props: MachinaSlotProps) {
             <Field label="Src" value={formatImageSrcLabel(selected.src)} />
             <Field label="Role" value={selected.role ?? "image"} />
             <Field label="Alpha map" value={selected.alphaMapId ?? "none"} />
+            <Field label="Sprite sidecar" value={selected.spriteSidecarId ?? "none"} />
             <Field label="Opacity" value={selected.opacity ?? 1} />
             <Field label="Blend" value={selected.blendMode ?? "normal"} />
             <Field label="Fit" value={selected.fit ?? "fill"} />
@@ -1726,6 +1929,49 @@ function Inspector(props: MachinaSlotProps) {
                   : "unknown"
               }
             />
+          </InspectorSection>
+          <InspectorSection title="Sprite Sidecar">
+            {(() => {
+              const sidecar = getSpriteSidecarForImage(document, selected);
+              if (!sidecar) return <Field label="Sidecar" value="none" />;
+              const selectedFrame = sidecar.spec.frames.find(
+                (frame) => frame.id === sidecar.spec.selectedFrameId,
+              );
+              return (
+                <>
+                  <Field label="Sidecar" value={sidecar.id} />
+                  <Field label="Dialect" value={sidecar.spec.dialect} />
+                  <Field label="Frames" value={sidecar.spec.frames.length} />
+                  <Field label="Animations" value={sidecar.spec.animations.length} />
+                  <Field
+                    label="Selected"
+                    value={selectedFrame ? getSpriteFrameSummary(selectedFrame) : "none"}
+                  />
+                  <div className="command-row">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "setSpriteSidecarVisible",
+                          sidecarId: sidecar.id,
+                          visible: !sidecar.visible,
+                        })
+                      }
+                    >
+                      {sidecar.visible ? "Hide Sprite Overlay" : "Show Sprite Overlay"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({ kind: "detachSpriteSidecar", sourceId: selected.id })
+                      }
+                    >
+                      Detach Sprite Sidecar
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </InspectorSection>
           <InspectorSection title="Sketch Overlay">
             {(() => {
@@ -1837,6 +2083,122 @@ function Inspector(props: MachinaSlotProps) {
               </div>
             ))}
           </div>
+        </InspectorSection>
+      ) : null}
+      {selected.kind === "spriteSidecar" ? (
+        <InspectorSection title="Sprite Sidecar">
+          <Field label="Target" value={selected.targetId} />
+          <Field label="Dialect" value={selected.spec.dialect} />
+          <Field label="Source" value={selected.spec.sourceName ?? "unknown"} />
+          <Field
+            label="Atlas"
+            value={
+              selected.spec.atlasWidth && selected.spec.atlasHeight
+                ? `${selected.spec.atlasWidth} x ${selected.spec.atlasHeight}`
+                : "unknown"
+            }
+          />
+          <Field label="Grids" value={selected.spec.grids.length} />
+          <Field label="Frames" value={selected.spec.frames.length} />
+          <Field label="Animations" value={selected.spec.animations.length} />
+          <label className="toggle-row">
+            <span>Overlay visible</span>
+            <input
+              checked={selected.visible}
+              onChange={(event) =>
+                runCommand({
+                  kind: "setSpriteSidecarVisible",
+                  sidecarId: selected.id,
+                  visible: event.target.checked,
+                })
+              }
+              type="checkbox"
+            />
+          </label>
+          <ToggleField
+            label="Bounds / cut lines"
+            checked={selected.spec.overlay.showBounds}
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showBounds",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            label="Labels"
+            checked={selected.spec.overlay.showLabels}
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showLabels",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            label="Selected only"
+            checked={selected.spec.overlay.selectedOnly}
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "selectedOnly",
+                value,
+              })
+            }
+          />
+          <label className="sprite-frame-select">
+            <span>Selected frame</span>
+            <select
+              value={selected.spec.selectedFrameId ?? ""}
+              onChange={(event) =>
+                runCommand({
+                  kind: "selectSpriteFrame",
+                  sidecarId: selected.id,
+                  frameId: event.currentTarget.value || undefined,
+                })
+              }
+            >
+              {selected.spec.frames.map((frame) => (
+                <option key={frame.id} value={frame.id}>
+                  {frame.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="sprite-frame-list">
+            {selected.spec.frames.slice(0, 36).map((frame) => (
+              <button
+                className={
+                  selected.spec.selectedFrameId === frame.id
+                    ? "sprite-frame-card is-selected"
+                    : "sprite-frame-card"
+                }
+                key={frame.id}
+                type="button"
+                onClick={() =>
+                  runCommand({
+                    kind: "selectSpriteFrame",
+                    sidecarId: selected.id,
+                    frameId: frame.id,
+                  })
+                }
+              >
+                <strong>{frame.label}</strong>
+                <small>{getSpriteFrameSummary(frame)}</small>
+              </button>
+            ))}
+          </div>
+          {selected.spec.frames.length > 36 ? (
+            <p className="empty-note">
+              Showing first 36 of {selected.spec.frames.length} frames. Use the selector for the
+              full list.
+            </p>
+          ) : null}
         </InspectorSection>
       ) : null}
       {selected.kind === "uiComponent" ? (
@@ -2086,6 +2448,47 @@ export function App() {
       } catch (caught) {
         setLastCommand(
           caught instanceof Error ? caught.message : "Image file could not be loaded.",
+        );
+      }
+    };
+
+    const loadSpriteSidecarFile = async (file: File, targetId?: string) => {
+      try {
+        const target =
+          (targetId ? document.objects[targetId] : getSelectedObject(document)) ??
+          Object.values(document.objects).find(
+            (object): object is ImageObject =>
+              object.kind === "image" && (object.role === undefined || object.role === "image"),
+          );
+        if (target?.kind !== "image" || (target.role !== undefined && target.role !== "image")) {
+          setLastCommand("select an image before loading a sprite sidecar");
+          return;
+        }
+
+        const text = await file.text();
+        const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+        const sidecarId = makeUniqueObjectId(`${target.id}-sprite-sidecar`, document);
+        const spec = parseSpriteSidecarToml(text, {
+          id: sidecarId,
+          name: `${baseName || target.name} sprite sidecar`,
+          targetId: target.id,
+          sourceName: file.name,
+        });
+        const object = createSpriteSidecarObject(target, spec);
+        const command: CanvasCommand = { kind: "addSpriteSidecarObject", object, attach: true };
+        const validation = validateCanvasCommands(document, command);
+        setCommandValidation(validation);
+        if (!validation.ok) {
+          setLastCommand("sprite sidecar command invalid");
+          return;
+        }
+
+        const applyResult = applyCanvasCommands(document, [command]);
+        setDocument(applyResult.document);
+        recordAppliedCommands([command], applyResult.results);
+      } catch (caught) {
+        setLastCommand(
+          caught instanceof Error ? caught.message : "Sprite sidecar could not be loaded.",
         );
       }
     };
@@ -2366,6 +2769,7 @@ export function App() {
       runCommand,
       runCanvasTool,
       loadImageFile,
+      loadSpriteSidecarFile,
       setCommandJson,
       loadExampleCommands,
       validateCommandJson,

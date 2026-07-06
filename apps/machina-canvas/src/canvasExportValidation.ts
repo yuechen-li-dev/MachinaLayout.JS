@@ -15,6 +15,7 @@ export type CanvasExportValidationDiagnosticCode =
   | "InvalidUnitSystem"
   | "InvalidCompositeRelation"
   | "InvalidSketchOverlayRelation"
+  | "InvalidSpriteSidecarRelation"
   | "MissingCompositeMask"
   | "MissingCommandRecipe"
   | "EmptyExportBundle";
@@ -65,6 +66,7 @@ type DocumentIndex = {
     sourceId: string;
     alphaId?: string;
     overlayId?: string;
+    sidecarId?: string;
   }>;
 };
 
@@ -128,11 +130,14 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
       if (relation.alphaId !== undefined && typeof relation.alphaId !== "string") return undefined;
       if (relation.overlayId !== undefined && typeof relation.overlayId !== "string")
         return undefined;
+      if (relation.sidecarId !== undefined && typeof relation.sidecarId !== "string")
+        return undefined;
       relations.push({
         kind: relation.kind,
         sourceId: relation.sourceId,
         alphaId: relation.alphaId,
         overlayId: relation.overlayId,
+        sidecarId: relation.sidecarId,
       });
     }
   }
@@ -459,6 +464,48 @@ export function validateCanvasExportBundle(
             path: "document.json",
             objectId: overlayId,
             message: `sketchOverlayFor overlay ${overlayId} must be a sketchOverlay object.`,
+          });
+        }
+      }
+
+      if (relation.kind === "spriteSidecarFor") {
+        const sidecarId = relation.sidecarId;
+        const source = documentIndex.objects[relation.sourceId];
+        const sidecar = sidecarId ? documentIndex.objects[sidecarId] : undefined;
+
+        if (source === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSpriteSidecarRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `spriteSidecarFor source ${relation.sourceId} is not present in document.json.`,
+          });
+        } else if (source.kind !== "image") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSpriteSidecarRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `spriteSidecarFor source ${relation.sourceId} must be an image object.`,
+          });
+        }
+
+        if (sidecarId === undefined || sidecar === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSpriteSidecarRelation",
+            path: "document.json",
+            objectId: sidecarId,
+            message: `spriteSidecarFor sidecar ${sidecarId} is not present in document.json.`,
+          });
+        } else if (sidecar.kind !== "spriteSidecar") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidSpriteSidecarRelation",
+            path: "document.json",
+            objectId: sidecarId,
+            message: `spriteSidecarFor sidecar ${sidecarId} must be a spriteSidecar object.`,
           });
         }
       }

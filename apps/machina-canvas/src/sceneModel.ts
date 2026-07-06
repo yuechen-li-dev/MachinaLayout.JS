@@ -36,7 +36,8 @@ export type CanvasObject =
   | TextObject
   | ImageObject
   | UiComponentObject
-  | SketchOverlayObject;
+  | SketchOverlayObject
+  | SpriteSidecarObject;
 
 export type CanvasFrame =
   | CanvasAbsoluteFrame
@@ -99,7 +100,8 @@ export type CanvasObjectKind =
   | "text"
   | "image"
   | "uiComponent"
-  | "sketchOverlay";
+  | "sketchOverlay"
+  | "spriteSidecar";
 
 export type CanvasUiPropValue =
   | string
@@ -188,6 +190,76 @@ export type CanvasSketchSpec = {
   primitives: readonly CanvasSketchPrimitive[];
 };
 
+export type CanvasSpriteOverlaySettings = {
+  showBounds: boolean;
+  showLabels: boolean;
+  selectedOnly: boolean;
+};
+
+export type CanvasSpriteGridSpec = {
+  id: string;
+  x: number;
+  y: number;
+  columns: number;
+  rows: number;
+  cellWidth: number;
+  cellHeight: number;
+  pivot?: string;
+};
+
+export type CanvasSpriteFrame = {
+  id: string;
+  label: string;
+  spriteId?: string;
+  animationId?: string;
+  clipId?: string;
+  kind?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  row?: number;
+  column?: number;
+  source?: "grid" | "frame" | "inline";
+  gridId?: string;
+  pivot?: string;
+};
+
+export type CanvasSpriteAnimation = {
+  id: string;
+  spriteId: string;
+  gridId?: string;
+  row?: number;
+  frameIds: readonly string[];
+  fps?: number;
+  loop?: boolean;
+};
+
+export type CanvasSpriteDiagnostics = {
+  severity: "info" | "warning";
+  code: string;
+  message: string;
+  frameIds?: readonly string[];
+};
+
+export type CanvasSpriteSpec = {
+  id: string;
+  name: string;
+  dialect: "sprite" | "spriteforge";
+  targetId: string;
+  sourceName?: string;
+  atlasImage?: string;
+  atlasWidth?: number;
+  atlasHeight?: number;
+  grids: readonly CanvasSpriteGridSpec[];
+  frames: readonly CanvasSpriteFrame[];
+  animations: readonly CanvasSpriteAnimation[];
+  diagnostics: readonly CanvasSpriteDiagnostics[];
+  overlay: CanvasSpriteOverlaySettings;
+  selectedFrameId?: string;
+  rawToml?: string;
+};
+
 export type RectObject = CanvasObjectBase & {
   kind: "rect";
   radius?: number;
@@ -210,6 +282,7 @@ export type ImageObject = CanvasObjectBase & {
   role?: CanvasImageRole;
   alphaMapId?: string;
   sketchOverlayId?: string;
+  spriteSidecarId?: string;
   intrinsicWidth?: number;
   intrinsicHeight?: number;
   opacity?: number;
@@ -230,4 +303,11 @@ export type SketchOverlayObject = CanvasObjectBase & {
   role?: "sketch";
   targetId: string;
   spec: CanvasSketchSpec;
+};
+
+export type SpriteSidecarObject = CanvasObjectBase & {
+  kind: "spriteSidecar";
+  role?: "spriteSidecar";
+  targetId: string;
+  spec: CanvasSpriteSpec;
 };

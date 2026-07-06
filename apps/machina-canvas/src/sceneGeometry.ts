@@ -99,6 +99,88 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
         });
       }
     }
+
+    if (object.kind === "image" && object.spriteSidecarId !== undefined) {
+      const sidecar = document.objects[object.spriteSidecarId];
+      if (sidecar === undefined) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSpriteSidecarRelation",
+          message: `${object.name} references missing sprite sidecar ${object.spriteSidecarId}.`,
+          objectIds: [object.id],
+        });
+      } else if (sidecar.kind !== "spriteSidecar") {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSpriteSidecarRelation",
+          message: `${object.name} references non-sprite sidecar ${sidecar.name}.`,
+          objectIds: [object.id, sidecar.id],
+        });
+      } else if (sidecar.targetId !== object.id) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSpriteSidecarRelation",
+          message: `${object.name} sprite sidecar ${sidecar.id} targets ${sidecar.targetId} instead.`,
+          objectIds: [object.id, sidecar.id],
+        });
+      }
+    }
+
+    if (object.kind === "spriteSidecar") {
+      const target = document.objects[object.targetId];
+      if (target?.kind !== "image") {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidSpriteSidecarRelation",
+          message: `${object.name} targets missing or non-image object ${object.targetId}.`,
+          objectIds: [object.id],
+        });
+      } else {
+        const atlasWidth = object.spec.atlasWidth ?? target.intrinsicWidth;
+        const atlasHeight = object.spec.atlasHeight ?? target.intrinsicHeight;
+        if (
+          atlasWidth !== undefined &&
+          atlasHeight !== undefined &&
+          target.intrinsicWidth !== undefined &&
+          target.intrinsicHeight !== undefined &&
+          (atlasWidth !== target.intrinsicWidth || atlasHeight !== target.intrinsicHeight)
+        ) {
+          diagnostics.push({
+            severity: "warning",
+            code: "SpriteAtlasDimensionMismatch",
+            message: `${object.name} atlas is ${atlasWidth} x ${atlasHeight}, image intrinsic size is ${target.intrinsicWidth} x ${target.intrinsicHeight}.`,
+            objectIds: [object.id, target.id],
+          });
+        }
+
+        if (atlasWidth !== undefined && atlasHeight !== undefined) {
+          for (const frame of object.spec.frames) {
+            if (
+              frame.x < 0 ||
+              frame.y < 0 ||
+              frame.x + frame.width > atlasWidth ||
+              frame.y + frame.height > atlasHeight
+            ) {
+              diagnostics.push({
+                severity: "warning",
+                code: "SpriteFrameOutOfBounds",
+                message: `${object.name} frame ${frame.id} exceeds the ${atlasWidth} x ${atlasHeight} atlas.`,
+                objectIds: [object.id, target.id],
+              });
+            }
+          }
+        }
+      }
+
+      for (const diagnostic of object.spec.diagnostics) {
+        diagnostics.push({
+          severity: diagnostic.severity,
+          code: diagnostic.code,
+          message: diagnostic.message,
+          objectIds: [object.id],
+        });
+      }
+    }
   }
 
   if (selected?.visible) {

@@ -7,6 +7,7 @@ import type {
   CanvasObject,
   CanvasUiPropValue,
   ImageObject,
+  SpriteSidecarObject,
 } from "./sceneModel";
 import {
   gridPointRefToCanvasPoint,
@@ -66,6 +67,11 @@ export type CanvasCommand =
       object: ImageObject;
     }
   | {
+      kind: "addSpriteSidecarObject";
+      object: SpriteSidecarObject;
+      attach?: boolean;
+    }
+  | {
       kind: "removeObject";
       id: string;
     }
@@ -91,6 +97,31 @@ export type CanvasCommand =
       kind: "setSketchOverlayVisible";
       overlayId: string;
       visible: boolean;
+    }
+  | {
+      kind: "attachSpriteSidecar";
+      sourceId: string;
+      sidecarId: string;
+    }
+  | {
+      kind: "detachSpriteSidecar";
+      sourceId: string;
+    }
+  | {
+      kind: "setSpriteSidecarVisible";
+      sidecarId: string;
+      visible: boolean;
+    }
+  | {
+      kind: "setSpriteOverlayOption";
+      sidecarId: string;
+      option: "showBounds" | "showLabels" | "selectedOnly";
+      value: boolean;
+    }
+  | {
+      kind: "selectSpriteFrame";
+      sidecarId: string;
+      frameId?: string;
     };
 
 export type CanvasCommandValidationContext = {
@@ -450,6 +481,70 @@ function validateAddImageObjectCommand(
   }
 }
 
+function validateAddSpriteSidecarCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  object: unknown,
+  commandIndex: number | undefined,
+) {
+  if (!isRecord(object)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecar",
+      message: "addSpriteSidecarObject requires a sprite sidecar object.",
+      commandIndex,
+    });
+    return;
+  }
+
+  if (!isString(object.id) || object.id.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecar",
+      message: "Sprite sidecar id must be a non-empty string.",
+      commandIndex,
+    });
+  } else if (document.objects[object.id] !== undefined) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "DuplicateObjectId",
+      message: `Object "${object.id}" already exists.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  }
+
+  if (object.kind !== "spriteSidecar") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecar",
+      message: "addSpriteSidecarObject only accepts objects with kind spriteSidecar.",
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (!isString(object.layerId) || !document.layers.some((layer) => layer.id === object.layerId)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "MissingLayer",
+      message: `Sprite sidecar layer "${String(object.layerId)}" does not exist.`,
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (!isString(object.targetId) || document.objects[object.targetId]?.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecarRelation",
+      message: `Sprite sidecar target "${String(object.targetId)}" must be an image object.`,
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+}
+
 function validateRemoveObjectCommand(
   document: CanvasDocument,
   diagnostics: CanvasCommandValidationDiagnostic[],
@@ -460,7 +555,8 @@ function validateRemoveObjectCommand(
   if (!isString(id) || document.objects[id] === undefined) return;
 
   const references = Object.values(document.objects).filter(
-    (object) => object.kind === "image" && object.alphaMapId === id,
+    (object) =>
+      object.kind === "image" && (object.alphaMapId === id || object.spriteSidecarId === id),
   );
   if (references.length > 0) {
     addDiagnostic(diagnostics, {
@@ -471,6 +567,59 @@ function validateRemoveObjectCommand(
       }.`,
       commandIndex,
       objectId: id,
+    });
+  }
+}
+
+function validateSpriteSidecarCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.sourceId, commandIndex, "sourceId");
+  validateObjectId(document, diagnostics, command.sidecarId, commandIndex, "sidecarId");
+
+  if (!isString(command.sourceId) || !isString(command.sidecarId)) return;
+  if (command.sourceId === command.sidecarId) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecarRelation",
+      message: "sourceId and sidecarId must reference different objects.",
+      commandIndex,
+      objectId: command.sourceId,
+    });
+    return;
+  }
+
+  const source = document.objects[command.sourceId];
+  const sidecar = document.objects[command.sidecarId];
+
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+
+  if (sidecar !== undefined && sidecar.kind !== "spriteSidecar") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecarRelation",
+      message: `Sidecar object "${sidecar.id}" must be a sprite sidecar object.`,
+      commandIndex,
+      objectId: sidecar.id,
+    });
+  } else if (sidecar?.targetId !== command.sourceId) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecarRelation",
+      message: `Sprite sidecar "${sidecar?.id}" must target image "${command.sourceId}".`,
+      commandIndex,
+      objectId: sidecar?.id,
     });
   }
 }
@@ -762,6 +911,46 @@ function validateSetSketchOverlayVisibleCommand(
   }
 }
 
+function validateDetachSpriteSidecarCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  sourceId: unknown,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, sourceId, commandIndex, "sourceId");
+  if (!isString(sourceId)) return;
+  const source = document.objects[sourceId];
+  if (source !== undefined && source.kind !== "image") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidImageObject",
+      message: `Source object "${source.id}" must be an image object.`,
+      commandIndex,
+      objectId: source.id,
+    });
+  }
+}
+
+function validateSpriteSidecarMutationCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.sidecarId, commandIndex, "sidecarId");
+  if (!isString(command.sidecarId)) return;
+  const sidecar = document.objects[command.sidecarId];
+  if (sidecar !== undefined && sidecar.kind !== "spriteSidecar") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidSpriteSidecarRelation",
+      message: `Sidecar object "${sidecar.id}" must be a sprite sidecar object.`,
+      commandIndex,
+      objectId: sidecar.id,
+    });
+  }
+}
+
 export function validateCanvasCommand(
   document: CanvasDocument,
   command: unknown,
@@ -888,6 +1077,9 @@ export function validateCanvasCommand(
     case "addImageObject":
       validateAddImageObjectCommand(document, diagnostics, command.object, commandIndex);
       break;
+    case "addSpriteSidecarObject":
+      validateAddSpriteSidecarCommand(document, diagnostics, command.object, commandIndex);
+      break;
     case "removeObject":
       validateRemoveObjectCommand(document, diagnostics, command.id, commandIndex);
       break;
@@ -905,6 +1097,53 @@ export function validateCanvasCommand(
       break;
     case "setSketchOverlayVisible":
       validateSetSketchOverlayVisibleCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "attachSpriteSidecar":
+      validateSpriteSidecarCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "detachSpriteSidecar":
+      validateDetachSpriteSidecarCommand(document, diagnostics, command.sourceId, commandIndex);
+      break;
+    case "setSpriteSidecarVisible":
+      validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
+      if (typeof command.visible !== "boolean") {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "visible must be a boolean.",
+          commandIndex,
+        });
+      }
+      break;
+    case "setSpriteOverlayOption":
+      validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
+      if (!["showBounds", "showLabels", "selectedOnly"].includes(String(command.option))) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "option must be showBounds, showLabels, or selectedOnly.",
+          commandIndex,
+        });
+      }
+      if (typeof command.value !== "boolean") {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "value must be a boolean.",
+          commandIndex,
+        });
+      }
+      break;
+    case "selectSpriteFrame":
+      validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
+      if (command.frameId !== undefined && !isString(command.frameId)) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "frameId must be a string when present.",
+          commandIndex,
+        });
+      }
       break;
     default:
       addDiagnostic(diagnostics, {
@@ -1106,6 +1345,11 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
       ? `Image object ${command.object.id} was already present.`
       : `Added image object ${command.object.id}.`;
   }
+  if (command.kind === "addSpriteSidecarObject") {
+    return changes.length === 0
+      ? `Sprite sidecar ${command.object.id} was already present.`
+      : `Added sprite sidecar ${command.object.id}.`;
+  }
   if (command.kind === "removeObject") {
     return changes.length === 0
       ? `Object ${command.id} was not removed.`
@@ -1135,6 +1379,31 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Sketch overlay ${command.overlayId} visibility was already ${command.visible}.`
       : `Set sketch overlay ${command.overlayId} visible ${command.visible}.`;
+  }
+  if (command.kind === "attachSpriteSidecar") {
+    return changes.length === 0
+      ? `Sprite sidecar ${command.sidecarId} was already attached to ${command.sourceId}.`
+      : `Attached sprite sidecar ${command.sidecarId} to ${command.sourceId}.`;
+  }
+  if (command.kind === "detachSpriteSidecar") {
+    return changes.length === 0
+      ? `No sprite sidecar was attached to ${command.sourceId}.`
+      : `Detached sprite sidecar from ${command.sourceId}.`;
+  }
+  if (command.kind === "setSpriteSidecarVisible") {
+    return changes.length === 0
+      ? `Sprite sidecar ${command.sidecarId} visibility was already ${command.visible}.`
+      : `Set sprite sidecar ${command.sidecarId} visible ${command.visible}.`;
+  }
+  if (command.kind === "setSpriteOverlayOption") {
+    return changes.length === 0
+      ? `Sprite overlay ${command.option} was already ${command.value}.`
+      : `Set sprite overlay ${command.option} to ${command.value}.`;
+  }
+  if (command.kind === "selectSpriteFrame") {
+    return changes.length === 0
+      ? `Sprite frame selection was already ${command.frameId ?? "none"}.`
+      : `Selected sprite frame ${command.frameId ?? "none"}.`;
   }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
@@ -1219,6 +1488,74 @@ export function applyCanvasCommand(
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
+  if (command.kind === "addSpriteSidecarObject") {
+    if (document.objects[command.object.id] !== undefined) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addSpriteSidecarObject skipped duplicate object "${command.object.id}".`,
+      };
+    }
+
+    const layerExists = document.layers.some((layer) => layer.id === command.object.layerId);
+    const target = document.objects[command.object.targetId];
+    if (!layerExists || command.object.kind !== "spriteSidecar" || target?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `addSpriteSidecarObject skipped invalid sprite sidecar "${command.object.id}".`,
+      };
+    }
+
+    changes.push({
+      objectId: command.object.id,
+      field: "objects",
+      before: undefined,
+      after: command.object,
+    });
+    changes.push({
+      objectId: command.object.id,
+      field: "layer.objectIds",
+      before: undefined,
+      after: command.object.id,
+    });
+    if (command.attach) {
+      changes.push({
+        objectId: target.id,
+        field: "spriteSidecarId",
+        before: target.spriteSidecarId,
+        after: command.object.id,
+      });
+    }
+    changes.push({
+      objectId: command.object.id,
+      field: "selectedObjectId",
+      before: document.selectedObjectId,
+      after: command.object.id,
+    });
+
+    nextDocument = {
+      ...document,
+      selectedObjectId: command.object.id,
+      objects: {
+        ...document.objects,
+        [command.object.id]: command.object,
+        ...(command.attach
+          ? { [target.id]: { ...target, spriteSidecarId: command.object.id } }
+          : {}),
+      },
+      layers: document.layers.map((layer) =>
+        layer.id === command.object.layerId
+          ? { ...layer, objectIds: [...layer.objectIds, command.object.id] }
+          : layer,
+      ),
+    };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
   if (command.kind === "setUiProp") {
     const object = document.objects[command.id];
     if (object?.kind !== "uiComponent") {
@@ -1277,6 +1614,16 @@ export function applyCanvasCommand(
         changes.push({
           objectId,
           field: "sketchOverlayId",
+          before: command.id,
+          after: undefined,
+        });
+      }
+      if (object.kind === "image" && object.spriteSidecarId === command.id) {
+        const { spriteSidecarId: _spriteSidecarId, ...nextObject } = object;
+        nextObjects[objectId] = nextObject;
+        changes.push({
+          objectId,
+          field: "spriteSidecarId",
           before: command.id,
           after: undefined,
         });
@@ -1450,6 +1797,110 @@ export function applyCanvasCommand(
     changeField(changes, overlay, "visible", command.visible);
     if (changes.length > 0) {
       nextDocument = replaceObject(document, overlay.id, { ...overlay, visible: command.visible });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "attachSpriteSidecar") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachSpriteSidecar skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "spriteSidecarId", command.sidecarId);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, source.id, {
+        ...source,
+        spriteSidecarId: command.sidecarId,
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "detachSpriteSidecar") {
+    const source = document.objects[command.sourceId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `detachSpriteSidecar skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    changeField(changes, source, "spriteSidecarId", undefined);
+    if (changes.length > 0) {
+      const { spriteSidecarId: _spriteSidecarId, ...nextSource } = source;
+      nextDocument = replaceObject(document, source.id, nextSource);
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setSpriteSidecarVisible") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setSpriteSidecarVisible skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    changeField(changes, sidecar, "visible", command.visible);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, sidecar.id, { ...sidecar, visible: command.visible });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setSpriteOverlayOption") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setSpriteOverlayOption skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const before = sidecar.spec.overlay[command.option];
+    if (before !== command.value) {
+      changes.push({
+        objectId: sidecar.id,
+        field: `spec.overlay.${command.option}`,
+        before,
+        after: command.value,
+      });
+      nextDocument = replaceObject(document, sidecar.id, {
+        ...sidecar,
+        spec: {
+          ...sidecar.spec,
+          overlay: { ...sidecar.spec.overlay, [command.option]: command.value },
+        },
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "selectSpriteFrame") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `selectSpriteFrame skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    changeField(changes, sidecar, "spec.selectedFrameId", command.frameId);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, sidecar.id, {
+        ...sidecar,
+        spec: { ...sidecar.spec, selectedFrameId: command.frameId },
+      });
     }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
