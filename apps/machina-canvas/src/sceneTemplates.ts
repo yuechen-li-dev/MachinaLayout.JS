@@ -1,7 +1,364 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import { createCanvasUnitSystem } from "./canvasUnits";
 import { createInitialCanvasDocument } from "./sceneDocument";
-import type { CanvasDocument, CanvasObject } from "./sceneModel";
+import type { CanvasDocument, CanvasObject, ImageObject } from "./sceneModel";
+import { createSpriteSidecarObject, parseSpriteSidecarToml } from "./spriteSidecar";
+
+const spriteFixtureToml = `
+[atlas]
+image = "tinytown_sprite_alpha.png"
+width = 1440
+height = 720
+
+[grids.villagers_down]
+origin_x = 0
+origin_y = 0
+columns = 3
+rows = 4
+cell_width = 120
+cell_height = 120
+
+[sprites.maya]
+kind = "villager"
+display_name = "Maya"
+
+[sprites.maya.animations.down]
+grid = "villagers_down"
+row = 0
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[grids.villagers_left]
+origin_x = 360
+origin_y = 0
+columns = 3
+rows = 4
+cell_width = 120
+cell_height = 120
+
+[sprites.maya.animations.left]
+grid = "villagers_left"
+row = 0
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[grids.villagers_right]
+origin_x = 720
+origin_y = 0
+columns = 3
+rows = 4
+cell_width = 120
+cell_height = 120
+
+[sprites.maya.animations.right]
+grid = "villagers_right"
+row = 0
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[grids.villagers_up]
+origin_x = 1080
+origin_y = 0
+columns = 3
+rows = 4
+cell_width = 120
+cell_height = 120
+
+[sprites.maya.animations.up]
+grid = "villagers_up"
+row = 0
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.maya.animations.down_exact]
+grid = "villagers_down"
+row = 0
+frames = ["maya.down.idle_exact", 1, 2]
+fps = 6
+loop = true
+
+[sprites.theo]
+kind = "villager"
+display_name = "Theo"
+
+[sprites.theo.animations.down]
+grid = "villagers_down"
+row = 1
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.theo.animations.left]
+grid = "villagers_left"
+row = 1
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.theo.animations.right]
+grid = "villagers_right"
+row = 1
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.theo.animations.up]
+grid = "villagers_up"
+row = 1
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.lina]
+kind = "villager"
+display_name = "Lina"
+
+[sprites.lina.animations.down]
+grid = "villagers_down"
+row = 2
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.lina.animations.left]
+grid = "villagers_left"
+row = 2
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.lina.animations.right]
+grid = "villagers_right"
+row = 2
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.lina.animations.up]
+grid = "villagers_up"
+row = 2
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.nia]
+kind = "villager"
+display_name = "Nia"
+
+[sprites.nia.animations.down]
+grid = "villagers_down"
+row = 3
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.nia.animations.left]
+grid = "villagers_left"
+row = 3
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.nia.animations.right]
+grid = "villagers_right"
+row = 3
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[sprites.nia.animations.up]
+grid = "villagers_up"
+row = 3
+frames = [0, 1, 2]
+fps = 6
+loop = true
+
+[grids.props]
+origin_x = 0
+origin_y = 480
+columns = 12
+rows = 2
+cell_width = 120
+cell_height = 120
+
+[sprites.well]
+kind = "destination"
+display_name = "Well"
+grid = "props"
+row = 0
+col = 0
+
+[sprites.market]
+kind = "destination"
+display_name = "Market"
+grid = "props"
+row = 0
+col = 1
+
+[sprites.garden]
+kind = "destination"
+display_name = "Garden"
+grid = "props"
+row = 0
+col = 2
+
+[sprites.home]
+kind = "destination"
+display_name = "Home"
+grid = "props"
+row = 0
+col = 3
+
+[sprites.social]
+kind = "destination"
+display_name = "Social"
+grid = "props"
+row = 0
+col = 4
+
+[sprites.signpost]
+kind = "prop"
+display_name = "Signpost"
+grid = "props"
+row = 0
+col = 5
+
+[sprites.mailbox]
+kind = "prop"
+display_name = "Mailbox"
+grid = "props"
+row = 0
+col = 6
+
+[sprites.streetlamp]
+kind = "prop"
+display_name = "Streetlamp"
+grid = "props"
+row = 0
+col = 7
+
+[sprites.crate]
+kind = "prop"
+display_name = "Crate"
+grid = "props"
+row = 0
+col = 8
+
+[sprites.barrel]
+kind = "prop"
+display_name = "Barrel"
+grid = "props"
+row = 0
+col = 9
+
+[sprites.flowers]
+kind = "prop"
+display_name = "Flowers"
+grid = "props"
+row = 0
+col = 10
+
+[sprites.tree]
+kind = "prop"
+display_name = "Tree"
+grid = "props"
+row = 0
+col = 11
+
+[sprites.campfire]
+kind = "prop"
+display_name = "Campfire"
+grid = "props"
+row = 1
+col = 0
+
+[sprites.table]
+kind = "prop"
+display_name = "Table"
+grid = "props"
+row = 1
+col = 1
+
+[sprites.bucket]
+kind = "prop"
+display_name = "Bucket"
+grid = "props"
+row = 1
+col = 2
+
+[sprites.basket]
+kind = "prop"
+display_name = "Basket"
+grid = "props"
+row = 1
+col = 3
+
+[sprites.sack]
+kind = "prop"
+display_name = "Sack"
+grid = "props"
+row = 1
+col = 4
+
+[sprites.bush]
+kind = "prop"
+display_name = "Bush"
+grid = "props"
+row = 1
+col = 5
+
+[sprites.fence]
+kind = "prop"
+display_name = "Fence"
+grid = "props"
+row = 1
+col = 6
+
+[sprites.arch]
+kind = "prop"
+display_name = "Archway"
+grid = "props"
+row = 1
+col = 7
+
+[sprites.stone]
+kind = "prop"
+display_name = "Stone Slab"
+grid = "props"
+row = 1
+col = 8
+
+[sprites.fountain]
+kind = "prop"
+display_name = "Fountain"
+grid = "props"
+row = 1
+col = 9
+
+[sprites.heart]
+kind = "ui"
+display_name = "Heart"
+grid = "props"
+row = 1
+col = 10
+
+[sprites.speech_bubble]
+kind = "ui"
+display_name = "Speech Bubble"
+grid = "props"
+row = 1
+col = 11
+
+[frames."maya.down.idle_exact"]
+x = 24
+y = 8
+width = 72
+height = 104
+`;
 
 function cloneDocument(document: CanvasDocument): CanvasDocument {
   return resolveCanvasDocumentFrames(structuredClone(document));
@@ -101,6 +458,39 @@ export function createWebUiDemoScene(): CanvasDocument {
 }
 
 export function createSpriteSheetScene(): CanvasDocument {
+  const image: ImageObject = {
+    id: "tinytown-sheet",
+    name: "TinyTown alpha sprite sheet",
+    kind: "image",
+    layerId: "sprite-sheet",
+    visible: true,
+    x: 120,
+    y: 140,
+    width: 720,
+    height: 360,
+    src: "/assets/tinytown_sprite_alpha.png",
+    role: "image",
+    intrinsicWidth: 1440,
+    intrinsicHeight: 720,
+    fit: "fill",
+    notes:
+      "Real TinyTown alpha sprite sheet copied from the Dominatus sample for audit smoke coverage.",
+  };
+  const sidecarSpec = parseSpriteSidecarToml(spriteFixtureToml, {
+    id: "tinytown-sidecar",
+    name: "TinyTown sprite sidecar",
+    targetId: image.id,
+    sourceName: "tinytown_sprite_alpha.spriteforge.toml",
+  });
+  const sidecar = {
+    ...createSpriteSidecarObject(image, sidecarSpec),
+    layerId: "sprite-overlays",
+    x: image.x,
+    y: image.y,
+    width: image.width,
+    height: image.height,
+  };
+
   return cloneDocument({
     id: "sprite-sheet-canvas",
     name: "Sprite Sheet Editing",
@@ -122,15 +512,19 @@ export function createSpriteSheetScene(): CanvasDocument {
         id: "sprite-sheet",
         name: "Sprite Sheet",
         visible: true,
-        objectIds: [],
+        objectIds: [image.id],
       },
       {
         id: "sprite-overlays",
         name: "Sprite Overlays",
         visible: true,
-        objectIds: [],
+        objectIds: [sidecar.id],
       },
     ],
-    objects: {},
+    objects: {
+      [image.id]: { ...image, spriteSidecarId: sidecar.id },
+      [sidecar.id]: sidecar,
+    },
+    selectedObjectId: sidecar.id,
   });
 }

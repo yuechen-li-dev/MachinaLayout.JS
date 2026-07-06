@@ -79,10 +79,13 @@ describe("MachinaCanvas mode templates", () => {
     );
   });
 
-  it("creates a sprite-oriented scene without requiring uploaded assets", () => {
+  it("creates a sprite-oriented scene with a local fixture for audit smoke coverage", () => {
     const document = getCanvasEditorModeTemplate("sprites").createScene();
 
-    expect(Object.keys(document.objects)).toHaveLength(0);
+    expect(Object.keys(document.objects)).toEqual(
+      expect.arrayContaining(["tinytown-sheet", "tinytown-sidecar"]),
+    );
+    expect(document.selectedObjectId).toBe("tinytown-sidecar");
     expect(document.layers.map((layer) => layer.id)).toEqual(["sprite-sheet", "sprite-overlays"]);
   });
 });

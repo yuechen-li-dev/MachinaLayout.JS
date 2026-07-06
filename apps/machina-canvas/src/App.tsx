@@ -77,6 +77,13 @@ import {
   parseSpriteSidecarToml,
 } from "./spriteSidecar";
 import {
+  buildSpriteAuditReport,
+  createSpriteAuditScreenshotDocument,
+  formatSpriteAuditReport,
+  type SpriteAuditReport,
+  type SpriteAuditScope,
+} from "./spriteAudit";
+import {
   hitTestSpriteFrameAtPoint,
   mapSpriteFrameToCanvasRect,
   snapSpriteFrameRect,
@@ -404,6 +411,35 @@ function getSpriteSidecarTarget(document: CanvasDocument, object: SpriteSidecarO
   if (target?.kind !== "image") return undefined;
   return target;
 }
+
+function formatSpriteAuditScope(scope: SpriteAuditScope) {
+  return scope === "selectedFrame" ? "selected frame only" : "all frames";
+}
+
+function downloadBlobFile(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = window.document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  window.document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+type SpriteAuditArtifact = {
+  scope: SpriteAuditScope;
+  report: SpriteAuditReport;
+  text: string;
+};
+
+type SpriteAuditScreenshotArtifact = {
+  path: string;
+  mimeType: string;
+  blob: Blob;
+  size: number;
+  url: string;
+};
 
 function getObjectGridSpan(document: CanvasDocument, object: CanvasObject): string {
   return objectToGridRef(object, document).span;
@@ -1435,6 +1471,210 @@ function formatImageSrcLabel(src: string): string {
   return src;
 }
 
+function SpriteAuditSectionContent({
+  document,
+  sidecar,
+  image,
+}: {
+  document: CanvasDocument;
+  sidecar: SpriteSidecarObject;
+  image: ImageObject;
+}) {
+  const [scope, setScope] = useState<SpriteAuditScope>("allFrames");
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [status, setStatus] = useState("");
+  const [artifact, setArtifact] = useState<SpriteAuditArtifact>();
+  const [screenshotArtifact, setScreenshotArtifact] = useState<SpriteAuditScreenshotArtifact>();
+
+  useEffect(
+    () => () => {
+      if (screenshotArtifact?.url) {
+        URL.revokeObjectURL(screenshotArtifact.url);
+      }
+    },
+    [screenshotArtifact],
+  );
+
+  const createArtifact = useCallback(() => {
+    const report = buildSpriteAuditReport(sidecar, image, { scope });
+    const nextArtifact = {
+      scope,
+      report,
+      text: formatSpriteAuditReport(report),
+    } satisfies SpriteAuditArtifact;
+    setArtifact(nextArtifact);
+    return nextArtifact;
+  }, [image, scope, sidecar]);
+
+  const ensureArtifact = useCallback(() => {
+    if (artifact && artifact.scope === scope) {
+      return artifact;
+    }
+    return createArtifact();
+  }, [artifact, createArtifact, scope]);
+
+  const runAudit = () => {
+    const nextArtifact = createArtifact();
+    setPreviewVisible(true);
+    setStatus(
+      `Audit ran for ${formatSpriteAuditScope(scope)}. Found ${nextArtifact.report.summary.totalFindings} suspicious item${nextArtifact.report.summary.totalFindings === 1 ? "" : "s"}.`,
+    );
+  };
+
+  const previewAudit = () => {
+    ensureArtifact();
+    setPreviewVisible(true);
+    setStatus(`Previewing audit for ${formatSpriteAuditScope(scope)}.`);
+  };
+
+  const copyAudit = () => {
+    const nextArtifact = ensureArtifact();
+    if (!navigator.clipboard?.writeText) {
+      setStatus("Clipboard API is unavailable in this browser.");
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(nextArtifact.text)
+      .then(() => setStatus("Copied sprite audit report."))
+      .catch(() => setStatus("Could not copy sprite audit report."));
+  };
+
+  const downloadAudit = () => {
+    const nextArtifact = ensureArtifact();
+    downloadBlobFile(
+      new Blob([nextArtifact.text], { type: "text/markdown" }),
+      `${sidecar.id}-sprite-audit.md`,
+    );
+    setStatus(`Downloaded ${sidecar.id}-sprite-audit.md.`);
+  };
+
+  const captureAuditScreenshot = async () => {
+    try {
+      const nextArtifact = ensureArtifact();
+      setStatus("Capturing overlay screenshot...");
+      const blob = await lowerCanvasDocumentToRasterBlob(
+        createSpriteAuditScreenshotDocument(document, sidecar.id, scope),
+        {
+          mimeType: "image/png",
+          scale: 2,
+          background: "#ffffff",
+        },
+      );
+      const url = URL.createObjectURL(blob);
+      setScreenshotArtifact((current) => {
+        if (current?.url) {
+          URL.revokeObjectURL(current.url);
+        }
+        return {
+          path: `${sidecar.id}-sprite-audit-overlay.png`,
+          mimeType: "image/png",
+          blob,
+          size: blob.size,
+          url,
+        };
+      });
+      setPreviewVisible(true);
+      setStatus(
+        `Captured overlay screenshot for ${formatSpriteAuditScope(scope)} with ${nextArtifact.report.summary.totalFindings} suspicious item${nextArtifact.report.summary.totalFindings === 1 ? "" : "s"}.`,
+      );
+    } catch (caught) {
+      setStatus(
+        caught instanceof Error ? caught.message : "Overlay screenshot could not be captured.",
+      );
+    }
+  };
+
+  const downloadScreenshot = () => {
+    if (!screenshotArtifact) return;
+    downloadBlobFile(screenshotArtifact.blob, screenshotArtifact.path);
+    setStatus(`Downloaded ${screenshotArtifact.path}.`);
+  };
+
+  return (
+    <>
+      <Field label="Sidecar" value={sidecar.id} />
+      <Field label="Image" value={image.id} />
+      <label className="sprite-frame-select">
+        <span>Audit scope</span>
+        <select
+          aria-label="Sprite audit scope"
+          value={scope}
+          onChange={(event) => setScope(event.currentTarget.value as SpriteAuditScope)}
+        >
+          <option value="allFrames">All frames</option>
+          <option value="selectedFrame">Selected frame only</option>
+        </select>
+      </label>
+      <div className="sprite-audit-actions">
+        <button type="button" onClick={runAudit}>
+          Run audit
+        </button>
+        <button type="button" onClick={copyAudit}>
+          Copy audit report
+        </button>
+        <button type="button" onClick={previewAudit}>
+          Preview audit report
+        </button>
+        <button type="button" onClick={downloadAudit}>
+          Download audit report
+        </button>
+        <button type="button" onClick={() => void captureAuditScreenshot()}>
+          Capture overlay screenshot
+        </button>
+      </div>
+      {status ? <p className="export-status">{status}</p> : null}
+      {artifact ? (
+        <>
+          <div className="validation-result">
+            <strong>Audit summary</strong>
+            <p>
+              {artifact.report.summary.totalFindings} suspicious finding
+              {artifact.report.summary.totalFindings === 1 ? "" : "s"} across{" "}
+              {artifact.report.summary.totalFrames} frame
+              {artifact.report.summary.totalFrames === 1 ? "" : "s"}.
+            </p>
+            <p>
+              {artifact.report.summary.errors} error, {artifact.report.summary.warnings} warning,{" "}
+              {artifact.report.summary.notes} note.
+            </p>
+          </div>
+          <div className="validation-result">
+            <strong>Likely issues found</strong>
+            <ul>
+              {artifact.report.likelyIssues.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : null}
+      {previewVisible && artifact ? (
+        <textarea
+          className="export-preview"
+          aria-label="Sprite audit report preview"
+          readOnly
+          value={artifact.text}
+        />
+      ) : null}
+      {screenshotArtifact ? (
+        <div className="sprite-audit-preview">
+          <img alt="Sprite audit overlay screenshot" src={screenshotArtifact.url} />
+          <div className="sprite-audit-preview__meta">
+            <p>
+              {screenshotArtifact.path} · {formatBlobSize(screenshotArtifact.size)}
+            </p>
+            {artifact ? <p>{artifact.report.whatToAdjustNext[0]}</p> : null}
+            <button type="button" onClick={downloadScreenshot}>
+              Download screenshot
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function ImageAssetSection(props: MachinaSlotProps) {
   const { document, loadImageFile, loadSpriteSidecarFile, runCommand } = readViewData(props);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -2307,6 +2547,20 @@ function Inspector(props: MachinaSlotProps) {
               );
             })()}
           </InspectorSection>
+          {(() => {
+            const sidecar = getSpriteSidecarForImage(document, selected);
+            if (!sidecar) return null;
+            return (
+              <InspectorSection title="Sprite Audit">
+                <SpriteAuditSectionContent
+                  key={`${sidecar.id}:${selected.id}`}
+                  document={document}
+                  sidecar={sidecar}
+                  image={selected}
+                />
+              </InspectorSection>
+            );
+          })()}
           <InspectorSection title="Sketch Overlay">
             {(() => {
               const overlay = getSketchOverlayForImage(document, selected);
@@ -2420,340 +2674,358 @@ function Inspector(props: MachinaSlotProps) {
         </InspectorSection>
       ) : null}
       {selected.kind === "spriteSidecar" ? (
-        <InspectorSection title="Sprite Sidecar">
-          <Field label="Target" value={selected.targetId} />
-          <Field label="Dialect" value={selected.spec.dialect} />
-          <Field label="Source" value={selected.spec.sourceName ?? "unknown"} />
-          <Field
-            label="Atlas"
-            value={
-              selected.spec.atlasWidth && selected.spec.atlasHeight
-                ? `${selected.spec.atlasWidth} x ${selected.spec.atlasHeight}`
-                : "unknown"
-            }
-          />
-          <Field label="Grids" value={selected.spec.grids.length} />
-          <Field label="Frames" value={selected.spec.frames.length} />
-          <Field label="Animations" value={selected.spec.animations.length} />
-          <label className="toggle-row">
-            <span>Overlay visible</span>
-            <input
-              checked={selected.visible}
-              onChange={(event) =>
-                runCommand({
-                  kind: "setSpriteSidecarVisible",
-                  sidecarId: selected.id,
-                  visible: event.target.checked,
-                })
+        <>
+          <InspectorSection title="Sprite Sidecar">
+            <Field label="Target" value={selected.targetId} />
+            <Field label="Dialect" value={selected.spec.dialect} />
+            <Field label="Source" value={selected.spec.sourceName ?? "unknown"} />
+            <Field
+              label="Atlas"
+              value={
+                selected.spec.atlasWidth && selected.spec.atlasHeight
+                  ? `${selected.spec.atlasWidth} x ${selected.spec.atlasHeight}`
+                  : "unknown"
               }
-              type="checkbox"
             />
-          </label>
-          <ToggleField
-            label="Bounds / cut lines"
-            checked={selected.spec.overlay.showBounds}
-            onChange={(value) =>
-              runCommand({
-                kind: "setSpriteOverlayOption",
-                sidecarId: selected.id,
-                option: "showBounds",
-                value,
-              })
-            }
-          />
-          <ToggleField
-            label="Labels"
-            checked={selected.spec.overlay.showLabels}
-            onChange={(value) =>
-              runCommand({
-                kind: "setSpriteOverlayOption",
-                sidecarId: selected.id,
-                option: "showLabels",
-                value,
-              })
-            }
-          />
-          <ToggleField
-            label="Selected only"
-            checked={selected.spec.overlay.selectedOnly}
-            onChange={(value) =>
-              runCommand({
-                kind: "setSpriteOverlayOption",
-                sidecarId: selected.id,
-                option: "selectedOnly",
-                value,
-              })
-            }
-          />
-          <ToggleField
-            label="Snap frame edits"
-            checked={spriteFrameEditSettings.snapToGrid}
-            onChange={(snapToGrid) =>
-              setSpriteFrameEditSettings({
-                ...spriteFrameEditSettings,
-                snapToGrid,
-              })
-            }
-          />
-          <NumberField
-            label="Grid size"
-            min={1}
-            value={spriteFrameEditSettings.gridSize}
-            onChange={(gridSize) =>
-              setSpriteFrameEditSettings({
-                ...spriteFrameEditSettings,
-                gridSize: Math.max(1, Math.round(gridSize)),
-              })
-            }
-          />
-          <label className="sprite-frame-select">
-            <span>Selected frame</span>
-            <select
-              value={selected.spec.selectedFrameId ?? ""}
-              onChange={(event) =>
+            <Field label="Grids" value={selected.spec.grids.length} />
+            <Field label="Frames" value={selected.spec.frames.length} />
+            <Field label="Animations" value={selected.spec.animations.length} />
+            <label className="toggle-row">
+              <span>Overlay visible</span>
+              <input
+                checked={selected.visible}
+                onChange={(event) =>
+                  runCommand({
+                    kind: "setSpriteSidecarVisible",
+                    sidecarId: selected.id,
+                    visible: event.target.checked,
+                  })
+                }
+                type="checkbox"
+              />
+            </label>
+            <ToggleField
+              label="Bounds / cut lines"
+              checked={selected.spec.overlay.showBounds}
+              onChange={(value) =>
                 runCommand({
-                  kind: "selectSpriteFrame",
+                  kind: "setSpriteOverlayOption",
                   sidecarId: selected.id,
-                  frameId: event.currentTarget.value || undefined,
+                  option: "showBounds",
+                  value,
                 })
               }
-            >
-              {selected.spec.frames.map((frame) => (
-                <option key={frame.id} value={frame.id}>
-                  {frame.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {(() => {
-            const selectedFrame = selected.spec.frames.find(
-              (frame) => frame.id === selected.spec.selectedFrameId,
-            );
-            if (!selectedFrame) return <Field label="Selected frame" value="none" />;
-            const imageTarget = getSpriteSidecarTarget(document, selected);
-            const atlasWidth = selected.spec.atlasWidth ?? imageTarget?.intrinsicWidth;
-            const atlasHeight = selected.spec.atlasHeight ?? imageTarget?.intrinsicHeight;
-            const updateRect = (rect: SpriteFrameRect) =>
-              runCommand({
-                kind: "updateSpriteFrameRect",
-                sidecarId: selected.id,
-                frameId: selectedFrame.id,
-                rect: snapSpriteFrameRect(rect, {
-                  enabled: spriteFrameEditSettings.snapToGrid,
-                  gridSize: spriteFrameEditSettings.gridSize,
-                }),
-              });
-            return (
-              <>
-                <Field label="Frame ID" value={selectedFrame.id} />
-                <Field label="Label" value={selectedFrame.label} />
-                <Field label="Sprite" value={selectedFrame.spriteId ?? "none"} />
-                <Field label="Animation" value={selectedFrame.animationId ?? "none"} />
-                <NumberField
-                  label="X"
-                  min={0}
-                  value={selectedFrame.x}
-                  onChange={(x) =>
-                    updateRect({
-                      x,
-                      y: selectedFrame.y,
-                      width: selectedFrame.width,
-                      height: selectedFrame.height,
-                    })
-                  }
-                />
-                <NumberField
-                  label="Y"
-                  min={0}
-                  value={selectedFrame.y}
-                  onChange={(y) =>
-                    updateRect({
-                      x: selectedFrame.x,
-                      y,
-                      width: selectedFrame.width,
-                      height: selectedFrame.height,
-                    })
-                  }
-                />
-                <NumberField
-                  label="Width"
-                  min={1}
-                  value={selectedFrame.width}
-                  onChange={(width) =>
-                    updateRect({
-                      x: selectedFrame.x,
-                      y: selectedFrame.y,
-                      width: Math.max(1, width),
-                      height: selectedFrame.height,
-                    })
-                  }
-                />
-                <NumberField
-                  label="Height"
-                  min={1}
-                  value={selectedFrame.height}
-                  onChange={(height) =>
-                    updateRect({
-                      x: selectedFrame.x,
-                      y: selectedFrame.y,
-                      width: selectedFrame.width,
-                      height: Math.max(1, height),
-                    })
-                  }
-                />
-                <p className="empty-note">
-                  x/y must stay at or above 0. width/height must stay above 0.
-                  {atlasWidth && atlasHeight
-                    ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.`
-                    : ""}
-                </p>
-                <div className="command-row sprite-edit-buttons">
-                  <button
-                    type="button"
-                    onClick={(event) =>
-                      runCommand({
-                        kind: "nudgeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dx: event.shiftKey ? -10 : -1,
-                        dy: 0,
-                      })
-                    }
-                  >
-                    Nudge Left
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) =>
-                      runCommand({
-                        kind: "nudgeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dx: event.shiftKey ? 10 : 1,
-                        dy: 0,
-                      })
-                    }
-                  >
-                    Nudge Right
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) =>
-                      runCommand({
-                        kind: "nudgeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dx: 0,
-                        dy: event.shiftKey ? -10 : -1,
-                      })
-                    }
-                  >
-                    Nudge Up
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) =>
-                      runCommand({
-                        kind: "nudgeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dx: 0,
-                        dy: event.shiftKey ? 10 : 1,
-                      })
-                    }
-                  >
-                    Nudge Down
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      runCommand({
-                        kind: "resizeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dw: spriteEditStep,
-                        dh: 0,
-                      })
-                    }
-                  >
-                    Grow W
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      runCommand({
-                        kind: "resizeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dw: -spriteEditStep,
-                        dh: 0,
-                      })
-                    }
-                  >
-                    Shrink W
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      runCommand({
-                        kind: "resizeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dw: 0,
-                        dh: spriteEditStep,
-                      })
-                    }
-                  >
-                    Grow H
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      runCommand({
-                        kind: "resizeSpriteFrame",
-                        sidecarId: selected.id,
-                        frameId: selectedFrame.id,
-                        dw: 0,
-                        dh: -spriteEditStep,
-                      })
-                    }
-                  >
-                    Shrink H
-                  </button>
-                </div>
-              </>
-            );
-          })()}
-          <div className="sprite-frame-list">
-            {selected.spec.frames.slice(0, 36).map((frame) => (
-              <button
-                className={
-                  selected.spec.selectedFrameId === frame.id
-                    ? "sprite-frame-card is-selected"
-                    : "sprite-frame-card"
-                }
-                key={frame.id}
-                type="button"
-                onClick={() =>
+            />
+            <ToggleField
+              label="Labels"
+              checked={selected.spec.overlay.showLabels}
+              onChange={(value) =>
+                runCommand({
+                  kind: "setSpriteOverlayOption",
+                  sidecarId: selected.id,
+                  option: "showLabels",
+                  value,
+                })
+              }
+            />
+            <ToggleField
+              label="Selected only"
+              checked={selected.spec.overlay.selectedOnly}
+              onChange={(value) =>
+                runCommand({
+                  kind: "setSpriteOverlayOption",
+                  sidecarId: selected.id,
+                  option: "selectedOnly",
+                  value,
+                })
+              }
+            />
+            <ToggleField
+              label="Snap frame edits"
+              checked={spriteFrameEditSettings.snapToGrid}
+              onChange={(snapToGrid) =>
+                setSpriteFrameEditSettings({
+                  ...spriteFrameEditSettings,
+                  snapToGrid,
+                })
+              }
+            />
+            <NumberField
+              label="Grid size"
+              min={1}
+              value={spriteFrameEditSettings.gridSize}
+              onChange={(gridSize) =>
+                setSpriteFrameEditSettings({
+                  ...spriteFrameEditSettings,
+                  gridSize: Math.max(1, Math.round(gridSize)),
+                })
+              }
+            />
+            <label className="sprite-frame-select">
+              <span>Selected frame</span>
+              <select
+                value={selected.spec.selectedFrameId ?? ""}
+                onChange={(event) =>
                   runCommand({
                     kind: "selectSpriteFrame",
                     sidecarId: selected.id,
-                    frameId: frame.id,
+                    frameId: event.currentTarget.value || undefined,
                   })
                 }
               >
-                <strong>{frame.label}</strong>
-                <small>{getSpriteFrameSummary(frame)}</small>
-              </button>
-            ))}
-          </div>
-          {selected.spec.frames.length > 36 ? (
-            <p className="empty-note">
-              Showing first 36 of {selected.spec.frames.length} frames. Use the selector for the
-              full list.
-            </p>
-          ) : null}
-        </InspectorSection>
+                {selected.spec.frames.map((frame) => (
+                  <option key={frame.id} value={frame.id}>
+                    {frame.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {(() => {
+              const selectedFrame = selected.spec.frames.find(
+                (frame) => frame.id === selected.spec.selectedFrameId,
+              );
+              if (!selectedFrame) return <Field label="Selected frame" value="none" />;
+              const imageTarget = getSpriteSidecarTarget(document, selected);
+              const atlasWidth = selected.spec.atlasWidth ?? imageTarget?.intrinsicWidth;
+              const atlasHeight = selected.spec.atlasHeight ?? imageTarget?.intrinsicHeight;
+              const updateRect = (rect: SpriteFrameRect) =>
+                runCommand({
+                  kind: "updateSpriteFrameRect",
+                  sidecarId: selected.id,
+                  frameId: selectedFrame.id,
+                  rect: snapSpriteFrameRect(rect, {
+                    enabled: spriteFrameEditSettings.snapToGrid,
+                    gridSize: spriteFrameEditSettings.gridSize,
+                  }),
+                });
+              return (
+                <>
+                  <Field label="Frame ID" value={selectedFrame.id} />
+                  <Field label="Label" value={selectedFrame.label} />
+                  <Field label="Sprite" value={selectedFrame.spriteId ?? "none"} />
+                  <Field label="Animation" value={selectedFrame.animationId ?? "none"} />
+                  <NumberField
+                    label="X"
+                    min={0}
+                    value={selectedFrame.x}
+                    onChange={(x) =>
+                      updateRect({
+                        x,
+                        y: selectedFrame.y,
+                        width: selectedFrame.width,
+                        height: selectedFrame.height,
+                      })
+                    }
+                  />
+                  <NumberField
+                    label="Y"
+                    min={0}
+                    value={selectedFrame.y}
+                    onChange={(y) =>
+                      updateRect({
+                        x: selectedFrame.x,
+                        y,
+                        width: selectedFrame.width,
+                        height: selectedFrame.height,
+                      })
+                    }
+                  />
+                  <NumberField
+                    label="Width"
+                    min={1}
+                    value={selectedFrame.width}
+                    onChange={(width) =>
+                      updateRect({
+                        x: selectedFrame.x,
+                        y: selectedFrame.y,
+                        width: Math.max(1, width),
+                        height: selectedFrame.height,
+                      })
+                    }
+                  />
+                  <NumberField
+                    label="Height"
+                    min={1}
+                    value={selectedFrame.height}
+                    onChange={(height) =>
+                      updateRect({
+                        x: selectedFrame.x,
+                        y: selectedFrame.y,
+                        width: selectedFrame.width,
+                        height: Math.max(1, height),
+                      })
+                    }
+                  />
+                  <p className="empty-note">
+                    x/y must stay at or above 0. width/height must stay above 0.
+                    {atlasWidth && atlasHeight
+                      ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.`
+                      : ""}
+                  </p>
+                  <div className="command-row sprite-edit-buttons">
+                    <button
+                      type="button"
+                      onClick={(event) =>
+                        runCommand({
+                          kind: "nudgeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dx: event.shiftKey ? -10 : -1,
+                          dy: 0,
+                        })
+                      }
+                    >
+                      Nudge Left
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) =>
+                        runCommand({
+                          kind: "nudgeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dx: event.shiftKey ? 10 : 1,
+                          dy: 0,
+                        })
+                      }
+                    >
+                      Nudge Right
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) =>
+                        runCommand({
+                          kind: "nudgeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dx: 0,
+                          dy: event.shiftKey ? -10 : -1,
+                        })
+                      }
+                    >
+                      Nudge Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) =>
+                        runCommand({
+                          kind: "nudgeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dx: 0,
+                          dy: event.shiftKey ? 10 : 1,
+                        })
+                      }
+                    >
+                      Nudge Down
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "resizeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dw: spriteEditStep,
+                          dh: 0,
+                        })
+                      }
+                    >
+                      Grow W
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "resizeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dw: -spriteEditStep,
+                          dh: 0,
+                        })
+                      }
+                    >
+                      Shrink W
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "resizeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dw: 0,
+                          dh: spriteEditStep,
+                        })
+                      }
+                    >
+                      Grow H
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        runCommand({
+                          kind: "resizeSpriteFrame",
+                          sidecarId: selected.id,
+                          frameId: selectedFrame.id,
+                          dw: 0,
+                          dh: -spriteEditStep,
+                        })
+                      }
+                    >
+                      Shrink H
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+            <div className="sprite-frame-list">
+              {selected.spec.frames.slice(0, 36).map((frame) => (
+                <button
+                  className={
+                    selected.spec.selectedFrameId === frame.id
+                      ? "sprite-frame-card is-selected"
+                      : "sprite-frame-card"
+                  }
+                  key={frame.id}
+                  type="button"
+                  onClick={() =>
+                    runCommand({
+                      kind: "selectSpriteFrame",
+                      sidecarId: selected.id,
+                      frameId: frame.id,
+                    })
+                  }
+                >
+                  <strong>{frame.label}</strong>
+                  <small>{getSpriteFrameSummary(frame)}</small>
+                </button>
+              ))}
+            </div>
+            {selected.spec.frames.length > 36 ? (
+              <p className="empty-note">
+                Showing first 36 of {selected.spec.frames.length} frames. Use the selector for the
+                full list.
+              </p>
+            ) : null}
+          </InspectorSection>
+          <InspectorSection title="Sprite Audit">
+            {(() => {
+              const imageTarget = getSpriteSidecarTarget(document, selected);
+              if (!imageTarget) {
+                return <Field label="Sprite audit" value="linked image missing" />;
+              }
+              return (
+                <SpriteAuditSectionContent
+                  key={`${selected.id}:${imageTarget.id}`}
+                  document={document}
+                  sidecar={selected}
+                  image={imageTarget}
+                />
+              );
+            })()}
+          </InspectorSection>
+        </>
       ) : null}
       {selected.kind === "uiComponent" ? (
         <InspectorSection title="UI Component">
