@@ -414,6 +414,51 @@ This keeps the dependency direction clean:
 - MachinaDispatch is still the runtime form.
 - Failures point to table cells such as `routeActions.event[1]` or `routeActions.field[0]`.
 
+## Form field tables
+
+MachinaTable can also author form field definitions without turning Machina into a form framework.
+
+```ts
+import { Form } from "machinalayout/form";
+import { Table } from "machinalayout/table";
+
+const providerFields = Table.defineWithSchema({
+  id: "providerFields",
+  schema: Form.fieldSchema(),
+  columns: {
+    field: ["displayName", "slug", "description"],
+    label: ["Provider name", "Public slug", "Short public description"],
+    control: ["input", "input", "textarea"],
+    inputId: [
+      "setup-provider-name",
+      "setup-provider-slug",
+      "setup-provider-description",
+    ],
+    value: [draft.provider.displayName, draft.provider.slug, draft.provider.description],
+    changeKey: ["displayName", "slug", "description"],
+    disabled: [false, false, false],
+    placeholder: [undefined, undefined, undefined],
+    description: [undefined, undefined, undefined],
+    required: [true, true, false],
+    testId: [
+      "setup-provider-name",
+      "setup-provider-slug",
+      "setup-provider-description",
+    ],
+  },
+});
+
+const fields = Form.fieldsFromTable(providerFields);
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- `machinalayout/form` is only a lowering bridge to explicit field records.
+- Rendering stays in your UI layer.
+
+MachinaForm does not manage form state. It makes field definitions table-shaped and validates them by cell.
+
 ## State transition tables
 
 MachinaTable can also author rows for the existing DeusMachina runtime without replacing it.

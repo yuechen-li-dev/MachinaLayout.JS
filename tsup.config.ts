@@ -24,6 +24,7 @@ export default defineConfig({
     "concept/index": "src/concept/index.ts",
     "diagnostics/index": "src/diagnostics/index.ts",
     "table/index": "src/table/index.ts",
+    "form/index": "src/form/index.ts",
     "comptime/index": "src/comptime/index.ts",
     "style/index": "src/style/index.ts",
     "static/index": "src/static/index.ts",

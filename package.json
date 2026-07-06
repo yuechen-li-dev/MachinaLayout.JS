@@ -107,6 +107,10 @@
       "types": "./dist/table/index.d.ts",
       "import": "./dist/table/index.js"
     },
+    "./form": {
+      "types": "./dist/form/index.d.ts",
+      "import": "./dist/form/index.js"
+    },
     "./comptime": {
       "types": "./dist/comptime/index.d.ts",
       "import": "./dist/comptime/index.js"

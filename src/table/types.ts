@@ -222,7 +222,20 @@ export type TableDiagnosticCode =
   | "InvalidTableSliceCount"
   | "MissingRenameColumn"
   | "InvalidRenameColumnName"
-  | "DuplicateRenameColumn";
+  | "DuplicateRenameColumn"
+  | "MissingFormFieldColumn"
+  | "InvalidFormFieldName"
+  | "InvalidFormFieldLabel"
+  | "InvalidFormFieldControl"
+  | "InvalidFormFieldInputId"
+  | "InvalidFormFieldChangeKey"
+  | "InvalidFormFieldDisabled"
+  | "InvalidFormFieldPlaceholder"
+  | "InvalidFormFieldDescription"
+  | "InvalidFormFieldRequired"
+  | "InvalidFormFieldTestId"
+  | "DuplicateFormField"
+  | "DuplicateFormFieldInputId";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

@@ -91,6 +91,13 @@ import {
   validateMachinaStyleSheet,
 } from "../src/style";
 import {
+  describeFields,
+  fieldSchema,
+  fieldsFromTable,
+  Form,
+  validateFieldTable,
+} from "../src/form";
+import {
   createStaticHtmlArtifact,
   H,
   serializeStaticPageCss,
@@ -378,6 +385,13 @@ describe("package export entrypoints", () => {
     expect(Table.validateKey).toBeTypeOf("function");
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");
+  });
+
+  it("exposes form subpath utilities", () => {
+    expect(Form.fieldSchema).toBe(fieldSchema);
+    expect(Form.fieldsFromTable).toBe(fieldsFromTable);
+    expect(Form.validateFieldTable).toBe(validateFieldTable);
+    expect(Form.describeFields).toBe(describeFields);
   });
 
   it("exposes dispatch table conversion helpers from the dispatch subpath", () => {
