@@ -459,6 +459,57 @@ This keeps the dependency direction clean:
 
 MachinaForm does not manage form state. It makes field definitions table-shaped and validates them by cell.
 
+## Command tables
+
+MachinaTable can also author command/button definitions without turning Machina into a command runtime.
+
+```ts
+import { Command } from "machinalayout/command";
+import { Table } from "machinalayout/table";
+
+const setupCommands = Table.defineWithSchema({
+  id: "setupCommands",
+  schema: Command.commandSchema(),
+  columns: {
+    command: ["provider", "resource", "service", "availability"],
+    label: [
+      "Create provider",
+      "Create resource",
+      "Create service",
+      "Create availability",
+    ],
+    busyLabel: ["Creating...", "Creating...", "Creating...", "Creating..."],
+    doneLabel: [
+      "Provider created",
+      "Resource created",
+      "Service created",
+      "Availability created",
+    ],
+    testId: [
+      "setup-create-provider",
+      "setup-create-resource",
+      "setup-create-service",
+      "setup-create-availability",
+    ],
+    disabled: [false, true, true, true],
+    busy: [false, false, false, false],
+    done: [false, false, false, false],
+    description: [undefined, undefined, undefined, undefined],
+    variant: [undefined, undefined, undefined, undefined],
+  },
+});
+
+const commands = Command.commandsFromTable(setupCommands);
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- `machinalayout/command` is only a lowering bridge to explicit command records.
+- Execution and rendering stay in your UI layer.
+
+MachinaCommand does not execute commands. It makes command/button definitions table-shaped and validates them by cell.
+
 ## State transition tables
 
 MachinaTable can also author rows for the existing DeusMachina runtime without replacing it.

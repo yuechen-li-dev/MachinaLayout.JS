@@ -235,7 +235,20 @@ export type TableDiagnosticCode =
   | "InvalidFormFieldRequired"
   | "InvalidFormFieldTestId"
   | "DuplicateFormField"
-  | "DuplicateFormFieldInputId";
+  | "DuplicateFormFieldInputId"
+  | "MissingCommandColumn"
+  | "InvalidCommandId"
+  | "InvalidCommandLabel"
+  | "InvalidCommandBusyLabel"
+  | "InvalidCommandDoneLabel"
+  | "InvalidCommandTestId"
+  | "InvalidCommandDisabled"
+  | "InvalidCommandBusy"
+  | "InvalidCommandDone"
+  | "InvalidCommandDescription"
+  | "InvalidCommandVariant"
+  | "DuplicateCommand"
+  | "DuplicateCommandTestId";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

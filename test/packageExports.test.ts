@@ -98,6 +98,14 @@ import {
   validateFieldTable,
 } from "../src/form";
 import {
+  Command,
+  commandSchema,
+  commandsFromTable,
+  describeCommands,
+  resolveCommandLabel,
+  validateCommandTable,
+} from "../src/command";
+import {
   createStaticHtmlArtifact,
   H,
   serializeStaticPageCss,
@@ -392,6 +400,14 @@ describe("package export entrypoints", () => {
     expect(Form.fieldsFromTable).toBe(fieldsFromTable);
     expect(Form.validateFieldTable).toBe(validateFieldTable);
     expect(Form.describeFields).toBe(describeFields);
+  });
+
+  it("exposes command subpath utilities", () => {
+    expect(Command.commandSchema).toBe(commandSchema);
+    expect(Command.commandsFromTable).toBe(commandsFromTable);
+    expect(Command.validateCommandTable).toBe(validateCommandTable);
+    expect(Command.describeCommands).toBe(describeCommands);
+    expect(Command.resolveCommandLabel).toBe(resolveCommandLabel);
   });
 
   it("exposes dispatch table conversion helpers from the dispatch subpath", () => {

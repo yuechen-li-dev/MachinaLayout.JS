@@ -78,6 +78,8 @@ Dependency-free columnar table records, narrow select/filter/sort/take/drop deri
 
 Dependency-free form field table lowering is available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
 
+Dependency-free command table lowering is available at `machinalayout/command`; see [Machina Commands](docs/machina-commands.md).
+
 Table-authored bridges for the existing MachinaDispatch runtime are available at `machinalayout/dispatch`; see [MachinaDispatch runtime guide](docs/machina-dispatch.md).
 
 Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
@@ -169,6 +171,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
 - [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.
+- [Machina Commands](docs/machina-commands.md) — command/button tables lowered into explicit command records with cell-oriented diagnostics.
 - [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
 - [Text utilities](docs/text-utilities.md) — tiny deterministic helpers for padding, truncation, casing, and slugs.
 - [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
