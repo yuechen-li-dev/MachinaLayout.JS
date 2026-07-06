@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -12,6 +13,7 @@ import {
 import type { Rect } from "machinalayout";
 import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
+import { CanvasModeStart } from "./CanvasModeStart";
 import { resolveAppLayout } from "./appLayout";
 import {
   createCanvasExportBundle,
@@ -54,7 +56,12 @@ import {
   loadImageAssetFromFile,
   makeUniqueObjectId,
 } from "./imageAssets";
-import { initialSceneDocument } from "./sceneDocument";
+import {
+  getCanvasEditorModeTemplate,
+  type CanvasEditorModeId,
+  type CanvasEditorModeTemplate,
+  type CanvasToolGroupId,
+} from "./editorModes";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import { resolveSketchSpec } from "./sketchOverlay";
@@ -92,6 +99,8 @@ import {
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
+const INITIAL_MODE_TEMPLATE = getCanvasEditorModeTemplate("blank");
+const INITIAL_EDITOR_DOCUMENT = INITIAL_MODE_TEMPLATE.createScene();
 
 const objectKindLabels = enumTable<CanvasObjectKind, string>({
   rect: "Rectangle",
@@ -186,6 +195,7 @@ type CanvasAidToggles = {
 };
 
 type AppViewData = {
+  activeMode: CanvasEditorModeTemplate;
   document: CanvasDocument;
   viewport: CanvasViewport;
   aidToggles: CanvasAidToggles;
@@ -204,6 +214,8 @@ type AppViewData = {
   rasterBackground: RasterExportBackground;
   rasterArtifact: RasterExportArtifact | undefined;
   rasterStatus: string;
+  isToolGroupVisible: (group: CanvasToolGroupId) => boolean;
+  returnToModeSelection: () => void;
   setViewport: (viewport: CanvasViewport) => void;
   setAidToggle: (key: keyof CanvasAidToggles, value: boolean) => void;
   fitViewport: () => void;
@@ -434,6 +446,13 @@ function getSelectedExportFile(
   return bundle.files.find((file) => file.path === selectedPath) ?? bundle.files[0];
 }
 
+function isToolGroupVisibleForMode(
+  mode: CanvasEditorModeTemplate,
+  group: CanvasToolGroupId,
+): boolean {
+  return mode.visibleToolGroups?.includes(group) ?? true;
+}
+
 function getExportValidationClass(validation: CanvasExportValidationResult | undefined): string {
   if (!validation) return "is-pending";
   if (!validation.ok) return "is-error";
@@ -463,13 +482,19 @@ function formatExportDiagnosticDetail(diagnostic: CanvasExportValidationDiagnost
 }
 
 function SceneTree(props: MachinaSlotProps) {
-  const { document, runCommand } = readViewData(props);
+  const { activeMode, document, returnToModeSelection, runCommand } = readViewData(props);
 
   return (
     <aside className="scene-tree panel">
       <header className="app-wordmark">
         <span>MachinaCanvas</span>
         <small>LLM geometry editor</small>
+        <div className="mode-meta">
+          <p>{`Mode: ${activeMode.title}`}</p>
+          <button type="button" onClick={returnToModeSelection}>
+            New canvas
+          </button>
+        </div>
       </header>
       <nav aria-label="Scene layers">
         {document.layers.map((layer) => (
@@ -952,7 +977,7 @@ function MeasurementLabelsOverlay({ document }: { document: CanvasDocument }) {
 }
 
 function CanvasPanel(props: MachinaSlotProps) {
-  const { document, viewport, aidToggles, runCommand } = readViewData(props);
+  const { activeMode, document, viewport, aidToggles, runCommand } = readViewData(props);
   const viewBox = getCanvasViewportViewBox(document, viewport);
   const alphaMappedImages = document.layers
     .filter((layer) => layer.visible)
@@ -970,6 +995,7 @@ function CanvasPanel(props: MachinaSlotProps) {
         <div>
           <small>Canvas / Artboard</small>
           <h1>{document.name}</h1>
+          <small>{activeMode.subtitle}</small>
         </div>
         <span>{formatDocumentSize(document)}</span>
       </div>
@@ -978,7 +1004,7 @@ function CanvasPanel(props: MachinaSlotProps) {
           className="artboard"
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           role="img"
-          aria-label="MachinaCanvas demo poster scene graph"
+          aria-label={`${document.name} scene graph`}
         >
           {alphaMappedImages.length > 0 ? (
             <defs>
@@ -1638,6 +1664,7 @@ function GeometryDiagnosticsSection(props: MachinaSlotProps) {
 
 function ExportPanel(props: MachinaSlotProps) {
   const {
+    isToolGroupVisible,
     exportBundle,
     exportValidation,
     exportStatus,
@@ -1661,6 +1688,7 @@ function ExportPanel(props: MachinaSlotProps) {
   const validationReport = exportValidation
     ? formatCanvasExportValidationReport(exportValidation)
     : undefined;
+  const showTsxLowering = isToolGroupVisible("webUi");
 
   return (
     <InspectorSection title="Export">
@@ -1679,22 +1707,24 @@ function ExportPanel(props: MachinaSlotProps) {
         </button>
       </div>
       {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
-      <div className="tsx-lowering">
-        <strong>TSX LOWERING</strong>
-        <p>generated-page.tsx - text/typescript</p>
-        <div className="tsx-actions">
-          <button type="button" onClick={generateTsxExport}>
-            Generate TSX Page
-          </button>
-          <button
-            type="button"
-            onClick={() => selectExportFile("generated-page.tsx")}
-            disabled={!exportBundle?.files.some((file) => file.path === "generated-page.tsx")}
-          >
-            Show TSX
-          </button>
+      {showTsxLowering ? (
+        <div className="tsx-lowering">
+          <strong>TSX LOWERING</strong>
+          <p>generated-page.tsx - text/typescript</p>
+          <div className="tsx-actions">
+            <button type="button" onClick={generateTsxExport}>
+              Generate TSX Page
+            </button>
+            <button
+              type="button"
+              onClick={() => selectExportFile("generated-page.tsx")}
+              disabled={!exportBundle?.files.some((file) => file.path === "generated-page.tsx")}
+            >
+              Show TSX
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
       <div className="raster-lowering">
         <div className="raster-control">
           <span>Scale</span>
@@ -1801,11 +1831,15 @@ function ExportPanel(props: MachinaSlotProps) {
 }
 
 function Inspector(props: MachinaSlotProps) {
-  const { document, aidToggles, runCommand } = readViewData(props);
+  const { document, aidToggles, isToolGroupVisible, runCommand } = readViewData(props);
   const selected = getSelectedObject(document);
   const layer = getObjectLayer(document, selected);
   const unitSystem = getCanvasUnitSystem(document);
   const measurements = getSelectedObjectMeasurements(document);
+  const showGeometryTools = isToolGroupVisible("geometry");
+  const showImageTools = isToolGroupVisible("image") || isToolGroupVisible("sprite");
+  const showViewAids = isToolGroupVisible("viewAids");
+  const showExport = isToolGroupVisible("export");
 
   if (!selected) {
     return (
@@ -1814,24 +1848,28 @@ function Inspector(props: MachinaSlotProps) {
           <small>Inspector</small>
           <h2>{document.name}</h2>
         </header>
-        <InspectorSection title="Document">
-          <Field label="ID" value={document.id} />
-          <Field label="Size" value={formatDocumentSize(document)} />
-          <Field label="Unit" value={unitSystem.label} />
-          <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
-          <Field label="Layers" value={document.layers.length} />
-          <Field label="Objects" value={Object.keys(document.objects).length} />
-        </InspectorSection>
-        <ViewportSection {...props} />
-        <ViewAidsSection {...props} />
-        <ImageAssetSection {...props} />
-        <InspectorSection title="Measurements">
-          {measurements.map((measurement) => (
-            <Field key={measurement.label} label={measurement.label} value={measurement.text} />
-          ))}
-        </InspectorSection>
+        {showGeometryTools ? (
+          <InspectorSection title="Document">
+            <Field label="ID" value={document.id} />
+            <Field label="Size" value={formatDocumentSize(document)} />
+            <Field label="Unit" value={unitSystem.label} />
+            <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
+            <Field label="Layers" value={document.layers.length} />
+            <Field label="Objects" value={Object.keys(document.objects).length} />
+          </InspectorSection>
+        ) : null}
+        {showViewAids ? <ViewportSection {...props} /> : null}
+        {showViewAids ? <ViewAidsSection {...props} /> : null}
+        {showImageTools ? <ImageAssetSection {...props} /> : null}
+        {showGeometryTools ? (
+          <InspectorSection title="Measurements">
+            {measurements.map((measurement) => (
+              <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+            ))}
+          </InspectorSection>
+        ) : null}
         {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
-        <ExportPanel {...props} />
+        {showExport ? <ExportPanel {...props} /> : null}
         <CommandJsonPanel {...props} />
       </aside>
     );
@@ -1847,70 +1885,80 @@ function Inspector(props: MachinaSlotProps) {
         <small>Selected object</small>
         <h2>{selected.name}</h2>
       </header>
-      <div className="command-row">
-        <button
-          type="button"
-          onClick={() => runCommand({ kind: "move", id: selected.id, dx: 10, dy: 0 })}
-        >
-          Move X +10
-        </button>
-        <button
-          type="button"
-          onClick={() => runCommand({ kind: "move", id: selected.id, dx: 0, dy: 10 })}
-        >
-          Move Y +10
-        </button>
-        <button
-          type="button"
-          onClick={() => runCommand({ kind: "setFill", id: selected.id, fill: nextFill })}
-        >
-          Toggle fill
-        </button>
-      </div>
-      <InspectorSection title="Geometry">
-        <Field label="Kind" value={objectKindLabels[selected.kind]} />
-        <Field label="Layer" value={layer?.name ?? selected.layerId} />
-      </InspectorSection>
-      <InspectorSection title="Frame">
-        <Field label="Intent" value={formatFrameIntent(selected.frame)} />
-      </InspectorSection>
-      <InspectorSection title="Resolved">
-        <Field
-          label="X / Y"
-          value={`${formatCanvasMeasurement(selected.x, unitSystem)} / ${formatCanvasMeasurement(
-            selected.y,
-            unitSystem,
-          )}`}
-        />
-        <Field
-          label="W / H"
-          value={`${formatCanvasMeasurement(
-            selected.width,
-            unitSystem,
-          )} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
-        />
-      </InspectorSection>
-      <ViewportSection {...props} />
-      <ViewAidsSection {...props} />
-      <ImageAssetSection {...props} />
-      <CanvasToolsSection {...props} />
-      <InspectorSection title="Measurements">
-        <Field label="Unit" value={unitSystem.label} />
-        <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
-        {measurements.map((measurement) => (
-          <Field key={measurement.label} label={measurement.label} value={measurement.text} />
-        ))}
-      </InspectorSection>
-      <InspectorSection title="Reference">
-        <Field label="Span" value={selectedGrid.span} />
-        <Field label="Center" value={selectedGrid.center.ref} />
-        <Field label="Top-left" value={topLeftGrid} />
-      </InspectorSection>
-      <InspectorSection title="Style">
-        <Field label="Fill" value={selected.fill ?? "none"} />
-        <Field label="Stroke" value={selected.stroke ?? "none"} />
-        {selected.kind === "text" ? <Field label="Font size" value={selected.fontSize} /> : null}
-      </InspectorSection>
+      {showGeometryTools ? (
+        <>
+          <div className="command-row">
+            <button
+              type="button"
+              onClick={() => runCommand({ kind: "move", id: selected.id, dx: 10, dy: 0 })}
+            >
+              Move X +10
+            </button>
+            <button
+              type="button"
+              onClick={() => runCommand({ kind: "move", id: selected.id, dx: 0, dy: 10 })}
+            >
+              Move Y +10
+            </button>
+            <button
+              type="button"
+              onClick={() => runCommand({ kind: "setFill", id: selected.id, fill: nextFill })}
+            >
+              Toggle fill
+            </button>
+          </div>
+          <InspectorSection title="Geometry">
+            <Field label="Kind" value={objectKindLabels[selected.kind]} />
+            <Field label="Layer" value={layer?.name ?? selected.layerId} />
+          </InspectorSection>
+          <InspectorSection title="Frame">
+            <Field label="Intent" value={formatFrameIntent(selected.frame)} />
+          </InspectorSection>
+          <InspectorSection title="Resolved">
+            <Field
+              label="X / Y"
+              value={`${formatCanvasMeasurement(selected.x, unitSystem)} / ${formatCanvasMeasurement(
+                selected.y,
+                unitSystem,
+              )}`}
+            />
+            <Field
+              label="W / H"
+              value={`${formatCanvasMeasurement(
+                selected.width,
+                unitSystem,
+              )} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
+            />
+          </InspectorSection>
+        </>
+      ) : null}
+      {showViewAids ? <ViewportSection {...props} /> : null}
+      {showViewAids ? <ViewAidsSection {...props} /> : null}
+      {showImageTools ? <ImageAssetSection {...props} /> : null}
+      {showImageTools ? <CanvasToolsSection {...props} /> : null}
+      {showGeometryTools ? (
+        <>
+          <InspectorSection title="Measurements">
+            <Field label="Unit" value={unitSystem.label} />
+            <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
+            {measurements.map((measurement) => (
+              <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+            ))}
+          </InspectorSection>
+          <InspectorSection title="Reference">
+            <Field label="Span" value={selectedGrid.span} />
+            <Field label="Center" value={selectedGrid.center.ref} />
+            <Field label="Top-left" value={topLeftGrid} />
+          </InspectorSection>
+          <InspectorSection title="Style">
+            <Field label="Fill" value={selected.fill ?? "none"} />
+            <Field label="Stroke" value={selected.stroke ?? "none"} />
+            {selected.kind === "text" ? (
+              <Field label="Font size" value={selected.fontSize} />
+            ) : null}
+          </InspectorSection>
+        </>
+      ) : null}
       {selected.kind === "image" ? (
         <>
           <InspectorSection title="Image">
@@ -2242,7 +2290,7 @@ function Inspector(props: MachinaSlotProps) {
         <Field label="Notes" value={selected.notes ?? "none"} />
       </InspectorSection>
       {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
-      <ExportPanel {...props} />
+      {showExport ? <ExportPanel {...props} /> : null}
       <CommandJsonPanel {...props} />
     </aside>
   );
@@ -2253,6 +2301,7 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
   const objects = Object.values(document.objects).filter((object) =>
     ["logo", "headline", "generated-product-image", "cta-bg", "feature-chip-1"].includes(object.id),
   );
+  const summaryObjects = objects.length > 0 ? objects : Object.values(document.objects).slice(0, 5);
   const recentLog = commandLog.slice(0, 3);
 
   return (
@@ -2263,7 +2312,7 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
           {summarizeViewport(document, viewport)}
         </p>
         <div className="object-card-row">
-          {objects.map((object) => (
+          {summaryObjects.map((object) => (
             <button
               className={`object-card ${document.selectedObjectId === object.id ? "is-selected" : ""}`}
               key={object.id}
@@ -2343,8 +2392,9 @@ const VIEWS = {
 export function App() {
   const rootRect = useRootRect();
   const layout = useMemo(() => resolveAppLayout(rootRect), [rootRect]);
-  const [document, setDocument] = useState(initialSceneDocument);
-  const [viewport, setViewport] = useState(() => createCanvasViewport(initialSceneDocument));
+  const [activeModeId, setActiveModeId] = useState<CanvasEditorModeId | undefined>();
+  const [document, setDocument] = useState(INITIAL_EDITOR_DOCUMENT);
+  const [viewport, setViewport] = useState(() => createCanvasViewport(INITIAL_EDITOR_DOCUMENT));
   const [lastCommand, setLastCommand] = useState("ready");
   const [commandJson, setCommandJson] = useState(exampleCommandJson);
   const [commandValidation, setCommandValidation] = useState<
@@ -2370,8 +2420,63 @@ export function App() {
   const [rasterStatus, setRasterStatus] = useState("");
   const commandLogCounter = useRef(0);
   const geometryDiagnostics = useMemo(() => getSceneGeometryDiagnostics(document), [document]);
+  const activeMode = activeModeId
+    ? getCanvasEditorModeTemplate(activeModeId)
+    : INITIAL_MODE_TEMPLATE;
+
+  const loadMode = (modeId: CanvasEditorModeId) => {
+    const template = getCanvasEditorModeTemplate(modeId);
+    const nextDocument = template.createScene();
+    const selectedObjectId =
+      template.defaultSelectedObjectId &&
+      nextDocument.objects[template.defaultSelectedObjectId] !== undefined
+        ? template.defaultSelectedObjectId
+        : nextDocument.selectedObjectId;
+    const resolvedDocument =
+      selectedObjectId === nextDocument.selectedObjectId
+        ? nextDocument
+        : { ...nextDocument, selectedObjectId };
+
+    setActiveModeId(modeId);
+    setDocument(resolvedDocument);
+    setViewport(createCanvasViewport(resolvedDocument));
+    setLastCommand(`mode ready: ${template.title}`);
+    setCommandJson(exampleCommandJson);
+    setCommandValidation(undefined);
+    setCommandLog([]);
+    setLastApplyResults([]);
+    setLastToolResult(undefined);
+    setExportBundle(undefined);
+    setExportValidation(undefined);
+    setSelectedExportPath(undefined);
+    setExportStatus("");
+    setRasterScaleState(1);
+    setRasterBackgroundState("transparent");
+    setRasterArtifact(undefined);
+    setRasterStatus("");
+    commandLogCounter.current = 0;
+  };
+
+  const returnToModeSelection = useCallback(() => {
+    const hasSessionState =
+      commandLog.length > 0 ||
+      exportBundle !== undefined ||
+      exportValidation !== undefined ||
+      rasterArtifact !== undefined;
+    if (
+      activeModeId !== undefined &&
+      hasSessionState &&
+      !window.confirm("Change mode and discard the current working scene?")
+    ) {
+      return;
+    }
+    setActiveModeId(undefined);
+    setLastCommand("choose a canvas mode");
+  }, [activeModeId, commandLog.length, exportBundle, exportValidation, rasterArtifact]);
 
   const viewData = useMemo<AppViewData>(() => {
+    const isToolGroupVisible = (group: CanvasToolGroupId) =>
+      isToolGroupVisibleForMode(activeMode, group);
     const recordAppliedCommands = (
       commands: CanvasCommand[],
       results: CanvasCommandApplyResult[],
@@ -2741,6 +2846,7 @@ export function App() {
     };
 
     return {
+      activeMode,
       document,
       viewport,
       aidToggles,
@@ -2759,6 +2865,8 @@ export function App() {
       rasterBackground,
       rasterArtifact,
       rasterStatus,
+      isToolGroupVisible,
+      returnToModeSelection,
       setViewport,
       setAidToggle,
       fitViewport,
@@ -2786,6 +2894,7 @@ export function App() {
       downloadRasterArtifact,
     };
   }, [
+    activeMode,
     document,
     viewport,
     aidToggles,
@@ -2804,7 +2913,12 @@ export function App() {
     rasterBackground,
     rasterArtifact,
     rasterStatus,
+    returnToModeSelection,
   ]);
+
+  if (activeModeId === undefined) {
+    return <CanvasModeStart onSelectMode={loadMode} />;
+  }
 
   return (
     <MachinaReactView

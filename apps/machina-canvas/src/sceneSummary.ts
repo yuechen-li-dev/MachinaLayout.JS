@@ -49,5 +49,5 @@ export function summarizeScene(document: CanvasDocument): string {
     ? ` Selected ${selected.name} spans ${objectToGridRef(selected, document).span}; size ${formatCanvasMeasurement(selected.width, unitSystem)} x ${formatCanvasMeasurement(selected.height, unitSystem)}; center ${objectToGridRef(selected, document).center.ref}.`
     : " No object selected.";
 
-  return `${document.name} is ${formatCanvasMeasurement(document.width, unitSystem)} x ${formatCanvasMeasurement(document.height, unitSystem)} with ${objects.length} objects across ${document.layers.length} layers.${selectionText} Notable geometry: ${notableObjects}.`;
+  return `${document.name} is ${formatCanvasMeasurement(document.width, unitSystem)} x ${formatCanvasMeasurement(document.height, unitSystem)} with ${objects.length} objects across ${document.layers.length} layers.${selectionText} Notable geometry: ${notableObjects || "none yet"}.`;
 }

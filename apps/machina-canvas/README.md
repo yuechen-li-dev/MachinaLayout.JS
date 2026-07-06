@@ -2,6 +2,17 @@
 
 MachinaCanvas is the first dogfood app for MachinaLayout.JS: a small React/Vite prototype for an LLM-friendly 2D graphics editor substrate.
 
+Canvas modes are soft templates over the same scene model. They choose starting content and visible affordances; they do not fork MachinaCanvas into separate editors.
+
+Current start modes:
+
+- `blank`
+- `graphics`
+- `webUi`
+- `sprites`
+
+The sprite editor proper remains future work. The current mode selector only changes the startup experience and initial tool focus.
+
 Core thesis:
 
 ```txt
