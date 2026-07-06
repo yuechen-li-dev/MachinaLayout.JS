@@ -212,6 +212,38 @@ error InvalidTableCell at orders.totalCents[2]
   Column "totalCents" expected number but received string.
 ```
 
+## Dispatch tables
+
+MachinaTable can author rows for the existing MachinaDispatch runtime without replacing it.
+
+```ts
+import { Table } from "machinalayout/table";
+import { defineDispatchTables, setDispatchTableFromTable } from "machinalayout/dispatch";
+
+const routeActions = Table.define({
+  id: "routeActions",
+  columns: {
+    event: ["nav.home", "nav.settings"],
+    field: ["route", "route"],
+    value: ["home", "settings"],
+  },
+});
+
+const dispatch = defineDispatchTables({
+  set: setDispatchTableFromTable(routeActions, {
+    event: "event",
+    field: "field",
+    value: "value",
+  }),
+});
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- MachinaDispatch is still the runtime form.
+- Failures point to table cells such as `routeActions.event[1]` or `routeActions.field[0]`.
+
 ## Boundary
 
 MachinaTable is not:

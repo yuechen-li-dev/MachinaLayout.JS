@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  type DispatchKeyFromTable,
   type IncrementDispatchTable,
+  incrementDispatchTableFromTable,
   type MachinaDispatchTables,
   MachinaDispatchError,
   type PrefixIncrementDispatchTable,
+  prefixIncrementDispatchTableFromTable,
   type PrefixSetDispatchTable,
+  prefixSetDispatchTableFromTable,
   type SetDispatchTable,
+  setDispatchTableFromTable,
   type ToggleDispatchTable,
+  toggleDispatchTableFromTable,
   defineDispatchTables,
   dispatchEvent,
   matchEventPrefix,
@@ -15,6 +21,17 @@ import {
 
 describe("dispatch public api", () => {
   it("exports runtime members and accepts table types", () => {
+    type _dispatchKeySmoke = DispatchKeyFromTable<
+      {
+        kind: "table";
+        id: "x";
+        rowCount: 1;
+        columns: { event: readonly ["nav.home"] };
+      },
+      "event"
+    >;
+    void (0 as unknown as _dispatchKeySmoke);
+
     const set: SetDispatchTable<{ route: string }> = {
       events: ["e"],
       fields: ["route"],
@@ -32,6 +49,11 @@ describe("dispatch public api", () => {
     expect(typeof dispatchEvent).toBe("function");
     expect(typeof resolveEventValue).toBe("function");
     expect(typeof matchEventPrefix).toBe("function");
+    expect(typeof setDispatchTableFromTable).toBe("function");
+    expect(typeof toggleDispatchTableFromTable).toBe("function");
+    expect(typeof incrementDispatchTableFromTable).toBe("function");
+    expect(typeof prefixSetDispatchTableFromTable).toBe("function");
+    expect(typeof prefixIncrementDispatchTableFromTable).toBe("function");
     expect(new MachinaDispatchError("InvalidDispatchTable", "x").name).toBe("MachinaDispatchError");
     expect(toggle.fields[0]).toBe("on");
     expect(increment.fields[0]).toBe("n");

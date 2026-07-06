@@ -99,6 +99,13 @@ import {
 } from "../src/static";
 import { writeMachinaHandoffBundle } from "../src/handoff";
 import {
+  incrementDispatchTableFromTable,
+  prefixIncrementDispatchTableFromTable,
+  prefixSetDispatchTableFromTable,
+  setDispatchTableFromTable,
+  toggleDispatchTableFromTable,
+} from "../src/dispatch";
+import {
   assertDeusStatePath,
   createDeusSnapshot,
   createMachinaDebugOverlayMachine,
@@ -341,6 +348,14 @@ describe("package export entrypoints", () => {
     expect(Table.validate).toBe(validateTable);
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");
+  });
+
+  it("exposes dispatch table conversion helpers from the dispatch subpath", () => {
+    expect(setDispatchTableFromTable).toBeTypeOf("function");
+    expect(toggleDispatchTableFromTable).toBeTypeOf("function");
+    expect(incrementDispatchTableFromTable).toBeTypeOf("function");
+    expect(prefixSetDispatchTableFromTable).toBeTypeOf("function");
+    expect(prefixIncrementDispatchTableFromTable).toBeTypeOf("function");
   });
 
   it("exposes compile-time helper utilities", () => {

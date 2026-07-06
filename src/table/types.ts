@@ -106,7 +106,12 @@ export type TableDiagnosticCode =
   | "InvalidTableLiteralValue"
   | "InvalidTableSchema"
   | "EmptyTableEnum"
-  | "DuplicateTableEnumValue";
+  | "DuplicateTableEnumValue"
+  | "MissingDispatchKeyColumn"
+  | "MissingDispatchHandlerColumn"
+  | "InvalidDispatchKey"
+  | "InvalidDispatchHandler"
+  | "DuplicateDispatchKey";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

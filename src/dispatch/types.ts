@@ -35,3 +35,12 @@ export type MachinaDispatchTables<TState> = {
   setSuffix?: PrefixSetDispatchTable<TState>;
   incrementSuffix?: PrefixIncrementDispatchTable<TState>;
 };
+
+export type {
+  DispatchKeyFromTable,
+  IncrementDispatchTableFromTableOptions,
+  PrefixIncrementDispatchTableFromTableOptions,
+  PrefixSetDispatchTableFromTableOptions,
+  SetDispatchTableFromTableOptions,
+  ToggleDispatchTableFromTableOptions,
+} from "./fromTable";

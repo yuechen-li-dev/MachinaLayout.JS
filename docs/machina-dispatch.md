@@ -9,7 +9,11 @@ MachinaDispatch is a tiny, pure table-driven event dispatcher for single-field s
 Import from the subpath:
 
 ```ts
-import { defineDispatchTables, dispatchEvent } from "machinalayout/dispatch";
+import {
+  defineDispatchTables,
+  dispatchEvent,
+  setDispatchTableFromTable,
+} from "machinalayout/dispatch";
 ```
 
 ## Thesis
@@ -42,6 +46,54 @@ const tables = defineDispatchTables<AppState>({
     allowedSuffixes: [["p1", "p2"]],
   },
 });
+```
+
+## Dispatch tables authored as MachinaTable
+
+Repeated switch statements are dispatch tables with bad ergonomics.
+
+MachinaTable makes the authoring surface explicit; MachinaDispatch still owns runtime behavior:
+
+```ts
+import { Table } from "machinalayout/table";
+import {
+  defineDispatchTables,
+  dispatchEvent,
+  setDispatchTableFromTable,
+} from "machinalayout/dispatch";
+
+const routeActions = Table.defineWithSchema({
+  id: "routeActions",
+  schema: Table.schema({
+    event: Table.enum(["nav.home", "nav.settings"] as const),
+    field: Table.literal("route"),
+    value: Table.enum(["home", "settings"] as const),
+  }),
+  columns: {
+    event: ["nav.home", "nav.settings"],
+    field: ["route", "route"],
+    value: ["home", "settings"],
+  },
+});
+
+const tables = defineDispatchTables({
+  set: setDispatchTableFromTable(routeActions, {
+    event: "event",
+    field: "field",
+    value: "value",
+  }),
+});
+
+const next = dispatchEvent({ route: "home" }, "nav.settings", tables);
+```
+
+This does not replace the existing dispatch runtime. It only lets you author the existing dispatch table shapes as real tables with cell-oriented diagnostics.
+
+If conversion fails, the helpers throw `TableError` diagnostics such as:
+
+```txt
+error DuplicateDispatchKey at routeActions.event[2]
+  Dispatch key "nav.settings" already appears at row 1.
 ```
 
 ## Operation semantics

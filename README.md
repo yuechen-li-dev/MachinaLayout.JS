@@ -76,6 +76,8 @@ Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatti
 
 Dependency-free columnar table records, row/object adapters, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
 
+Table-authored bridges for the existing MachinaDispatch runtime are available at `machinalayout/dispatch`; see [MachinaDispatch runtime guide](docs/machina-dispatch.md).
+
 Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
 
 Dependency-free text utilities, including `leftPad`, are available at `machinalayout/text`; see [Text utilities](docs/text-utilities.md).
