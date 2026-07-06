@@ -51,6 +51,12 @@ const orders = Table.define({
 
 `Table.define` validates the basic table shape and throws `TableError` if the structure is broken.
 
+MachinaTable is also the authoring surface for concept source rows:
+
+- concepts are source
+- tables organize concepts
+- downstream systems can later project concepts into forms, layouts, docs, or render records
+
 ## Schemas and typed columns
 
 Schemas stay table-shaped too:
@@ -458,6 +464,63 @@ This keeps the dependency direction clean:
 - Rendering stays in your UI layer.
 
 MachinaForm does not manage form state. It makes field definitions table-shaped and validates them by cell.
+
+## Concept tables
+
+MachinaTable can also author concept source records without turning Machina into a form framework or validation clone.
+
+```ts
+import { T } from "machinalayout/concept";
+import { Table } from "machinalayout/table";
+
+const providerConcepts = Table.defineWithSchema({
+  id: "providerConcepts",
+  schema: T.conceptTableSchema(),
+  columns: {
+    concept: ["displayName", "slug", "status"],
+    type: ["string", "string", "enum"],
+    label: ["Provider name", "Public slug", "Status"],
+    required: [true, true, true],
+    description: [undefined, "Public URL-safe identifier.", undefined],
+    diagnosticLabel: ["provider name", "provider slug", "status"],
+    controlHint: ["input", "input", "select"],
+    valuePath: [
+      "draft.provider.displayName",
+      "draft.provider.slug",
+      "draft.provider.status",
+    ],
+    changeKey: ["displayName", "slug", "status"],
+    enumValues: [undefined, undefined, ["draft", "live", "archived"]],
+    literalValue: [undefined, undefined, undefined],
+    placeholder: [undefined, undefined, undefined],
+    testId: ["setup-provider-name", "setup-provider-slug", "setup-provider-status"],
+  },
+});
+
+const concepts = T.conceptsFromTable(providerConcepts);
+```
+
+This keeps the dependency direction clean:
+
+- MachinaTable is the authoring and diagnostic surface.
+- `machinalayout/concept` is a narrow lowering bridge to explicit source records.
+- M35k does not render forms, place layouts, or generate third-party schemas.
+
+Use `T.validateConceptTable(table)` when you want cell-oriented diagnostics without throwing.
+
+Example diagnostic:
+
+```txt
+error MissingConceptEnumValues at providerConcepts.enumValues[2]
+  Concept "status" has type "enum" but no enum values.
+```
+
+Concept tables are intentionally flat in M35k:
+
+- no recursive concepts
+- no nested object trees
+- no arrays
+- no schema generation layer
 
 ## Command tables
 

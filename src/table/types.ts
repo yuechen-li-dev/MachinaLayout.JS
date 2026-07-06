@@ -248,7 +248,26 @@ export type TableDiagnosticCode =
   | "InvalidCommandDescription"
   | "InvalidCommandVariant"
   | "DuplicateCommand"
-  | "DuplicateCommandTestId";
+  | "DuplicateCommandTestId"
+  | "MissingConceptColumn"
+  | "InvalidConceptId"
+  | "InvalidConceptType"
+  | "InvalidConceptLabel"
+  | "InvalidConceptRequired"
+  | "InvalidConceptDescription"
+  | "InvalidConceptDiagnosticLabel"
+  | "InvalidConceptControlHint"
+  | "InvalidConceptValuePath"
+  | "InvalidConceptChangeKey"
+  | "InvalidConceptEnumValues"
+  | "InvalidConceptLiteralValue"
+  | "InvalidConceptPlaceholder"
+  | "InvalidConceptTestId"
+  | "DuplicateConcept"
+  | "MissingConceptEnumValues"
+  | "UnexpectedConceptEnumValues"
+  | "MissingConceptLiteralValue"
+  | "UnexpectedConceptLiteralValue";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

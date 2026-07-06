@@ -70,7 +70,7 @@ Promise-backed ordered async batch mapping with explicit concurrency, cancellati
 
 Explicit iterator machines with visible cursor, board, and trace are available at `machinalayout/iter`; see [Explicit iterators](docs/explicit-iterators.md).
 
-Named capability constraints and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
+Named capability constraints, concept source records, and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
 
 Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
 
@@ -167,7 +167,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
 - [Batch concurrency](docs/batch-concurrency.md) — ordered async batch mapping with explicit concurrency, fail-fast semantics, cancellation, board, and trace.
 - [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
-- [Machina Concepts](docs/machina-concepts.md) — named capability constraints and template records.
+- [Machina Concepts](docs/machina-concepts.md) — named capability constraints, concept source records, and template records.
 - [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
 - [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
 - [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.

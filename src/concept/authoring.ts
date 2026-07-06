@@ -1,4 +1,5 @@
-import { describeConcept, describeTemplate } from "./describe";
+import { describeConcept, describeConcepts, describeTemplate } from "./describe";
+import { conceptTableSchema, conceptsFromTable, validateConceptTable } from "./table";
 import { runTemplate, template } from "./template";
 import { assertConceptValue, validateConceptValue } from "./validate";
 import type * as TypeHelpers from "./typeHelpers";
@@ -137,6 +138,10 @@ export const T = {
   array,
   literal,
   optional,
+  conceptTableSchema,
+  conceptsFromTable,
+  validateConceptTable,
+  describeConcepts,
 } as const;
 
 export declare namespace T {

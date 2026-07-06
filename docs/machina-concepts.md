@@ -1,14 +1,17 @@
 # Machina Concepts
 
-`machinalayout/concept` adds a small runtime utility surface for named capability constraints and template records.
+`machinalayout/concept` adds a small runtime utility surface for named capability constraints, concept source records, and template records.
 
 This is inspired by C++ concepts/templates, but M34e is not compile-time metaprogramming, code generation, a schema compiler, or a validation framework clone.
+
+Machina concepts are source records for meaning, validation, diagnostics, and projection hints. They are not only validators.
 
 ## What it is
 
 - Concepts are named capability contracts.
 - Concepts are composable.
 - Concepts produce readable diagnostics for humans and LLMs.
+- Concept tables author flat concept source records.
 - Templates declare a required concept for runtime inputs.
 - Compile-time helpers name useful generic shapes without pretending to derive them.
 
@@ -19,6 +22,7 @@ This is inspired by C++ concepts/templates, but M34e is not compile-time metapro
 - Not a Babel or TypeScript transform.
 - Not a recursive schema language.
 - Not a Zod clone.
+- Not a form renderer or form state framework.
 - Not nested-object validation beyond basic `object`/`array` kind checks in M34e.
 
 ## Import surface
@@ -27,6 +31,10 @@ This is inspired by C++ concepts/templates, but M34e is not compile-time metapro
 import {
   T,
   ConceptError,
+  conceptTableSchema,
+  conceptsFromTable,
+  validateConceptTable,
+  describeConcepts,
   formatConceptDescription,
   formatConceptDiagnostics,
   formatTemplateDescription,
@@ -43,8 +51,133 @@ import {
 - `T.template`
 - `T.runTemplate`
 - `T.describeTemplate`
+- `T.conceptTableSchema`
+- `T.conceptsFromTable`
+- `T.validateConceptTable`
+- `T.describeConcepts`
 - field helpers like `T.string()`, `T.number()`, `T.fn()`, and `T.optional(...)`
 - type helpers like `T.HasField`, `T.OptionalField`, `T.HasId`, `T.HasKind`, `T.And`, `T.All`, `T.ConceptType`, `T.Extends`, `T.Equal`, `T.Assert`, and `T.Satisfies`
+
+## Concept tables
+
+M35k adds a narrow source-layer bridge: author concept rows as a Machina table, validate them by cell, and lower them into explicit `ConceptRecord[]`.
+
+Core thesis:
+
+- Concepts are source.
+- Tables organize concepts.
+- Templates project concepts.
+- Layouts place projections.
+- Renderers lower projections.
+
+A validation schema is a concept with most of its brain removed. Zod-like validation-only schemas are degenerate concepts: they describe type constraints, but concept records can also carry labels, diagnostics, editability hints, layout-facing metadata, and future projection inputs.
+
+M35k intentionally stops at concept records:
+
+- it does not render forms
+- it does not project layouts
+- it does not generate Zod or JSON Schema
+- it does not recurse into nested concept trees
+
+Use `T.conceptTableSchema()` when you want schema-authored tables:
+
+```ts
+import { T } from "machinalayout/concept";
+import { Table } from "machinalayout/table";
+
+const providerConcepts = Table.defineWithSchema({
+  id: "providerConcepts",
+  schema: T.conceptTableSchema(),
+  columns: {
+    concept: ["displayName", "slug", "timeZoneId", "contactEmail", "description"],
+    type: ["string", "string", "string", "string", "string"],
+    label: [
+      "Provider name",
+      "Public slug",
+      "Timezone",
+      "Contact email",
+      "Short public description",
+    ],
+    required: [true, true, true, false, false],
+    description: [
+      undefined,
+      "Public URL-safe identifier.",
+      undefined,
+      undefined,
+      undefined,
+    ],
+    diagnosticLabel: [
+      "provider name",
+      "provider slug",
+      "timezone",
+      "contact email",
+      "description",
+    ],
+    controlHint: ["input", "input", "input", "input", "textarea"],
+    valuePath: [
+      "draft.provider.displayName",
+      "draft.provider.slug",
+      "draft.provider.timeZoneId",
+      "draft.provider.contactEmail",
+      "draft.provider.description",
+    ],
+    changeKey: ["displayName", "slug", "timeZoneId", "contactEmail", "description"],
+    enumValues: [undefined, undefined, undefined, undefined, undefined],
+    literalValue: [undefined, undefined, undefined, undefined, undefined],
+    placeholder: [undefined, undefined, undefined, undefined, undefined],
+    testId: [
+      "setup-provider-name",
+      "setup-provider-slug",
+      "setup-provider-timezone",
+      "setup-provider-email",
+      "setup-provider-description",
+    ],
+  },
+});
+
+const concepts = T.conceptsFromTable(providerConcepts);
+```
+
+Each row lowers to an explicit concept source record:
+
+```ts
+concepts[0];
+// {
+//   kind: "conceptRecord",
+//   concept: "displayName",
+//   type: "string",
+//   label: "Provider name",
+//   required: true,
+//   diagnosticLabel: "provider name",
+//   controlHint: "input",
+//   valuePath: "draft.provider.displayName",
+//   changeKey: "displayName",
+//   testId: "setup-provider-name",
+// }
+```
+
+Validation is cell-shaped and non-throwing when you ask for diagnostics explicitly:
+
+```ts
+const diagnostics = T.validateConceptTable(providerConcepts);
+const description = T.describeConcepts(concepts, providerConcepts.id);
+```
+
+Example diagnostic:
+
+```txt
+error InvalidConceptType at providerConcepts.type[3]
+  Concept type must be one of string, number, boolean, enum, literal, unknown.
+```
+
+Enum and literal concepts use narrow source-only metadata:
+
+- enum rows must provide `enumValues`
+- literal rows must provide `literalValue`
+- non-enum rows must not provide `enumValues`
+- non-literal rows must not provide `literalValue`
+
+Form projection is intentionally deferred. M35k only lowers tables into `ConceptRecord[]`. A later milestone can project those records into form fields, layout hints, API docs, or other downstream authoring surfaces once the mapping is clearer.
 
 ## Named capability constraints
 

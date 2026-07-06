@@ -39,10 +39,14 @@ import {
 } from "../src/iter";
 import {
   ConceptError,
+  conceptTableSchema,
+  conceptsFromTable,
+  describeConcepts,
   formatConceptDescription,
   formatConceptDiagnostics,
   formatTemplateDescription,
   T,
+  validateConceptTable,
   validateConceptDefinition,
   validateConceptValue,
 } from "../src/concept";
@@ -323,8 +327,16 @@ describe("package export entrypoints", () => {
     expect(T.array).toBeTypeOf("function");
     expect(T.literal).toBeTypeOf("function");
     expect(T.optional).toBeTypeOf("function");
+    expect(T.conceptTableSchema).toBeTypeOf("function");
+    expect(T.conceptsFromTable).toBeTypeOf("function");
+    expect(T.validateConceptTable).toBeTypeOf("function");
+    expect(T.describeConcepts).toBeTypeOf("function");
     expect(validateConceptDefinition).toBeTypeOf("function");
     expect(validateConceptValue).toBeTypeOf("function");
+    expect(conceptTableSchema).toBeTypeOf("function");
+    expect(conceptsFromTable).toBeTypeOf("function");
+    expect(validateConceptTable).toBeTypeOf("function");
+    expect(describeConcepts).toBeTypeOf("function");
     expect(formatConceptDescription).toBeTypeOf("function");
     expect(formatConceptDiagnostics).toBeTypeOf("function");
     expect(formatTemplateDescription).toBeTypeOf("function");

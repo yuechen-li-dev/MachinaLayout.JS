@@ -2,6 +2,9 @@ import type {
   ConceptDefinition,
   ConceptDescription,
   ConceptFieldConstraint,
+  ConceptPrimitiveKind,
+  ConceptRecord,
+  ConceptTableDescription,
   TemplateDescription,
   TemplateRecord,
 } from "./types";
@@ -71,4 +74,25 @@ export function formatTemplateDescription(description: TemplateDescription): str
     lines.push(`  ${line}`);
   }
   return lines.join("\n");
+}
+
+export function describeConcepts(
+  concepts: readonly ConceptRecord[],
+  tableId = "",
+): ConceptTableDescription {
+  const types: ConceptPrimitiveKind[] = [];
+
+  for (const concept of concepts) {
+    if (!types.includes(concept.type)) {
+      types.push(concept.type);
+    }
+  }
+
+  return {
+    kind: "conceptTableDescription",
+    tableId,
+    conceptCount: concepts.length,
+    requiredCount: concepts.filter((concept) => concept.required).length,
+    types,
+  };
 }
