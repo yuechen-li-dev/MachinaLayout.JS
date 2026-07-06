@@ -1,4 +1,6 @@
 import type { TableSchema } from "../table/types";
+import type { ConceptRecord, ConceptsFromTableOptions } from "../concept";
+import type { ColumnarTable } from "../table/types";
 
 export type FormFieldControl = "input" | "textarea";
 
@@ -24,6 +26,37 @@ export type FormFieldTableDescription = {
   readonly tableId: string;
   readonly fieldCount: number;
   readonly controls: readonly FormFieldControl[];
+};
+
+export type ConceptFormValueMap = Record<string, FormFieldValue>;
+
+export type ConceptFormDisabledResolver =
+  | boolean
+  | ((concept: ConceptRecord, context: { readonly index: number }) => boolean);
+
+export type ConceptFormProjectionOptions = {
+  readonly values?: ConceptFormValueMap;
+  readonly disabled?: ConceptFormDisabledResolver;
+  readonly inputIdPrefix?: string;
+  readonly defaultControl?: FormFieldControl;
+  readonly controlForConcept?: (
+    concept: ConceptRecord,
+    context: { readonly index: number },
+  ) => FormFieldControl | undefined;
+  readonly valueForConcept?: (
+    concept: ConceptRecord,
+    context: { readonly index: number },
+  ) => FormFieldValue;
+  readonly disabledForConcept?: (
+    concept: ConceptRecord,
+    context: { readonly index: number },
+  ) => boolean;
+  readonly testIdPrefix?: string;
+};
+
+export type FieldsFromConceptTableOptions = {
+  readonly conceptOptions?: ConceptsFromTableOptions;
+  readonly projection?: ConceptFormProjectionOptions;
 };
 
 export type FieldsFromTableOptions = {
@@ -57,3 +90,8 @@ export type FormFieldTableSchema = TableSchema<{
   readonly required: { readonly kind: "boolean"; readonly optional: true };
   readonly testId: { readonly kind: "string"; readonly optional: true };
 }>;
+
+export type FieldsFromConceptTable = (
+  table: ColumnarTable,
+  options?: FieldsFromConceptTableOptions,
+) => readonly FormFieldRecord[];

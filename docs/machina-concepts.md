@@ -179,6 +179,46 @@ Enum and literal concepts use narrow source-only metadata:
 
 Form projection is intentionally deferred. M35k only lowers tables into `ConceptRecord[]`. A later milestone can project those records into form fields, layout hints, API docs, or other downstream authoring surfaces once the mapping is clearer.
 
+## Projecting concepts into form fields
+
+M35l adds a narrow projection bridge in `machinalayout/form`.
+
+Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+
+The dependency direction stays one-way:
+
+- `machinalayout/concept` defines source records
+- `machinalayout/form` projects those records into `FormFieldRecord[]`
+- rendering and state stay app-owned
+
+Example:
+
+```ts
+import { T } from "machinalayout/concept";
+import { Form } from "machinalayout/form";
+
+const concepts = T.conceptsFromTable(providerConcepts);
+
+const fields = Form.fieldsFromConcepts(concepts, {
+  values: {
+    displayName: draft.provider.displayName,
+    slug: draft.provider.slug,
+    timeZoneId: draft.provider.timeZoneId,
+    contactEmail: draft.provider.contactEmail,
+    description: draft.provider.description,
+  },
+  disabled: () => !onProviderFieldChange || !entities.provider,
+  inputIdPrefix: "setup-provider",
+  testIdPrefix: "setup-provider",
+});
+```
+
+This keeps concept records semantic:
+
+- concepts describe meaning
+- form fields describe editing
+- projection connects them without turning Machina into a form framework
+
 ## Named capability constraints
 
 ```ts

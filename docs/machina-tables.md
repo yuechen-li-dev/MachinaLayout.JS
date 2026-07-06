@@ -465,6 +465,50 @@ This keeps the dependency direction clean:
 
 MachinaForm does not manage form state. It makes field definitions table-shaped and validates them by cell.
 
+## Projecting concepts into form fields
+
+Concept tables can also feed the narrow concept-to-form projection bridge.
+
+Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+
+```ts
+import { Form } from "machinalayout/form";
+import { T } from "machinalayout/concept";
+
+const concepts = T.conceptsFromTable(providerConcepts);
+
+const fields = Form.fieldsFromConcepts(concepts, {
+  values: {
+    displayName: draft.provider.displayName,
+    slug: draft.provider.slug,
+    timeZoneId: draft.provider.timeZoneId,
+    contactEmail: draft.provider.contactEmail,
+    description: draft.provider.description,
+  },
+  disabled: () => !onProviderFieldChange || !entities.provider,
+  inputIdPrefix: "setup-provider",
+  testIdPrefix: "setup-provider",
+});
+```
+
+Or compose directly from the concept table:
+
+```ts
+const fields = Form.fieldsFromConceptTable(providerConcepts, {
+  projection: {
+    values,
+    disabled: true,
+  },
+});
+```
+
+The boundary stays narrow:
+
+- `machinalayout/table` authors the source table
+- `machinalayout/concept` lowers it to semantic source records
+- `machinalayout/form` projects it to field render records
+- the app still owns rendering and state
+
 ## Concept tables
 
 MachinaTable can also author concept source records without turning Machina into a form framework or validation clone.

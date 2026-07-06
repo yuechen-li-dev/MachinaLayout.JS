@@ -1,6 +1,11 @@
 import { Table } from "../table";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
+import {
+  fieldsFromConcepts,
+  fieldsFromConceptTable,
+  validateConceptFormProjection,
+} from "./conceptProjection";
 import type {
   FieldsFromTableOptions,
   FormFieldControl,
@@ -372,4 +377,7 @@ export const Form = {
   fieldsFromTable,
   validateFieldTable,
   describeFields,
+  fieldsFromConcepts,
+  validateConceptFormProjection,
+  fieldsFromConceptTable,
 } as const;

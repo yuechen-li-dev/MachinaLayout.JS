@@ -12,6 +12,86 @@ Core thesis:
 
 MachinaForm does not manage form state. It makes field definitions table-shaped and validates them by cell.
 
+## Projecting concepts into form fields
+
+Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+
+Core thesis:
+
+- concepts are source records
+- form fields are projection records
+- value binding is supplied by the caller
+- there is no path parser
+- there is no form state manager
+- there is no renderer
+- your app renders `FormFieldRecord[]`
+
+Project concepts directly when you already have `ConceptRecord[]`:
+
+```ts
+import { T } from "machinalayout/concept";
+import { Form } from "machinalayout/form";
+
+const concepts = T.conceptsFromTable(providerConcepts);
+
+const fields = Form.fieldsFromConcepts(concepts, {
+  values: {
+    displayName: draft.provider.displayName,
+    slug: draft.provider.slug,
+    timeZoneId: draft.provider.timeZoneId,
+    contactEmail: draft.provider.contactEmail,
+    description: draft.provider.description,
+  },
+  disabled: () => !onProviderFieldChange || !entities.provider,
+  inputIdPrefix: "setup-provider",
+  testIdPrefix: "setup-provider",
+});
+```
+
+`fieldsFromConcepts(...)` only projects records:
+
+- `field` comes from `concept.concept`
+- `label` comes from `concept.label`
+- `changeKey` falls back to `concept.concept`
+- `controlHint` may map to `"input"` or `"textarea"`
+- values come from `values` or `valueForConcept`
+
+Render manually at the app boundary:
+
+```tsx
+{fields.map((field) => (
+  <div key={field.field}>
+    <Label htmlFor={field.inputId}>{field.label}</Label>
+    {field.control === "textarea" ? (
+      <Textarea
+        id={field.inputId}
+        disabled={field.disabled}
+        value={String(field.value ?? "")}
+        onChange={(event) => onChange(field.changeKey, event.target.value)}
+      />
+    ) : (
+      <Input
+        id={field.inputId}
+        disabled={field.disabled}
+        value={String(field.value ?? "")}
+        onChange={(event) => onChange(field.changeKey, event.target.value)}
+      />
+    )}
+  </div>
+))}
+```
+
+If your source is still a concept table, you can compose lowering and projection:
+
+```ts
+const fields = Form.fieldsFromConceptTable(providerConcepts, {
+  projection: {
+    values,
+    disabled: true,
+  },
+});
+```
+
 Boundary:
 
 - no dirty/touched tracking

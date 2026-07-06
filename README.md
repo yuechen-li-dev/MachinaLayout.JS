@@ -78,6 +78,8 @@ Dependency-free columnar table records, narrow select/filter/sort/take/drop deri
 
 Dependency-free form field table lowering is available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
 
+Concept-to-form projection from `ConceptRecord[]` or concept tables into `FormFieldRecord[]` is also available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
+
 Dependency-free command table lowering is available at `machinalayout/command`; see [Machina Commands](docs/machina-commands.md).
 
 Table-authored bridges for the existing MachinaDispatch runtime are available at `machinalayout/dispatch`; see [MachinaDispatch runtime guide](docs/machina-dispatch.md).

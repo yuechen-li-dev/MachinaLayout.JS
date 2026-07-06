@@ -95,10 +95,17 @@ import {
   validateMachinaStyleSheet,
 } from "../src/style";
 import {
+  type ConceptFormDisabledResolver,
+  type ConceptFormProjectionOptions,
+  type ConceptFormValueMap,
   describeFields,
   fieldSchema,
+  fieldsFromConceptTable,
+  fieldsFromConcepts,
   fieldsFromTable,
+  type FieldsFromConceptTableOptions,
   Form,
+  validateConceptFormProjection,
   validateFieldTable,
 } from "../src/form";
 import {
@@ -201,6 +208,10 @@ type _asyncRunSnapshotExportSmoke = AsyncTaskRunSnapshot<
   { readonly name: string },
   { readonly code: string }
 >;
+type _conceptFormValueMapExportSmoke = ConceptFormValueMap;
+type _conceptFormDisabledResolverExportSmoke = ConceptFormDisabledResolver;
+type _conceptFormProjectionOptionsExportSmoke = ConceptFormProjectionOptions;
+type _fieldsFromConceptTableOptionsExportSmoke = FieldsFromConceptTableOptions;
 
 describe("package export entrypoints", () => {
   it("keeps text barrel framework-neutral", async () => {
@@ -412,6 +423,9 @@ describe("package export entrypoints", () => {
     expect(Form.fieldsFromTable).toBe(fieldsFromTable);
     expect(Form.validateFieldTable).toBe(validateFieldTable);
     expect(Form.describeFields).toBe(describeFields);
+    expect(Form.fieldsFromConcepts).toBe(fieldsFromConcepts);
+    expect(Form.validateConceptFormProjection).toBe(validateConceptFormProjection);
+    expect(Form.fieldsFromConceptTable).toBe(fieldsFromConceptTable);
   });
 
   it("exposes command subpath utilities", () => {
