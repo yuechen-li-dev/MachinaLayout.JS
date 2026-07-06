@@ -8,15 +8,13 @@ import type {
   SpriteFrameSourceKind,
   SpriteSidecarObject,
 } from "./sceneModel";
+import {
+  DEFAULT_SPRITE_OVERLAY_SETTINGS,
+  normalizeSpriteOverlayDisplayMode,
+} from "./spriteOverlay";
 import { parseTomlDocument } from "./tomlSyntax";
 
-const defaultOverlay = {
-  showBounds: true,
-  showLabels: true,
-  selectedOnly: false,
-  showSubgrids: true,
-  showExactFrames: true,
-};
+const defaultOverlay = DEFAULT_SPRITE_OVERLAY_SETTINGS;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -608,6 +606,9 @@ export function parseSpriteSidecarToml(
     frames,
     animations,
     overlay: {
+      displayMode:
+        normalizeSpriteOverlayDisplayMode(asString(asTable(root.overlay)?.display_mode)) ??
+        defaultOverlay.displayMode,
       showBounds: asBoolean(asTable(root.overlay)?.show_bounds) ?? defaultOverlay.showBounds,
       showLabels: asBoolean(asTable(root.overlay)?.show_labels) ?? defaultOverlay.showLabels,
       selectedOnly: asBoolean(asTable(root.overlay)?.selected_only) ?? defaultOverlay.selectedOnly,

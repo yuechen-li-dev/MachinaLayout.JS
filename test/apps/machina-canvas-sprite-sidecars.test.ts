@@ -252,7 +252,7 @@ describe("MachinaCanvas sprite sidecars", () => {
     expect(imageToml).toContain('sprite_sidecar_id = "tinytown-sidecar"');
     expect(handoff).toContain("[[sprite_sidecar]]");
     expect(svg).toContain('class="canvas-sprite-overlay"');
-    expect(svg).toContain('class="canvas-sprite-subgrid"');
+    expect(svg).toContain("canvas-sprite-subgrid");
     expect(svg).toContain('data-canvas-sprite-frame-id="maya.down.0"');
     expect(svg).toContain('data-canvas-sprite-source-kind="exact"');
     expect(validateCanvasExportBundle(bundle).ok).toBe(true);

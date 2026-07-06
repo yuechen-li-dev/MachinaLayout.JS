@@ -60,11 +60,14 @@ That shape gives models and humans explicit structure: records, IDs, bounds, lay
 
 MachinaCanvas now treats sprite cuts as editable geometry instead of passive overlay decoration.
 
+Sprite focus mode shows the selected frame, its parent subgrid, and its label while hiding the rest of the overlay noise. Debug mode remains available when all cuts and labels need to be inspected at once.
+
 Sprite atlases can contain multiple subgrid regions plus exact/custom frame crops. MachinaCanvas renders these as distinct overlay layers so grid-aligned cells and exact cuts are not confused.
 
 For non-tiling sprite sheets with transparency, MachinaCanvas can audit cut lines against the image alpha channel. Cut lines crossing opaque pixels are reported as likely slicing through a sprite, while exact/manual crops remain separate semantic cuts.
 
 - click visible sprite frame rectangles on the canvas to select them
+- switch overlay presets between `Focus`, `Cut edit`, `Grid edit`, `Audit`, and `Debug`
 - edit selected frame `x`, `y`, `width`, and `height` in the inspector
 - nudge frames with inspector buttons or arrow keys
 - drag a selected frame to move it and drag the resize handle to change width and height
@@ -95,6 +98,7 @@ Supported commands:
 - `select-frame <sidecarId> <frameId>`
 - `nudge-frame <dx> <dy>`
 - `set-frame-rect <x> <y> <w> <h>`
+- `overlay-mode <focus|cutEdit|gridEdit|audit|debug>`
 - `toggle-sprite-overlay`
 - `toggle-sprite-labels`
 - `toggle-selected-only`

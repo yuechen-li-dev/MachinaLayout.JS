@@ -592,21 +592,40 @@ button {
 }
 
 .canvas-sprite-subgrid {
+  stroke-width: 2px;
+  opacity: 0.95;
+}
+
+.canvas-sprite-subgrid.sprite-subgrid--context {
   stroke-width: 3px;
+  opacity: 1;
+}
+
+.canvas-sprite-subgrid.sprite-subgrid--dimmed {
+  opacity: 0.5;
 }
 
 .canvas-sprite-subgrid-label {
-  fill: #175bc9;
-  font-size: 12px;
+  fill: #355c95;
+  font-size: 11px;
   font-weight: 760;
   paint-order: stroke;
   stroke: #ffffff;
   stroke-width: 3px;
 }
 
+.canvas-sprite-subgrid-label.sprite-subgrid--context {
+  fill: #175bc9;
+}
+
+.canvas-sprite-subgrid-label.sprite-subgrid--dimmed {
+  opacity: 0.7;
+}
+
 .canvas-sprite-frame-hit,
 .canvas-sprite-resize-handle {
   cursor: pointer;
+  pointer-events: all;
 }
 
 .canvas-sprite-resize-handle {
@@ -615,22 +634,68 @@ button {
   vector-effect: non-scaling-stroke;
 }
 
-.canvas-sprite-frame.is-selected {
+.canvas-sprite-frame.sprite-frame--selected {
   stroke-width: 4px;
 }
 
-.canvas-sprite-frame.is-exact {
+.canvas-sprite-frame.sprite-frame--hovered {
+  stroke-width: 3px;
+}
+
+.canvas-sprite-frame.sprite-frame--exact {
   stroke-dasharray: 6 4;
   stroke-width: 3px;
 }
 
+.canvas-sprite-frame.sprite-frame--manual {
+  stroke-dasharray: 2 4;
+}
+
+.canvas-sprite-frame.sprite-frame--dimmed {
+  opacity: 0.38;
+}
+
+.canvas-sprite-frame.sprite-frame--audit {
+  stroke-dasharray: 8 4 2 4;
+}
+
+.canvas-sprite-label-chip {
+  opacity: 0.96;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
 .canvas-sprite-label {
-  fill: #062f2a;
+  fill: #ffffff;
   font-size: 11px;
   font-weight: 760;
   paint-order: stroke;
-  stroke: #ffffff;
-  stroke-width: 3px;
+  stroke: rgba(0, 0, 0, 0.18);
+  stroke-width: 1px;
+}
+
+.canvas-sprite-label-meta {
+  fill: rgba(255, 255, 255, 0.88);
+  font-size: 9px;
+  font-weight: 640;
+}
+
+.canvas-sprite-label.sprite-frame-label--selected {
+  font-size: 11px;
+}
+
+.canvas-sprite-label.sprite-frame-label--hovered,
+.canvas-sprite-label.sprite-frame-label--audit {
+  font-size: 10px;
+}
+
+.canvas-sprite-label-chip.sprite-frame-label--hovered {
+  opacity: 0.88;
+}
+
+.canvas-sprite-label-chip.sprite-frame-label--audit {
+  opacity: 0.92;
 }
 
 .reference-grid-border,

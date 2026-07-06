@@ -9,6 +9,7 @@ import type {
   CanvasSpriteFrame,
   CanvasUiPropValue,
   ImageObject,
+  SpriteOverlayDisplayMode,
   SpriteSidecarObject,
 } from "./sceneModel";
 import {
@@ -119,6 +120,11 @@ export type CanvasCommand =
       sidecarId: string;
       option: "showBounds" | "showLabels" | "selectedOnly" | "showSubgrids" | "showExactFrames";
       value: boolean;
+    }
+  | {
+      kind: "setSpriteOverlayDisplayMode";
+      sidecarId: string;
+      mode: SpriteOverlayDisplayMode;
     }
   | {
       kind: "selectSpriteFrame";
@@ -1203,6 +1209,17 @@ export function validateCanvasCommand(
         });
       }
       break;
+    case "setSpriteOverlayDisplayMode":
+      validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
+      if (!["focus", "cutEdit", "gridEdit", "audit", "debug"].includes(String(command.mode))) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "mode must be focus, cutEdit, gridEdit, audit, or debug.",
+          commandIndex,
+        });
+      }
+      break;
     case "selectSpriteFrame":
       validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
       if (command.frameId !== undefined && !isString(command.frameId)) {
@@ -1540,6 +1557,11 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Sprite overlay ${command.option} was already ${command.value}.`
       : `Set sprite overlay ${command.option} to ${command.value}.`;
+  }
+  if (command.kind === "setSpriteOverlayDisplayMode") {
+    return changes.length === 0
+      ? `Sprite overlay mode was already ${command.mode}.`
+      : `Set sprite overlay mode to ${command.mode}.`;
   }
   if (command.kind === "selectSpriteFrame") {
     return changes.length === 0
@@ -2035,6 +2057,35 @@ export function applyCanvasCommand(
         spec: {
           ...sidecar.spec,
           overlay: { ...sidecar.spec.overlay, [command.option]: command.value },
+        },
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setSpriteOverlayDisplayMode") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setSpriteOverlayDisplayMode skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const before = sidecar.spec.overlay.displayMode;
+    if (before !== command.mode) {
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.overlay.displayMode",
+        before,
+        after: command.mode,
+      });
+      nextDocument = replaceObject(document, sidecar.id, {
+        ...sidecar,
+        spec: {
+          ...sidecar.spec,
+          overlay: { ...sidecar.spec.overlay, displayMode: command.mode },
         },
       });
     }

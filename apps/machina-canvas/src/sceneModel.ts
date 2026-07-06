@@ -190,7 +190,10 @@ export type CanvasSketchSpec = {
   primitives: readonly CanvasSketchPrimitive[];
 };
 
+export type SpriteOverlayDisplayMode = "focus" | "cutEdit" | "gridEdit" | "audit" | "debug";
+
 export type CanvasSpriteOverlaySettings = {
+  displayMode: SpriteOverlayDisplayMode;
   showBounds: boolean;
   showLabels: boolean;
   selectedOnly: boolean;

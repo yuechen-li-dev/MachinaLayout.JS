@@ -883,8 +883,9 @@ export function createSpriteAuditScreenshotDocument(
           ...sidecar.spec,
           overlay: {
             ...sidecar.spec.overlay,
+            displayMode: "audit",
             showBounds: true,
-            showLabels: true,
+            showLabels: false,
             showSubgrids: true,
             showExactFrames: true,
             selectedOnly: scope === "selectedFrame",

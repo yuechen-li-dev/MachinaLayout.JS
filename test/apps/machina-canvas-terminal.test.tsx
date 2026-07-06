@@ -91,7 +91,7 @@ describe("MachinaCanvas terminal commands", () => {
     expect(
       executeCanvasTerminalCommand("summary", { document: createTerminalDocument() }).logEntry
         ?.message,
-    ).toContain("Terminal Doc");
+    ).toContain("Overlay mode Focus");
   });
 
   it("selects an object", () => {
@@ -140,13 +140,19 @@ describe("MachinaCanvas terminal commands", () => {
   it("toggles sprite labels", () => {
     const next = applyTerminal("toggle-sprite-labels", createTerminalDocument());
     const sidecar = next.objects["sheet-sidecar"];
-    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.overlay.showLabels : true).toBe(false);
+    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.overlay.showLabels : false).toBe(true);
   });
 
   it("toggles selected-only overlay mode", () => {
     const next = applyTerminal("toggle-selected-only", createTerminalDocument());
     const sidecar = next.objects["sheet-sidecar"];
     expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.overlay.selectedOnly : false).toBe(true);
+  });
+
+  it("sets sprite overlay display mode from the terminal", () => {
+    const next = applyTerminal("overlay-mode debug", createTerminalDocument());
+    const sidecar = next.objects["sheet-sidecar"];
+    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.overlay.displayMode : "").toBe("debug");
   });
 
   it("returns export summary counts", () => {

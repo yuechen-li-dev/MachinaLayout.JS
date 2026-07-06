@@ -92,7 +92,7 @@ export function executeCanvasTerminalCommand(
       return {
         logEntry: makeLog(
           "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, clear",
+          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, clear",
           trimmed,
         ),
       };
@@ -223,6 +223,25 @@ export function executeCanvasTerminalCommand(
           `selected-only overlay ${!sidecar.spec.overlay.selectedOnly ? "enabled" : "disabled"}`,
           trimmed,
         ),
+      };
+    }
+
+    if (commandName === "overlay-mode" || commandName === "sprite-mode" || commandName === "mode") {
+      const sidecar = findSelectedSpriteSidecar(context.document);
+      if (!sidecar) throw new Error("Select an image or sprite sidecar first.");
+      const mode = tokens[1];
+      if (!["focus", "cutEdit", "gridEdit", "audit", "debug"].includes(mode ?? "")) {
+        throw new Error("overlay-mode requires focus, cutEdit, gridEdit, audit, or debug.");
+      }
+      return {
+        commands: [
+          {
+            kind: "setSpriteOverlayDisplayMode",
+            sidecarId: sidecar.id,
+            mode: mode as "focus" | "cutEdit" | "gridEdit" | "audit" | "debug",
+          },
+        ],
+        logEntry: makeLog("success", `sprite overlay mode ${mode}`, trimmed),
       };
     }
 

@@ -300,8 +300,9 @@ describe("MachinaCanvas sprite audit", () => {
 
     expect(screenshotDocument.selectedObjectId).toBe("sheet-sidecar");
     expect(sidecar.visible).toBe(true);
+    expect(sidecar.spec.overlay.displayMode).toBe("audit");
     expect(sidecar.spec.overlay.showBounds).toBe(true);
-    expect(sidecar.spec.overlay.showLabels).toBe(true);
+    expect(sidecar.spec.overlay.showLabels).toBe(false);
     expect(sidecar.spec.overlay.selectedOnly).toBe(true);
   });
 });

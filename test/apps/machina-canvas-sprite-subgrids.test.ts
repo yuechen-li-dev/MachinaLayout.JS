@@ -116,10 +116,17 @@ describe("MachinaCanvas sprite subgrids", () => {
   });
 
   it("renders subgrid boundaries and distinct exact-frame classes", () => {
-    const svg = serializeCanvasRenderSvg(createDocument());
-    expect(svg).toContain('class="canvas-sprite-subgrid"');
+    const document = applyCanvasCommands(createDocument(), [
+      {
+        kind: "setSpriteOverlayDisplayMode",
+        sidecarId: "sidecar",
+        mode: "debug",
+      },
+    ]).document;
+    const svg = serializeCanvasRenderSvg(document);
+    expect(svg).toContain("canvas-sprite-subgrid");
     expect(svg).toContain("canvas-sprite-subgrid-label");
-    expect(svg).toContain("canvas-sprite-frame is-exact is-selected");
+    expect(svg).toContain("canvas-sprite-frame sprite-frame--exact sprite-frame--selected");
     expect(svg).toContain('data-canvas-sprite-source-kind="exact"');
   });
 
