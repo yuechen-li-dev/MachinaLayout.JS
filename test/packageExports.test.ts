@@ -80,6 +80,7 @@ import {
 } from "../src/comptime";
 import { D } from "../src/diagnostics";
 import { formatTableDiagnostics, Table, TableError, validateTable } from "../src/table";
+import { Q, TableQueryError } from "../src/query";
 import {
   C,
   formatCaptureDiagnostics,
@@ -443,6 +444,16 @@ describe("package export entrypoints", () => {
     expect(Table.validateKey).toBeTypeOf("function");
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");
+  });
+
+  it("exposes query subpath utilities", () => {
+    expect(Q.from).toBeTypeOf("function");
+    expect(Q.plan).toBeTypeOf("function");
+    expect(Q.execute).toBeTypeOf("function");
+    expect(Q.validate).toBeTypeOf("function");
+    expect(Q.describePlan).toBeTypeOf("function");
+    expect(Q.formatPlan).toBeTypeOf("function");
+    expect(TableQueryError).toBeTypeOf("function");
   });
 
   it("exposes form subpath utilities", () => {

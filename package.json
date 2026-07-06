@@ -107,6 +107,10 @@
       "types": "./dist/table/index.d.ts",
       "import": "./dist/table/index.js"
     },
+    "./query": {
+      "types": "./dist/query/index.d.ts",
+      "import": "./dist/query/index.js"
+    },
     "./form": {
       "types": "./dist/form/index.d.ts",
       "import": "./dist/form/index.js"

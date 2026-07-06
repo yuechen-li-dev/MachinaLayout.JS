@@ -265,6 +265,11 @@ These are narrow table derivation helpers, not a query language:
 - no aggregate
 - no dataframe API
 
+For inspectable in-memory query chains over these helpers, use `machinalayout/query`.
+MachinaQuery stores a query as explicit derivation plan records, validates that plan,
+then executes it through the same `Table.select`, `Table.filterRows`, `Table.sortBy`,
+`Table.take`, `Table.drop`, and `Table.renameColumns` helpers.
+
 Use `Table.filterRows` when you want a columnar-friendly predicate that reads cells directly:
 
 ```ts
