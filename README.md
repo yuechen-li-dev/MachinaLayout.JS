@@ -443,6 +443,7 @@ This repo uses Biome.
 - [Grid arrange runtime guide](docs/grid-arrange.md)
 - [Reference alignment runtime guide](docs/reference-alignment.md)
 - [Responsive variants](docs/responsive-variants.md)
+- [Tabular style sheets](docs/machina-style.md#tabular-style-sheets)
 - [Named layers](docs/named-layers.md)
 - [Layout interpolation](docs/layout-interpolation.md)
 

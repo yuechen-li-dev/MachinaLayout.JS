@@ -11,6 +11,17 @@ import type {
   MachinaTokenGroup,
 } from "./types";
 import { matchKind } from "../match";
+import {
+  describeStyleRules,
+  describeStyleTokens,
+  ruleTableSchema,
+  rulesFromTable,
+  sheetFromTables,
+  tokenTableSchema,
+  tokensFromTable,
+  validateStyleRuleTable,
+  validateStyleTokenTable,
+} from "./tabular";
 import { createMachinaTokenReference } from "./tokens";
 
 type PlainRecord = Record<string, unknown>;
@@ -516,6 +527,10 @@ export function dataState(...states: readonly string[]): string {
 export const S = {
   tokens,
   token,
+  tokenTableSchema,
+  tokensFromTable,
+  validateStyleTokenTable,
+  describeStyleTokens,
   style,
   stateful: createStatefulStyle,
   responsive: createResponsiveStyle,
@@ -532,6 +547,11 @@ export const S = {
   with: withStyle,
   merge: withStyle,
   sheet,
+  ruleTableSchema,
+  rulesFromTable,
+  validateStyleRuleTable,
+  describeStyleRules,
+  sheetFromTables,
   classes,
   dataState,
 } as const;

@@ -8,6 +8,7 @@ import {
   tokenVariableName,
 } from "./tokens";
 import type {
+  MachinaTabularStyleSheet,
   MachinaResponsiveProfile,
   MachinaResponsiveStyle,
   MachinaResponsiveVariant,
@@ -24,6 +25,8 @@ import type {
   MachinaSurfaceStyle,
   MachinaTextStyle,
   SerializeMachinaStyleOptions,
+  StyleRuleRecord,
+  StyleTokenRecord,
 } from "./types";
 import { DEFAULT_MACHINA_RESPONSIVE_PROFILE } from "./types";
 
@@ -201,6 +204,20 @@ function tokenDeclarations(tokens: MachinaStyleTokens | undefined): CssDeclarati
     }
   }
 
+  return declarations;
+}
+
+function tabularTokenDeclarationsForTheme(
+  tokenRecords: readonly StyleTokenRecord[],
+  theme: string,
+): CssDeclaration[] {
+  const declarations: CssDeclaration[] = [];
+  for (const tokenRecord of tokenRecords) {
+    const value = tokenRecord.values[theme];
+    if (value !== undefined) {
+      declarations.push([`--${toKebabName(tokenRecord.token)}`, value]);
+    }
+  }
   return declarations;
 }
 
@@ -487,6 +504,104 @@ function serializeRule(selector: string, declarations: readonly CssDeclaration[]
   return lines.join("\n");
 }
 
+function selectorWithState(selector: string, state: string | undefined): string {
+  return state === undefined ? selector : `${selector}[data-state~="${state}"]`;
+}
+
+function knownResponsiveVariant(value: string): value is MachinaResponsiveVariant {
+  return RESPONSIVE_VARIANTS.includes(value as MachinaResponsiveVariant);
+}
+
+function tabularRuleGroupKey(rule: StyleRuleRecord): string {
+  return [rule.selector, rule.state ?? "", rule.breakpoint ?? ""].join("\u0000");
+}
+
+function serializeTabularRuleRecords(
+  ruleRecords: readonly StyleRuleRecord[],
+  responsiveProfile: MachinaResponsiveProfile,
+): string[] {
+  const orderedKeys: string[] = [];
+  const declarationsByKey = new Map<string, CssDeclaration[]>();
+  const rulesByKey = new Map<string, StyleRuleRecord>();
+
+  for (const rule of ruleRecords) {
+    const key = tabularRuleGroupKey(rule);
+    if (!declarationsByKey.has(key)) {
+      orderedKeys.push(key);
+      declarationsByKey.set(key, []);
+      rulesByKey.set(key, rule);
+    }
+    declarationsByKey.get(key)!.push([rule.property, rule.value]);
+  }
+
+  const blocks: string[] = [];
+  for (const key of orderedKeys) {
+    const rule = rulesByKey.get(key)!;
+    const selector = selectorWithState(rule.selector, rule.state);
+    const declarations = declarationsByKey.get(key)!;
+    if (rule.breakpoint !== undefined && knownResponsiveVariant(rule.breakpoint)) {
+      blocks.push(
+        serializeMediaRule(
+          mediaQueryForVariant(rule.breakpoint, responsiveProfile),
+          selector,
+          declarations,
+        ),
+      );
+      continue;
+    }
+    blocks.push(serializeRule(selector, declarations));
+  }
+
+  return blocks;
+}
+
+function serializeTabularStyleSheet(
+  tabular: MachinaTabularStyleSheet | undefined,
+  responsiveProfile: MachinaResponsiveProfile,
+): string[] {
+  if (!tabular) {
+    return [];
+  }
+
+  const blocks: string[] = [];
+  const tokenRecords = tabular.tokenRecords ?? [];
+  const defaultTheme = tabular.defaultTheme;
+
+  if (tokenRecords.length > 0 && defaultTheme !== undefined) {
+    const rootDeclarations = tabularTokenDeclarationsForTheme(tokenRecords, defaultTheme);
+    if (rootDeclarations.length > 0) {
+      blocks.push(serializeRule(":root", rootDeclarations));
+    }
+
+    const seenThemes = new Set<string>();
+    for (const tokenRecord of tokenRecords) {
+      for (const theme of Object.keys(tokenRecord.values)) {
+        if (theme === defaultTheme || seenThemes.has(theme)) {
+          continue;
+        }
+        seenThemes.add(theme);
+        const declarations = tabularTokenDeclarationsForTheme(tokenRecords, theme);
+        if (declarations.length > 0) {
+          blocks.push(serializeRule(`.${theme}`, declarations));
+        }
+      }
+    }
+  }
+
+  if ((tabular.ruleRecords?.length ?? 0) > 0) {
+    blocks.push(...serializeTabularRuleRecords(tabular.ruleRecords!, responsiveProfile));
+  }
+
+  return blocks;
+}
+
+function toKebabName(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[.\s_]+/g, "-")
+    .toLowerCase();
+}
+
 export function serializeMachinaStyleSheet(
   sheet: MachinaStyleSheet,
   options: SerializeMachinaStyleOptions = {},
@@ -506,6 +621,8 @@ export function serializeMachinaStyleSheet(
   if (tokens.length > 0) {
     blocks.push(serializeRule(":root", tokens));
   }
+
+  blocks.push(...serializeTabularStyleSheet(sheet.tabular, responsiveProfile));
 
   for (const className of Object.keys(sheet.classes).sort()) {
     assertNoUnresolvedStyleSlots(sheet.classes[className], `classes.${className}`);

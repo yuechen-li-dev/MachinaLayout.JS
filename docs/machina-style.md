@@ -91,6 +91,65 @@ type MachinaTokenReference = {
 
 Both `"color.primary"` and `S.token("color", "primary")` lower to `var(--color-primary)`. Validation covers both forms.
 
+## Tabular Style Sheets
+
+Tabular style sheets are an authoring surface for MachinaStyle. They do not replace the existing style records or CSS lowering pipeline.
+
+```txt
+style.ts is a Tabular Style Sheet.
+CSS is the target, not the source language.
+```
+
+Author style as tables. Validate by cell. Lower through MachinaStyle. Emit CSS at the boundary.
+
+Token tables model `token x theme -> value`:
+
+```ts
+const tokens = Table.defineWithSchema({
+  id: "themeTokens",
+  schema: S.tokenTableSchema(["light", "dark"]),
+  columns: {
+    token: ["background", "foreground", "primary"],
+    light: ["oklch(1 0 0)", "oklch(0.145 0 0)", "oklch(0.205 0 0)"],
+    dark: ["oklch(0.145 0 0)", "oklch(0.985 0 0)", "oklch(0.922 0 0)"],
+    description: [undefined, undefined, undefined],
+  },
+});
+```
+
+Rule tables use long-form `selector | property | value` rows:
+
+```ts
+const rules = Table.defineWithSchema({
+  id: "bookingRules",
+  schema: S.ruleTableSchema(),
+  columns: {
+    selector: [".scheduling-booking-header", ".scheduling-booking-header"],
+    property: ["height", "padding"],
+    value: ["100%", "0 24px"],
+    state: [undefined, undefined],
+    breakpoint: [undefined, undefined],
+    description: [undefined, undefined],
+  },
+});
+```
+
+Lower the authored tables into the existing serializer path:
+
+```ts
+const sheet = S.sheetFromTables({
+  id: "bookingStyles",
+  tokens,
+  rules,
+});
+
+const css = serializeMachinaStyleSheet(sheet);
+```
+
+Token themes lower to CSS custom-property blocks. The default theme becomes `:root`, and additional named themes lower to class selectors such as `.dark`. Rule rows are grouped by selector before serialization, and optional `state` / known `desktop` / `tablet` / `phone` breakpoints reuse MachinaStyle's existing `data-state` and responsive media-query conventions.
+
+M35m does not add a CSS parser, selector engine, cascade simulator, or second style engine.
+
 ## Style Records
 
 Style records are semantic-ish structs, not 1:1 CSS property mirrors:

@@ -90,8 +90,17 @@ import {
 import {
   createMachinaClassNames,
   createMachinaStyleArtifact,
+  describeStyleRules,
+  describeStyleTokens,
+  ruleTableSchema,
+  rulesFromTable,
   S,
   serializeMachinaStyleSheet,
+  sheetFromTables,
+  tokenTableSchema,
+  tokensFromTable,
+  validateStyleRuleTable,
+  validateStyleTokenTable,
   validateMachinaStyleSheet,
 } from "../src/style";
 import {
@@ -243,9 +252,18 @@ describe("package export entrypoints", () => {
     expect(S.style).toBeTypeOf("function");
     expect(S.with).toBeTypeOf("function");
     expect(S.token).toBeTypeOf("function");
+    expect(S.tokenTableSchema).toBeTypeOf("function");
+    expect(S.tokensFromTable).toBeTypeOf("function");
+    expect(S.validateStyleTokenTable).toBeTypeOf("function");
+    expect(S.describeStyleTokens).toBeTypeOf("function");
     expect(S.classes).toBeTypeOf("function");
     expect(S.stateful).toBeTypeOf("function");
     expect(S.responsive).toBeTypeOf("function");
+    expect(S.ruleTableSchema).toBeTypeOf("function");
+    expect(S.rulesFromTable).toBeTypeOf("function");
+    expect(S.validateStyleRuleTable).toBeTypeOf("function");
+    expect(S.describeStyleRules).toBeTypeOf("function");
+    expect(S.sheetFromTables).toBeTypeOf("function");
     expect(S.resolveState).toBeTypeOf("function");
     expect(S.resolveStates).toBeTypeOf("function");
     expect(S.resolveResponsive).toBeTypeOf("function");
@@ -253,6 +271,15 @@ describe("package export entrypoints", () => {
     expect(S.dataState).toBeTypeOf("function");
     expect(createMachinaClassNames).toBeTypeOf("function");
     expect(createMachinaStyleArtifact).toBeTypeOf("function");
+    expect(tokenTableSchema).toBeTypeOf("function");
+    expect(tokensFromTable).toBeTypeOf("function");
+    expect(validateStyleTokenTable).toBeTypeOf("function");
+    expect(describeStyleTokens).toBeTypeOf("function");
+    expect(ruleTableSchema).toBeTypeOf("function");
+    expect(rulesFromTable).toBeTypeOf("function");
+    expect(validateStyleRuleTable).toBeTypeOf("function");
+    expect(describeStyleRules).toBeTypeOf("function");
+    expect(sheetFromTables).toBeTypeOf("function");
     expect(serializeMachinaStyleSheet).toBeTypeOf("function");
     expect(validateMachinaStyleSheet).toBeTypeOf("function");
   });

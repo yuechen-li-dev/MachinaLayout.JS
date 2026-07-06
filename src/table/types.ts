@@ -274,7 +274,20 @@ export type TableDiagnosticCode =
   | "MissingConceptEnumValues"
   | "UnexpectedConceptEnumValues"
   | "MissingConceptLiteralValue"
-  | "UnexpectedConceptLiteralValue";
+  | "UnexpectedConceptLiteralValue"
+  | "MissingStyleTokenColumn"
+  | "MissingStyleThemeColumn"
+  | "InvalidStyleTokenName"
+  | "InvalidStyleTokenValue"
+  | "InvalidStyleTokenDescription"
+  | "DuplicateStyleToken"
+  | "MissingStyleRuleColumn"
+  | "InvalidStyleSelector"
+  | "InvalidStyleProperty"
+  | "InvalidStyleValue"
+  | "InvalidStyleState"
+  | "InvalidStyleBreakpoint"
+  | "InvalidStyleRuleDescription";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";

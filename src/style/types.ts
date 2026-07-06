@@ -1,3 +1,5 @@
+import type { ColumnarTable } from "../table/types";
+
 export type MachinaFontWeight = "normal" | "medium" | "semibold" | "bold" | number;
 
 export type MachinaFontToken = {
@@ -217,6 +219,7 @@ export type MachinaStyleSheet = {
   classes: Record<string, MachinaStyleRecord>;
   stateful?: Record<string, MachinaStatefulStyle>;
   responsive?: Record<string, MachinaResponsiveStyle>;
+  tabular?: MachinaTabularStyleSheet;
 };
 
 export type SerializeMachinaStyleOptions = {
@@ -234,4 +237,65 @@ export type MachinaStyleDiagnostic = {
   code: string;
   message: string;
   path?: string;
+};
+
+export type StyleTokenRecord = {
+  readonly kind: "styleToken";
+  readonly token: string;
+  readonly values: Readonly<Record<string, string>>;
+  readonly description?: string;
+};
+
+export type StyleRuleRecord = {
+  readonly kind: "styleRule";
+  readonly selector: string;
+  readonly property: string;
+  readonly value: string;
+  readonly state?: string;
+  readonly breakpoint?: string;
+  readonly description?: string;
+};
+
+export type StyleTokensFromTableOptions = {
+  readonly tokenColumn?: string;
+  readonly themeColumns?: readonly string[];
+  readonly descriptionColumn?: string;
+};
+
+export type StyleRulesFromTableOptions = {
+  readonly selectorColumn?: string;
+  readonly propertyColumn?: string;
+  readonly valueColumn?: string;
+  readonly stateColumn?: string;
+  readonly breakpointColumn?: string;
+  readonly descriptionColumn?: string;
+};
+
+export type StyleSheetFromTablesOptions = {
+  readonly id?: string;
+  readonly tokens?: ColumnarTable;
+  readonly rules?: ColumnarTable;
+  readonly tokenOptions?: StyleTokensFromTableOptions;
+  readonly ruleOptions?: StyleRulesFromTableOptions;
+};
+
+export type StyleTokenTableDescription = {
+  readonly kind: "styleTokenTableDescription";
+  readonly tableId: string;
+  readonly tokenCount: number;
+  readonly themes: readonly string[];
+};
+
+export type StyleRuleTableDescription = {
+  readonly kind: "styleRuleTableDescription";
+  readonly tableId: string;
+  readonly ruleCount: number;
+  readonly selectorCount: number;
+  readonly propertyCount: number;
+};
+
+export type MachinaTabularStyleSheet = {
+  readonly tokenRecords?: readonly StyleTokenRecord[];
+  readonly ruleRecords?: readonly StyleRuleRecord[];
+  readonly defaultTheme?: string;
 };
