@@ -6,13 +6,27 @@ export * from "./validate";
 export * from "./format";
 
 import { columnNames, getCell, getColumn, getRow, rowCount } from "./access";
-import { define } from "./authoring";
+import {
+  boolean,
+  define,
+  defineWithSchema,
+  enumColumn,
+  literal,
+  number,
+  optional,
+  schema,
+  string,
+  unknown,
+  withSchema,
+} from "./authoring";
 import { fromObjects, fromRows, toObjects, toRows } from "./convert";
 import { formatTableDiagnostics } from "./format";
 import { validateTable } from "./validate";
 
 export const Table = {
   define,
+  defineWithSchema,
+  withSchema,
   fromRows,
   fromObjects,
   toRows,
@@ -22,6 +36,14 @@ export const Table = {
   getCell,
   rowCount,
   columnNames,
+  string,
+  number,
+  boolean,
+  literal,
+  enum: enumColumn,
+  unknown,
+  optional,
+  schema,
   validate: validateTable,
   formatDiagnostics: formatTableDiagnostics,
 } as const;

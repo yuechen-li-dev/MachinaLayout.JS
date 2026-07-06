@@ -1,8 +1,17 @@
 import { formatTableDiagnostics } from "./format";
-import type { ColumnarTable, TableColumns, TableDiagnostic, TableObjectRow } from "./types";
+import type {
+  ColumnarTable,
+  SchemaColumnarTable,
+  TableColumns,
+  TableColumnSchema,
+  TableDiagnostic,
+  TableObjectRow,
+  TableSchema,
+  TableSchemaPrimitive,
+} from "./types";
 
 function tablePath(tableId: string, column?: string, row?: number): string {
-  if (row !== undefined && column !== undefined) return `${tableId}[${row}].${column}`;
+  if (row !== undefined && column !== undefined) return `${tableId}.${column}[${row}]`;
   if (row !== undefined) return `${tableId}[${row}]`;
   if (column !== undefined) return `${tableId}.${column}`;
   return tableId;
@@ -32,6 +41,117 @@ function isObjectRow(value: unknown): value is TableObjectRow {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isSchemaPrimitive(value: unknown): value is TableSchemaPrimitive {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+}
+
+function isTableColumnSchema(value: unknown): value is TableColumnSchema {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const schema = value as Partial<TableColumnSchema>;
+  if (schema.optional !== undefined && schema.optional !== true) {
+    return false;
+  }
+
+  switch (schema.kind) {
+    case "string":
+    case "number":
+    case "boolean":
+    case "unknown":
+      return true;
+    case "literal":
+      return isSchemaPrimitive(schema.value);
+    case "enum":
+      return Array.isArray(schema.values) && schema.values.every(isSchemaPrimitive);
+    default:
+      return false;
+  }
+}
+
+function isTableSchema(value: unknown): value is TableSchema {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const schema = value as Partial<TableSchema>;
+  return (
+    schema.kind === "tableSchema" &&
+    typeof schema.columns === "object" &&
+    schema.columns !== null &&
+    !Array.isArray(schema.columns)
+  );
+}
+
+function describeValueKind(value: unknown): string {
+  if (value === undefined) return "undefined";
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value;
+}
+
+function validateCellValue(
+  schema: TableColumnSchema,
+  value: unknown,
+): Omit<TableDiagnostic, "severity" | "path"> | undefined {
+  if (value === undefined) {
+    if (schema.optional === true) {
+      return undefined;
+    }
+
+    return {
+      code: "InvalidTableCell",
+      message: `Column expected ${schema.kind} but received undefined.`,
+    };
+  }
+
+  switch (schema.kind) {
+    case "string":
+      return typeof value === "string"
+        ? undefined
+        : {
+            code: "InvalidTableCell",
+            message: `Column expected string but received ${describeValueKind(value)}.`,
+          };
+    case "number":
+      return typeof value === "number"
+        ? undefined
+        : {
+            code: "InvalidTableCell",
+            message: `Column expected number but received ${describeValueKind(value)}.`,
+          };
+    case "boolean":
+      return typeof value === "boolean"
+        ? undefined
+        : {
+            code: "InvalidTableCell",
+            message: `Column expected boolean but received ${describeValueKind(value)}.`,
+          };
+    case "unknown":
+      return undefined;
+    case "literal":
+      return Object.is(value, schema.value)
+        ? undefined
+        : {
+            code: "InvalidTableLiteralValue",
+            message: `Column expected literal ${JSON.stringify(schema.value)} but received ${JSON.stringify(value)}.`,
+          };
+    case "enum":
+      return schema.values.some((candidate) => Object.is(candidate, value))
+        ? undefined
+        : {
+            code: "InvalidTableEnumValue",
+            message: `Column expected one of ${schema.values.map((candidate) => JSON.stringify(candidate)).join(", ")} but received ${JSON.stringify(value)}.`,
+          };
+    default:
+      return {
+        code: "InvalidTableSchema",
+        message: "Column schema kind is not supported.",
+      };
+  }
+}
+
 export class TableError extends Error {
   readonly diagnostics: readonly TableDiagnostic[];
 
@@ -48,7 +168,81 @@ export function assertNoTableErrors(diagnostics: readonly TableDiagnostic[]): vo
   }
 }
 
-export function validateTable(table: ColumnarTable): TableDiagnostic[] {
+export function validateTableSchema(schema: unknown, tableId?: string): TableDiagnostic[] {
+  const diagnostics: TableDiagnostic[] = [];
+
+  if (!isTableSchema(schema)) {
+    diagnostics.push(
+      createDiagnostic({
+        code: "InvalidTableSchema",
+        message: 'Table schema must be an object with kind "tableSchema" and a columns object.',
+        tableId,
+      }),
+    );
+    return diagnostics;
+  }
+
+  for (const [columnName, columnSchema] of Object.entries(schema.columns)) {
+    if (columnName.trim().length === 0) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "InvalidColumnName",
+          message: "Schema column names must be non-empty strings.",
+          tableId,
+          column: columnName,
+        }),
+      );
+    }
+
+    if (!isTableColumnSchema(columnSchema)) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "InvalidTableSchema",
+          message: `Schema column "${columnName}" is not a supported table column schema.`,
+          tableId,
+          column: columnName,
+        }),
+      );
+      continue;
+    }
+
+    if (columnSchema.kind === "enum") {
+      if (columnSchema.values.length === 0) {
+        diagnostics.push(
+          createDiagnostic({
+            code: "EmptyTableEnum",
+            message: `Schema column "${columnName}" must define at least one enum value.`,
+            tableId,
+            column: columnName,
+          }),
+        );
+      }
+
+      const seen = new Set<TableSchemaPrimitive>();
+      for (const value of columnSchema.values) {
+        if (seen.has(value)) {
+          diagnostics.push(
+            createDiagnostic({
+              severity: "warning",
+              code: "DuplicateTableEnumValue",
+              message: `Schema column "${columnName}" repeats enum value ${JSON.stringify(value)}.`,
+              tableId,
+              column: columnName,
+            }),
+          );
+        } else {
+          seen.add(value);
+        }
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+export function validateTable(
+  table: ColumnarTable | (ColumnarTable & { readonly schema?: unknown }),
+): TableDiagnostic[] {
   const diagnostics: TableDiagnostic[] = [];
   const { id, columns, rowCount } = table;
 
@@ -119,6 +313,70 @@ export function validateTable(table: ColumnarTable): TableDiagnostic[] {
     );
   }
 
+  if (!("schema" in table) || table.schema === undefined) {
+    return diagnostics;
+  }
+
+  const schemaDiagnostics = validateTableSchema(table.schema, id);
+  diagnostics.push(...schemaDiagnostics);
+
+  if (!isTableSchema(table.schema)) {
+    return diagnostics;
+  }
+
+  const schemaColumnNames = Object.keys(table.schema.columns);
+  const tableColumnNames = Object.keys(columns);
+  const tableColumnSet = new Set(tableColumnNames);
+  const schemaColumnSet = new Set(schemaColumnNames);
+
+  for (const columnName of schemaColumnNames) {
+    if (!tableColumnSet.has(columnName)) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "MissingSchemaColumn",
+          message: `Table is missing schema column "${columnName}".`,
+          tableId: id,
+          column: columnName,
+        }),
+      );
+    }
+  }
+
+  for (const columnName of tableColumnNames) {
+    if (!schemaColumnSet.has(columnName)) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "ExtraSchemaColumn",
+          message: `Table column "${columnName}" is not present in the schema.`,
+          tableId: id,
+          column: columnName,
+        }),
+      );
+    }
+  }
+
+  for (const [columnName, columnSchema] of Object.entries(table.schema.columns)) {
+    const values = columns[columnName];
+    if (!Array.isArray(values) || !isTableColumnSchema(columnSchema)) {
+      continue;
+    }
+
+    values.forEach((value, row) => {
+      const diagnostic = validateCellValue(columnSchema, value);
+      if (diagnostic !== undefined) {
+        diagnostics.push(
+          createDiagnostic({
+            ...diagnostic,
+            message: `Column "${columnName}" ${diagnostic.message.replace(/^Column /, "")}`,
+            tableId: id,
+            column: columnName,
+            row,
+          }),
+        );
+      }
+    });
+  }
+
   return diagnostics;
 }
 
@@ -147,7 +405,7 @@ export function validateRowTableInput(input: {
           code: "InvalidColumnName",
           message: `Column at index ${index} must be a non-empty string.`,
           tableId: id,
-          column: column,
+          column,
         }),
       );
       return;
@@ -296,4 +554,10 @@ export function cloneColumns<TColumns extends TableColumns>(columns: TColumns): 
     cloned[columnName] = Array.isArray(values) ? [...values] : values;
   }
   return cloned as TColumns;
+}
+
+export function isSchemaTable<TSchema extends TableSchema>(
+  table: ColumnarTable | SchemaColumnarTable<TSchema>,
+): table is SchemaColumnarTable<TSchema> {
+  return "schema" in table && isTableSchema(table.schema);
 }

@@ -319,6 +319,8 @@ describe("package export entrypoints", () => {
 
   it("exposes table subpath utilities", () => {
     expect(Table.define).toBeTypeOf("function");
+    expect(Table.defineWithSchema).toBeTypeOf("function");
+    expect(Table.withSchema).toBeTypeOf("function");
     expect(Table.fromRows).toBeTypeOf("function");
     expect(Table.fromObjects).toBeTypeOf("function");
     expect(Table.toRows).toBeTypeOf("function");
@@ -328,6 +330,14 @@ describe("package export entrypoints", () => {
     expect(Table.getRow).toBeTypeOf("function");
     expect(Table.rowCount).toBeTypeOf("function");
     expect(Table.columnNames).toBeTypeOf("function");
+    expect(Table.string).toBeTypeOf("function");
+    expect(Table.number).toBeTypeOf("function");
+    expect(Table.boolean).toBeTypeOf("function");
+    expect(Table.literal).toBeTypeOf("function");
+    expect(Table.enum).toBeTypeOf("function");
+    expect(Table.unknown).toBeTypeOf("function");
+    expect(Table.optional).toBeTypeOf("function");
+    expect(Table.schema).toBeTypeOf("function");
     expect(Table.validate).toBe(validateTable);
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");

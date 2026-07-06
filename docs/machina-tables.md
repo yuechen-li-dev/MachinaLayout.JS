@@ -6,8 +6,9 @@ It is intentionally narrow:
 
 - columnar tables are the canonical form
 - row arrays and object arrays are adapters
+- schemas validate columns and cells
 - diagnostics point to table cells
-- there is no SQL, join layer, schema system, or dataframe API
+- there is no SQL, join layer, nested schema system, or dataframe API
 
 MachinaTable uses columnar authoring as the default because table-shaped data should not repeat the same property names on every row.
 
@@ -31,6 +32,7 @@ MachinaTable flips the default:
 - rows should look like rows
 - columns should have names
 - diagnostics should point to cells
+- schemas tell columns what they may contain
 
 ## Columnar authoring
 
@@ -48,6 +50,63 @@ const orders = Table.define({
 ```
 
 `Table.define` validates the basic table shape and throws `TableError` if the structure is broken.
+
+## Schemas and typed columns
+
+Schemas stay table-shaped too:
+
+```ts
+const orderSchema = Table.schema({
+  id: Table.string(),
+  status: Table.enum(["new", "paid", "fulfilled", "cancelled"] as const),
+  totalCents: Table.number(),
+  note: Table.optional(Table.string()),
+});
+
+const orders = Table.defineWithSchema({
+  id: "orders",
+  schema: orderSchema,
+  columns: {
+    id: ["order-001"],
+    status: ["paid"],
+    totalCents: [1299],
+    note: [undefined],
+  },
+});
+```
+
+Available column helpers:
+
+- `Table.string()`
+- `Table.number()`
+- `Table.boolean()`
+- `Table.literal(value)`
+- `Table.enum(values)`
+- `Table.unknown()`
+- `Table.optional(schema)`
+- `Table.schema(columns)`
+
+Schemas validate cell values without coercion:
+
+- strings stay strings
+- numbers stay numbers
+- booleans stay booleans
+- optional columns may contain `undefined`
+- `Table.unknown()` is the explicit escape hatch
+
+MachinaTable does not parse, transform, or coerce values for you.
+
+If you already have a plain columnar table, attach a schema afterward:
+
+```ts
+const typedOrders = Table.withSchema(
+  Table.fromObjects({
+    id: "orders",
+    rows: [{ id: "order-001", status: "paid", totalCents: 1299, note: undefined }],
+  }),
+  orderSchema,
+);
+```
 
 ## Object row adapter
 
@@ -115,6 +174,8 @@ const statusColumn = Table.getColumn(orders, "status");
 const secondRow = Table.getRow(orders, 1);
 ```
 
+For schema tables, `Table.toObjects` and `Table.getRow` preserve practical TypeScript types such as enum unions and literal columns.
+
 ## Validation and diagnostics
 
 `Table.validate(table)` returns table diagnostics without throwing:
@@ -144,6 +205,13 @@ error ColumnLengthMismatch at orders.status
   Column "status" has length 1 but expected 2.
 ```
 
+Schema diagnostics stay cell-oriented too:
+
+```txt
+error InvalidTableCell at orders.totalCents[2]
+  Column "totalCents" expected number but received string.
+```
+
 ## Boundary
 
 MachinaTable is not:
@@ -151,7 +219,8 @@ MachinaTable is not:
 - a database
 - SQL
 - a dataframe clone
-- a schema validator
+- a general-purpose schema validator
 - a persistence layer
+- a nested object schema system
 
-M35a is only table shape and conversion.
+M35b adds typed columns and schema validation while keeping columnar tables canonical.

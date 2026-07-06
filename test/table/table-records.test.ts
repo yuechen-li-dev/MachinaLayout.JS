@@ -31,6 +31,7 @@ void (0 as unknown as _columnKeySmoke);
 void (0 as unknown as _columnTypeSmoke);
 void (0 as unknown as _cellTypeSmoke);
 
+// biome-ignore lint/correctness/noConstantCondition: compile-time type assertion block
 if (false) {
   // @ts-expect-error invalid table column key should fail
   Table.getColumn(orders, "missing");
@@ -347,11 +348,17 @@ describe("table exports", () => {
     const table = await import("../../src/table");
 
     expect(table.Table.define).toBeTypeOf("function");
+    expect(table.Table.defineWithSchema).toBeTypeOf("function");
+    expect(table.Table.withSchema).toBeTypeOf("function");
     expect(table.Table.fromRows).toBeTypeOf("function");
     expect(table.Table.fromObjects).toBeTypeOf("function");
     expect(table.Table.toRows).toBeTypeOf("function");
     expect(table.Table.toObjects).toBeTypeOf("function");
     expect(table.Table.getCell).toBeTypeOf("function");
+    expect(table.Table.string).toBeTypeOf("function");
+    expect(table.Table.number).toBeTypeOf("function");
+    expect(table.Table.boolean).toBeTypeOf("function");
+    expect(table.Table.enum).toBeTypeOf("function");
     expect(table.TableError).toBeTypeOf("function");
     expect("Table" in root).toBe(false);
   });

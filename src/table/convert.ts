@@ -1,6 +1,13 @@
 import { getRow } from "./access";
 import { define } from "./authoring";
-import type { ColumnarTable, TableColumns, TableObjectRow } from "./types";
+import type {
+  ColumnarTable,
+  SchemaColumnarTable,
+  TableColumns,
+  TableObjectRow,
+  TableSchema,
+  TableSchemaRow,
+} from "./types";
 import { assertNoTableErrors, validateObjectRowsInput, validateRowTableInput } from "./validate";
 
 export function toRows<TColumns extends TableColumns>(
@@ -36,6 +43,12 @@ export function fromRows<const TColumnNames extends readonly string[]>(input: {
   });
 }
 
+export function toObjects<TSchema extends TableSchema>(
+  table: SchemaColumnarTable<TSchema>,
+): readonly TableSchemaRow<TSchema>[];
+export function toObjects<TColumns extends TableColumns>(
+  table: ColumnarTable<TColumns>,
+): readonly { readonly [K in keyof TColumns]: TColumns[K][number] }[];
 export function toObjects<TColumns extends TableColumns>(
   table: ColumnarTable<TColumns>,
 ): readonly { readonly [K in keyof TColumns]: TColumns[K][number] }[] {

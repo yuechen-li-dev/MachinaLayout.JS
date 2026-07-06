@@ -1,4 +1,10 @@
-import type { ColumnarTable, TableColumns } from "./types";
+import type {
+  ColumnarTable,
+  SchemaColumnarTable,
+  TableColumns,
+  TableSchema,
+  TableSchemaRow,
+} from "./types";
 import { TableError } from "./validate";
 
 function assertColumnExists<TColumns extends TableColumns, TKey extends keyof TColumns & string>(
@@ -52,6 +58,15 @@ export function getColumn<TColumns extends TableColumns, TKey extends keyof TCol
   return assertColumnExists(table, column);
 }
 
+export function getCell<
+  TSchema extends TableSchema,
+  TKey extends keyof TSchema["columns"] & string,
+>(table: SchemaColumnarTable<TSchema>, row: number, column: TKey): TableSchemaRow<TSchema>[TKey];
+export function getCell<TColumns extends TableColumns, TKey extends keyof TColumns & string>(
+  table: ColumnarTable<TColumns>,
+  row: number,
+  column: TKey,
+): TColumns[TKey][number];
 export function getCell<TColumns extends TableColumns, TKey extends keyof TColumns & string>(
   table: ColumnarTable<TColumns>,
   row: number,
@@ -61,6 +76,14 @@ export function getCell<TColumns extends TableColumns, TKey extends keyof TColum
   return assertColumnExists(table, column)[row] as TColumns[TKey][number];
 }
 
+export function getRow<TSchema extends TableSchema>(
+  table: SchemaColumnarTable<TSchema>,
+  row: number,
+): TableSchemaRow<TSchema>;
+export function getRow<TColumns extends TableColumns>(
+  table: ColumnarTable<TColumns>,
+  row: number,
+): { readonly [K in keyof TColumns]: TColumns[K][number] };
 export function getRow<TColumns extends TableColumns>(
   table: ColumnarTable<TColumns>,
   row: number,

@@ -4,7 +4,7 @@ function formatLocation(diagnostic: TableDiagnostic): string | undefined {
   if (diagnostic.path) return diagnostic.path;
   if (diagnostic.tableId === undefined) return undefined;
   if (diagnostic.row !== undefined && diagnostic.column !== undefined) {
-    return `${diagnostic.tableId}[${diagnostic.row}].${diagnostic.column}`;
+    return `${diagnostic.tableId}.${diagnostic.column}[${diagnostic.row}]`;
   }
   if (diagnostic.row !== undefined) {
     return `${diagnostic.tableId}[${diagnostic.row}]`;
