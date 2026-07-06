@@ -5,6 +5,7 @@ export * from "./convert";
 export * from "./validate";
 export * from "./format";
 export * from "./render";
+export * from "./keyed";
 
 import { columnNames, getCell, getColumn, getRow, rowCount } from "./access";
 import {
@@ -22,6 +23,7 @@ import {
 } from "./authoring";
 import { fromObjects, fromRows, toObjects, toRows } from "./convert";
 import { formatTableDiagnostics } from "./format";
+import { describeKeyed, hasKey, keyBy, keys, lookup, requireLookup, validateKey } from "./keyed";
 import {
   describe,
   fromColumnarJson,
@@ -51,10 +53,16 @@ export const Table = {
   toMarkdown,
   toCsv,
   describe,
+  describeKeyed,
   preview,
   getColumn,
   getRow,
   getCell,
+  keyBy,
+  lookup,
+  requireLookup,
+  hasKey,
+  keys,
   rowCount,
   columnNames,
   string,
@@ -66,5 +74,6 @@ export const Table = {
   optional,
   schema,
   validate: validateTable,
+  validateKey,
   formatDiagnostics: formatTableDiagnostics,
 } as const;

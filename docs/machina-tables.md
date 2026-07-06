@@ -124,6 +124,57 @@ Result:
 ]
 ```
 
+## Keyed tables
+
+A key column turns a table into a lookup surface, but the table remains columnar.
+
+`Table.keyBy` builds an explicit keyed artifact from an existing columnar table:
+
+```ts
+const orders = Table.defineWithSchema({
+  id: "orders",
+  schema: Table.schema({
+    id: Table.string(),
+    status: Table.enum(["new", "paid"] as const),
+    totalCents: Table.number(),
+  }),
+  columns: {
+    id: ["order-001", "order-002"],
+    status: ["new", "paid"],
+    totalCents: [1299, 4599],
+  },
+});
+
+const ordersById = Table.keyBy(orders, "id");
+
+const order = Table.requireLookup(ordersById, "order-001");
+```
+
+The keyed lookup is a derived artifact:
+
+- the canonical table stays columnar
+- the key column must exist
+- key cells must be unique `string` or `number` values
+- the index is explicit instead of hidden object mutation
+
+Use `Table.lookup(keyed, key)` when a missing key is acceptable. It returns `undefined` when the key is absent.
+
+Use `Table.requireLookup(keyed, key)` when the key must exist. It throws `TableError` with table diagnostics such as:
+
+```txt
+error MissingTableKey at orders.id
+  Key "order-999" does not exist in table "orders" for column "id".
+```
+
+`Table.validateKey(table, "id")` runs the same checks without throwing, and `Table.describeKeyed(keyed)` returns a compact keyed artifact summary.
+
+Current boundary:
+
+- no joins
+- no compound keys
+- no query language
+- no database layer
+
 ## Export and render helpers
 
 `Table.toColumnarJson` preserves the canonical columnar table shape.

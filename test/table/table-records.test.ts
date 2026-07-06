@@ -362,8 +362,14 @@ describe("table exports", () => {
     expect(table.Table.toMarkdown).toBeTypeOf("function");
     expect(table.Table.toCsv).toBeTypeOf("function");
     expect(table.Table.describe).toBeTypeOf("function");
+    expect(table.Table.describeKeyed).toBeTypeOf("function");
     expect(table.Table.preview).toBeTypeOf("function");
     expect(table.Table.getCell).toBeTypeOf("function");
+    expect(table.Table.keyBy).toBeTypeOf("function");
+    expect(table.Table.lookup).toBeTypeOf("function");
+    expect(table.Table.requireLookup).toBeTypeOf("function");
+    expect(table.Table.hasKey).toBeTypeOf("function");
+    expect(table.Table.keys).toBeTypeOf("function");
     expect(table.Table.string).toBeTypeOf("function");
     expect(table.Table.number).toBeTypeOf("function");
     expect(table.Table.boolean).toBeTypeOf("function");
@@ -377,5 +383,6 @@ describe("table exports", () => {
     expect(table.kind).toBe("table");
     expect(typeof Table.define).toBe("function");
     expect(typeof Table.validate).toBe("function");
+    expect(typeof Table.keyBy).toBe("function");
   });
 });

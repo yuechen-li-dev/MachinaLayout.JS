@@ -340,10 +340,16 @@ describe("package export entrypoints", () => {
     expect(Table.toMarkdown).toBeTypeOf("function");
     expect(Table.toCsv).toBeTypeOf("function");
     expect(Table.describe).toBeTypeOf("function");
+    expect(Table.describeKeyed).toBeTypeOf("function");
     expect(Table.preview).toBeTypeOf("function");
     expect(Table.getColumn).toBeTypeOf("function");
     expect(Table.getCell).toBeTypeOf("function");
     expect(Table.getRow).toBeTypeOf("function");
+    expect(Table.keyBy).toBeTypeOf("function");
+    expect(Table.lookup).toBeTypeOf("function");
+    expect(Table.requireLookup).toBeTypeOf("function");
+    expect(Table.hasKey).toBeTypeOf("function");
+    expect(Table.keys).toBeTypeOf("function");
     expect(Table.rowCount).toBeTypeOf("function");
     expect(Table.columnNames).toBeTypeOf("function");
     expect(Table.string).toBeTypeOf("function");
@@ -355,6 +361,7 @@ describe("package export entrypoints", () => {
     expect(Table.optional).toBeTypeOf("function");
     expect(Table.schema).toBeTypeOf("function");
     expect(Table.validate).toBe(validateTable);
+    expect(Table.validateKey).toBeTypeOf("function");
     expect(Table.formatDiagnostics).toBe(formatTableDiagnostics);
     expect(TableError).toBeTypeOf("function");
   });

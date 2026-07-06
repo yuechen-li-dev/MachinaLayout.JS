@@ -79,6 +79,29 @@ export type SchemaColumnarTable<
   readonly schema: TSchema;
 };
 
+export type TableColumnElement<
+  TTable extends ColumnarTable,
+  TColumn extends string,
+> = TColumn extends keyof TTable["columns"] ? TTable["columns"][TColumn][number] : unknown;
+
+export type TableRow<TTable extends ColumnarTable> =
+  TTable extends SchemaColumnarTable<infer TSchema>
+    ? TableSchemaRow<TSchema>
+    : { readonly [K in keyof TTable["columns"]]: TTable["columns"][K][number] };
+
+export type TableKeyValue = string | number;
+
+export type KeyedTable<
+  TTable extends ColumnarTable = ColumnarTable,
+  TKeyColumn extends string = string,
+> = {
+  readonly kind: "keyedTable";
+  readonly table: TTable;
+  readonly keyColumn: TKeyColumn;
+  readonly rowByKey: ReadonlyMap<TableKeyValue, number>;
+  readonly keyCount: number;
+};
+
 export type ColumnarTableJson = {
   readonly kind: "columnarTable";
   readonly id: string;
@@ -110,6 +133,14 @@ export type TablePreview = {
   readonly kind: "tablePreview";
   readonly description: TableDescription;
   readonly markdown: string;
+};
+
+export type KeyedTableDescription = {
+  readonly kind: "keyedTableDescription";
+  readonly tableId: string;
+  readonly keyColumn: string;
+  readonly keyCount: number;
+  readonly rowCount: number;
 };
 
 export type RowTableInput<
@@ -148,7 +179,11 @@ export type TableDiagnosticCode =
   | "MissingDispatchHandlerColumn"
   | "InvalidDispatchKey"
   | "InvalidDispatchHandler"
-  | "DuplicateDispatchKey";
+  | "DuplicateDispatchKey"
+  | "MissingTableKeyColumn"
+  | "InvalidTableKeyCell"
+  | "DuplicateTableKey"
+  | "MissingTableKey";
 
 export type TableDiagnostic = {
   readonly severity: "error" | "warning";
