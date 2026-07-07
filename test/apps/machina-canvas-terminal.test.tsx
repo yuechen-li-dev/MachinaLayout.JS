@@ -55,6 +55,24 @@ x = 0
 y = 0
 width = 16
 height = 16
+
+[[datums]]
+id = "hero_left"
+kind = "vertical"
+x = 0
+region = "hero"
+
+[[datums]]
+id = "hero_center"
+kind = "vertical"
+x = 8
+region = "hero"
+
+[[datums]]
+id = "hero_top"
+kind = "horizontal"
+y = 0
+region = "hero"
 `;
 
 function createTerminalDocument(options?: { withGuide?: boolean }) {
@@ -172,6 +190,38 @@ describe("MachinaCanvas terminal commands", () => {
       createTerminalDocument({ withGuide: true }),
     );
     const next = applyTerminal("clamp-frame", shifted);
+    const sidecar = next.objects["sheet-sidecar"];
+    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.frames[0] : undefined).toEqual(
+      expect.objectContaining({ x: 0, y: 0, width: 16, height: 16 }),
+    );
+  });
+
+  it("lists nearby datums for the selected frame", () => {
+    expect(
+      executeCanvasTerminalCommand("list-datums", {
+        document: createTerminalDocument({ withGuide: true }),
+      }).logEntry?.message,
+    ).toContain("hero_left");
+  });
+
+  it("snaps the selected frame to an explicit datum from the terminal", () => {
+    const shifted = applyTerminal(
+      "set-frame-rect 2 0 16 16",
+      createTerminalDocument({ withGuide: true }),
+    );
+    const next = applyTerminal("snap-frame left hero_left", shifted);
+    const sidecar = next.objects["sheet-sidecar"];
+    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.frames[0] : undefined).toEqual(
+      expect.objectContaining({ x: 0, y: 0, width: 16, height: 16 }),
+    );
+  });
+
+  it("snaps the selected frame to the nearest datum from the terminal", () => {
+    const shifted = applyTerminal(
+      "set-frame-rect 2 0 16 16",
+      createTerminalDocument({ withGuide: true }),
+    );
+    const next = applyTerminal("snap-frame-nearest left", shifted);
     const sidecar = next.objects["sheet-sidecar"];
     expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.frames[0] : undefined).toEqual(
       expect.objectContaining({ x: 0, y: 0, width: 16, height: 16 }),

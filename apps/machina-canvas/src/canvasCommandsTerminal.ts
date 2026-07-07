@@ -2,6 +2,10 @@ import { summarizeScene } from "./sceneSummary";
 import type { CanvasCommand } from "./sceneCommands";
 import type { CanvasDocument, ImageObject, SpriteSidecarObject } from "./sceneModel";
 import type { CanvasExportArtifact, CanvasExportCart, CanvasExportPreset } from "./exportCart";
+import {
+  findDatumSnapTargetsForSpriteFrame,
+  type SpriteFrameDatumAnchor,
+} from "./spriteGuideDatums";
 
 export type CanvasTerminalLogEntry = {
   readonly kind: "info" | "success" | "error";
@@ -88,6 +92,10 @@ function parseIntNumber(value: string | undefined, label: string) {
   return Math.round(number);
 }
 
+function isDatumAnchor(value: string | undefined): value is SpriteFrameDatumAnchor {
+  return ["left", "right", "centerX", "top", "bottom", "centerY"].includes(value ?? "");
+}
+
 function getExportSummary(context: CanvasTerminalCommandContext) {
   const { document, exportArtifacts, exportCart, exportPresets } = context;
   const spriteSidecars = Object.values(document.objects).filter(
@@ -119,7 +127,7 @@ export function executeCanvasTerminalCommand(
       return {
         logEntry: makeLog(
           "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
+          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
           trimmed,
         ),
       };
@@ -212,6 +220,115 @@ export function executeCanvasTerminalCommand(
           },
         ],
         logEntry: makeLog("success", `clamped ${resolvedFrameId} to guide region`, trimmed),
+      };
+    }
+
+    if (commandName === "list-datums") {
+      const selected = getSelectedFrameSidecar(context.document);
+      if (!selected) throw new Error("No sprite frame selected.");
+      const targets = findDatumSnapTargetsForSpriteFrame(context.document, {
+        spriteSidecarId: selected.sidecar.id,
+        frameId: selected.frame.id,
+      });
+      if (targets.length === 0) {
+        throw new Error("No nearby datums. Add datums in a .guide.toml or increase snap distance.");
+      }
+      return {
+        logEntry: makeLog(
+          "info",
+          targets
+            .slice(0, 5)
+            .map(
+              (target) =>
+                `${target.datumId} ${target.datumKind === "point" ? "center" : target.anchor} ${target.distance.toFixed(1)}px${target.regionId ? ` region=${target.regionId}` : ""}`,
+            )
+            .join(" | "),
+          trimmed,
+        ),
+      };
+    }
+
+    if (commandName === "snap-frame") {
+      const selected = getSelectedFrameSidecar(context.document);
+      if (!selected) throw new Error("No sprite frame selected.");
+      const anchor = tokens[1];
+      if (!isDatumAnchor(anchor)) {
+        throw new Error("snap-frame requires left, right, centerX, top, bottom, or centerY.");
+      }
+      const datumId = tokens[2];
+      const target = findDatumSnapTargetsForSpriteFrame(context.document, {
+        spriteSidecarId: selected.sidecar.id,
+        frameId: selected.frame.id,
+      }).find(
+        (candidate) =>
+          (candidate.anchor === anchor ||
+            (candidate.datumKind === "point" && (anchor === "centerX" || anchor === "centerY"))) &&
+          (datumId === undefined || candidate.datumId === datumId),
+      );
+      if (!target) {
+        throw new Error(
+          datumId
+            ? `No nearby datum target found for anchor ${anchor} and datum ${datumId}.`
+            : `No nearby datum target found for anchor ${anchor}.`,
+        );
+      }
+      return {
+        commands: [
+          {
+            kind: "snapSpriteFrameToDatum",
+            sidecarId: selected.sidecar.id,
+            frameId: selected.frame.id,
+            anchor,
+            datumId,
+          },
+        ],
+        logEntry: makeLog(
+          "success",
+          `snapped ${selected.frame.id} to ${target.datumId} (${anchor})`,
+          trimmed,
+        ),
+      };
+    }
+
+    if (commandName === "snap-frame-nearest") {
+      const selected = getSelectedFrameSidecar(context.document);
+      if (!selected) throw new Error("No sprite frame selected.");
+      const anchor = tokens[1];
+      if (anchor !== undefined && !isDatumAnchor(anchor)) {
+        throw new Error(
+          "snap-frame-nearest requires left, right, centerX, top, bottom, or centerY when an anchor is provided.",
+        );
+      }
+      const target = findDatumSnapTargetsForSpriteFrame(context.document, {
+        spriteSidecarId: selected.sidecar.id,
+        frameId: selected.frame.id,
+      }).find(
+        (candidate) =>
+          anchor === undefined ||
+          candidate.anchor === anchor ||
+          (candidate.datumKind === "point" && (anchor === "centerX" || anchor === "centerY")),
+      );
+      if (!target) {
+        throw new Error(
+          anchor
+            ? `No nearby datum target found for anchor ${anchor}.`
+            : "No nearby datum target found.",
+        );
+      }
+      return {
+        commands: [
+          {
+            kind: "snapSpriteFrameToNearestDatum",
+            sidecarId: selected.sidecar.id,
+            frameId: selected.frame.id,
+            anchor,
+          },
+        ],
+        logEntry: makeLog(
+          "success",
+          `snapped ${selected.frame.id} to ${target.datumId} (${target.datumKind === "point" ? "center" : target.anchor})`,
+          trimmed,
+        ),
       };
     }
 

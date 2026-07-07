@@ -862,6 +862,16 @@ button {
   opacity: 0.8;
 }
 
+.canvas-guide-datum.guide-datum--snap-target {
+  opacity: 0.96;
+  stroke-width: 2.5px;
+}
+
+.canvas-guide-datum.guide-datum--nearest {
+  opacity: 1;
+  stroke-width: 3px;
+}
+
 .canvas-guide-dimension {
   stroke-dasharray: 3 3;
 }
@@ -1858,6 +1868,41 @@ button {
 .sprite-frame-card small {
   color: #555550;
   font-size: 10px;
+  line-height: 1.35;
+}
+
+.datum-snapping-section {
+  padding-bottom: 0;
+}
+
+.datum-target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.datum-target-card {
+  border: 1px solid #e1e1dc;
+  background: #fbfbfa;
+  padding: 9px 10px;
+}
+
+.datum-target-card.is-nearest {
+  border-color: #6f967c;
+  background: #f4fbf6;
+}
+
+.datum-target-card strong {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.datum-target-card p {
+  margin: 6px 0 0;
+  color: #555550;
+  font-size: 11px;
   line-height: 1.35;
 }
 

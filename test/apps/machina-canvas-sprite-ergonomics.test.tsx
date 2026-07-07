@@ -6,6 +6,7 @@ import * as React from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getDefaultInspectorAccordionState,
+  getSelectedSpriteFrameDatumTargets,
   getSelectedSpriteFramePreviewModel,
   getSelectedSpriteFrameState,
 } from "../../apps/machina-canvas/src/App";
@@ -13,6 +14,10 @@ import { InspectorAccordionGroup } from "../../apps/machina-canvas/src/Inspector
 import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import { applyCanvasCommands } from "../../apps/machina-canvas/src/sceneCommands";
 import type { CanvasDocument, ImageObject } from "../../apps/machina-canvas/src/sceneModel";
+import {
+  createGuideSidecarObject,
+  parseGuideSidecarToml,
+} from "../../apps/machina-canvas/src/guideSidecar";
 import {
   createSpriteSidecarObject,
   parseSpriteSidecarToml,
@@ -54,6 +59,27 @@ width = 16
 height = 18
 `;
 
+const guideToml = `
+[guide]
+id = "sheet-guide"
+target = "sheet"
+units = "px"
+
+[[regions]]
+id = "hero"
+kind = "sprite-region"
+x = 0
+y = 0
+width = 24
+height = 24
+
+[[datums]]
+id = "hero_left"
+kind = "vertical"
+x = 2
+region = "hero"
+`;
+
 function createSpriteDocument() {
   const image: ImageObject = {
     id: "sheet",
@@ -88,6 +114,11 @@ function createSpriteDocument() {
   const sidecar = createSpriteSidecarObject(image, spec);
   return applyCanvasCommands(base, [
     { kind: "addSpriteSidecarObject", object: sidecar, attach: true },
+    {
+      kind: "addGuideSidecarObject",
+      object: createGuideSidecarObject(image, parseGuideSidecarToml(guideToml)),
+      attach: true,
+    },
     { kind: "select", id: sidecar.id },
     { kind: "selectSpriteFrame", sidecarId: sidecar.id, frameId: "hero.idle" },
   ]).document;
@@ -220,6 +251,13 @@ describe("MachinaCanvas sprite ergonomics", () => {
 
     expect(selection?.frame.id).toBe("hero.idle");
     expect(selection?.sidecar.id).toBe("sheet-sidecar");
+  });
+
+  it("finds selected frame datum targets for the inspector's datum snapping section", () => {
+    const document = createSpriteDocument();
+    const targets = getSelectedSpriteFrameDatumTargets(document, document.objects["sheet-sidecar"]);
+
+    expect(targets.some((target) => target.datumId === "hero_left")).toBe(true);
   });
 
   it("creates a selected frame preview model when a linked image exists", () => {

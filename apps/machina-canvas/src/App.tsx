@@ -122,6 +122,12 @@ import {
   type SpriteFrameGuideRegionContext,
 } from "./spriteGuideRegions";
 import {
+  DEFAULT_SPRITE_FRAME_DATUM_SNAP_DISTANCE,
+  findDatumSnapTargetsForSpriteFrame,
+  type SpriteFrameDatumAnchor,
+  type SpriteFrameDatumSnapTarget,
+} from "./spriteGuideDatums";
+import {
   buildSpriteOverlayLabelChip,
   createSpriteOverlayRenderPlan,
   getSpriteOverlayDisplayModeLabel,
@@ -223,6 +229,8 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   nudgeSpriteFrame: "Nudge sprite frame",
   resizeSpriteFrame: "Resize sprite frame",
   clampSpriteFrameToGuideRegion: "Clamp sprite frame to guide region",
+  snapSpriteFrameToDatum: "Snap sprite frame to datum",
+  snapSpriteFrameToNearestDatum: "Snap sprite frame to nearest datum",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -276,6 +284,8 @@ type SpriteFrameEditSettings = {
   snapToGrid: boolean;
   gridSize: number;
   constrainFrameEditsToGuideRegion: boolean;
+  datumSnapDistance: number;
+  restrictDatumSnapsToGuideRegion: boolean;
 };
 
 type SpriteDragState = {
@@ -1152,11 +1162,13 @@ function GuideSidecarSvg({
   image,
   guideObject,
   selected,
+  selectedDatumTargets,
   selectedGuideRegionContext,
 }: {
   image: ImageObject;
   guideObject: GuideSidecarObject;
   selected: boolean;
+  selectedDatumTargets: readonly SpriteFrameDatumSnapTarget[];
   selectedGuideRegionContext?: SpriteFrameGuideRegionContext;
 }) {
   if (!guideObject.visible) return null;
@@ -1171,6 +1183,8 @@ function GuideSidecarSvg({
     imageWidth: image.intrinsicWidth ?? image.width,
     imageHeight: image.intrinsicHeight ?? image.height,
   });
+  const selectedDatumIds = new Set(selectedDatumTargets.map((target) => target.datumId));
+  const nearestDatumId = selectedDatumTargets[0]?.datumId;
 
   return (
     <g
@@ -1246,12 +1260,15 @@ function GuideSidecarSvg({
         );
       })}
       {guideObject.guide.datums.map((datum) => {
+        const datumClassName = `canvas-guide-datum${
+          selectedDatumIds.has(datum.id) ? " guide-datum--snap-target" : ""
+        }${nearestDatumId === datum.id ? " guide-datum--nearest" : ""}`;
         if (datum.kind === "vertical") {
           const x = image.x + datum.x * scaleX;
           return (
             <g key={`guide-datum:${datum.id}`}>
               <line
-                className="canvas-guide-datum"
+                className={datumClassName}
                 x1={x}
                 y1={image.y}
                 x2={x}
@@ -1269,7 +1286,7 @@ function GuideSidecarSvg({
           return (
             <g key={`guide-datum:${datum.id}`}>
               <line
-                className="canvas-guide-datum"
+                className={datumClassName}
                 x1={image.x}
                 y1={y}
                 x2={image.x + image.width}
@@ -1286,7 +1303,7 @@ function GuideSidecarSvg({
         return (
           <g key={`guide-datum:${datum.id}`}>
             <line
-              className="canvas-guide-datum"
+              className={datumClassName}
               x1={point.x - 6}
               y1={point.y}
               x2={point.x + 6}
@@ -1294,7 +1311,7 @@ function GuideSidecarSvg({
               stroke="#28a745"
             />
             <line
-              className="canvas-guide-datum"
+              className={datumClassName}
               x1={point.x}
               y1={point.y - 6}
               x2={point.x}
@@ -1488,6 +1505,10 @@ function CanvasPanel(props: MachinaSlotProps) {
   const selected = getSelectedObject(document);
   const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
   const selectedGuideRegionContext = getSelectedSpriteFrameGuideRegionContext(document, selected);
+  const selectedDatumTargets = getSelectedSpriteFrameDatumTargets(document, selected, {
+    maxDistance: spriteFrameEditSettings.datumSnapDistance,
+    restrictToRegion: spriteFrameEditSettings.restrictDatumSnapsToGuideRegion,
+  });
   const alphaMappedImages = document.layers
     .filter((layer) => layer.visible)
     .flatMap((layer) => layer.objectIds.map((id) => document.objects[id]))
@@ -1827,6 +1848,9 @@ function CanvasPanel(props: MachinaSlotProps) {
                           image={object}
                           key={guideObject.id}
                           selected={document.selectedObjectId === guideObject.id}
+                          selectedDatumTargets={selectedDatumTargets.filter(
+                            (target) => target.guideSidecarId === guideObject.id,
+                          )}
                           selectedGuideRegionContext={
                             selectedGuideRegionContext?.guideSidecarId === guideObject.id
                               ? selectedGuideRegionContext
@@ -2067,6 +2091,23 @@ function getSelectedSpriteFrameGuideRegionContext(
   return findGuideRegionForSpriteFrame(document, {
     spriteSidecarId: selectedFrame.sidecar.id,
     frameId: selectedFrame.frame.id,
+  });
+}
+
+export function getSelectedSpriteFrameDatumTargets(
+  document: CanvasDocument,
+  selected: CanvasObject | undefined,
+  options?: {
+    readonly maxDistance?: number;
+    readonly restrictToRegion?: boolean;
+  },
+): readonly SpriteFrameDatumSnapTarget[] {
+  const selectedFrame = getSelectedSpriteFrameState(document, selected);
+  if (!selectedFrame) return [];
+  return findDatumSnapTargetsForSpriteFrame(document, {
+    spriteSidecarId: selectedFrame.sidecar.id,
+    frameId: selectedFrame.frame.id,
+    options,
   });
 }
 
@@ -2790,11 +2831,17 @@ function NumberField({
   );
 }
 
+function formatDatumTargetAnchor(target: SpriteFrameDatumSnapTarget) {
+  if (target.datumKind === "point") return "center";
+  return target.anchor;
+}
+
 function SelectedSpriteFrameSection({
   sidecar,
   frame,
   image,
   guideRegionContext,
+  datumTargets,
   hasGuideSidecars,
   spriteFrameEditSettings,
   setSpriteFrameEditSettings,
@@ -2805,6 +2852,7 @@ function SelectedSpriteFrameSection({
   frame: CanvasSpriteFrame;
   image?: ImageObject;
   guideRegionContext?: SpriteFrameGuideRegionContext;
+  datumTargets: readonly SpriteFrameDatumSnapTarget[];
   hasGuideSidecars: boolean;
   spriteFrameEditSettings: SpriteFrameEditSettings;
   setSpriteFrameEditSettings: (settings: SpriteFrameEditSettings) => void;
@@ -2847,6 +2895,17 @@ function SelectedSpriteFrameSection({
       : guideRegionContext?.relation === "nearest"
         ? `${frame.id} is not inside any guide region.`
         : undefined;
+  const hasDatumTargets = datumTargets.length > 0;
+  const nearestDatumTarget = datumTargets[0];
+  const snapFrameToNearestDatum = (anchor?: SpriteFrameDatumAnchor) =>
+    runCommand({
+      kind: "snapSpriteFrameToNearestDatum",
+      sidecarId: sidecar.id,
+      frameId: frame.id,
+      anchor,
+      maxDistance: spriteFrameEditSettings.datumSnapDistance,
+      restrictToRegion: spriteFrameEditSettings.restrictDatumSnapsToGuideRegion,
+    });
 
   return (
     <>
@@ -2963,6 +3022,87 @@ function SelectedSpriteFrameSection({
           </button>
         </>
       ) : null}
+      <div className="inspector-section datum-snapping-section">
+        <h3>Datum snapping</h3>
+        <Field
+          label="Nearest"
+          value={
+            nearestDatumTarget
+              ? `${nearestDatumTarget.datumId} / ${formatDatumTargetAnchor(nearestDatumTarget)} / ${nearestDatumTarget.distance.toFixed(1)}px`
+              : "none"
+          }
+        />
+        <NumberField
+          label="Snap distance"
+          min={0}
+          onChange={(datumSnapDistance) =>
+            setSpriteFrameEditSettings({
+              ...spriteFrameEditSettings,
+              datumSnapDistance: Math.max(0, Math.round(datumSnapDistance)),
+            })
+          }
+          value={spriteFrameEditSettings.datumSnapDistance}
+        />
+        <ToggleField
+          checked={spriteFrameEditSettings.restrictDatumSnapsToGuideRegion}
+          label="Restrict to frame region"
+          onChange={(restrictDatumSnapsToGuideRegion) =>
+            setSpriteFrameEditSettings({
+              ...spriteFrameEditSettings,
+              restrictDatumSnapsToGuideRegion,
+            })
+          }
+        />
+        <button
+          className="viewport-wide-button"
+          onClick={() => snapFrameToNearestDatum()}
+          type="button"
+        >
+          Snap nearest
+        </button>
+        <div className="command-row sprite-edit-buttons">
+          <button onClick={() => snapFrameToNearestDatum("left")} type="button">
+            Snap left
+          </button>
+          <button onClick={() => snapFrameToNearestDatum("right")} type="button">
+            Snap right
+          </button>
+          <button onClick={() => snapFrameToNearestDatum("centerX")} type="button">
+            Snap center X
+          </button>
+          <button onClick={() => snapFrameToNearestDatum("top")} type="button">
+            Snap top
+          </button>
+          <button onClick={() => snapFrameToNearestDatum("bottom")} type="button">
+            Snap bottom
+          </button>
+          <button onClick={() => snapFrameToNearestDatum("centerY")} type="button">
+            Snap center Y
+          </button>
+        </div>
+        {hasDatumTargets ? (
+          <div className="datum-target-list">
+            {datumTargets.slice(0, 5).map((target, index) => (
+              <div
+                className={`datum-target-card${index === 0 ? " is-nearest" : ""}`}
+                key={`${target.guideSidecarId}:${target.datumId}:${target.anchor}`}
+              >
+                <strong>
+                  {target.datumId} / {formatDatumTargetAnchor(target)}
+                </strong>
+                <p>
+                  {target.datumKind} datum · {target.distance.toFixed(1)}px
+                  {target.regionId ? ` · region ${target.regionId}` : " · global"}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-note">
+            No nearby datums. Add datums in a .guide.toml or increase snap distance.
+          </p>
+        )}
+      </div>
       <ToggleField
         checked={spriteFrameEditSettings.snapToGrid}
         label="Snap frame edits"
@@ -3365,6 +3505,10 @@ function Inspector(props: MachinaSlotProps) {
   const showExport = isToolGroupVisible("export");
   const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
   const selectedGuideRegionContext = getSelectedSpriteFrameGuideRegionContext(document, selected);
+  const selectedDatumTargets = getSelectedSpriteFrameDatumTargets(document, selected, {
+    maxDistance: spriteFrameEditSettings.datumSnapDistance,
+    restrictToRegion: spriteFrameEditSettings.restrictDatumSnapsToGuideRegion,
+  });
   const selectedFrameGuideSidecarCount = selectedSpriteFrame
     ? getGuideSidecarsForSpriteSidecar(document, selectedSpriteFrame.sidecar.id).length
     : 0;
@@ -3581,6 +3725,7 @@ function Inspector(props: MachinaSlotProps) {
           title="Selected sprite frame"
         >
           <SelectedSpriteFrameSection
+            datumTargets={selectedDatumTargets}
             frame={selectedSpriteFrame.frame}
             guideRegionContext={selectedGuideRegionContext}
             hasGuideSidecars={selectedFrameGuideSidecarCount > 0}
@@ -4316,6 +4461,8 @@ export function App() {
       snapToGrid: false,
       gridSize: 1,
       constrainFrameEditsToGuideRegion: true,
+      datumSnapDistance: DEFAULT_SPRITE_FRAME_DATUM_SNAP_DISTANCE,
+      restrictDatumSnapsToGuideRegion: true,
     });
   const [rasterArtifact, setRasterArtifact] = useState<RasterExportArtifact>();
   const [rasterStatus, setRasterStatus] = useState("");
@@ -4389,6 +4536,8 @@ export function App() {
       snapToGrid: false,
       gridSize: 1,
       constrainFrameEditsToGuideRegion: true,
+      datumSnapDistance: DEFAULT_SPRITE_FRAME_DATUM_SNAP_DISTANCE,
+      restrictDatumSnapsToGuideRegion: true,
     });
     setRasterArtifact(undefined);
     setRasterStatus("");

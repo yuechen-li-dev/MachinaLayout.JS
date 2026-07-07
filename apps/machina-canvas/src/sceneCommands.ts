@@ -2,6 +2,12 @@ import { resolveCanvasFrame } from "./canvasFrames";
 import { addCanvasObjectToLayerGroup, createCanvasLayerGroup } from "./layerTree";
 import { selectSpriteFrameInSpec, updateSpriteFrameRectInSpec } from "./spriteSidecar";
 import {
+  findDatumSnapTargetsForSpriteFrame,
+  snapSpriteFrameRectToDatum,
+  type SpriteFrameDatumAnchor,
+  type SpriteFrameDatumSnapTarget,
+} from "./spriteGuideDatums";
+import {
   clampSpriteFrameRectToGuideRegion,
   collectGuideRegionDiagnosticsForSpriteSidecar,
   findGuideRegionForSpriteFrame,
@@ -182,6 +188,25 @@ export type CanvasCommand =
       kind: "clampSpriteFrameToGuideRegion";
       sidecarId: string;
       frameId: string;
+    }
+  | {
+      kind: "snapSpriteFrameToDatum";
+      sidecarId: string;
+      frameId: string;
+      anchor?: SpriteFrameDatumAnchor;
+      datumId?: string;
+      maxDistance?: number;
+      constrainToGuideRegion?: boolean;
+      restrictToRegion?: boolean;
+    }
+  | {
+      kind: "snapSpriteFrameToNearestDatum";
+      sidecarId: string;
+      frameId: string;
+      anchor?: SpriteFrameDatumAnchor;
+      maxDistance?: number;
+      constrainToGuideRegion?: boolean;
+      restrictToRegion?: boolean;
     };
 
 export type CanvasCommandValidationContext = {
@@ -387,6 +412,62 @@ function maybeConstrainSpriteFrameRect(
   });
   if (!guideContext) return rect;
   return clampSpriteFrameRectToGuideRegion(rect, guideContext.region);
+}
+
+function getDatumSnapConstrainedRect(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+  rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+  context: CanvasCommandApplyContext | undefined,
+  constrainToGuideRegion: boolean | undefined,
+) {
+  if (constrainToGuideRegion === false) {
+    return rect;
+  }
+  return maybeConstrainSpriteFrameRect(
+    document,
+    sidecarId,
+    frameId,
+    rect,
+    context,
+    constrainToGuideRegion === true,
+  );
+}
+
+function resolveDatumSnapTarget(
+  document: CanvasDocument,
+  command:
+    | Extract<CanvasCommand, { kind: "snapSpriteFrameToDatum" }>
+    | Extract<CanvasCommand, { kind: "snapSpriteFrameToNearestDatum" }>,
+): SpriteFrameDatumSnapTarget | undefined {
+  const targets = findDatumSnapTargetsForSpriteFrame(document, {
+    spriteSidecarId: command.sidecarId,
+    frameId: command.frameId,
+    options: {
+      maxDistance: command.maxDistance,
+      restrictToRegion: command.restrictToRegion,
+    },
+  });
+  const filteredTargets = command.anchor
+    ? targets.filter(
+        (target) =>
+          target.anchor === command.anchor ||
+          (target.datumKind === "point" &&
+            (command.anchor === "centerX" || command.anchor === "centerY")),
+      )
+    : targets;
+  if (command.kind === "snapSpriteFrameToNearestDatum") {
+    return filteredTargets[0];
+  }
+  return filteredTargets.find(
+    (target) =>
+      (command.datumId === undefined || target.datumId === command.datumId) &&
+      (command.anchor === undefined ||
+        target.anchor === command.anchor ||
+        (target.datumKind === "point" &&
+          (command.anchor === "centerX" || command.anchor === "centerY"))),
+  );
 }
 
 function validateNumber(
@@ -1458,6 +1539,64 @@ export function validateCanvasCommand(
     case "clampSpriteFrameToGuideRegion":
       validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
       break;
+    case "snapSpriteFrameToDatum":
+    case "snapSpriteFrameToNearestDatum":
+      validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
+      if (
+        command.anchor !== undefined &&
+        (!isString(command.anchor) ||
+          !["left", "right", "centerX", "top", "bottom", "centerY"].includes(command.anchor))
+      ) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "anchor must be left, right, centerX, top, bottom, or centerY.",
+          commandIndex,
+        });
+      }
+      if (
+        command.kind === "snapSpriteFrameToDatum" &&
+        command.datumId !== undefined &&
+        !isString(command.datumId)
+      ) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "datumId must be a string when present.",
+          commandIndex,
+        });
+      }
+      if (
+        command.maxDistance !== undefined &&
+        (!isFiniteNumber(command.maxDistance) || command.maxDistance < 0)
+      ) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "maxDistance must be a non-negative finite number when present.",
+          commandIndex,
+        });
+      }
+      if (
+        command.constrainToGuideRegion !== undefined &&
+        typeof command.constrainToGuideRegion !== "boolean"
+      ) {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "constrainToGuideRegion must be a boolean when present.",
+          commandIndex,
+        });
+      }
+      if (command.restrictToRegion !== undefined && typeof command.restrictToRegion !== "boolean") {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "restrictToRegion must be a boolean when present.",
+          commandIndex,
+        });
+      }
+      break;
     default:
       addDiagnostic(diagnostics, {
         severity: "error",
@@ -1762,6 +1901,16 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `No guide region found for selected frame.`
       : `Clamped sprite frame ${command.frameId} to its guide region.`;
+  }
+  if (command.kind === "snapSpriteFrameToDatum") {
+    return changes.length === 0
+      ? `No matching datum target found for sprite frame ${command.frameId}.`
+      : `Snapped sprite frame ${command.frameId} to datum ${command.datumId ?? "nearest"}.`;
+  }
+  if (command.kind === "snapSpriteFrameToNearestDatum") {
+    return changes.length === 0
+      ? `No nearby datum target found for sprite frame ${command.frameId}.`
+      : `Snapped sprite frame ${command.frameId} to its nearest datum.`;
   }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
@@ -2720,6 +2869,82 @@ export function applyCanvasCommand(
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
+  if (
+    command.kind === "snapSpriteFrameToDatum" ||
+    command.kind === "snapSpriteFrameToNearestDatum"
+  ) {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `${command.kind} skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const frame = getSpriteFrame(sidecar, command.frameId);
+    if (!frame) {
+      return {
+        document,
+        command,
+        changes,
+        message: `${command.kind} skipped missing sprite frame "${command.frameId}".`,
+      };
+    }
+    const target = resolveDatumSnapTarget(document, command);
+    if (!target) {
+      return {
+        document,
+        command,
+        changes,
+        message:
+          command.kind === "snapSpriteFrameToDatum"
+            ? `No matching datum target found for ${command.frameId}.`
+            : `No nearby datum target found for ${command.frameId}.`,
+      };
+    }
+
+    const snappedRect = getDatumSnapConstrainedRect(
+      document,
+      command.sidecarId,
+      command.frameId,
+      snapSpriteFrameRectToDatum(frame, target),
+      context,
+      command.constrainToGuideRegion,
+    );
+    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, snappedRect);
+    if (nextSpec !== sidecar.spec) {
+      changes.push({
+        objectId: sidecar.id,
+        field: `spec.frames.${command.frameId}`,
+        before: frame,
+        after: nextSpec.frames.find((candidate) => candidate.id === command.frameId),
+      });
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.diagnostics",
+        before: sidecar.spec.diagnostics,
+        after: nextSpec.diagnostics,
+      });
+      changes.push({
+        objectId: sidecar.id,
+        field: "spec.rawToml",
+        before: sidecar.spec.rawToml,
+        after: nextSpec.rawToml,
+      });
+      nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
+    }
+    return {
+      document: nextDocument,
+      command,
+      changes,
+      message:
+        changes.length === 0
+          ? `Sprite frame ${command.frameId} was already snapped to datum ${target.datumId} (${target.datumKind === "point" ? "center" : target.anchor}).`
+          : `Snapped sprite frame ${command.frameId} to datum ${target.datumId} (${target.datumKind === "point" ? "center" : target.anchor}).`,
+    };
+  }
+
   const object = document.objects[command.id];
   if (object === undefined) {
     return {
@@ -2882,6 +3107,66 @@ export function clampSpriteFrameToGuideRegion(
   return applyCanvasCommands(document, [
     { kind: "clampSpriteFrameToGuideRegion", sidecarId, frameId },
   ]).document;
+}
+
+export function snapSpriteFrameToDatum(
+  document: CanvasDocument,
+  input: {
+    readonly sidecarId: string;
+    readonly frameId: string;
+    readonly anchor?: SpriteFrameDatumAnchor;
+    readonly datumId?: string;
+    readonly maxDistance?: number;
+    readonly constrainToGuideRegion?: boolean;
+    readonly restrictToRegion?: boolean;
+  },
+  context?: CanvasCommandApplyContext,
+): CanvasDocument {
+  return applyCanvasCommands(
+    document,
+    [
+      {
+        kind: "snapSpriteFrameToDatum",
+        sidecarId: input.sidecarId,
+        frameId: input.frameId,
+        anchor: input.anchor,
+        datumId: input.datumId,
+        maxDistance: input.maxDistance,
+        constrainToGuideRegion: input.constrainToGuideRegion,
+        restrictToRegion: input.restrictToRegion,
+      },
+    ],
+    context,
+  ).document;
+}
+
+export function snapSpriteFrameToNearestDatum(
+  document: CanvasDocument,
+  input: {
+    readonly sidecarId: string;
+    readonly frameId: string;
+    readonly anchor?: SpriteFrameDatumAnchor;
+    readonly maxDistance?: number;
+    readonly constrainToGuideRegion?: boolean;
+    readonly restrictToRegion?: boolean;
+  },
+  context?: CanvasCommandApplyContext,
+): CanvasDocument {
+  return applyCanvasCommands(
+    document,
+    [
+      {
+        kind: "snapSpriteFrameToNearestDatum",
+        sidecarId: input.sidecarId,
+        frameId: input.frameId,
+        anchor: input.anchor,
+        maxDistance: input.maxDistance,
+        constrainToGuideRegion: input.constrainToGuideRegion,
+        restrictToRegion: input.restrictToRegion,
+      },
+    ],
+    context,
+  ).document;
 }
 
 export function createLayerGroup(document: CanvasDocument, title: string): CanvasDocument {

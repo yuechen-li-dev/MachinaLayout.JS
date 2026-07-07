@@ -103,6 +103,9 @@ Supported commands:
 - `nudge-frame <dx> <dy>`
 - `set-frame-rect <x> <y> <w> <h>`
 - `clamp-frame [sidecarId] [frameId]`
+- `list-datums`
+- `snap-frame <anchor> [datumId]`
+- `snap-frame-nearest [anchor]`
 - `overlay-mode <focus|cutEdit|gridEdit|audit|debug>`
 - `toggle-sprite-overlay`
 - `toggle-sprite-labels`
@@ -292,11 +295,17 @@ Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums,
 
 Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Alignment marks are placeholders for future alignment workflows.
 
+Datums provide explicit snap targets for sprite-frame editing. MachinaCanvas snaps selected frame edges or centers to authored datum lines; it does not run a general 2D constraint solver.
+
 Guide regions can constrain sprite frame editing in the editor. The constraint is authoring-only: guide regions remain in `*.guide.toml`, while exported `*.sprite.toml` contains only runtime sprite frame metadata.
 
 Sprite mode can show the selected frame's guide-region context, toggle `Constrain to guide region`, and run `Clamp to guide region` when a frame drifts outside its authored region. Guide-region audit warnings stay in the editor/audit path; they do not turn guide regions into runtime sprite metadata.
 
-This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, datum snapping, alignment-mark behavior, or guide-to-sprite compilation here.
+Selected sprite frames can also use `Datum snapping` in the inspector for `Snap nearest`, anchor-specific snaps, and nearby-datum inspection. The in-app terminal mirrors that workflow with `list-datums`, `snap-frame <anchor> [datumId]`, and `snap-frame-nearest [anchor]`.
+
+Datums remain in `*.guide.toml`. Runtime `*.sprite.toml` exports only keep the resulting frame rectangles after snapping.
+
+This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, alignment-mark behavior, or guide-to-sprite compilation here.
 
 ## UI Components And TSX Lowering
 
