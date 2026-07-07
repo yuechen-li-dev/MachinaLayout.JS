@@ -14,6 +14,15 @@ import {
 } from "./spriteOverlay";
 import { parseTomlDocument } from "./tomlSyntax";
 
+export type SpriteSidecar = CanvasSpriteSpec;
+
+export type SpriteSidecarExportMode = "authoring" | "runtime";
+
+export type SpriteTomlExportOptions = {
+  readonly mode?: SpriteSidecarExportMode;
+  readonly includeLegacyCutGrids?: boolean;
+};
+
 const defaultOverlay = DEFAULT_SPRITE_OVERLAY_SETTINGS;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -199,6 +208,8 @@ function readExplicitFrame(
   return {
     id,
     label: asString(table.display_name) ?? asString(table.name) ?? id,
+    spriteId: asString(table.sprite_id),
+    animationId: asString(table.animation_id),
     x,
     y,
     width,
@@ -492,6 +503,7 @@ export function parseSpriteSidecarToml(
     if (!sprite) continue;
     const spriteLabel = asString(sprite.display_name) ?? spriteId;
     const spriteKind = asString(sprite.kind);
+    const directFrameId = asString(sprite.frame);
     const directGridId = asString(sprite.grid);
     const directGrid = directGridId ? gridById.get(directGridId) : undefined;
     const directRow = asNumber(sprite.row);
@@ -503,6 +515,26 @@ export function parseSpriteSidecarToml(
         "MissingSpriteGrid",
         `Sprite ${spriteId} references missing grid ${directGridId}.`,
       );
+    }
+    if (directFrameId) {
+      const directFrame = frameById.get(directFrameId);
+      if (!directFrame) {
+        pushDiagnostic(
+          diagnostics,
+          "MissingSpriteFrame",
+          `Sprite ${spriteId} references missing frame ${directFrameId}.`,
+          [directFrameId],
+        );
+      } else {
+        const enrichedFrame = {
+          ...directFrame,
+          spriteId,
+          kind: directFrame.kind ?? spriteKind,
+        };
+        frameById.set(directFrameId, enrichedFrame);
+        const indexToReplace = frames.findIndex((candidate) => candidate.id === directFrameId);
+        if (indexToReplace >= 0) frames[indexToReplace] = enrichedFrame;
+      }
     }
     if (directGrid && directRow !== undefined && directColumn !== undefined) {
       addFrame(
@@ -529,8 +561,9 @@ export function parseSpriteSidecarToml(
       const row = asNumber(animation.row);
       const frameRefs = asArray(animation.frames) ?? [];
       const animationFrameIds: string[] = [];
+      const canResolveByFrameIds = frameRefs.every((frameRef) => typeof frameRef === "string");
 
-      if (!gridId || !grid || row === undefined) {
+      if ((!gridId || !grid || row === undefined) && !canResolveByFrameIds) {
         pushDiagnostic(
           diagnostics,
           "InvalidSpriteAnimation",
@@ -541,6 +574,14 @@ export function parseSpriteSidecarToml(
 
       for (const [index, frameRef] of frameRefs.entries()) {
         if (typeof frameRef === "number") {
+          if (!grid || row === undefined) {
+            pushDiagnostic(
+              diagnostics,
+              "InvalidSpriteAnimation",
+              `Animation ${spriteId}.${animationId} cannot use numeric frame columns without grid and row.`,
+            );
+            continue;
+          }
           const id = `${spriteId}.${animationId}.${index}`;
           addFrame(
             frames,
@@ -565,8 +606,17 @@ export function parseSpriteSidecarToml(
               `Animation ${spriteId}.${animationId} references missing frame ${frameRef}.`,
               [frameRef],
             );
+            animationFrameIds.push(frameRef);
           } else {
-            const enrichedFrame = applyInferredFrameSourceContext(exact, grid, row);
+            const enrichedFrame =
+              grid && row !== undefined
+                ? applyInferredFrameSourceContext(exact, grid, row)
+                : {
+                    ...exact,
+                    spriteId: exact.spriteId ?? spriteId,
+                    animationId: exact.animationId ?? animationId,
+                    kind: exact.kind ?? spriteKind,
+                  };
             frameById.set(frameRef, enrichedFrame);
             const indexToReplace = frames.findIndex((candidate) => candidate.id === frameRef);
             if (indexToReplace >= 0) frames[indexToReplace] = enrichedFrame;

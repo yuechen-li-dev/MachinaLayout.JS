@@ -31,11 +31,17 @@ import {
 } from "./spriteOverlay";
 import { lowerCanvasDocumentToTsx, type TsxExportOptions } from "./tsxExport";
 import { resolveSketchSpec } from "./sketchOverlay";
-import { getSpriteExpectedSourceRect, getSpriteFrameSourceKind } from "./spriteSidecar";
+import {
+  getSpriteExpectedSourceRect,
+  getSpriteFrameSourceKind,
+  type SpriteSidecarExportMode,
+  type SpriteTomlExportOptions,
+} from "./spriteSidecar";
 import {
   findGuideRegionForSpriteFrame,
   type SpriteFrameGuideRegionContext,
 } from "./spriteGuideRegions";
+import { compileSpriteRuntimeSidecar } from "./spriteGuideCompiler";
 import { stringifyTomlDocument } from "./tomlSyntax";
 
 export type CanvasExportFile = {
@@ -671,7 +677,68 @@ function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string
   return record;
 }
 
-function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<string, unknown> {
+function createRuntimeSpriteTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const sprites: Record<string, unknown> = {};
+  const spriteIds = new Set<string>();
+  for (const frame of object.spec.frames) {
+    if (frame.spriteId) spriteIds.add(frame.spriteId);
+  }
+  for (const animation of object.spec.animations) {
+    spriteIds.add(animation.spriteId);
+  }
+
+  for (const spriteId of [...spriteIds].sort()) {
+    const spriteFrames = object.spec.frames.filter((frame) => frame.spriteId === spriteId);
+    const directFrame = spriteFrames.find((frame) => frame.animationId === undefined);
+    const spriteTable: Record<string, unknown> = {};
+    setTomlField(spriteTable, "display_name", directFrame?.label ?? spriteId);
+    setTomlField(spriteTable, "kind", directFrame?.kind);
+    setTomlField(spriteTable, "frame", directFrame?.id);
+
+    const animationEntries = object.spec.animations.filter(
+      (candidate) => candidate.spriteId === spriteId,
+    );
+    if (animationEntries.length > 0) {
+      const animationsTable: Record<string, unknown> = {};
+      for (const animation of animationEntries) {
+        const animationTable: Record<string, unknown> = {
+          frames: [...animation.frameIds],
+        };
+        setTomlField(animationTable, "fps", animation.fps);
+        setTomlField(animationTable, "loop", animation.loop);
+        animationsTable[animation.id] = animationTable;
+      }
+      spriteTable.animations = animationsTable;
+    }
+
+    sprites[spriteId] = spriteTable;
+  }
+
+  const record: Record<string, unknown> = {
+    frames: createSpriteFramesTomlRecord(object),
+  };
+  if (Object.keys(sprites).length > 0) record.sprites = sprites;
+  return record;
+}
+
+function createCanvasSpriteTomlDocument(
+  object: SpriteSidecarObject,
+  options?: SpriteTomlExportOptions,
+): Record<string, unknown> {
+  const mode: SpriteSidecarExportMode = options?.mode ?? "authoring";
+  if (mode === "runtime") {
+    const document: Record<string, unknown> = {};
+    if (object.spec.atlasImage || object.spec.atlasWidth || object.spec.atlasHeight) {
+      const atlas: Record<string, unknown> = {};
+      setTomlField(atlas, "image", object.spec.atlasImage);
+      setTomlField(atlas, "width", object.spec.atlasWidth);
+      setTomlField(atlas, "height", object.spec.atlasHeight);
+      document.atlas = atlas;
+    }
+    Object.assign(document, createRuntimeSpriteTomlRecord(object));
+    return document;
+  }
+
   const document: Record<string, unknown> = {
     id: object.spec.id,
     kind: object.kind,
@@ -706,9 +773,34 @@ function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<str
   return document;
 }
 
-export function serializeCanvasSpriteToml(object: SpriteSidecarObject): string {
-  if (object.spec.rawToml) return `${object.spec.rawToml.trimEnd()}\n`;
-  return `${stringifyTomlDocument(createCanvasSpriteTomlDocument(object)).trimEnd()}\n`;
+export function serializeCanvasSpriteToml(
+  object: SpriteSidecarObject,
+  options?: SpriteTomlExportOptions,
+): string {
+  const mode = options?.mode ?? "authoring";
+  if (mode === "authoring" && object.spec.rawToml) return `${object.spec.rawToml.trimEnd()}\n`;
+  return `${stringifyTomlDocument(createCanvasSpriteTomlDocument(object, options)).trimEnd()}\n`;
+}
+
+export function stringifyRuntimeSpriteToml(compiled: SpriteSidecarObject): string {
+  return serializeCanvasSpriteToml(compiled, { mode: "runtime" });
+}
+
+export function serializeCompiledRuntimeSpriteToml(input: {
+  readonly spriteSidecar: SpriteSidecarObject;
+  readonly guideSidecar?: GuideSidecarObject;
+  readonly options?: SpriteTomlExportOptions;
+}): string {
+  const compiled = compileSpriteRuntimeSidecar({
+    spriteSidecar: input.spriteSidecar.spec,
+    guideSidecar: input.guideSidecar?.guide,
+    options: { mode: "runtime", ...input.options },
+  });
+  const runtimeSidecar: SpriteSidecarObject = {
+    ...input.spriteSidecar,
+    spec: compiled.spriteSidecar,
+  };
+  return stringifyRuntimeSpriteToml(runtimeSidecar);
 }
 
 export function serializeCanvasObjectToml(object: CanvasObject): string {

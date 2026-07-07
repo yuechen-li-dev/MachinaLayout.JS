@@ -155,7 +155,7 @@ describe("MachinaCanvas export cart", () => {
     expect(artifacts.some((artifact) => artifact.kind === "spriteToml")).toBe(true);
     expect(artifacts.some((artifact) => artifact.kind === "spriteAudit")).toBe(true);
     expect(artifacts.find((artifact) => artifact.kind === "spriteToml")?.description).toContain(
-      "TinyTown alpha sprite sheet",
+      "Runtime sprite metadata compiled",
     );
   });
 
@@ -168,7 +168,7 @@ describe("MachinaCanvas export cart", () => {
     const artifacts = collectCanvasExportArtifacts({ scene: createGuideDocument() });
     expect(artifacts.some((artifact) => artifact.kind === "guideToml")).toBe(true);
     expect(artifacts.find((artifact) => artifact.kind === "guideToml")?.description).toContain(
-      "Authoring guide / constraint IR",
+      "Authoring guide IR",
     );
   });
 
@@ -193,6 +193,9 @@ describe("MachinaCanvas export cart", () => {
     const second = applyExportPreset(artifacts, preset!);
     expect(first).toEqual(second);
     expect(first.selectedArtifactIds.some((id) => id.startsWith("sprite-toml:"))).toBe(true);
+    expect(first.selectedArtifactIds.some((id) => id.startsWith("sprite-compile-report:"))).toBe(
+      true,
+    );
     expect(first.selectedArtifactIds).toContain("handoff-toml");
     expect(first.selectedArtifactIds).toContain("diagnostics-report");
   });

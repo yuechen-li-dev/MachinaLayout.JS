@@ -17,6 +17,10 @@ function formatArtifactKind(kind: CanvasExportArtifact["kind"]): string {
       return "render.png";
     case "spriteToml":
       return "sprite.toml";
+    case "spriteCompileReport":
+      return "compile report";
+    case "guideToml":
+      return "guide.toml";
     case "sketchToml":
       return "sketch.toml";
     case "spriteAudit":

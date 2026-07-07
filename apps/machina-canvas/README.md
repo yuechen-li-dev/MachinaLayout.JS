@@ -293,7 +293,9 @@ If a guide sidecar, sprite sidecar, sketch overlay, or alpha mask is loaded with
 
 Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums, dimensions, and alignment marks used to edit visual artifacts. They are separate from runtime sidecars such as `*.sprite.toml`.
 
-Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels.
+Guide sidecars are authoring IR. Compiled sprite TOML is the runtime target. Runtime sprite exports omit guide regions, datums, dimensions, alignment marks, and legacy cut grids by default.
+
+Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Legacy `cut_grids` entries remain supported as transitional/backcompat authoring data, but new work should prefer guide regions in `*.guide.toml`.
 
 Alignment marks are authored registration points in `*.guide.toml`. MachinaCanvas can translate one layer/image so its mark matches another mark, but M38d does not perform automatic image feature detection, rotation, scale, or general registration.
 
@@ -311,7 +313,7 @@ Alignment marks are point marks only in this pass. The inspector can align an im
 
 Alignment metadata remains guide-only authoring IR. It stays in `*.guide.toml`, does not compile into runtime `*.sprite.toml`, and does not use computer vision or automatic feature detection.
 
-This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, guide-to-sprite compilation, or full registration beyond translation-only alignment between authored marks.
+This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, full auto-segmentation, or full registration beyond translation-only alignment between authored marks.
 
 ## UI Components And TSX Lowering
 
@@ -475,13 +477,15 @@ The Export cart keeps checkpointing and handoff separate:
 
 Presets are selection helpers, not locks:
 
-- `Sprite handoff` selects runtime sprite sidecars, audit reports, diagnostics,
-  `handoff.toml`, and overlay review artifacts. Guide sidecars stay optional
-  here because they are authoring IR, not runtime metadata.
+- `Sprite handoff` selects compiled runtime sprite TOML, sprite audit reports,
+  sprite compile reports, diagnostics, `handoff.toml`, and overlay review
+  artifacts. Guide sidecars stay optional here because they are authoring IR,
+  not runtime metadata.
 - `Visual review` selects rendered SVG/PNG artifacts plus diagnostics and sprite
   audit output when present.
-- `Full archive` selects source indexes, handoff contracts, sidecars including
-  `*.guide.toml`, reports, and rendered artifacts for a broad handoff bundle.
+- `Full archive` selects source indexes, handoff contracts, compiled runtime
+  sprite TOML, source/authoring sidecars including `*.guide.toml`, reports, and
+  rendered artifacts for a broad handoff bundle.
 - `Source checkpoint` selects the checkpoint artifact plus source-oriented scene
   files for work-in-progress capture.
 

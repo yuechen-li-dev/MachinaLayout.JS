@@ -1,5 +1,6 @@
 import {
   createCanvasExportBundle,
+  serializeCompiledRuntimeSpriteToml,
   serializeCanvasRenderSvg,
   type CanvasExportBundle,
   type CanvasExportFile,
@@ -17,6 +18,7 @@ import {
   createSpriteAuditScreenshotDocument,
   formatSpriteAuditReport,
 } from "./spriteAudit";
+import { compileSpriteRuntimeSidecar, formatSpriteGuideCompileReport } from "./spriteGuideCompiler";
 import { lowerCanvasDocumentToTsx } from "./tsxExport";
 
 export type CanvasExportArtifactKind =
@@ -26,6 +28,7 @@ export type CanvasExportArtifactKind =
   | "renderSvg"
   | "renderPng"
   | "spriteToml"
+  | "spriteCompileReport"
   | "guideToml"
   | "sketchToml"
   | "spriteAudit"
@@ -107,7 +110,14 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
     id: "sprite-handoff",
     title: "Sprite handoff",
     description: "Sidecars, audit metadata, and handoff contracts for sprite-import workflows.",
-    artifactKinds: ["spriteToml", "spriteAudit", "diagnostics", "handoffToml", "other"],
+    artifactKinds: [
+      "spriteToml",
+      "spriteAudit",
+      "spriteCompileReport",
+      "diagnostics",
+      "handoffToml",
+      "other",
+    ],
     artifactIds: ["tsx-export"],
   },
   {
@@ -126,6 +136,7 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
       "renderSvg",
       "renderPng",
       "spriteToml",
+      "spriteCompileReport",
       "guideToml",
       "sketchToml",
       "spriteAudit",
@@ -194,6 +205,17 @@ function getAttachedImage(
   if (!sidecar.targetId) return undefined;
   const target = document.objects[sidecar.targetId];
   return target?.kind === "image" ? target : undefined;
+}
+
+function getAttachedGuideSidecar(
+  document: CanvasDocument,
+  sidecar: SpriteSidecarObject,
+): Extract<CanvasObject, { kind: "guideSidecar" }> | undefined {
+  if (!sidecar.targetId) return undefined;
+  return Object.values(document.objects).find(
+    (object): object is Extract<CanvasObject, { kind: "guideSidecar" }> =>
+      object.kind === "guideSidecar" && object.targetId === sidecar.targetId,
+  );
 }
 
 function formatFrameTable(sidecar: SpriteSidecarObject): string {
@@ -494,10 +516,10 @@ export function collectCanvasExportArtifacts(input: {
       artifacts.push({
         id: `guide-toml:${object.id}`,
         kind: "guideToml",
-        title: `${object.name} guide sidecar`,
+        title: "Guide TOML (authoring)",
         description:
           target?.kind === "image"
-            ? `Authoring guide / constraint IR attached to ${target.name}. This is separate from runtime sprite metadata.`
+            ? `Authoring guide IR. Regions/datums/dimensions/alignment marks for ${target.name}.`
             : "Authoring guide / constraint IR awaiting image attachment.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
@@ -512,18 +534,55 @@ export function collectCanvasExportArtifacts(input: {
     artifacts.push({
       id: `sprite-toml:${object.id}`,
       kind: "spriteToml",
-      title: `${object.name} sprite sidecar`,
+      title: "Compiled sprite TOML",
       description: image
-        ? `Sprite sidecar TOML for ${image.name}, including atlas cuts, grids, animations, and overlay settings.`
+        ? `Runtime sprite metadata compiled from current sidecar and guide authoring data for ${image.name}.`
         : "Sprite sidecar TOML awaiting image attachment.",
       filename: getObjectAssetFilename(object),
       selectedByDefault: false,
       sourceObjectId: object.id,
       group: "sidecars",
+      create: () =>
+        serializeCompiledRuntimeSpriteToml({
+          spriteSidecar: object,
+          guideSidecar: getAttachedGuideSidecar(input.scene, object),
+        }),
+    });
+
+    artifacts.push({
+      id: `sprite-toml-source:${object.id}`,
+      kind: "other",
+      title: "Sprite TOML (authoring source)",
+      description: image
+        ? `Source sprite sidecar for ${image.name}, preserving current authoring-side metadata and legacy backcompat fields.`
+        : "Source sprite sidecar TOML awaiting image attachment.",
+      filename: `objects/${sanitizePathId(object.id)}.source.sprite.toml`,
+      selectedByDefault: false,
+      sourceObjectId: object.id,
+      group: "source",
       create: () => getFile(bundle, getObjectAssetFilename(object)).text,
     });
 
     if (!image) continue;
+
+    artifacts.push({
+      id: `sprite-compile-report:${object.id}`,
+      kind: "spriteCompileReport",
+      title: "Sprite compile report",
+      description: `How runtime sprite TOML was compiled for ${image.name}, including generated frames and authored overrides.`,
+      filename: `reports/${sanitizePathId(object.id)}-sprite-compile.md`,
+      selectedByDefault: true,
+      sourceObjectId: object.id,
+      group: "reports",
+      create: () =>
+        formatSpriteGuideCompileReport(
+          compileSpriteRuntimeSidecar({
+            spriteSidecar: object.spec,
+            guideSidecar: getAttachedGuideSidecar(input.scene, object)?.guide,
+            options: { mode: "runtime" },
+          }).report,
+        ),
+    });
 
     artifacts.push({
       id: `sprite-audit:${object.id}`,
