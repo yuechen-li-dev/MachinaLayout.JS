@@ -4,12 +4,15 @@ import {
   parseGridPointRef,
   type GridSubcell,
 } from "./referenceGrid";
+import { parseTomlDocument } from "./tomlSyntax";
 import type {
   CanvasDocument,
+  ImageObject,
   CanvasObject,
   CanvasSketchPrimitive,
   CanvasSketchRef,
   CanvasSketchSpec,
+  SketchOverlayObject,
 } from "./sceneModel";
 
 export type ResolvedSketchPoint = {
@@ -218,4 +221,166 @@ export function resolveSketchSpec(
   spec: CanvasSketchSpec,
 ): ResolvedSketchPrimitive[] {
   return spec.primitives.map((primitive) => resolvePrimitive(document, primitive));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asPrimitiveArray<_T extends CanvasSketchPrimitive["kind"]>(
+  value: unknown,
+): readonly Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+function readSketchRef(
+  table: Record<string, unknown>,
+  field: "ref" | "from" | "to",
+): CanvasSketchRef {
+  const fieldValue = asString(table[field]);
+  const kindValue = asString(table[`${field}_kind`]);
+
+  if (kindValue === "absolute_point") {
+    return {
+      kind: "absolutePoint",
+      x: asNumber(table.x) ?? 0,
+      y: asNumber(table.y) ?? 0,
+    };
+  }
+
+  if (
+    kindValue === "absolute_rect" ||
+    (field === "ref" && asString(table.frame_kind) === "absolute_rect")
+  ) {
+    return {
+      kind: "absoluteRect",
+      x: asNumber(table.x) ?? 0,
+      y: asNumber(table.y) ?? 0,
+      width: asNumber(table.width) ?? 0,
+      height: asNumber(table.height) ?? 0,
+    };
+  }
+
+  if (kindValue === "object_anchor") {
+    return {
+      kind: "objectAnchor",
+      objectId: asString(table.object_id) ?? "",
+      anchor: (asString(table.anchor) as GridSubcell | undefined) ?? "c",
+    };
+  }
+
+  if (field === "ref") {
+    const frame = asString(table.frame);
+    if (frame) {
+      return frame.includes(".")
+        ? { kind: "gridRef", ref: frame }
+        : { kind: "gridSpan", span: frame };
+    }
+  }
+
+  if (!fieldValue) {
+    throw new Error(`Invalid sketch TOML: ${field} is required.`);
+  }
+  return fieldValue.includes(".")
+    ? { kind: "gridRef", ref: fieldValue }
+    : { kind: "gridSpan", span: fieldValue };
+}
+
+export function parseSketchOverlayToml(
+  text: string,
+  options: { id: string; name: string; targetId?: string },
+): CanvasSketchSpec {
+  const root = parseTomlDocument(text);
+  if (!isRecord(root)) {
+    throw new Error("Invalid sketch TOML: expected a top-level table.");
+  }
+
+  const targetId = asString(root.target_id) ?? options.targetId;
+  const primitives: CanvasSketchPrimitive[] = [];
+
+  for (const table of asPrimitiveArray(root.box)) {
+    primitives.push({
+      kind: "box",
+      id: asString(table.id) ?? `box-${primitives.length + 1}`,
+      label: asString(table.label),
+      ref: readSketchRef(table, "ref"),
+      stroke: asString(table.stroke),
+      fill: asString(table.fill),
+    });
+  }
+
+  for (const table of asPrimitiveArray(root.line)) {
+    primitives.push({
+      kind: "line",
+      id: asString(table.id) ?? `line-${primitives.length + 1}`,
+      label: asString(table.label),
+      from: readSketchRef(table, "from"),
+      to: readSketchRef(table, "to"),
+      stroke: asString(table.stroke),
+    });
+  }
+
+  for (const table of asPrimitiveArray(root.point)) {
+    primitives.push({
+      kind: "point",
+      id: asString(table.id) ?? `point-${primitives.length + 1}`,
+      label: asString(table.label),
+      ref: readSketchRef(table, "ref"),
+      stroke: asString(table.stroke),
+      fill: asString(table.fill),
+    });
+  }
+
+  for (const table of asPrimitiveArray(root.label)) {
+    primitives.push({
+      kind: "label",
+      id: asString(table.id) ?? `label-${primitives.length + 1}`,
+      text: asString(table.text) ?? "",
+      ref: readSketchRef(table, "ref"),
+    });
+  }
+
+  return {
+    id: asString(root.id) ?? options.id,
+    name: asString(root.name) ?? options.name,
+    dialect: "sketch",
+    targetId,
+    primitives,
+  };
+}
+
+export function createSketchOverlayObject(
+  spec: CanvasSketchSpec,
+  options: { id?: string; name?: string; target?: ImageObject; layerId: string },
+): SketchOverlayObject {
+  const target = options.target;
+  return {
+    id: options.id ?? spec.id,
+    name: options.name ?? spec.name,
+    kind: "sketchOverlay",
+    layerId: options.layerId,
+    visible: true,
+    x: target?.x ?? 0,
+    y: target?.y ?? 0,
+    width: target?.width ?? 0,
+    height: target?.height ?? 0,
+    role: "sketch",
+    targetId: target?.id ?? spec.targetId,
+    tags: ["sketch", "sidecar"],
+    notes: `${spec.primitives.length} sketch primitive${spec.primitives.length === 1 ? "" : "s"}.`,
+    spec: {
+      ...spec,
+      id: options.id ?? spec.id,
+      name: options.name ?? spec.name,
+      targetId: target?.id ?? spec.targetId,
+    },
+  };
 }

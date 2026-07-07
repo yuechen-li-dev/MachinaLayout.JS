@@ -1,0 +1,804 @@
+[2m10:26:15 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:26:22 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:26:30 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:26:42 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:26:51 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:27:24 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:29:47 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:29:55 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4114:41)
+
+[0m [90m 4112 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4113 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4114 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4115 |[31m           document[33m,[31m
+ [90m 4116 |[31m         )[33m;[31m
+ [90m 4117 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4114:41
+[33m  4112 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4113 |          const sidecarId = makeUniqueObjectId(
+  4114 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4115 |            document,
+  4116 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:30:21 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4116:41)
+
+[0m [90m 4114 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4115 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4116 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4117 |[31m           document[33m,[31m
+ [90m 4118 |[31m         )[33m;[31m
+ [90m 4119 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4116:41
+[33m  4114 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4115 |          const sidecarId = makeUniqueObjectId(
+  4116 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4117 |            document,
+  4118 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:30:29 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4116:41)
+
+[0m [90m 4114 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4115 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4116 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4117 |[31m           document[33m,[31m
+ [90m 4118 |[31m         )[33m;[31m
+ [90m 4119 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4116:41
+[33m  4114 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4115 |          const sidecarId = makeUniqueObjectId(
+  4116 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4117 |            document,
+  4118 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:30:38 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4116:41)
+
+[0m [90m 4114 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4115 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4116 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4117 |[31m           document[33m,[31m
+ [90m 4118 |[31m         )[33m;[31m
+ [90m 4119 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4116:41
+[33m  4114 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4115 |          const sidecarId = makeUniqueObjectId(
+  4116 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4117 |            document,
+  4118 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)
+[2m10:30:43 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\src\App.tsx: Nullish coalescing operator(??) requires parens when mixing with logical operators. (4116:41)
+
+[0m [90m 4114 |[31m         [36mconst[31m baseName [33m=[31m file[33m.[31mname[33m.[31mreplace([35m/\.(spriteforge|sprite)?\.?toml$/i[31m[33m,[31m [32m""[31m)[33m;[31m
+ [90m 4115 |[31m         [36mconst[31m sidecarId [33m=[31m makeUniqueObjectId(
+[31m[1m>[22m[31m[90m 4116 |[31m           [32m`${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`[31m[33m,[31m
+ [90m      |[31m                                          [31m[1m^[22m[31m
+ [90m 4117 |[31m           document[33m,[31m
+ [90m 4118 |[31m         )[33m;[31m
+ [90m 4119 |[31m         [36mconst[31m spec [33m=[31m parseSpriteSidecarToml(text[33m,[31m {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/yuech/source/repos/MachinaLayout.JS/apps/machina-canvas/src/App.tsx[39m:4116:41
+[33m  4114 |          const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
+  4115 |          const sidecarId = makeUniqueObjectId(
+  4116 |            `${targetImage?.id ?? baseName || "sprite-sidecar"}-sprite-sidecar`,
+       |                                           ^
+  4117 |            document,
+  4118 |          );[39m
+      at constructor (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10968:22)
+      at TypeScriptParserMixin.parseExprOp (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11822:17)
+      at TypeScriptParserMixin.parseTemplateSubstitution (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:8421:18)
+      at TypeScriptParserMixin.parseTemplate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11813:31)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11368:21)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseExprListItem (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12192:18)
+      at TypeScriptParserMixin.parseCallExpressionArguments (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11269:22)
+      at TypeScriptParserMixin.parseCoverCallAndAsyncArrowHead (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11203:29)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11137:19)
+      at TypeScriptParserMixin.parseSubscript (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9289:18)
+      at TypeScriptParserMixin.parseSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11111:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11102:17)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:9803:20)
+      at C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseVar (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13401:91)
+      at TypeScriptParserMixin.parseVarStatement (C:\Users\yuech\source\repos\MachinaLayout.JS\apps\machina-canvas\node_modules\@babel\parser\lib\index.js:13247:10)

@@ -1,0 +1,418 @@
+import type {
+  CanvasDocument,
+  CanvasObject,
+  ImageObject,
+  SketchOverlayObject,
+  SpriteSidecarObject,
+} from "./sceneModel";
+
+export type CanvasLayerTreeRelation =
+  | "alphaMap"
+  | "spriteSidecar"
+  | "sketchOverlay"
+  | "child"
+  | "unattached";
+
+export type CanvasLayerTreeItem = {
+  readonly id: string;
+  readonly kind: "group" | "object" | "attachment";
+  readonly objectId?: string;
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly badge?: string;
+  readonly warning?: string;
+  readonly selected?: boolean;
+  readonly children?: readonly CanvasLayerTreeItem[];
+  readonly relation?: CanvasLayerTreeRelation;
+  readonly count?: number;
+};
+
+type LayerGroupSource = {
+  id: string;
+  title: string;
+  description?: string;
+  objectIds: readonly string[];
+  collapsed?: boolean;
+};
+
+function basename(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  const segments = path.split(/[\\/]/).filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : undefined;
+}
+
+function formatSize(width: number | undefined, height: number | undefined): string | undefined {
+  if (!width || !height) return undefined;
+  return `${width}x${height}`;
+}
+
+function getObjectBadge(object: CanvasObject): string {
+  switch (object.kind) {
+    case "rect":
+      return "RECT";
+    case "ellipse":
+      return "OVAL";
+    case "text":
+      return "TEXT";
+    case "image":
+      return object.role === "alphaMap" ? "ALPHA" : object.role === "mask" ? "MASK" : "IMG";
+    case "uiComponent":
+      return "UI";
+    case "sketchOverlay":
+      return "SKETCH";
+    case "spriteSidecar":
+      return "SPRITE";
+  }
+}
+
+function getDisplayTitle(object: CanvasObject): string {
+  if (object.kind === "image") {
+    return basename(object.src) ?? object.name;
+  }
+  if (object.kind === "spriteSidecar") {
+    return object.spec.sourceName ?? object.name;
+  }
+  return object.name;
+}
+
+function getImageSubtitle(object: ImageObject): string | undefined {
+  const size =
+    formatSize(object.intrinsicWidth, object.intrinsicHeight) ??
+    formatSize(object.width, object.height);
+  if (object.role === "alphaMap" || object.role === "mask") {
+    return size ? `${size} alpha image` : "Alpha image";
+  }
+  return size;
+}
+
+function getSpriteSubtitle(object: SpriteSidecarObject): string {
+  const findings = object.spec.diagnostics.length;
+  return `${object.spec.frames.length} frames · ${findings} finding${findings === 1 ? "" : "s"}`;
+}
+
+function getSketchSubtitle(object: SketchOverlayObject): string {
+  return `${object.spec.primitives.length} primitive${object.spec.primitives.length === 1 ? "" : "s"}`;
+}
+
+function getObjectSubtitle(object: CanvasObject): string | undefined {
+  switch (object.kind) {
+    case "image":
+      return getImageSubtitle(object);
+    case "spriteSidecar":
+      return getSpriteSubtitle(object);
+    case "sketchOverlay":
+      return getSketchSubtitle(object);
+    case "text":
+      return object.text;
+    case "uiComponent":
+      return object.componentId;
+    default:
+      return undefined;
+  }
+}
+
+function makeLayerGroups(scene: CanvasDocument): readonly LayerGroupSource[] {
+  if (scene.layerGroups?.length) {
+    return scene.layerGroups.map((group) => ({
+      id: group.id,
+      title: group.title,
+      description: group.description,
+      objectIds: group.objectIds,
+      collapsed: group.collapsed,
+    }));
+  }
+
+  return scene.layers.map((layer) => ({
+    id: layer.id,
+    title: layer.name,
+    objectIds: layer.objectIds,
+  }));
+}
+
+function getOrderedObjectIds(scene: CanvasDocument): readonly string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const layer of scene.layers) {
+    for (const objectId of layer.objectIds) {
+      if (scene.objects[objectId] && !seen.has(objectId)) {
+        ids.push(objectId);
+        seen.add(objectId);
+      }
+    }
+  }
+  for (const objectId of Object.keys(scene.objects)) {
+    if (!seen.has(objectId)) ids.push(objectId);
+  }
+  return ids;
+}
+
+function getOwnerImageIdByAttachment(scene: CanvasDocument): ReadonlyMap<string, string> {
+  const relations = new Map<string, string>();
+  for (const object of Object.values(scene.objects)) {
+    if (object.kind !== "image") continue;
+    if (object.alphaMapId && scene.objects[object.alphaMapId]) {
+      relations.set(object.alphaMapId, object.id);
+    }
+    if (object.spriteSidecarId && scene.objects[object.spriteSidecarId]) {
+      relations.set(object.spriteSidecarId, object.id);
+    }
+    if (object.sketchOverlayId && scene.objects[object.sketchOverlayId]) {
+      relations.set(object.sketchOverlayId, object.id);
+    }
+  }
+  return relations;
+}
+
+function getAttachmentRelation(
+  scene: CanvasDocument,
+  objectId: string,
+): CanvasLayerTreeRelation | undefined {
+  const object = scene.objects[objectId];
+  if (!object) return undefined;
+  for (const candidate of Object.values(scene.objects)) {
+    if (candidate.kind !== "image") continue;
+    if (candidate.alphaMapId === objectId) return "alphaMap";
+    if (candidate.spriteSidecarId === objectId) return "spriteSidecar";
+    if (candidate.sketchOverlayId === objectId) return "sketchOverlay";
+  }
+  return undefined;
+}
+
+function getImageAttachmentIds(
+  scene: CanvasDocument,
+  image: ImageObject,
+  orderedIds: readonly string[],
+): readonly string[] {
+  const ids = [image.alphaMapId, image.spriteSidecarId, image.sketchOverlayId].filter(
+    (value): value is string => Boolean(value && scene.objects[value]),
+  );
+  const order = new Map(orderedIds.map((id, index) => [id, index]));
+  return [...ids].sort((left, right) => (order.get(left) ?? 0) - (order.get(right) ?? 0));
+}
+
+function getAlphaWarning(
+  _scene: CanvasDocument,
+  image: ImageObject,
+  alpha: ImageObject,
+): string | undefined {
+  const parentSize =
+    formatSize(image.intrinsicWidth, image.intrinsicHeight) ??
+    formatSize(image.width, image.height);
+  const alphaSize =
+    formatSize(alpha.intrinsicWidth, alpha.intrinsicHeight) ??
+    formatSize(alpha.width, alpha.height);
+  if (!parentSize || !alphaSize || parentSize === alphaSize) return undefined;
+  return `Size mismatch: ${alphaSize} vs ${parentSize}`;
+}
+
+function makeAttachmentItem(
+  scene: CanvasDocument,
+  object: CanvasObject,
+  relation: CanvasLayerTreeRelation,
+  ownerImageId: string,
+): CanvasLayerTreeItem {
+  const owner = scene.objects[ownerImageId];
+  const relationText =
+    relation === "alphaMap"
+      ? "attached alpha"
+      : relation === "spriteSidecar"
+        ? `attached to ${getDisplayTitle(owner ?? object)}`
+        : `attached to ${getDisplayTitle(owner ?? object)}`;
+
+  const warning =
+    relation === "alphaMap" && object.kind === "image" && owner?.kind === "image"
+      ? getAlphaWarning(scene, owner, object)
+      : undefined;
+
+  return {
+    id: `attachment:${object.id}`,
+    kind: "attachment",
+    objectId: object.id,
+    title: getDisplayTitle(object),
+    subtitle: getObjectSubtitle(object) ?? relationText,
+    badge: getObjectBadge(object),
+    warning,
+    selected: scene.selectedObjectId === object.id,
+    relation,
+  };
+}
+
+function makeObjectItem(
+  scene: CanvasDocument,
+  object: CanvasObject,
+  orderedIds: readonly string[],
+): CanvasLayerTreeItem {
+  if (object.kind === "image" && (object.role === undefined || object.role === "image")) {
+    const children = getImageAttachmentIds(scene, object, orderedIds)
+      .map((attachmentId) => {
+        const attachment = scene.objects[attachmentId];
+        const relation = getAttachmentRelation(scene, attachmentId);
+        if (!attachment || !relation) return undefined;
+        return makeAttachmentItem(scene, attachment, relation, object.id);
+      })
+      .filter((item): item is CanvasLayerTreeItem => item !== undefined);
+    return {
+      id: `object:${object.id}`,
+      kind: "object",
+      objectId: object.id,
+      title: getDisplayTitle(object),
+      subtitle: getObjectSubtitle(object),
+      badge: getObjectBadge(object),
+      selected: scene.selectedObjectId === object.id,
+      children,
+    };
+  }
+
+  return {
+    id: `object:${object.id}`,
+    kind: "object",
+    objectId: object.id,
+    title: getDisplayTitle(object),
+    subtitle: getObjectSubtitle(object),
+    badge: getObjectBadge(object),
+    selected: scene.selectedObjectId === object.id,
+  };
+}
+
+function isAttachmentCapable(object: CanvasObject): boolean {
+  return (
+    object.kind === "spriteSidecar" ||
+    object.kind === "sketchOverlay" ||
+    (object.kind === "image" && (object.role === "alphaMap" || object.role === "mask"))
+  );
+}
+
+function makeUnattachedItem(scene: CanvasDocument, object: CanvasObject): CanvasLayerTreeItem {
+  return {
+    id: `unattached:${object.id}`,
+    kind: "attachment",
+    objectId: object.id,
+    title: getDisplayTitle(object),
+    subtitle: getObjectSubtitle(object) ?? "Not attached",
+    badge: getObjectBadge(object),
+    warning: object.kind === "image" ? "No image owner" : "No image owner",
+    selected: scene.selectedObjectId === object.id,
+    relation: "unattached",
+  };
+}
+
+export function buildCanvasLayerTree(scene: CanvasDocument): readonly CanvasLayerTreeItem[] {
+  const orderedIds = getOrderedObjectIds(scene);
+  const ownerImageByAttachment = getOwnerImageIdByAttachment(scene);
+  const grouped = makeLayerGroups(scene);
+  const items: CanvasLayerTreeItem[] = [];
+  const consumed = new Set<string>();
+
+  for (const group of grouped) {
+    const children: CanvasLayerTreeItem[] = [];
+    for (const objectId of group.objectIds) {
+      const object = scene.objects[objectId];
+      if (!object || consumed.has(objectId)) continue;
+      if (ownerImageByAttachment.has(objectId)) continue;
+      children.push(makeObjectItem(scene, object, orderedIds));
+      consumed.add(objectId);
+      if (object.kind === "image") {
+        for (const attachmentId of getImageAttachmentIds(scene, object, orderedIds)) {
+          consumed.add(attachmentId);
+        }
+      }
+    }
+    if (children.length === 0) continue;
+    items.push({
+      id: `group:${group.id}`,
+      kind: "group",
+      title: group.title,
+      subtitle: group.description,
+      count: children.length,
+      children,
+    });
+  }
+
+  const remainingStandalone = orderedIds
+    .map((id) => scene.objects[id])
+    .filter((object): object is CanvasObject => Boolean(object))
+    .filter(
+      (object) =>
+        !consumed.has(object.id) &&
+        !ownerImageByAttachment.has(object.id) &&
+        !isAttachmentCapable(object),
+    )
+    .map((object) => makeObjectItem(scene, object, orderedIds));
+  if (remainingStandalone.length > 0) {
+    items.push({
+      id: "group:ungrouped",
+      kind: "group",
+      title: "Other layers",
+      count: remainingStandalone.length,
+      children: remainingStandalone,
+    });
+  }
+
+  const unattached = orderedIds
+    .map((id) => scene.objects[id])
+    .filter((object): object is CanvasObject => Boolean(object))
+    .filter((object) => isAttachmentCapable(object) && !ownerImageByAttachment.has(object.id))
+    .filter((object) => {
+      if (object.kind === "spriteSidecar" || object.kind === "sketchOverlay") {
+        return true;
+      }
+      return !Object.values(scene.objects).some(
+        (candidate) => candidate.kind === "image" && candidate.alphaMapId === object.id,
+      );
+    })
+    .map((object) => makeUnattachedItem(scene, object));
+  if (unattached.length > 0) {
+    items.push({
+      id: "group:unattached",
+      kind: "group",
+      title: "Unattached Sidecars",
+      count: unattached.length,
+      children: unattached,
+    });
+  }
+
+  return items;
+}
+
+export function findCanvasLayerGroupForObject(
+  scene: CanvasDocument,
+  objectId: string | undefined,
+): string | undefined {
+  if (!objectId) return undefined;
+  const explicit = scene.layerGroups?.find((group) => group.objectIds.includes(objectId));
+  if (explicit) return explicit.id;
+  return scene.layers.find((layer) => layer.objectIds.includes(objectId))?.id;
+}
+
+export function createCanvasLayerGroup(scene: CanvasDocument, title: string): CanvasDocument {
+  const nextGroups = [...(scene.layerGroups ?? [])];
+  const baseId = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  let suffix = 1;
+  let id = baseId || "layer-group";
+  const existingIds = new Set(nextGroups.map((group) => group.id));
+  while (existingIds.has(id)) {
+    suffix += 1;
+    id = `${baseId || "layer-group"}-${suffix}`;
+  }
+  nextGroups.push({ id, title: title.trim() || "New group", objectIds: [] });
+  return { ...scene, layerGroups: nextGroups };
+}
+
+export function addCanvasObjectToLayerGroup(
+  scene: CanvasDocument,
+  groupId: string,
+  objectId: string,
+): CanvasDocument {
+  const nextGroups = (scene.layerGroups ?? []).map((group) => ({
+    ...group,
+    objectIds:
+      group.id === groupId && !group.objectIds.includes(objectId)
+        ? [...group.objectIds, objectId]
+        : group.objectIds.filter((candidate) => candidate !== objectId || group.id === groupId),
+  }));
+  return { ...scene, layerGroups: nextGroups };
+}

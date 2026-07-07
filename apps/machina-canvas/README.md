@@ -275,6 +275,16 @@ shape is intended to generalize later to things like `.pcb.toml`,
 `.graph.toml`, `.spritegrid.toml`, or `.atlas.toml`, but M30p only implements
 `.sketch.toml`.
 
+## Layer groups and sidecar attachments
+
+The layer panel shows ownership relationships: images can own sprite sidecars, sketch overlays, and alpha masks. Layer groups organize objects but do not change rendering semantics in this pass.
+
+The Layers panel uses an Add menu for groups, images, sprite TOML, sketch TOML, and alpha masks.
+
+Use the Add menu to add `Group`, `Image`, `Sprite TOML`, `Sketch TOML`, and `Alpha mask` items directly where you are working. Attached alpha maps, sprite sidecars, and sketch overlays render as nested rows under their owning image so the relationship is visible before you open the inspector.
+
+If a sprite sidecar, sketch overlay, or alpha mask is loaded without a matching image attachment, MachinaCanvas keeps it visible under `Unattached Sidecars` until you link it.
+
 ## UI Components And TSX Lowering
 
 M30o adds the first smoke-test version of LLM-native Figma:

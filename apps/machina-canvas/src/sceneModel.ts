@@ -18,6 +18,7 @@ export type CanvasDocument = {
   unit: CanvasUnitName;
   unitSystem: CanvasUnitSystem;
   layers: CanvasLayer[];
+  layerGroups?: CanvasLayerGroup[];
   objects: Record<string, CanvasObject>;
   selectedObjectId?: string;
   referenceGrid?: ReferenceGridConfig;
@@ -28,6 +29,14 @@ export type CanvasLayer = {
   name: string;
   visible: boolean;
   objectIds: string[];
+};
+
+export type CanvasLayerGroup = {
+  id: string;
+  title: string;
+  description?: string;
+  objectIds: string[];
+  collapsed?: boolean;
 };
 
 export type CanvasObject =
@@ -186,7 +195,7 @@ export type CanvasSketchSpec = {
   id: string;
   name: string;
   dialect: "sketch";
-  targetId: string;
+  targetId?: string;
   primitives: readonly CanvasSketchPrimitive[];
 };
 
@@ -268,7 +277,7 @@ export type CanvasSpriteSpec = {
   id: string;
   name: string;
   dialect: "sprite" | "spriteforge";
-  targetId: string;
+  targetId?: string;
   sourceName?: string;
   atlasImage?: string;
   atlasWidth?: number;
@@ -323,13 +332,13 @@ export type UiComponentObject = CanvasObjectBase & {
 export type SketchOverlayObject = CanvasObjectBase & {
   kind: "sketchOverlay";
   role?: "sketch";
-  targetId: string;
+  targetId?: string;
   spec: CanvasSketchSpec;
 };
 
 export type SpriteSidecarObject = CanvasObjectBase & {
   kind: "spriteSidecar";
   role?: "spriteSidecar";
-  targetId: string;
+  targetId?: string;
   spec: CanvasSpriteSpec;
 };

@@ -186,6 +186,7 @@ function getAttachedImage(
   document: CanvasDocument,
   sidecar: SpriteSidecarObject,
 ): ImageObject | undefined {
+  if (!sidecar.targetId) return undefined;
   const target = document.objects[sidecar.targetId];
   return target?.kind === "image" ? target : undefined;
 }
@@ -465,11 +466,16 @@ export function collectCanvasExportArtifacts(input: {
 
   for (const object of Object.values(input.scene.objects)) {
     if (object.kind === "sketchOverlay") {
+      const target =
+        object.targetId !== undefined ? input.scene.objects[object.targetId] : undefined;
       artifacts.push({
         id: `sketch-toml:${object.id}`,
         kind: "sketchToml",
         title: `${object.name} sketch overlay`,
-        description: "Structured sketch overlay sidecar for image reasoning and handoff.",
+        description:
+          target?.kind === "image"
+            ? `Structured sketch overlay sidecar attached to ${target.name}.`
+            : "Structured sketch overlay sidecar awaiting image attachment.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,
@@ -478,12 +484,15 @@ export function collectCanvasExportArtifacts(input: {
       });
     }
     if (object.kind !== "spriteSidecar") continue;
+    const image = getAttachedImage(input.scene, object);
 
     artifacts.push({
       id: `sprite-toml:${object.id}`,
       kind: "spriteToml",
       title: `${object.name} sprite sidecar`,
-      description: "Sprite sidecar TOML for atlas cuts, grids, animations, and overlay settings.",
+      description: image
+        ? `Sprite sidecar TOML for ${image.name}, including atlas cuts, grids, animations, and overlay settings.`
+        : "Sprite sidecar TOML awaiting image attachment.",
       filename: getObjectAssetFilename(object),
       selectedByDefault: false,
       sourceObjectId: object.id,
@@ -491,14 +500,13 @@ export function collectCanvasExportArtifacts(input: {
       create: () => getFile(bundle, getObjectAssetFilename(object)).text,
     });
 
-    const image = getAttachedImage(input.scene, object);
     if (!image) continue;
 
     artifacts.push({
       id: `sprite-audit:${object.id}`,
       kind: "spriteAudit",
       title: `${object.name} audit report`,
-      description: "Audit findings and suggested fixes for the linked sprite sidecar.",
+      description: `Audit findings and suggested fixes for the sprite sidecar attached to ${image.name}.`,
       filename: `reports/${sanitizePathId(object.id)}-sprite-audit.md`,
       selectedByDefault: true,
       sourceObjectId: object.id,

@@ -525,6 +525,14 @@ export function createSpriteSheetScene(): CanvasDocument {
       [image.id]: { ...image, spriteSidecarId: sidecar.id },
       [sidecar.id]: sidecar,
     },
+    layerGroups: [
+      {
+        id: "sprite-sheet-group",
+        title: "Sprite Sheet",
+        description: "Atlas image with attached sidecars.",
+        objectIds: [image.id],
+      },
+    ],
     selectedObjectId: sidecar.id,
   });
 }

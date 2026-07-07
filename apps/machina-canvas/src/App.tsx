@@ -16,6 +16,7 @@ import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { CanvasModeStart } from "./CanvasModeStart";
 import { CanvasCommandTerminal } from "./CanvasCommandTerminal";
+import { CanvasLayerPanel } from "./LayerPanel";
 import { ExportCartPanel } from "./ExportCartPanel";
 import { InspectorAccordionGroup } from "./InspectorAccordionGroup";
 import { resolveAppLayout } from "./appLayout";
@@ -58,7 +59,12 @@ import {
   type CanvasTerminalSideEffect,
 } from "./canvasCommandsTerminal";
 import {
+  addObjectToLayerGroup,
   applyCanvasCommands,
+  attachAlphaMapToImage,
+  attachSketchOverlayToImage,
+  attachSpriteSidecarToImage,
+  createLayerGroup,
   type CanvasCommand,
   type CanvasCommandApplyResult,
   type CanvasCommandValidationResult,
@@ -78,7 +84,9 @@ import {
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import { resolveSketchSpec } from "./sketchOverlay";
+import { createSketchOverlayObject, parseSketchOverlayToml } from "./sketchOverlay";
 import {
+  createUnattachedSpriteSidecarObject,
   createSpriteSidecarObject,
   getSpriteExpectedSourceRect,
   getSpriteFrameSourceKind,
@@ -328,8 +336,19 @@ type AppViewData = {
     toolId: string,
     input: { targetObjectId?: string; options?: Record<string, unknown> },
   ) => Promise<void>;
-  loadImageFile: (file: File, role: CanvasImageRole) => Promise<void>;
-  loadSpriteSidecarFile: (file: File, targetId?: string) => Promise<void>;
+  createLayerGroup: (title: string) => void;
+  loadImageFile: (
+    file: File,
+    options?: { role?: CanvasImageRole; groupId?: string; attachToImageId?: string },
+  ) => Promise<void>;
+  loadSketchOverlayFile: (
+    file: File,
+    options?: { targetId?: string; groupId?: string },
+  ) => Promise<void>;
+  loadSpriteSidecarFile: (
+    file: File,
+    options?: { targetId?: string; groupId?: string },
+  ) => Promise<void>;
   setCommandJson: (commandJson: string) => void;
   loadExampleCommands: () => void;
   validateCommandJson: () => void;
@@ -392,6 +411,30 @@ function getSelectedObject(document: CanvasDocument): CanvasObject | undefined {
   return document.selectedObjectId ? document.objects[document.selectedObjectId] : undefined;
 }
 
+function getOwnerImageForSelection(
+  document: CanvasDocument,
+  object: CanvasObject | undefined,
+): ImageObject | undefined {
+  if (!object) return undefined;
+  if (object.kind === "image" && (object.role === undefined || object.role === "image")) {
+    return object;
+  }
+  if (object.kind === "spriteSidecar" || object.kind === "sketchOverlay") {
+    const targetId = object.targetId ?? object.spec.targetId;
+    const target = targetId ? document.objects[targetId] : undefined;
+    return target?.kind === "image" ? target : undefined;
+  }
+  if (object.kind === "image" && (object.role === "alphaMap" || object.role === "mask")) {
+    return Object.values(document.objects).find(
+      (candidate): candidate is ImageObject =>
+        candidate.kind === "image" &&
+        (candidate.role === undefined || candidate.role === "image") &&
+        candidate.alphaMapId === object.id,
+    );
+  }
+  return undefined;
+}
+
 function getObjectLayer(document: CanvasDocument, object: CanvasObject | undefined) {
   if (!object) return undefined;
   return document.layers.find((layer) => layer.id === object.layerId);
@@ -449,15 +492,6 @@ function getSketchOverlayForImage(document: CanvasDocument, object: ImageObject)
   return overlay;
 }
 
-function getSketchOverlayTarget(
-  document: CanvasDocument,
-  object: Extract<CanvasObject, { kind: "sketchOverlay" }>,
-) {
-  const target = document.objects[object.targetId];
-  if (target?.kind !== "image") return undefined;
-  return target;
-}
-
 function getSpriteSidecarForImage(document: CanvasDocument, object: ImageObject) {
   if (!object.spriteSidecarId) return undefined;
   const sidecar = document.objects[object.spriteSidecarId];
@@ -466,6 +500,7 @@ function getSpriteSidecarForImage(document: CanvasDocument, object: ImageObject)
 }
 
 function getSpriteSidecarTarget(document: CanvasDocument, object: SpriteSidecarObject) {
+  if (!object.targetId) return undefined;
   const target = document.objects[object.targetId];
   if (target?.kind !== "image") return undefined;
   return target;
@@ -499,10 +534,6 @@ type SpriteAuditScreenshotArtifact = {
   size: number;
   url: string;
 };
-
-function getObjectGridSpan(document: CanvasDocument, object: CanvasObject): string {
-  return objectToGridRef(object, document).span;
-}
 
 function getDiagnosticClass(diagnostic: GeometryDiagnostic): string {
   return matchEnum(diagnostic.severity, {
@@ -584,86 +615,41 @@ function isToolGroupVisibleForMode(
 }
 
 function SceneTree(props: MachinaSlotProps) {
-  const { activeMode, document, returnToModeSelection, runCommand } = readViewData(props);
+  const {
+    activeMode,
+    createLayerGroup,
+    document,
+    loadImageFile,
+    loadSketchOverlayFile,
+    loadSpriteSidecarFile,
+    returnToModeSelection,
+    runCommand,
+  } = readViewData(props);
 
   return (
-    <aside className="scene-tree panel">
-      <header className="app-wordmark">
-        <span>MachinaCanvas</span>
-        <small>LLM geometry editor</small>
-        <div className="mode-meta">
-          <p>{`Mode: ${activeMode.title}`}</p>
-          <button type="button" onClick={returnToModeSelection}>
-            New canvas
-          </button>
-        </div>
-      </header>
-      <nav aria-label="Scene layers">
-        {document.layers.map((layer) => (
-          <section className="tree-layer" key={layer.id}>
-            <button
-              className="layer-row"
-              type="button"
-              onClick={() => runCommand({ kind: "select" })}
-            >
-              <span>{layer.name}</span>
-              <small>{layer.objectIds.length}</small>
-            </button>
-            <div className="tree-objects">
-              {layer.objectIds.map((objectId) => {
-                const object = document.objects[objectId];
-                const selected = document.selectedObjectId === object.id;
-                const alphaFor =
-                  object.kind === "image" && (object.role === "alphaMap" || object.role === "mask")
-                    ? Object.values(document.objects).find(
-                        (candidate) =>
-                          candidate.kind === "image" && candidate.alphaMapId === object.id,
-                      )?.id
-                    : undefined;
-                const sketchFor =
-                  object.kind === "sketchOverlay"
-                    ? getSketchOverlayTarget(document, object)?.id
-                    : undefined;
-                const sketchOverlayId =
-                  object.kind === "image" ? object.sketchOverlayId : undefined;
-                const spriteFor =
-                  object.kind === "spriteSidecar"
-                    ? getSpriteSidecarTarget(document, object)?.id
-                    : undefined;
-                const spriteSidecarId =
-                  object.kind === "image" ? object.spriteSidecarId : undefined;
-                return (
-                  <button
-                    className={`tree-object ${selected ? "is-selected" : ""}`}
-                    key={object.id}
-                    type="button"
-                    onClick={() => runCommand({ kind: "select", id: object.id })}
-                  >
-                    <span className={`kind-pill ${getKindClass(object)}`}>
-                      {getKindShortLabel(object)}
-                    </span>
-                    <span>{object.name}</span>
-                    <small>
-                      {alphaFor
-                        ? `alpha for ${alphaFor}`
-                        : sketchFor
-                          ? `overlay for ${sketchFor}`
-                          : spriteFor
-                            ? `sprite for ${spriteFor}`
-                            : sketchOverlayId
-                              ? `overlay ${sketchOverlayId}`
-                              : spriteSidecarId
-                                ? `sprite ${spriteSidecarId}`
-                                : getObjectGridSpan(document, object)}
-                    </small>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </nav>
-    </aside>
+    <CanvasLayerPanel
+      activeModeTitle={activeMode.title}
+      document={document}
+      onClearSelection={() => runCommand({ kind: "select" })}
+      onCreateGroup={createLayerGroup}
+      onLoadAlphaMask={(file, options) =>
+        loadImageFile(file, {
+          role: "alphaMap",
+          groupId: options?.groupId,
+          attachToImageId: options?.attachToImageId,
+        })
+      }
+      onLoadImage={(file, options) =>
+        loadImageFile(file, {
+          role: options?.role ?? "image",
+          groupId: options?.groupId,
+        })
+      }
+      onLoadSketchToml={(file, options) => loadSketchOverlayFile(file, options)}
+      onLoadSpriteToml={(file, options) => loadSpriteSidecarFile(file, options)}
+      onReturnToModeSelection={returnToModeSelection}
+      onSelectObject={(id) => runCommand({ kind: "select", id })}
+    />
   );
 }
 
@@ -2106,10 +2092,12 @@ function SpriteAuditSectionContent({
 }
 
 function ImageAssetSection(props: MachinaSlotProps) {
-  const { document, loadImageFile, loadSpriteSidecarFile, runCommand } = readViewData(props);
+  const { document, loadImageFile, loadSketchOverlayFile, loadSpriteSidecarFile, runCommand } =
+    readViewData(props);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const alphaInputRef = useRef<HTMLInputElement>(null);
   const spriteInputRef = useRef<HTMLInputElement>(null);
+  const sketchInputRef = useRef<HTMLInputElement>(null);
   const selected = getSelectedObject(document);
   const imageObjects = Object.values(document.objects).filter(
     (object): object is ImageObject =>
@@ -2150,14 +2138,21 @@ function ImageAssetSection(props: MachinaSlotProps) {
   const loadFromInput = (role: CanvasImageRole) => (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (file) void loadImageFile(file, role);
+    if (file) void loadImageFile(file, { role });
   };
 
   const loadSpriteFromInput = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    const targetId = selected?.kind === "image" ? selected.id : undefined;
-    if (file) void loadSpriteSidecarFile(file, targetId);
+    const targetId = getOwnerImageForSelection(document, selected)?.id;
+    if (file) void loadSpriteSidecarFile(file, { targetId });
+  };
+
+  const loadSketchFromInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    const targetId = getOwnerImageForSelection(document, selected)?.id;
+    if (file) void loadSketchOverlayFile(file, { targetId });
   };
 
   return (
@@ -2183,6 +2178,13 @@ function ImageAssetSection(props: MachinaSlotProps) {
         accept=".toml,.sprite.toml,.spriteforge.toml,text/plain"
         onChange={loadSpriteFromInput}
       />
+      <input
+        ref={sketchInputRef}
+        className="asset-file-input"
+        type="file"
+        accept=".toml,.sketch.toml,text/plain"
+        onChange={loadSketchFromInput}
+      />
       <div className="asset-actions">
         <button type="button" onClick={() => imageInputRef.current?.click()}>
           Load image
@@ -2190,11 +2192,10 @@ function ImageAssetSection(props: MachinaSlotProps) {
         <button type="button" onClick={() => alphaInputRef.current?.click()}>
           Load alpha map
         </button>
-        <button
-          type="button"
-          disabled={selected?.kind !== "image"}
-          onClick={() => spriteInputRef.current?.click()}
-        >
+        <button type="button" onClick={() => sketchInputRef.current?.click()}>
+          Load sketch overlay
+        </button>
+        <button type="button" onClick={() => spriteInputRef.current?.click()}>
           Load sprite sidecar
         </button>
       </div>
@@ -4028,8 +4029,15 @@ export function App() {
       }
     };
 
-    const loadImageFile = async (file: File, role: CanvasImageRole) => {
+    const createLayerGroupFromPanel = (title: string) => {
+      const nextTitle = title.trim() || "New group";
+      setDocument((current) => createLayerGroup(current, nextTitle));
+      setLastCommand(`created layer group ${nextTitle}`);
+    };
+
+    const loadImageFile: AppViewData["loadImageFile"] = async (file, options) => {
       try {
+        const role = options?.role ?? "image";
         const asset = await loadImageAssetFromFile(file, {
           idPrefix: role === "image" ? "image-" : "alpha-",
         });
@@ -4048,8 +4056,15 @@ export function App() {
           return;
         }
 
+        let nextDocument = applyCanvasCommands(document, [command]).document;
+        if (options?.groupId) {
+          nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
+        }
+        if (role === "alphaMap" && options?.attachToImageId) {
+          nextDocument = attachAlphaMapToImage(nextDocument, options.attachToImageId, object.id);
+        }
+        setDocument(nextDocument);
         const applyResult = applyCanvasCommands(document, [command]);
-        setDocument(applyResult.document);
         recordAppliedCommands([command], applyResult.results);
       } catch (caught) {
         setLastCommand(
@@ -4058,30 +4073,38 @@ export function App() {
       }
     };
 
-    const loadSpriteSidecarFile = async (file: File, targetId?: string) => {
+    const loadSpriteSidecarFile: AppViewData["loadSpriteSidecarFile"] = async (file, options) => {
       try {
+        const selected = getOwnerImageForSelection(document, getSelectedObject(document));
         const target =
-          (targetId ? document.objects[targetId] : getSelectedObject(document)) ??
-          Object.values(document.objects).find(
-            (object): object is ImageObject =>
-              object.kind === "image" && (object.role === undefined || object.role === "image"),
-          );
-        if (target?.kind !== "image" || (target.role !== undefined && target.role !== "image")) {
-          setLastCommand("select an image before loading a sprite sidecar");
-          return;
-        }
+          (options?.targetId ? document.objects[options.targetId] : selected) ?? undefined;
+        const targetImage =
+          target?.kind === "image" && (target.role === undefined || target.role === "image")
+            ? target
+            : undefined;
 
         const text = await file.text();
         const baseName = file.name.replace(/\.(spriteforge|sprite)?\.?toml$/i, "");
-        const sidecarId = makeUniqueObjectId(`${target.id}-sprite-sidecar`, document);
+        const sidecarId = makeUniqueObjectId(
+          `${(targetImage?.id ?? baseName) || "sprite-sidecar"}-sprite-sidecar`,
+          document,
+        );
         const spec = parseSpriteSidecarToml(text, {
           id: sidecarId,
-          name: `${baseName || target.name} sprite sidecar`,
-          targetId: target.id,
+          name: `${baseName || targetImage?.name || file.name} sprite sidecar`,
+          targetId: targetImage?.id,
           sourceName: file.name,
         });
-        const object = createSpriteSidecarObject(target, spec);
-        const command: CanvasCommand = { kind: "addSpriteSidecarObject", object, attach: true };
+        const object = targetImage
+          ? createSpriteSidecarObject(targetImage, spec)
+          : createUnattachedSpriteSidecarObject(spec, {
+              layerId: getDefaultImageLayerId(document),
+            });
+        const command: CanvasCommand = {
+          kind: "addSpriteSidecarObject",
+          object,
+          attach: Boolean(targetImage),
+        };
         const validation = validateCanvasCommands(document, command);
         setCommandValidation(validation);
         if (!validation.ok) {
@@ -4090,11 +4113,74 @@ export function App() {
         }
 
         const applyResult = applyCanvasCommands(document, [command]);
-        setDocument(applyResult.document);
+        let nextDocument = applyResult.document;
+        if (options?.groupId) {
+          nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
+        }
+        if (targetImage) {
+          nextDocument = attachSpriteSidecarToImage(nextDocument, targetImage.id, object.id);
+        }
+        setDocument(nextDocument);
         recordAppliedCommands([command], applyResult.results);
       } catch (caught) {
         setLastCommand(
           caught instanceof Error ? caught.message : "Sprite sidecar could not be loaded.",
+        );
+      }
+    };
+
+    const loadSketchOverlayFile: AppViewData["loadSketchOverlayFile"] = async (file, options) => {
+      try {
+        const selected = getOwnerImageForSelection(document, getSelectedObject(document));
+        const target =
+          (options?.targetId ? document.objects[options.targetId] : selected) ?? undefined;
+        const targetImage =
+          target?.kind === "image" && (target.role === undefined || target.role === "image")
+            ? target
+            : undefined;
+        const text = await file.text();
+        const baseName = file.name.replace(/\.sketch\.toml$/i, "").replace(/\.toml$/i, "");
+        const overlayId = makeUniqueObjectId(
+          `${(targetImage?.id ?? baseName) || "sketch-overlay"}-sketch`,
+          document,
+        );
+        const spec = parseSketchOverlayToml(text, {
+          id: overlayId,
+          name: baseName || "Sketch overlay",
+          targetId: targetImage?.id,
+        });
+        const object = createSketchOverlayObject(spec, {
+          id: overlayId,
+          name: spec.name,
+          target: targetImage,
+          layerId: getDefaultImageLayerId(document),
+        });
+        const nextObjects = {
+          ...document.objects,
+          [object.id]: object,
+        };
+        const nextLayers = document.layers.map((layer) =>
+          layer.id === object.layerId && !layer.objectIds.includes(object.id)
+            ? { ...layer, objectIds: [...layer.objectIds, object.id] }
+            : layer,
+        );
+        let nextDocument: CanvasDocument = {
+          ...document,
+          objects: nextObjects,
+          layers: nextLayers,
+          selectedObjectId: object.id,
+        };
+        if (options?.groupId) {
+          nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
+        }
+        if (targetImage) {
+          nextDocument = attachSketchOverlayToImage(nextDocument, targetImage.id, object.id);
+        }
+        setDocument(nextDocument);
+        setLastCommand(`loaded sketch overlay ${file.name}`);
+      } catch (caught) {
+        setLastCommand(
+          caught instanceof Error ? caught.message : "Sketch overlay could not be loaded.",
         );
       }
     };
@@ -4409,7 +4495,9 @@ export function App() {
       setSpriteFrameEditSettings,
       setTerminalInput,
       runCanvasTool,
+      createLayerGroup: createLayerGroupFromPanel,
       loadImageFile,
+      loadSketchOverlayFile,
       loadSpriteSidecarFile,
       setCommandJson,
       loadExampleCommands,

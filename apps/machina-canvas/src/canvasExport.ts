@@ -441,10 +441,12 @@ export function serializeCanvasSketchToml(object: SketchOverlayObject): string {
     `id = ${quoteTomlString(object.spec.id)}`,
     `kind = ${quoteTomlString(object.kind)}`,
     `name = ${quoteTomlString(object.spec.name)}`,
-    `target_id = ${quoteTomlString(object.targetId)}`,
     `dialect = ${quoteTomlString(object.spec.dialect)}`,
     `visible = ${object.visible}`,
   ];
+  if (object.targetId !== undefined) {
+    lines.splice(3, 0, `target_id = ${quoteTomlString(object.targetId)}`);
+  }
 
   for (const primitive of object.spec.primitives) {
     lines.push("", `[[${primitive.kind}]]`, `id = ${quoteTomlString(primitive.id)}`);
@@ -648,7 +650,6 @@ function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<str
     id: object.spec.id,
     kind: object.kind,
     name: object.spec.name,
-    target_id: object.targetId,
     dialect: object.spec.dialect,
     visible: object.visible,
     overlay: {
@@ -660,6 +661,7 @@ function createCanvasSpriteTomlDocument(object: SpriteSidecarObject): Record<str
       show_exact_frames: object.spec.overlay.showExactFrames,
     },
   };
+  setTomlField(document, "target_id", object.targetId);
 
   if (object.spec.atlasImage || object.spec.atlasWidth || object.spec.atlasHeight) {
     const atlas: Record<string, unknown> = {};

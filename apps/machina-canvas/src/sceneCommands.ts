@@ -1,4 +1,5 @@
 import { resolveCanvasFrame } from "./canvasFrames";
+import { addCanvasObjectToLayerGroup, createCanvasLayerGroup } from "./layerTree";
 import { selectSpriteFrameInSpec, updateSpriteFrameRectInSpec } from "./spriteSidecar";
 import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
@@ -571,7 +572,10 @@ function validateAddSpriteSidecarCommand(
     });
   }
 
-  if (!isString(object.targetId) || document.objects[object.targetId]?.kind !== "image") {
+  if (
+    object.targetId !== undefined &&
+    (!isString(object.targetId) || document.objects[object.targetId]?.kind !== "image")
+  ) {
     addDiagnostic(diagnostics, {
       severity: "error",
       code: "InvalidSpriteSidecarRelation",
@@ -650,7 +654,7 @@ function validateSpriteSidecarCommand(
       commandIndex,
       objectId: sidecar.id,
     });
-  } else if (sidecar?.targetId !== command.sourceId) {
+  } else if (sidecar?.targetId !== undefined && sidecar.targetId !== command.sourceId) {
     addDiagnostic(diagnostics, {
       severity: "error",
       code: "InvalidSpriteSidecarRelation",
@@ -762,7 +766,7 @@ function validateSketchOverlayCommand(
       commandIndex,
       objectId: overlay.id,
     });
-  } else if (overlay?.targetId !== command.sourceId) {
+  } else if (overlay?.targetId !== undefined && overlay.targetId !== command.sourceId) {
     addDiagnostic(diagnostics, {
       severity: "error",
       code: "InvalidSketchOverlayRelation",
@@ -1677,8 +1681,13 @@ export function applyCanvasCommand(
     }
 
     const layerExists = document.layers.some((layer) => layer.id === command.object.layerId);
-    const target = document.objects[command.object.targetId];
-    if (!layerExists || command.object.kind !== "spriteSidecar" || target?.kind !== "image") {
+    const target = command.object.targetId ? document.objects[command.object.targetId] : undefined;
+    const targetImage = target?.kind === "image" ? target : undefined;
+    if (
+      !layerExists ||
+      command.object.kind !== "spriteSidecar" ||
+      (command.attach && !targetImage)
+    ) {
       return {
         document,
         command,
@@ -1699,11 +1708,11 @@ export function applyCanvasCommand(
       before: undefined,
       after: command.object.id,
     });
-    if (command.attach) {
+    if (command.attach && targetImage) {
       changes.push({
-        objectId: target.id,
+        objectId: targetImage.id,
         field: "spriteSidecarId",
-        before: target.spriteSidecarId,
+        before: targetImage.spriteSidecarId,
         after: command.object.id,
       });
     }
@@ -1714,16 +1723,18 @@ export function applyCanvasCommand(
       after: command.object.id,
     });
 
+    const nextObjects: Record<string, CanvasObject> = {
+      ...document.objects,
+      [command.object.id]: command.object,
+    };
+    if (command.attach && targetImage) {
+      nextObjects[targetImage.id] = { ...targetImage, spriteSidecarId: command.object.id };
+    }
+
     nextDocument = {
       ...document,
       selectedObjectId: command.object.id,
-      objects: {
-        ...document.objects,
-        [command.object.id]: command.object,
-        ...(command.attach
-          ? { [target.id]: { ...target, spriteSidecarId: command.object.id } }
-          : {}),
-      },
+      objects: nextObjects,
       layers: document.layers.map((layer) =>
         layer.id === command.object.layerId
           ? { ...layer, objectIds: [...layer.objectIds, command.object.id] }
@@ -1806,6 +1817,20 @@ export function applyCanvasCommand(
           after: undefined,
         });
       }
+      if (object.kind === "sketchOverlay" && object.targetId === command.id) {
+        nextObjects[objectId] = {
+          ...object,
+          targetId: undefined,
+          spec: { ...object.spec, targetId: undefined },
+        };
+      }
+      if (object.kind === "spriteSidecar" && object.targetId === command.id) {
+        nextObjects[objectId] = {
+          ...object,
+          targetId: undefined,
+          spec: { ...object.spec, targetId: undefined },
+        };
+      }
     }
 
     changes.push({
@@ -1839,6 +1864,10 @@ export function applyCanvasCommand(
       ...document,
       objects: nextObjects,
       layers: nextLayers,
+      layerGroups: document.layerGroups?.map((group) => ({
+        ...group,
+        objectIds: group.objectIds.filter((objectId) => objectId !== command.id),
+      })),
       selectedObjectId:
         document.selectedObjectId === command.id ? undefined : document.selectedObjectId,
     };
@@ -1926,6 +1955,7 @@ export function applyCanvasCommand(
 
   if (command.kind === "attachSketchOverlay") {
     const source = document.objects[command.sourceId];
+    const overlay = document.objects[command.overlayId];
     if (source?.kind !== "image") {
       return {
         document,
@@ -1935,17 +1965,30 @@ export function applyCanvasCommand(
       };
     }
     changeField(changes, source, "sketchOverlayId", command.overlayId);
+    let nextScene = document;
     if (changes.length > 0) {
-      nextDocument = replaceObject(document, source.id, {
+      nextScene = replaceObject(nextScene, source.id, {
         ...source,
         sketchOverlayId: command.overlayId,
       });
     }
-    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+    if (overlay?.kind === "sketchOverlay") {
+      changeField(changes, overlay, "targetId", source.id);
+      if (overlay.targetId !== source.id || overlay.spec.targetId !== source.id) {
+        nextScene = replaceObject(nextScene, overlay.id, {
+          ...overlay,
+          targetId: source.id,
+          spec: { ...overlay.spec, targetId: source.id },
+        });
+      }
+    }
+    return { document: nextScene, command, changes, message: messageFor(command, changes) };
   }
 
   if (command.kind === "detachSketchOverlay") {
     const source = document.objects[command.sourceId];
+    const overlayId = source?.kind === "image" ? source.sketchOverlayId : undefined;
+    const overlay = overlayId ? document.objects[overlayId] : undefined;
     if (source?.kind !== "image") {
       return {
         document,
@@ -1955,11 +1998,22 @@ export function applyCanvasCommand(
       };
     }
     changeField(changes, source, "sketchOverlayId", undefined);
+    let nextScene = document;
     if (changes.length > 0) {
       const { sketchOverlayId: _sketchOverlayId, ...nextSource } = source;
-      nextDocument = replaceObject(document, source.id, nextSource);
+      nextScene = replaceObject(nextScene, source.id, nextSource);
     }
-    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+    if (overlay?.kind === "sketchOverlay") {
+      changeField(changes, overlay, "targetId", undefined);
+      if (overlay.targetId !== undefined || overlay.spec.targetId !== undefined) {
+        nextScene = replaceObject(nextScene, overlay.id, {
+          ...overlay,
+          targetId: undefined,
+          spec: { ...overlay.spec, targetId: undefined },
+        });
+      }
+    }
+    return { document: nextScene, command, changes, message: messageFor(command, changes) };
   }
 
   if (command.kind === "setSketchOverlayVisible") {
@@ -1981,6 +2035,7 @@ export function applyCanvasCommand(
 
   if (command.kind === "attachSpriteSidecar") {
     const source = document.objects[command.sourceId];
+    const sidecar = document.objects[command.sidecarId];
     if (source?.kind !== "image") {
       return {
         document,
@@ -1990,17 +2045,30 @@ export function applyCanvasCommand(
       };
     }
     changeField(changes, source, "spriteSidecarId", command.sidecarId);
+    let nextScene = document;
     if (changes.length > 0) {
-      nextDocument = replaceObject(document, source.id, {
+      nextScene = replaceObject(nextScene, source.id, {
         ...source,
         spriteSidecarId: command.sidecarId,
       });
     }
-    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+    if (sidecar?.kind === "spriteSidecar") {
+      changeField(changes, sidecar, "targetId", source.id);
+      if (sidecar.targetId !== source.id || sidecar.spec.targetId !== source.id) {
+        nextScene = replaceObject(nextScene, sidecar.id, {
+          ...sidecar,
+          targetId: source.id,
+          spec: { ...sidecar.spec, targetId: source.id },
+        });
+      }
+    }
+    return { document: nextScene, command, changes, message: messageFor(command, changes) };
   }
 
   if (command.kind === "detachSpriteSidecar") {
     const source = document.objects[command.sourceId];
+    const sidecarId = source?.kind === "image" ? source.spriteSidecarId : undefined;
+    const sidecar = sidecarId ? document.objects[sidecarId] : undefined;
     if (source?.kind !== "image") {
       return {
         document,
@@ -2010,11 +2078,22 @@ export function applyCanvasCommand(
       };
     }
     changeField(changes, source, "spriteSidecarId", undefined);
+    let nextScene = document;
     if (changes.length > 0) {
       const { spriteSidecarId: _spriteSidecarId, ...nextSource } = source;
-      nextDocument = replaceObject(document, source.id, nextSource);
+      nextScene = replaceObject(nextScene, source.id, nextSource);
     }
-    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+    if (sidecar?.kind === "spriteSidecar") {
+      changeField(changes, sidecar, "targetId", undefined);
+      if (sidecar.targetId !== undefined || sidecar.spec.targetId !== undefined) {
+        nextScene = replaceObject(nextScene, sidecar.id, {
+          ...sidecar,
+          targetId: undefined,
+          spec: { ...sidecar.spec, targetId: undefined },
+        });
+      }
+    }
+    return { document: nextScene, command, changes, message: messageFor(command, changes) };
   }
 
   if (command.kind === "setSpriteSidecarVisible") {
@@ -2412,6 +2491,79 @@ export function resizeSpriteFrame(
     frameId,
     dw,
     dh,
+  }).document;
+}
+
+export function createLayerGroup(document: CanvasDocument, title: string): CanvasDocument {
+  return createCanvasLayerGroup(document, title);
+}
+
+export function addObjectToLayerGroup(
+  document: CanvasDocument,
+  groupId: string,
+  objectId: string,
+): CanvasDocument {
+  return addCanvasObjectToLayerGroup(document, groupId, objectId);
+}
+
+export function attachSpriteSidecarToImage(
+  document: CanvasDocument,
+  imageId: string,
+  sidecarId: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "attachSpriteSidecar",
+    sourceId: imageId,
+    sidecarId,
+  }).document;
+}
+
+export function attachSketchOverlayToImage(
+  document: CanvasDocument,
+  imageId: string,
+  overlayId: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "attachSketchOverlay",
+    sourceId: imageId,
+    overlayId,
+  }).document;
+}
+
+export function attachAlphaMapToImage(
+  document: CanvasDocument,
+  imageId: string,
+  alphaMapId: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "attachAlphaMap",
+    sourceId: imageId,
+    alphaId: alphaMapId,
+  }).document;
+}
+
+export function detachAttachment(
+  document: CanvasDocument,
+  relation:
+    | { kind: "spriteSidecar"; imageId: string }
+    | { kind: "sketchOverlay"; imageId: string }
+    | { kind: "alphaMap"; imageId: string },
+): CanvasDocument {
+  if (relation.kind === "spriteSidecar") {
+    return applyCanvasCommand(document, {
+      kind: "detachSpriteSidecar",
+      sourceId: relation.imageId,
+    }).document;
+  }
+  if (relation.kind === "sketchOverlay") {
+    return applyCanvasCommand(document, {
+      kind: "detachSketchOverlay",
+      sourceId: relation.imageId,
+    }).document;
+  }
+  return applyCanvasCommand(document, {
+    kind: "detachAlphaMap",
+    sourceId: relation.imageId,
   }).document;
 }
 

@@ -127,6 +127,15 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
     }
 
     if (object.kind === "spriteSidecar") {
+      if (!object.targetId) {
+        diagnostics.push({
+          severity: "warning",
+          code: "UnattachedSpriteSidecar",
+          message: `${object.name} is not attached to an image yet.`,
+          objectIds: [object.id],
+        });
+        continue;
+      }
       const target = document.objects[object.targetId];
       if (target?.kind !== "image") {
         diagnostics.push({

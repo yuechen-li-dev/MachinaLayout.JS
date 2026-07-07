@@ -101,6 +101,9 @@ describe("MachinaCanvas export cart", () => {
     const artifacts = collectCanvasExportArtifacts({ scene });
     expect(artifacts.some((artifact) => artifact.kind === "spriteToml")).toBe(true);
     expect(artifacts.some((artifact) => artifact.kind === "spriteAudit")).toBe(true);
+    expect(artifacts.find((artifact) => artifact.kind === "spriteToml")?.description).toContain(
+      "TinyTown alpha sprite sheet",
+    );
   });
 
   it("collects sketch TOML artifacts when sketch overlays exist", () => {

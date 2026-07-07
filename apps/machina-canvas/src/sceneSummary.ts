@@ -23,11 +23,11 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
       : "";
   const sketchSummary =
     object.kind === "sketchOverlay"
-      ? `; target ${object.targetId}; primitives ${object.spec.primitives.length}; dialect ${object.spec.dialect}`
+      ? `; target ${object.targetId ?? "unattached"}; primitives ${object.spec.primitives.length}; dialect ${object.spec.dialect}`
       : "";
   const spriteSummary =
     object.kind === "spriteSidecar"
-      ? `; target ${object.targetId}; subgrids ${object.spec.grids.length}; frames ${object.spec.frames.length}; animations ${object.spec.animations.length}; overlay ${object.spec.overlay.displayMode}; dialect ${object.spec.dialect}`
+      ? `; target ${object.targetId ?? "unattached"}; subgrids ${object.spec.grids.length}; frames ${object.spec.frames.length}; animations ${object.spec.animations.length}; overlay ${object.spec.overlay.displayMode}; dialect ${object.spec.dialect}`
       : "";
   return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}`;
 }

@@ -410,7 +410,7 @@ function createValidatedSpriteSpec(
 
 export function parseSpriteSidecarToml(
   text: string,
-  options: { id: string; name: string; targetId: string; sourceName?: string },
+  options: { id: string; name: string; targetId?: string; sourceName?: string },
 ): CanvasSpriteSpec {
   const root = parseSpriteTomlRoot(text);
   const diagnostics: CanvasSpriteDiagnostics[] = [];
@@ -642,6 +642,37 @@ export function createSpriteSidecarObject(
     tags: ["sprite", "sidecar"],
     notes: `${spec.frames.length} sprite frame${spec.frames.length === 1 ? "" : "s"} for ${target.id}.`,
     spec: { ...spec, targetId: target.id },
+  };
+}
+
+export function createUnattachedSpriteSidecarObject(
+  spec: CanvasSpriteSpec,
+  options: {
+    id?: string;
+    name?: string;
+    layerId: string;
+  },
+): SpriteSidecarObject {
+  const id = options.id ?? spec.id;
+  return {
+    id,
+    name: options.name ?? spec.name,
+    kind: "spriteSidecar",
+    layerId: options.layerId,
+    visible: true,
+    x: 0,
+    y: 0,
+    width: spec.atlasWidth ?? 0,
+    height: spec.atlasHeight ?? 0,
+    role: "spriteSidecar",
+    targetId: spec.targetId,
+    tags: ["sprite", "sidecar", "unattached"],
+    notes: `${spec.frames.length} sprite frame${spec.frames.length === 1 ? "" : "s"} awaiting attachment.`,
+    spec: {
+      ...spec,
+      id,
+      name: options.name ?? spec.name,
+    },
   };
 }
 
