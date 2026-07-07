@@ -1,12 +1,18 @@
 import { resolveCanvasFrame } from "./canvasFrames";
 import { addCanvasObjectToLayerGroup, createCanvasLayerGroup } from "./layerTree";
 import { selectSpriteFrameInSpec, updateSpriteFrameRectInSpec } from "./spriteSidecar";
+import {
+  clampSpriteFrameRectToGuideRegion,
+  collectGuideRegionDiagnosticsForSpriteSidecar,
+  findGuideRegionForSpriteFrame,
+} from "./spriteGuideRegions";
 import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type {
   CanvasDocument,
   CanvasFrame,
   CanvasObject,
+  CanvasSpriteDiagnostics,
   CanvasSpriteFrame,
   CanvasUiPropValue,
   GuideSidecarObject,
@@ -171,6 +177,11 @@ export type CanvasCommand =
       frameId: string;
       dw: number;
       dh: number;
+    }
+  | {
+      kind: "clampSpriteFrameToGuideRegion";
+      sidecarId: string;
+      frameId: string;
     };
 
 export type CanvasCommandValidationContext = {
@@ -179,6 +190,9 @@ export type CanvasCommandValidationContext = {
 
 export type CanvasCommandApplyContext = {
   referenceGrid?: Partial<ReferenceGridConfig>;
+  spriteFrameEditSettings?: {
+    constrainFrameEditsToGuideRegion?: boolean;
+  };
 };
 
 export type CanvasCommandValidationDiagnostic = {
@@ -294,6 +308,85 @@ function getSpriteSidecar(document: CanvasDocument, sidecarId: string) {
 
 function getSpriteFrame(sidecar: SpriteSidecarObject, frameId: string) {
   return sidecar.spec.frames.find((frame) => frame.id === frameId);
+}
+
+function mergeSpriteDiagnostics(
+  baseDiagnostics: readonly CanvasSpriteDiagnostics[],
+  guideDiagnostics: readonly CanvasSpriteDiagnostics[],
+) {
+  const merged = [...baseDiagnostics];
+  const seen = new Set(
+    baseDiagnostics.map((diagnostic) =>
+      [
+        diagnostic.severity,
+        diagnostic.code,
+        diagnostic.message,
+        diagnostic.frameIds?.join(",") ?? "",
+      ].join("|"),
+    ),
+  );
+  for (const diagnostic of guideDiagnostics) {
+    const key = [
+      diagnostic.severity,
+      diagnostic.code,
+      diagnostic.message,
+      diagnostic.frameIds?.join(",") ?? "",
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(diagnostic);
+  }
+  return merged;
+}
+
+const GUIDE_REGION_DIAGNOSTIC_CODES = new Set([
+  "SpriteFrameOutsideGuideRegion",
+  "SpriteFrameIntersectsGuideRegion",
+  "SpriteFrameLargerThanGuideRegion",
+  "SpriteFrameMissingGuideRegion",
+]);
+
+function refreshSpriteGuideDiagnostics(document: CanvasDocument): CanvasDocument {
+  let nextDocument = document;
+  for (const object of Object.values(nextDocument.objects)) {
+    if (object.kind !== "spriteSidecar") continue;
+    const baseDiagnostics = object.spec.diagnostics.filter(
+      (diagnostic) => !GUIDE_REGION_DIAGNOSTIC_CODES.has(diagnostic.code),
+    );
+    const guideDiagnostics = collectGuideRegionDiagnosticsForSpriteSidecar(nextDocument, object);
+    const diagnostics = mergeSpriteDiagnostics(baseDiagnostics, guideDiagnostics);
+    const diagnosticsChanged =
+      diagnostics.length !== object.spec.diagnostics.length ||
+      diagnostics.some((diagnostic, index) => diagnostic !== object.spec.diagnostics[index]);
+    if (!diagnosticsChanged) continue;
+    nextDocument = replaceObject(nextDocument, object.id, {
+      ...object,
+      spec: {
+        ...object.spec,
+        diagnostics,
+      },
+    });
+  }
+  return nextDocument;
+}
+
+function maybeConstrainSpriteFrameRect(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+  rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+  context?: CanvasCommandApplyContext,
+  forceClamp = false,
+) {
+  if (!forceClamp && !context?.spriteFrameEditSettings?.constrainFrameEditsToGuideRegion) {
+    return rect;
+  }
+  const guideContext = findGuideRegionForSpriteFrame(document, {
+    spriteSidecarId: sidecarId,
+    frameId,
+  });
+  if (!guideContext) return rect;
+  return clampSpriteFrameRectToGuideRegion(rect, guideContext.region);
 }
 
 function validateNumber(
@@ -1362,6 +1455,9 @@ export function validateCanvasCommand(
         }
       }
       break;
+    case "clampSpriteFrameToGuideRegion":
+      validateSpriteFrameMutationCommand(document, diagnostics, command, commandIndex);
+      break;
     default:
       addDiagnostic(diagnostics, {
         severity: "error",
@@ -1661,6 +1757,11 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Sprite frame ${command.frameId} size was unchanged.`
       : `Resized sprite frame ${command.frameId} by dw=${command.dw} dh=${command.dh}.`;
+  }
+  if (command.kind === "clampSpriteFrameToGuideRegion") {
+    return changes.length === 0
+      ? `No guide region found for selected frame.`
+      : `Clamped sprite frame ${command.frameId} to its guide region.`;
   }
   if (changes.length === 0) return `${command.kind} made no geometry changes.`;
   if (command.kind === "moveToGrid") {
@@ -2440,7 +2541,14 @@ export function applyCanvasCommand(
       };
     }
 
-    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, command.rect);
+    const constrainedRect = maybeConstrainSpriteFrameRect(
+      document,
+      command.sidecarId,
+      command.frameId,
+      command.rect,
+      context,
+    );
+    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, constrainedRect);
     if (nextSpec !== sidecar.spec) {
       changes.push({
         objectId: sidecar.id,
@@ -2490,7 +2598,11 @@ export function applyCanvasCommand(
       width: frame.width,
       height: frame.height,
     };
-    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, rect);
+    const nextSpec = updateSpriteFrameRectInSpec(
+      sidecar.spec,
+      command.frameId,
+      maybeConstrainSpriteFrameRect(document, command.sidecarId, command.frameId, rect, context),
+    );
     changes.push({
       objectId: sidecar.id,
       field: `spec.frames.${command.frameId}`,
@@ -2538,7 +2650,11 @@ export function applyCanvasCommand(
       width: frame.width + command.dw,
       height: frame.height + command.dh,
     };
-    const nextSpec = updateSpriteFrameRectInSpec(sidecar.spec, command.frameId, rect);
+    const nextSpec = updateSpriteFrameRectInSpec(
+      sidecar.spec,
+      command.frameId,
+      maybeConstrainSpriteFrameRect(document, command.sidecarId, command.frameId, rect, context),
+    );
     changes.push({
       objectId: sidecar.id,
       field: `spec.frames.${command.frameId}`,
@@ -2558,6 +2674,49 @@ export function applyCanvasCommand(
       after: nextSpec.rawToml,
     });
     nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "clampSpriteFrameToGuideRegion") {
+    const sidecar = document.objects[command.sidecarId];
+    if (sidecar?.kind !== "spriteSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `clampSpriteFrameToGuideRegion skipped invalid sprite sidecar "${command.sidecarId}".`,
+      };
+    }
+    const frame = getSpriteFrame(sidecar, command.frameId);
+    if (!frame) {
+      return {
+        document,
+        command,
+        changes,
+        message: `clampSpriteFrameToGuideRegion skipped missing sprite frame "${command.frameId}".`,
+      };
+    }
+    const guideContext = findGuideRegionForSpriteFrame(document, {
+      spriteSidecarId: command.sidecarId,
+      frameId: command.frameId,
+    });
+    if (!guideContext) {
+      return { document, command, changes, message: "No guide region found for selected frame." };
+    }
+    const nextSpec = updateSpriteFrameRectInSpec(
+      sidecar.spec,
+      command.frameId,
+      clampSpriteFrameRectToGuideRegion(frame, guideContext.region),
+    );
+    if (nextSpec !== sidecar.spec) {
+      changes.push({
+        objectId: sidecar.id,
+        field: `spec.frames.${command.frameId}`,
+        before: frame,
+        after: nextSpec.frames.find((candidate) => candidate.id === command.frameId),
+      });
+      nextDocument = replaceObject(document, sidecar.id, { ...sidecar, spec: nextSpec });
+    }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
@@ -2665,8 +2824,10 @@ export function selectSpriteFrame(
   document: CanvasDocument,
   sidecarId: string,
   frameId?: string,
+  context?: CanvasCommandApplyContext,
 ): CanvasDocument {
-  return applyCanvasCommand(document, { kind: "selectSpriteFrame", sidecarId, frameId }).document;
+  return applyCanvasCommands(document, [{ kind: "selectSpriteFrame", sidecarId, frameId }], context)
+    .document;
 }
 
 export function updateSpriteFrameRect(
@@ -2674,13 +2835,13 @@ export function updateSpriteFrameRect(
   sidecarId: string,
   frameId: string,
   rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
+  context?: CanvasCommandApplyContext,
 ): CanvasDocument {
-  return applyCanvasCommand(document, {
-    kind: "updateSpriteFrameRect",
-    sidecarId,
-    frameId,
-    rect,
-  }).document;
+  return applyCanvasCommands(
+    document,
+    [{ kind: "updateSpriteFrameRect", sidecarId, frameId, rect }],
+    context,
+  ).document;
 }
 
 export function nudgeSpriteFrame(
@@ -2689,14 +2850,13 @@ export function nudgeSpriteFrame(
   frameId: string,
   dx: number,
   dy: number,
+  context?: CanvasCommandApplyContext,
 ): CanvasDocument {
-  return applyCanvasCommand(document, {
-    kind: "nudgeSpriteFrame",
-    sidecarId,
-    frameId,
-    dx,
-    dy,
-  }).document;
+  return applyCanvasCommands(
+    document,
+    [{ kind: "nudgeSpriteFrame", sidecarId, frameId, dx, dy }],
+    context,
+  ).document;
 }
 
 export function resizeSpriteFrame(
@@ -2705,14 +2865,23 @@ export function resizeSpriteFrame(
   frameId: string,
   dw: number,
   dh: number,
+  context?: CanvasCommandApplyContext,
 ): CanvasDocument {
-  return applyCanvasCommand(document, {
-    kind: "resizeSpriteFrame",
-    sidecarId,
-    frameId,
-    dw,
-    dh,
-  }).document;
+  return applyCanvasCommands(
+    document,
+    [{ kind: "resizeSpriteFrame", sidecarId, frameId, dw, dh }],
+    context,
+  ).document;
+}
+
+export function clampSpriteFrameToGuideRegion(
+  document: CanvasDocument,
+  sidecarId: string,
+  frameId: string,
+): CanvasDocument {
+  return applyCanvasCommands(document, [
+    { kind: "clampSpriteFrameToGuideRegion", sidecarId, frameId },
+  ]).document;
 }
 
 export function createLayerGroup(document: CanvasDocument, title: string): CanvasDocument {
@@ -2820,8 +2989,8 @@ export function applyCanvasCommands(
 
   for (const command of commands) {
     const result = applyCanvasCommand(nextDocument, command, context);
-    results.push(result);
-    nextDocument = result.document;
+    nextDocument = refreshSpriteGuideDiagnostics(result.document);
+    results.push({ ...result, document: nextDocument });
   }
 
   return { document: nextDocument, results };

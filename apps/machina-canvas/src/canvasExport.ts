@@ -32,6 +32,10 @@ import {
 import { lowerCanvasDocumentToTsx, type TsxExportOptions } from "./tsxExport";
 import { resolveSketchSpec } from "./sketchOverlay";
 import { getSpriteExpectedSourceRect, getSpriteFrameSourceKind } from "./spriteSidecar";
+import {
+  findGuideRegionForSpriteFrame,
+  type SpriteFrameGuideRegionContext,
+} from "./spriteGuideRegions";
 import { stringifyTomlDocument } from "./tomlSyntax";
 
 export type CanvasExportFile = {
@@ -1002,6 +1006,12 @@ export function serializeCanvasCommandsToml(
           `dh = ${command.dh}`,
         );
         break;
+      case "clampSpriteFrameToGuideRegion":
+        lines.push(
+          `sidecar_id = ${quoteTomlString(command.sidecarId)}`,
+          `frame_id = ${quoteTomlString(command.frameId)}`,
+        );
+        break;
     }
   }
 
@@ -1205,6 +1215,7 @@ function mapSpriteFrameToCanvasRect(
 function serializeResolvedSpriteSidecar(
   object: ImageObject,
   sidecar: SpriteSidecarObject,
+  selectedGuideRegionContext?: SpriteFrameGuideRegionContext,
 ): string[] {
   const lines = [
     `  <g class="canvas-sprite-overlay" data-canvas-object-id="${quoteXmlAttribute(sidecar.id)}" data-canvas-kind="spriteSidecar" data-canvas-name="${quoteXmlAttribute(sidecar.name)}">`,
@@ -1263,7 +1274,13 @@ function serializeResolvedSpriteSidecar(
                     ? "#8f3fd1"
                     : "#c95f17";
       lines.push(
-        `    <rect class="${getSpriteOverlayFrameClassNames(presentation)}" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" data-canvas-sprite-source-kind="${quoteXmlAttribute(presentation.sourceKind)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${fill}" stroke="${stroke}" pointer-events="none" />`,
+        `    <rect class="${getSpriteOverlayFrameClassNames(presentation)}${
+          frame.id === sidecar.spec.selectedFrameId &&
+          selectedGuideRegionContext &&
+          selectedGuideRegionContext.relation !== "contains"
+            ? " sprite-frame--outside-guide"
+            : ""
+        }" data-canvas-sprite-frame-id="${quoteXmlAttribute(frame.id)}" data-canvas-sprite-source-kind="${quoteXmlAttribute(presentation.sourceKind)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" fill="${fill}" stroke="${stroke}" pointer-events="none" />`,
       );
     }
     if (presentation.showLabel) {
@@ -1340,6 +1357,7 @@ function serializeResolvedSketchOverlay(
 function serializeResolvedGuideSidecar(
   object: ImageObject,
   guideObject: GuideSidecarObject,
+  selectedGuideRegionContext?: SpriteFrameGuideRegionContext,
 ): string[] {
   const scaleX = object.width / (object.intrinsicWidth ?? object.width);
   const scaleY = object.height / (object.intrinsicHeight ?? object.height);
@@ -1354,8 +1372,21 @@ function serializeResolvedGuideSidecar(
     const origin = mapPoint(region.x, region.y);
     const width = region.width * scaleX;
     const height = region.height * scaleY;
+    const isSelectedContextRegion =
+      selectedGuideRegionContext?.guideSidecarId === guideObject.id &&
+      selectedGuideRegionContext.regionId === region.id;
+    const isWarningRegion =
+      isSelectedContextRegion && selectedGuideRegionContext.relation !== "contains";
     lines.push(
-      `    <rect class="canvas-guide-region" data-canvas-guide-region-id="${quoteXmlAttribute(region.id)}" x="${origin.x}" y="${origin.y}" width="${width}" height="${height}" fill="rgba(13, 110, 253, 0.03)" stroke="#0d6efd" stroke-dasharray="8 6" pointer-events="none" />`,
+      `    <rect class="canvas-guide-region${
+        isSelectedContextRegion ? " guide-region--selected-context" : ""
+      }${isWarningRegion ? " guide-region--warning" : ""}" data-canvas-guide-region-id="${quoteXmlAttribute(region.id)}" x="${origin.x}" y="${origin.y}" width="${width}" height="${height}" fill="${
+        isSelectedContextRegion ? "rgba(13, 110, 253, 0.06)" : "rgba(13, 110, 253, 0.03)"
+      }" stroke="${
+        isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#175bc9" : "#0d6efd"
+      }" stroke-dasharray="${
+        isWarningRegion ? "10 4" : isSelectedContextRegion ? "10 5" : "8 6"
+      }" pointer-events="none" />`,
       `    <text class="canvas-guide-label" x="${origin.x + 6}" y="${origin.y + 16}" pointer-events="none">${escapeXmlText(region.id)}</text>`,
     );
     if (region.grid) {
@@ -1485,12 +1516,29 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
         if (overlay) {
           lines.push(...serializeResolvedSketchOverlay(document, overlay));
         }
-        for (const guideObject of getVisibleGuideSidecars(document, object)) {
-          lines.push(...serializeResolvedGuideSidecar(object, guideObject));
-        }
         const spriteSidecar = getVisibleSpriteSidecar(document, object);
+        const selectedGuideRegionContext =
+          spriteSidecar?.spec.selectedFrameId !== undefined
+            ? findGuideRegionForSpriteFrame(document, {
+                spriteSidecarId: spriteSidecar.id,
+                frameId: spriteSidecar.spec.selectedFrameId,
+              })
+            : undefined;
+        for (const guideObject of getVisibleGuideSidecars(document, object)) {
+          lines.push(
+            ...serializeResolvedGuideSidecar(
+              object,
+              guideObject,
+              selectedGuideRegionContext?.guideSidecarId === guideObject.id
+                ? selectedGuideRegionContext
+                : undefined,
+            ),
+          );
+        }
         if (spriteSidecar) {
-          lines.push(...serializeResolvedSpriteSidecar(object, spriteSidecar));
+          lines.push(
+            ...serializeResolvedSpriteSidecar(object, spriteSidecar, selectedGuideRegionContext),
+          );
         }
       }
     }

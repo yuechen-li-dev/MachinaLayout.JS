@@ -534,7 +534,8 @@ export function collectCanvasExportArtifacts(input: {
       selectedByDefault: true,
       sourceObjectId: object.id,
       group: "reports",
-      create: () => formatSpriteAuditReport(buildSpriteAuditReport(object, image)),
+      create: () =>
+        formatSpriteAuditReport(buildSpriteAuditReport(object, image, { document: input.scene })),
     });
     artifacts.push({
       id: `frame-table:${object.id}`,

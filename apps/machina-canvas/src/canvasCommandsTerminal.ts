@@ -119,7 +119,7 @@ export function executeCanvasTerminalCommand(
       return {
         logEntry: makeLog(
           "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
+          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
           trimmed,
         ),
       };
@@ -191,6 +191,27 @@ export function executeCanvasTerminalCommand(
           `set ${selected.frame.id} to x=${x} y=${y} w=${width} h=${height}`,
           trimmed,
         ),
+      };
+    }
+
+    if (commandName === "clamp-frame") {
+      const sidecarId = tokens[1];
+      const frameId = tokens[2];
+      const selected = getSelectedFrameSidecar(context.document);
+      const resolvedSidecarId = sidecarId ?? selected?.sidecar.id;
+      const resolvedFrameId = frameId ?? selected?.frame.id;
+      if (!resolvedSidecarId || !resolvedFrameId) {
+        throw new Error("clamp-frame requires a selected frame or sidecarId and frameId.");
+      }
+      return {
+        commands: [
+          {
+            kind: "clampSpriteFrameToGuideRegion",
+            sidecarId: resolvedSidecarId,
+            frameId: resolvedFrameId,
+          },
+        ],
+        logEntry: makeLog("success", `clamped ${resolvedFrameId} to guide region`, trimmed),
       };
     }
 

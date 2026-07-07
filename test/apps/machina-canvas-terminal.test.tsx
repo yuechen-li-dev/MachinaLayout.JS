@@ -18,6 +18,10 @@ import { applyCanvasCommands } from "../../apps/machina-canvas/src/sceneCommands
 import type { CanvasDocument, ImageObject } from "../../apps/machina-canvas/src/sceneModel";
 import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import {
+  createGuideSidecarObject,
+  parseGuideSidecarToml,
+} from "../../apps/machina-canvas/src/guideSidecar";
+import {
   createSpriteSidecarObject,
   parseSpriteSidecarToml,
 } from "../../apps/machina-canvas/src/spriteSidecar";
@@ -38,7 +42,22 @@ width = 16
 height = 16
 `;
 
-function createTerminalDocument() {
+const guideToml = `
+[guide]
+id = "sheet-guide"
+target = "sheet"
+units = "px"
+
+[[regions]]
+id = "hero"
+kind = "sprite-region"
+x = 0
+y = 0
+width = 16
+height = 16
+`;
+
+function createTerminalDocument(options?: { withGuide?: boolean }) {
   const image: ImageObject = {
     id: "sheet",
     name: "Sheet",
@@ -70,11 +89,22 @@ function createTerminalDocument() {
     targetId: image.id,
   });
   const sidecar = createSpriteSidecarObject(image, spec);
-  return applyCanvasCommands(base, [
+  const commands = [
     { kind: "addSpriteSidecarObject", object: sidecar, attach: true },
     { kind: "select", id: sidecar.id },
     { kind: "selectSpriteFrame", sidecarId: sidecar.id, frameId: "hero.idle" },
-  ]).document;
+  ] as const;
+  const withGuide = options?.withGuide
+    ? [
+        {
+          kind: "addGuideSidecarObject" as const,
+          object: createGuideSidecarObject(image, parseGuideSidecarToml(guideToml)),
+          attach: true,
+        },
+      ]
+    : [];
+  return applyCanvasCommands(base, [...commands.slice(0, 1), ...withGuide, ...commands.slice(1)])
+    .document;
 }
 
 function applyTerminal(input: string, document: CanvasDocument) {
@@ -133,6 +163,18 @@ describe("MachinaCanvas terminal commands", () => {
     const sidecar = next.objects["sheet-sidecar"];
     expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.frames[0] : undefined).toEqual(
       expect.objectContaining({ x: 4, y: 5, width: 18, height: 19 }),
+    );
+  });
+
+  it("clamps the selected frame to its guide region", () => {
+    const shifted = applyTerminal(
+      "set-frame-rect 4 5 18 19",
+      createTerminalDocument({ withGuide: true }),
+    );
+    const next = applyTerminal("clamp-frame", shifted);
+    const sidecar = next.objects["sheet-sidecar"];
+    expect(sidecar.kind === "spriteSidecar" ? sidecar.spec.frames[0] : undefined).toEqual(
+      expect.objectContaining({ x: 0, y: 0, width: 16, height: 16 }),
     );
   });
 

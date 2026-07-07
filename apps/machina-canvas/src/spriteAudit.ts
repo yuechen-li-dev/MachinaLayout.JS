@@ -7,6 +7,7 @@ import type {
   SpriteSidecarObject,
 } from "./sceneModel";
 import { getSpriteExpectedSourceRect, getSpriteFrameSourceKind } from "./spriteSidecar";
+import { findGuideRegionForSpriteFrame } from "./spriteGuideRegions";
 
 export type SpriteAuditSeverity = "error" | "warning" | "note";
 
@@ -314,6 +315,7 @@ export function buildSpriteAuditReport(
   image: ImageObject,
   options?: {
     scope?: SpriteAuditScope;
+    document?: CanvasDocument;
     alphaMask?: SpriteAlphaMask;
     includeAlphaAnalysis?: boolean;
     alphaUnavailableReason?: string;
@@ -582,6 +584,69 @@ export function buildSpriteAuditReport(
               "The frame keeps parent-grid context but does not fully describe a regular cell-sized cut.",
             suggestedFix:
               "Verify the crop bounds and keep it explicit if the custom frame is intentional.",
+          },
+          seenFindings,
+        );
+      }
+    }
+
+    if (options?.document) {
+      const guideContext = findGuideRegionForSpriteFrame(options.document, {
+        spriteSidecarId: sidecar.id,
+        frameId: frame.id,
+      });
+      if (guideContext?.relation === "intersects") {
+        addFlag(frame.id, "guide-region-overflow");
+        pushFinding(
+          findings,
+          {
+            severity: "warning",
+            code: "SpriteFrameOutsideGuideRegion",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} extends outside guide region ${guideContext.regionId}.`,
+            reason:
+              "Guide regions are authoring constraints for sprite editing, so a partial overlap suggests the frame has drifted out of its intended edit region.",
+            suggestedFix: "Clamp the frame back into the guide region or resize the crop to fit.",
+          },
+          seenFindings,
+        );
+      } else if (guideContext?.relation === "nearest") {
+        addFlag(frame.id, "missing-guide-region");
+        pushFinding(
+          findings,
+          {
+            severity: "warning",
+            code: "SpriteFrameMissingGuideRegion",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} is not contained by any guide region.`,
+            reason:
+              "The current frame sits outside the available guide regions, so edits are no longer localized to the intended authoring region.",
+            suggestedFix: "Clamp or move the frame into the intended guide region.",
+          },
+          seenFindings,
+        );
+      }
+      if (
+        guideContext &&
+        (frame.width > guideContext.region.width || frame.height > guideContext.region.height)
+      ) {
+        addFlag(frame.id, "larger-than-guide-region");
+        pushFinding(
+          findings,
+          {
+            severity: "warning",
+            code: "SpriteFrameLargerThanGuideRegion",
+            frameId: frame.id,
+            spriteId: frame.spriteId,
+            animationId: frame.animationId,
+            message: `${frame.id} is larger than guide region ${guideContext.regionId}.`,
+            reason:
+              "A frame that exceeds its guide region cannot stay fully localized to that authoring constraint.",
+            suggestedFix: "Shrink the frame or enlarge the guide region intentionally.",
           },
           seenFindings,
         );
@@ -960,6 +1025,14 @@ function formatAlphaCutTable(report: SpriteAuditReport) {
 
 export function formatSpriteAuditReport(report: SpriteAuditReport): string {
   const { summary } = report;
+  const guideRegionFindings = report.findings.filter((finding) =>
+    [
+      "SpriteFrameOutsideGuideRegion",
+      "SpriteFrameIntersectsGuideRegion",
+      "SpriteFrameLargerThanGuideRegion",
+      "SpriteFrameMissingGuideRegion",
+    ].includes(finding.code),
+  );
   const lines = [
     "# Sprite Audit Report",
     "",
@@ -983,6 +1056,14 @@ export function formatSpriteAuditReport(report: SpriteAuditReport): string {
     "",
     "## Alpha-aware cut analysis",
     formatAlphaCutTable(report),
+    "",
+    "## Guide-region constraints",
+    ...(guideRegionFindings.length > 0
+      ? guideRegionFindings.map(
+          (finding) =>
+            `- [${finding.severity}] ${finding.message} Why: ${finding.reason}${finding.suggestedFix ? ` Suggested next step: ${finding.suggestedFix}` : ""}`,
+        )
+      : ["- No guide-region warnings in the current audit scope."]),
     "",
     "## Suspicion analysis",
   ];

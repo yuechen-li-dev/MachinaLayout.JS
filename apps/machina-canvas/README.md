@@ -102,6 +102,7 @@ Supported commands:
 - `select-frame <sidecarId> <frameId>`
 - `nudge-frame <dx> <dy>`
 - `set-frame-rect <x> <y> <w> <h>`
+- `clamp-frame [sidecarId] [frameId]`
 - `overlay-mode <focus|cutEdit|gridEdit|audit|debug>`
 - `toggle-sprite-overlay`
 - `toggle-sprite-labels`
@@ -291,7 +292,11 @@ Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums,
 
 Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Alignment marks are placeholders for future alignment workflows.
 
-M38a parses, validates, renders, attaches, and exports guide sidecars, but it does not enforce constraints, snap frames, align images, or compile guide regions into final sprite TOML yet.
+Guide regions can constrain sprite frame editing in the editor. The constraint is authoring-only: guide regions remain in `*.guide.toml`, while exported `*.sprite.toml` contains only runtime sprite frame metadata.
+
+Sprite mode can show the selected frame's guide-region context, toggle `Constrain to guide region`, and run `Clamp to guide region` when a frame drifts outside its authored region. Guide-region audit warnings stay in the editor/audit path; they do not turn guide regions into runtime sprite metadata.
+
+This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, datum snapping, alignment-mark behavior, or guide-to-sprite compilation here.
 
 ## UI Components And TSX Lowering
 

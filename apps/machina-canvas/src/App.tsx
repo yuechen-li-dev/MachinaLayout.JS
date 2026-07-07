@@ -65,6 +65,7 @@ import {
   attachGuideSidecarToImage,
   attachSketchOverlayToImage,
   attachSpriteSidecarToImage,
+  type CanvasCommandApplyContext,
   createLayerGroup,
   type CanvasCommand,
   type CanvasCommandApplyResult,
@@ -114,6 +115,12 @@ import {
   snapSpriteFrameRect,
   type SpriteFrameRect,
 } from "./spriteFrameEditor";
+import {
+  clampSpriteFrameRectToGuideRegion,
+  findGuideRegionForSpriteFrame,
+  getGuideSidecarsForSpriteSidecar,
+  type SpriteFrameGuideRegionContext,
+} from "./spriteGuideRegions";
 import {
   buildSpriteOverlayLabelChip,
   createSpriteOverlayRenderPlan,
@@ -215,6 +222,7 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   updateSpriteFrameRect: "Set sprite frame rect",
   nudgeSpriteFrame: "Nudge sprite frame",
   resizeSpriteFrame: "Resize sprite frame",
+  clampSpriteFrameToGuideRegion: "Clamp sprite frame to guide region",
 });
 
 const exampleCommandJson = JSON.stringify(
@@ -267,6 +275,7 @@ type CommandLogEntry = {
 type SpriteFrameEditSettings = {
   snapToGrid: boolean;
   gridSize: number;
+  constrainFrameEditsToGuideRegion: boolean;
 };
 
 type SpriteDragState = {
@@ -923,6 +932,7 @@ function SpriteSidecarSvg({
   image,
   sidecar,
   selected,
+  selectedGuideRegionContext,
   draftRect,
   hoveredFrameId,
   onFramePointerDown,
@@ -933,6 +943,7 @@ function SpriteSidecarSvg({
   image: ImageObject;
   sidecar: SpriteSidecarObject;
   selected: boolean;
+  selectedGuideRegionContext?: SpriteFrameGuideRegionContext;
   draftRect?: SpriteFrameRect;
   hoveredFrameId?: string;
   onFramePointerDown: (event: ReactPointerEvent<SVGRectElement>, frame: CanvasSpriteFrame) => void;
@@ -994,6 +1005,8 @@ function SpriteSidecarSvg({
       {sidecar.spec.frames.map((frame) => {
         const presentation = plan.framePresentations.get(frame.id);
         if (!presentation) return null;
+        const frameGuideRegionContext =
+          frame.id === sidecar.spec.selectedFrameId ? selectedGuideRegionContext : undefined;
         const rect =
           draftRect && frame.id === selectedFrameId
             ? mapSpriteFrameToCanvasRect(image, draftRect)
@@ -1049,7 +1062,13 @@ function SpriteSidecarSvg({
             />
             {presentation.showRect ? (
               <rect
-                className={getSpriteOverlayFrameClassNames(presentation)}
+                className={`${getSpriteOverlayFrameClassNames(presentation)}${
+                  frameGuideRegionContext &&
+                  frame.id === sidecar.spec.selectedFrameId &&
+                  frameGuideRegionContext.relation !== "contains"
+                    ? " sprite-frame--outside-guide"
+                    : ""
+                }`}
                 data-canvas-sprite-frame-id={frame.id}
                 data-canvas-sprite-source-kind={presentation.sourceKind}
                 fill={fill}
@@ -1133,10 +1152,12 @@ function GuideSidecarSvg({
   image,
   guideObject,
   selected,
+  selectedGuideRegionContext,
 }: {
   image: ImageObject;
   guideObject: GuideSidecarObject;
   selected: boolean;
+  selectedGuideRegionContext?: SpriteFrameGuideRegionContext;
 }) {
   if (!guideObject.visible) return null;
 
@@ -1164,18 +1185,27 @@ function GuideSidecarSvg({
         const width = region.width * scaleX;
         const height = region.height * scaleY;
         const grid = region.grid;
+        const isSelectedContextRegion =
+          selectedGuideRegionContext?.guideSidecarId === guideObject.id &&
+          selectedGuideRegionContext.regionId === region.id;
+        const isWarningRegion =
+          isSelectedContextRegion && selectedGuideRegionContext.relation !== "contains";
         return (
           <Fragment key={`guide-region:${region.id}`}>
             <rect
-              className="canvas-guide-region"
+              className={`canvas-guide-region${
+                isSelectedContextRegion ? " guide-region--selected-context" : ""
+              }${isWarningRegion ? " guide-region--warning" : ""}`}
               data-canvas-guide-region-id={region.id}
               x={origin.x}
               y={origin.y}
               width={width}
               height={height}
-              fill="rgba(13, 110, 253, 0.03)"
-              stroke="#0d6efd"
-              strokeDasharray="8 6"
+              fill={
+                isSelectedContextRegion ? "rgba(13, 110, 253, 0.06)" : "rgba(13, 110, 253, 0.03)"
+              }
+              stroke={isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#175bc9" : "#0d6efd"}
+              strokeDasharray={isWarningRegion ? "10 4" : isSelectedContextRegion ? "10 5" : "8 6"}
             />
             <text className="canvas-guide-label" x={origin.x + 6} y={origin.y + 16}>
               {region.id}
@@ -1455,6 +1485,9 @@ function CanvasPanel(props: MachinaSlotProps) {
   const [hoveredFrame, setHoveredFrame] = useState<
     { sidecarId: string; frameId: string } | undefined
   >();
+  const selected = getSelectedObject(document);
+  const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
+  const selectedGuideRegionContext = getSelectedSpriteFrameGuideRegionContext(document, selected);
   const alphaMappedImages = document.layers
     .filter((layer) => layer.visible)
     .flatMap((layer) => layer.objectIds.map((id) => document.objects[id]))
@@ -1504,19 +1537,47 @@ function CanvasPanel(props: MachinaSlotProps) {
               height: state.startRect.height + dy,
             };
       return snapSpriteFrameRect(
-        {
-          x: Math.max(0, unsnapped.x),
-          y: Math.max(0, unsnapped.y),
-          width: Math.max(1, unsnapped.width),
-          height: Math.max(1, unsnapped.height),
-        },
+        spriteFrameEditSettings.constrainFrameEditsToGuideRegion
+          ? (() => {
+              const guideContext = findGuideRegionForSpriteFrame(document, {
+                spriteSidecarId: state.sidecarId,
+                frameId: state.frameId,
+              });
+              return guideContext
+                ? clampSpriteFrameRectToGuideRegion(
+                    {
+                      x: Math.max(0, unsnapped.x),
+                      y: Math.max(0, unsnapped.y),
+                      width: Math.max(1, unsnapped.width),
+                      height: Math.max(1, unsnapped.height),
+                    },
+                    guideContext.region,
+                  )
+                : {
+                    x: Math.max(0, unsnapped.x),
+                    y: Math.max(0, unsnapped.y),
+                    width: Math.max(1, unsnapped.width),
+                    height: Math.max(1, unsnapped.height),
+                  };
+            })()
+          : {
+              x: Math.max(0, unsnapped.x),
+              y: Math.max(0, unsnapped.y),
+              width: Math.max(1, unsnapped.width),
+              height: Math.max(1, unsnapped.height),
+            },
         {
           enabled: spriteFrameEditSettings.snapToGrid,
           gridSize: spriteFrameEditSettings.gridSize,
         },
       );
     },
-    [document.objects, spriteFrameEditSettings.gridSize, spriteFrameEditSettings.snapToGrid],
+    [
+      document,
+      spriteFrameEditSettings.constrainFrameEditsToGuideRegion,
+      spriteFrameEditSettings.gridSize,
+      spriteFrameEditSettings.snapToGrid,
+    ],
   );
 
   useEffect(() => {
@@ -1766,6 +1827,11 @@ function CanvasPanel(props: MachinaSlotProps) {
                           image={object}
                           key={guideObject.id}
                           selected={document.selectedObjectId === guideObject.id}
+                          selectedGuideRegionContext={
+                            selectedGuideRegionContext?.guideSidecarId === guideObject.id
+                              ? selectedGuideRegionContext
+                              : undefined
+                          }
                         />
                       ))
                     : null}
@@ -1806,6 +1872,12 @@ function CanvasPanel(props: MachinaSlotProps) {
                       }
                       sidecar={spriteSidecar}
                       selected={document.selectedObjectId === spriteSidecar.id}
+                      selectedGuideRegionContext={
+                        selectedGuideRegionContext &&
+                        spriteSidecar.id === selectedSpriteFrame?.sidecar.id
+                          ? selectedGuideRegionContext
+                          : undefined
+                      }
                     />
                   ) : null}
                 </Fragment>
@@ -1986,6 +2058,28 @@ export function getSelectedSpriteFrameState(
   return { sidecar: selected, frame, image };
 }
 
+function getSelectedSpriteFrameGuideRegionContext(
+  document: CanvasDocument,
+  selected?: CanvasObject,
+): SpriteFrameGuideRegionContext | undefined {
+  const selectedFrame = getSelectedSpriteFrameState(document, selected);
+  if (!selectedFrame) return undefined;
+  return findGuideRegionForSpriteFrame(document, {
+    spriteSidecarId: selectedFrame.sidecar.id,
+    frameId: selectedFrame.frame.id,
+  });
+}
+
+function getSpriteCommandApplyContext(
+  spriteFrameEditSettings: SpriteFrameEditSettings,
+): CanvasCommandApplyContext {
+  return {
+    spriteFrameEditSettings: {
+      constrainFrameEditsToGuideRegion: spriteFrameEditSettings.constrainFrameEditsToGuideRegion,
+    },
+  };
+}
+
 export function getSelectedSpriteFramePreviewModel(options: {
   image?: ImageObject;
   frame: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">;
@@ -2141,6 +2235,7 @@ function SpriteAuditSectionContent({
 
   const createArtifact = useCallback(() => {
     const report = buildSpriteAuditReport(sidecar, image, {
+      document,
       scope,
       includeAlphaAnalysis: alphaAuditEnabled,
       alphaMask: alphaMaskState.status === "ready" ? alphaMaskState.mask : undefined,
@@ -2159,7 +2254,7 @@ function SpriteAuditSectionContent({
     } satisfies SpriteAuditArtifact;
     setArtifact(nextArtifact);
     return nextArtifact;
-  }, [alphaAuditEnabled, alphaMaskState, alphaThreshold, image, scope, sidecar]);
+  }, [alphaAuditEnabled, alphaMaskState, alphaThreshold, document, image, scope, sidecar]);
 
   const ensureArtifact = useCallback(() => {
     if (artifact && artifact.scope === scope) {
@@ -2699,6 +2794,8 @@ function SelectedSpriteFrameSection({
   sidecar,
   frame,
   image,
+  guideRegionContext,
+  hasGuideSidecars,
   spriteFrameEditSettings,
   setSpriteFrameEditSettings,
   runCommand,
@@ -2707,6 +2804,8 @@ function SelectedSpriteFrameSection({
   sidecar: SpriteSidecarObject;
   frame: CanvasSpriteFrame;
   image?: ImageObject;
+  guideRegionContext?: SpriteFrameGuideRegionContext;
+  hasGuideSidecars: boolean;
   spriteFrameEditSettings: SpriteFrameEditSettings;
   setSpriteFrameEditSettings: (settings: SpriteFrameEditSettings) => void;
   runCommand: (command: CanvasCommand) => void;
@@ -2738,6 +2837,16 @@ function SelectedSpriteFrameSection({
         frame.width - expectedRect.width
       },${frame.height - expectedRect.height >= 0 ? "+" : ""}${frame.height - expectedRect.height}`
     : "No source grid delta";
+  const guideDeltaSummary = guideRegionContext?.deltaToRegion
+    ? `left ${guideRegionContext.deltaToRegion.left}, top ${guideRegionContext.deltaToRegion.top}, right ${guideRegionContext.deltaToRegion.right}, bottom ${guideRegionContext.deltaToRegion.bottom}`
+    : undefined;
+  const showGuideConstraintControls = hasGuideSidecars || guideRegionContext !== undefined;
+  const guideWarning =
+    guideRegionContext?.relation === "intersects"
+      ? `${frame.id} partially leaves guide region ${guideRegionContext.regionId}.`
+      : guideRegionContext?.relation === "nearest"
+        ? `${frame.id} is not inside any guide region.`
+        : undefined;
 
   return (
     <>
@@ -2781,6 +2890,17 @@ function SelectedSpriteFrameSection({
         value={spriteFrameEditSettings.snapToGrid ? `${spriteFrameEditSettings.gridSize}px` : "off"}
       />
       <Field label="Delta" value={deltaSummary} />
+      {guideRegionContext ? (
+        <>
+          <Field label="Guide region" value={guideRegionContext.regionId} />
+          <Field label="Relation" value={guideRegionContext.relation} />
+          <Field
+            label="Region rect"
+            value={`x=${guideRegionContext.regionRect.x} y=${guideRegionContext.regionRect.y} w=${guideRegionContext.regionRect.width} h=${guideRegionContext.regionRect.height}`}
+          />
+          {guideDeltaSummary ? <Field label="Guide delta" value={guideDeltaSummary} /> : null}
+        </>
+      ) : null}
       {expectedRect ? (
         <Field
           label="Source rect"
@@ -2815,6 +2935,34 @@ function SelectedSpriteFrameSection({
         }
         value={frame.height}
       />
+      {showGuideConstraintControls ? (
+        <>
+          <ToggleField
+            checked={spriteFrameEditSettings.constrainFrameEditsToGuideRegion}
+            label="Constrain to guide region"
+            onChange={(constrainFrameEditsToGuideRegion) =>
+              setSpriteFrameEditSettings({
+                ...spriteFrameEditSettings,
+                constrainFrameEditsToGuideRegion,
+              })
+            }
+          />
+          <p className="empty-note">Keeps frame edits inside the selected guide region.</p>
+          <button
+            className="viewport-wide-button"
+            onClick={() =>
+              runCommand({
+                kind: "clampSpriteFrameToGuideRegion",
+                sidecarId: sidecar.id,
+                frameId: frame.id,
+              })
+            }
+            type="button"
+          >
+            Clamp to guide region
+          </button>
+        </>
+      ) : null}
       <ToggleField
         checked={spriteFrameEditSettings.snapToGrid}
         label="Snap frame edits"
@@ -2840,6 +2988,13 @@ function SelectedSpriteFrameSection({
         x/y must stay at or above 0. width/height must stay above 0.
         {atlasWidth && atlasHeight ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.` : ""}
       </p>
+      {guideWarning ? <p className="empty-note">{guideWarning}</p> : null}
+      {!guideRegionContext && hasGuideSidecars ? (
+        <p className="empty-note">No guide region found for this frame.</p>
+      ) : null}
+      {!guideRegionContext && !hasGuideSidecars ? (
+        <p className="empty-note">Attach a .guide.toml to constrain frame edits.</p>
+      ) : null}
       <div className="command-row sprite-edit-buttons">
         <button
           onClick={(event) =>
@@ -3209,6 +3364,10 @@ function Inspector(props: MachinaSlotProps) {
   const showViewAids = isToolGroupVisible("viewAids");
   const showExport = isToolGroupVisible("export");
   const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
+  const selectedGuideRegionContext = getSelectedSpriteFrameGuideRegionContext(document, selected);
+  const selectedFrameGuideSidecarCount = selectedSpriteFrame
+    ? getGuideSidecarsForSpriteSidecar(document, selectedSpriteFrame.sidecar.id).length
+    : 0;
   const hasSpriteAuditResults = Boolean(
     (selected?.kind === "spriteSidecar" && selected.spec.diagnostics.length > 0) ||
       (selected?.kind === "image" &&
@@ -3423,6 +3582,8 @@ function Inspector(props: MachinaSlotProps) {
         >
           <SelectedSpriteFrameSection
             frame={selectedSpriteFrame.frame}
+            guideRegionContext={selectedGuideRegionContext}
+            hasGuideSidecars={selectedFrameGuideSidecarCount > 0}
             image={selectedSpriteFrame.image}
             runCommand={runCommand}
             setSpriteFrameEditSettings={setSpriteFrameEditSettings}
@@ -4151,7 +4312,11 @@ export function App() {
   const [rasterBackground, setRasterBackgroundState] =
     useState<RasterExportBackground>("transparent");
   const [spriteFrameEditSettings, setSpriteFrameEditSettingsState] =
-    useState<SpriteFrameEditSettings>({ snapToGrid: false, gridSize: 1 });
+    useState<SpriteFrameEditSettings>({
+      snapToGrid: false,
+      gridSize: 1,
+      constrainFrameEditsToGuideRegion: true,
+    });
   const [rasterArtifact, setRasterArtifact] = useState<RasterExportArtifact>();
   const [rasterStatus, setRasterStatus] = useState("");
   const commandLogCounter = useRef(0);
@@ -4159,7 +4324,8 @@ export function App() {
   const activeMode = activeModeId
     ? getCanvasEditorModeTemplate(activeModeId)
     : INITIAL_MODE_TEMPLATE;
-  const selectedSpriteFrame = getSelectedSpriteFrameState(document, getSelectedObject(document));
+  const selectedObject = getSelectedObject(document);
+  const selectedSpriteFrame = getSelectedSpriteFrameState(document, selectedObject);
   const exportArtifacts = useMemo(
     () =>
       collectCanvasExportArtifacts({
@@ -4219,7 +4385,11 @@ export function App() {
     setExportStatus("");
     setRasterScaleState(1);
     setRasterBackgroundState("transparent");
-    setSpriteFrameEditSettingsState({ snapToGrid: false, gridSize: 1 });
+    setSpriteFrameEditSettingsState({
+      snapToGrid: false,
+      gridSize: 1,
+      constrainFrameEditsToGuideRegion: true,
+    });
     setRasterArtifact(undefined);
     setRasterStatus("");
     commandLogCounter.current = 0;
@@ -4269,7 +4439,11 @@ export function App() {
     };
 
     const runCommands = (commands: CanvasCommand[]) => {
-      const applyResult = applyCanvasCommands(document, commands);
+      const applyResult = applyCanvasCommands(
+        document,
+        commands,
+        getSpriteCommandApplyContext(spriteFrameEditSettings),
+      );
       setDocument(applyResult.document);
       recordAppliedCommands(commands, applyResult.results);
     };
@@ -4441,7 +4615,11 @@ export function App() {
           return;
         }
 
-        let nextDocument = applyCanvasCommands(document, [command]).document;
+        let nextDocument = applyCanvasCommands(
+          document,
+          [command],
+          getSpriteCommandApplyContext(spriteFrameEditSettings),
+        ).document;
         if (options?.groupId) {
           nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
         }
@@ -4449,7 +4627,11 @@ export function App() {
           nextDocument = attachAlphaMapToImage(nextDocument, options.attachToImageId, object.id);
         }
         setDocument(nextDocument);
-        const applyResult = applyCanvasCommands(document, [command]);
+        const applyResult = applyCanvasCommands(
+          document,
+          [command],
+          getSpriteCommandApplyContext(spriteFrameEditSettings),
+        );
         recordAppliedCommands([command], applyResult.results);
       } catch (caught) {
         setLastCommand(
@@ -4497,7 +4679,11 @@ export function App() {
           return;
         }
 
-        const applyResult = applyCanvasCommands(document, [command]);
+        const applyResult = applyCanvasCommands(
+          document,
+          [command],
+          getSpriteCommandApplyContext(spriteFrameEditSettings),
+        );
         let nextDocument = applyResult.document;
         if (options?.groupId) {
           nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
@@ -4557,7 +4743,11 @@ export function App() {
           return;
         }
 
-        const applyResult = applyCanvasCommands(document, [command]);
+        const applyResult = applyCanvasCommands(
+          document,
+          [command],
+          getSpriteCommandApplyContext(spriteFrameEditSettings),
+        );
         let nextDocument = applyResult.document;
         if (options?.groupId) {
           nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
@@ -4713,7 +4903,11 @@ export function App() {
       }
 
       const commands = normalizeCommands(parsed.value);
-      const applyResult = applyCanvasCommands(document, commands);
+      const applyResult = applyCanvasCommands(
+        document,
+        commands,
+        getSpriteCommandApplyContext(spriteFrameEditSettings),
+      );
       setDocument(applyResult.document);
       recordAppliedCommands(commands, applyResult.results);
     };

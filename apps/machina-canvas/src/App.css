@@ -875,6 +875,19 @@ button {
   stroke-width: 3px;
 }
 
+.canvas-guide-region.guide-region--selected-context {
+  stroke-width: 3px;
+}
+
+.canvas-guide-region.guide-region--warning {
+  stroke-width: 3px;
+}
+
+.canvas-sprite-frame.sprite-frame--outside-guide {
+  stroke: #d64242;
+  stroke-dasharray: 10 4;
+}
+
 .reference-grid-border,
 .reference-grid-line {
   fill: none;
