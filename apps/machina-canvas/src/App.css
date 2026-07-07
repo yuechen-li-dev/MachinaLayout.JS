@@ -1098,6 +1098,153 @@ button {
   line-height: 1.35;
 }
 
+.export-cart-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-cart-panel__intro h4 {
+  margin: 0 0 4px;
+  color: #111111;
+  font-size: 13px;
+  font-weight: 780;
+  text-transform: uppercase;
+}
+
+.export-cart-panel__intro p {
+  margin: 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.export-cart-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.export-cart-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 78px;
+  padding: 10px;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+  color: #111111;
+  text-align: left;
+}
+
+.export-cart-preset.is-active {
+  border-color: #111111;
+  background: #f1f1ee;
+}
+
+.export-cart-preset strong {
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.export-cart-preset span {
+  color: #555550;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.export-cart-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #555550;
+  font-size: 11px;
+}
+
+.export-artifact-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.export-artifact-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid #d7d7d2;
+  background: #fbfbfa;
+}
+
+.export-artifact-card.is-selected {
+  border-color: #111111;
+  background: #f1f1ee;
+}
+
+.export-artifact-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-artifact-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.export-artifact-card__top strong {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.export-artifact-card__top small,
+.export-artifact-card__body span,
+.export-artifact-card__body em {
+  color: #70706a;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.export-artifact-card__body p {
+  margin: 0;
+  color: #555550;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.export-artifact-card__body em {
+  font-style: normal;
+}
+
+.export-cart-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.export-checkpoint-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.export-checkpoint-row input {
+  min-width: 0;
+  border: 1px solid #d7d7d2;
+  background: #ffffff;
+  color: #111111;
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
 .export-file-list {
   display: flex;
   flex-direction: column;

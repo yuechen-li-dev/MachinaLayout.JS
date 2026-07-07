@@ -9,6 +9,11 @@ import {
   executeCanvasTerminalCommand,
   type CanvasTerminalLogEntry,
 } from "../../apps/machina-canvas/src/canvasCommandsTerminal";
+import {
+  CANVAS_EXPORT_PRESETS,
+  collectCanvasExportArtifacts,
+  createExportCart,
+} from "../../apps/machina-canvas/src/exportCart";
 import { applyCanvasCommands } from "../../apps/machina-canvas/src/sceneCommands";
 import type { CanvasDocument, ImageObject } from "../../apps/machina-canvas/src/sceneModel";
 import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
@@ -156,10 +161,47 @@ describe("MachinaCanvas terminal commands", () => {
   });
 
   it("returns export summary counts", () => {
+    const document = createTerminalDocument();
     expect(
-      executeCanvasTerminalCommand("export-summary", { document: createTerminalDocument() })
-        .logEntry?.message,
-    ).toContain("spriteSidecars=1");
+      executeCanvasTerminalCommand("export-summary", {
+        document,
+        exportArtifacts: collectCanvasExportArtifacts({ scene: document }),
+        exportCart: createExportCart(collectCanvasExportArtifacts({ scene: document })),
+        exportPresets: CANVAS_EXPORT_PRESETS,
+      }).logEntry?.message,
+    ).toContain("artifacts=");
+  });
+
+  it("returns export cart side effects", () => {
+    const document = createTerminalDocument();
+    const exportArtifacts = collectCanvasExportArtifacts({ scene: document });
+    expect(
+      executeCanvasTerminalCommand("export-preset sprite-handoff", {
+        document,
+        exportArtifacts,
+        exportCart: createExportCart(exportArtifacts),
+        exportPresets: CANVAS_EXPORT_PRESETS,
+      }).sideEffects,
+    ).toEqual([{ kind: "applyExportPreset", presetId: "sprite-handoff" }]);
+
+    expect(
+      executeCanvasTerminalCommand(`export-select ${exportArtifacts[0].id}`, {
+        document,
+        exportArtifacts,
+        exportCart: createExportCart(exportArtifacts),
+        exportPresets: CANVAS_EXPORT_PRESETS,
+      }).sideEffects,
+    ).toEqual([
+      { kind: "setExportArtifactSelected", artifactId: exportArtifacts[0].id, selected: true },
+    ]);
+  });
+
+  it("returns checkpoint side effects", () => {
+    expect(
+      executeCanvasTerminalCommand("checkpoint before audit", {
+        document: createTerminalDocument(),
+      }).sideEffects,
+    ).toEqual([{ kind: "saveCheckpoint", message: "before audit" }]);
   });
 
   it("returns an error for unknown commands", () => {

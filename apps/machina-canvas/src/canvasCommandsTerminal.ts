@@ -1,6 +1,7 @@
 import { summarizeScene } from "./sceneSummary";
 import type { CanvasCommand } from "./sceneCommands";
 import type { CanvasDocument, ImageObject, SpriteSidecarObject } from "./sceneModel";
+import type { CanvasExportArtifact, CanvasExportCart, CanvasExportPreset } from "./exportCart";
 
 export type CanvasTerminalLogEntry = {
   readonly kind: "info" | "success" | "error";
@@ -11,12 +12,34 @@ export type CanvasTerminalLogEntry = {
 
 export type CanvasTerminalCommandContext = {
   document: CanvasDocument;
+  exportArtifacts?: readonly CanvasExportArtifact[];
+  exportCart?: CanvasExportCart;
+  exportPresets?: readonly CanvasExportPreset[];
 };
+
+export type CanvasTerminalSideEffect =
+  | {
+      kind: "applyExportPreset";
+      presetId: string;
+    }
+  | {
+      kind: "setExportArtifactSelected";
+      artifactId: string;
+      selected: boolean;
+    }
+  | {
+      kind: "checkoutExportCart";
+    }
+  | {
+      kind: "saveCheckpoint";
+      message?: string;
+    };
 
 export type CanvasTerminalCommandResult = {
   commands?: CanvasCommand[];
   clearLog?: boolean;
   logEntry?: CanvasTerminalLogEntry;
+  sideEffects?: readonly CanvasTerminalSideEffect[];
 };
 
 function makeLog(
@@ -65,14 +88,18 @@ function parseIntNumber(value: string | undefined, label: string) {
   return Math.round(number);
 }
 
-function getExportSummary(document: CanvasDocument) {
+function getExportSummary(context: CanvasTerminalCommandContext) {
+  const { document, exportArtifacts, exportCart, exportPresets } = context;
   const spriteSidecars = Object.values(document.objects).filter(
     (object): object is SpriteSidecarObject => object.kind === "spriteSidecar",
   );
   const images = Object.values(document.objects).filter(
     (object): object is ImageObject => object.kind === "image",
   );
-  return `objects=${Object.keys(document.objects).length} images=${images.length} spriteSidecars=${spriteSidecars.length} frames=${spriteSidecars.reduce((total, sidecar) => total + sidecar.spec.frames.length, 0)}`;
+  const baseSummary = `objects=${Object.keys(document.objects).length} images=${images.length} spriteSidecars=${spriteSidecars.length} frames=${spriteSidecars.reduce((total, sidecar) => total + sidecar.spec.frames.length, 0)}`;
+  if (!exportArtifacts || !exportCart || !exportPresets) return baseSummary;
+  const presetSummary = exportPresets.map((preset) => preset.id).join(", ");
+  return `${baseSummary} artifacts=${exportArtifacts.length} selected=${exportCart.selectedArtifactIds.length} preset=${exportCart.presetId ?? "custom"} presets=[${presetSummary}]`;
 }
 
 export function executeCanvasTerminalCommand(
@@ -92,7 +119,7 @@ export function executeCanvasTerminalCommand(
       return {
         logEntry: makeLog(
           "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, clear",
+          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
           trimmed,
         ),
       };
@@ -246,7 +273,51 @@ export function executeCanvasTerminalCommand(
     }
 
     if (commandName === "export-summary") {
-      return { logEntry: makeLog("info", getExportSummary(context.document), trimmed) };
+      return { logEntry: makeLog("info", getExportSummary(context), trimmed) };
+    }
+
+    if (commandName === "export-preset") {
+      const presetId = tokens[1];
+      if (!presetId) throw new Error("export-preset requires a presetId.");
+      if (!context.exportPresets?.some((preset) => preset.id === presetId)) {
+        throw new Error(`Unknown export preset "${presetId}".`);
+      }
+      return {
+        sideEffects: [{ kind: "applyExportPreset", presetId }],
+        logEntry: makeLog("success", `export preset ${presetId} applied`, trimmed),
+      };
+    }
+
+    if (commandName === "export-select" || commandName === "export-unselect") {
+      const artifactId = tokens[1];
+      if (!artifactId) throw new Error(`${commandName} requires an artifactId.`);
+      if (!context.exportArtifacts?.some((artifact) => artifact.id === artifactId)) {
+        throw new Error(`Unknown export artifact "${artifactId}".`);
+      }
+      const selected = commandName === "export-select";
+      return {
+        sideEffects: [{ kind: "setExportArtifactSelected", artifactId, selected }],
+        logEntry: makeLog(
+          "success",
+          `${selected ? "selected" : "unselected"} export artifact ${artifactId}`,
+          trimmed,
+        ),
+      };
+    }
+
+    if (commandName === "export-checkout") {
+      return {
+        sideEffects: [{ kind: "checkoutExportCart" }],
+        logEntry: makeLog("success", "export checkout started", trimmed),
+      };
+    }
+
+    if (commandName === "checkpoint") {
+      const message = tokens.slice(1).join(" ") || undefined;
+      return {
+        sideEffects: [{ kind: "saveCheckpoint", message }],
+        logEntry: makeLog("success", `checkpoint ${message ? `"${message}"` : "saved"}`, trimmed),
+      };
     }
 
     if (commandName === "clear") {

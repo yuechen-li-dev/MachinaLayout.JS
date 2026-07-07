@@ -421,6 +421,40 @@ inspector includes an Export panel that generates a `.mcanvas`-shaped file list
 without calling a backend or an LLM API. Users can inspect the generated files,
 copy the selected file text, or download the selected file.
 
+## Export cart
+
+Export is a cart: MachinaCanvas collects available artifacts, lets you choose a
+preset or individual files, and checks out the selected bundle. Checkpoints
+save work-in-progress state; exports produce external deliverables.
+
+The Export cart keeps checkpointing and handoff separate:
+
+- `Save checkpoint` downloads a browser-local checkpoint JSON for the current
+  editable scene, active mode, and current selection.
+- `Export selected` checks out external deliverables such as `render.svg`,
+  `render.png`, `document.json`, `handoff.toml`, sidecars, reports, and TSX
+  lowerings when those artifacts are available in the current scene.
+
+Presets are selection helpers, not locks:
+
+- `Sprite handoff` selects sprite sidecars, audit reports, diagnostics,
+  `handoff.toml`, and overlay review artifacts.
+- `Visual review` selects rendered SVG/PNG artifacts plus diagnostics and sprite
+  audit output when present.
+- `Full archive` selects source indexes, handoff contracts, sidecars, reports,
+  and rendered artifacts for a broad handoff bundle.
+- `Source checkpoint` selects the checkpoint artifact plus source-oriented scene
+  files for work-in-progress capture.
+
+Multi-artifact checkout also writes an `export-manifest.json` file that lists
+the selected artifact IDs, kinds, filenames, and source-object links. This is
+separate from `handoff.toml`: the handoff file remains pipeline metadata, while
+the export manifest describes the checkout bundle itself.
+
+The Export cart remains browser-local. It does not add cloud sync, backend
+storage, project accounts, Git integration, remote publishing, or server-side
+packaging.
+
 Generated files follow the M30c split:
 
 - `render.svg` is the clean rendered artifact

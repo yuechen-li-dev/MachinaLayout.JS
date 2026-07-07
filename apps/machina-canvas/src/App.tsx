@@ -16,6 +16,7 @@ import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { CanvasModeStart } from "./CanvasModeStart";
 import { CanvasCommandTerminal } from "./CanvasCommandTerminal";
+import { ExportCartPanel } from "./ExportCartPanel";
 import { InspectorAccordionGroup } from "./InspectorAccordionGroup";
 import { resolveAppLayout } from "./appLayout";
 import { getDefaultCanvasAidToggles, type CanvasAidToggles } from "./canvasViewAids";
@@ -49,12 +50,12 @@ import { formatCanvasMeasurement, getCanvasUnitSystem } from "./canvasUnits";
 import {
   formatCanvasExportValidationReport,
   validateCanvasExportBundle,
-  type CanvasExportValidationDiagnostic,
   type CanvasExportValidationResult,
 } from "./canvasExportValidation";
 import {
   executeCanvasTerminalCommand,
   type CanvasTerminalLogEntry,
+  type CanvasTerminalSideEffect,
 } from "./canvasCommandsTerminal";
 import {
   applyCanvasCommands,
@@ -122,6 +123,20 @@ import { getObjectBoundsSummary, summarizeScene } from "./sceneSummary";
 import { summarizeViewport } from "./viewportSummary";
 import { createReferenceGridConfig, getColumnLabel, objectToGridRef } from "./referenceGrid";
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
+import {
+  CANVAS_EXPORT_PRESETS,
+  applyExportPreset,
+  checkoutExportCart,
+  collectCanvasExportArtifacts,
+  createCanvasCheckpointArtifact,
+  createExportCart,
+  reconcileExportCart,
+  toggleExportArtifact,
+  type CanvasExportArtifact,
+  type CanvasExportCart,
+  type CanvasExportCheckoutResult,
+  type CanvasExportPreset,
+} from "./exportCart";
 import {
   GENERATE_ALPHA_MAP_TOOL_ID,
   canvasTools,
@@ -280,6 +295,11 @@ type AppViewData = {
   spriteFrameEditSettings: SpriteFrameEditSettings;
   lastToolResult: CanvasToolResult | undefined;
   geometryDiagnostics: GeometryDiagnostic[];
+  exportArtifacts: readonly CanvasExportArtifact[];
+  exportCart: CanvasExportCart;
+  exportPresets: readonly CanvasExportPreset[];
+  checkpointNote: string;
+  lastCheckout: CanvasExportCheckoutResult | undefined;
   exportBundle: CanvasExportBundle | undefined;
   exportValidation: CanvasExportValidationResult | undefined;
   selectedExportPath: string | undefined;
@@ -316,6 +336,11 @@ type AppViewData = {
   applyCommandJson: () => void;
   generateExport: () => void;
   generateTsxExport: () => void;
+  applyExportPreset: (presetId: string) => void;
+  toggleExportArtifact: (artifactId: string) => void;
+  checkoutExportCart: () => Promise<void>;
+  saveCheckpoint: (message?: string) => Promise<void>;
+  setCheckpointNote: (value: string) => void;
   setRasterScale: (scale: number) => void;
   setRasterBackground: (background: RasterExportBackground) => void;
   generatePngExport: () => Promise<void>;
@@ -522,10 +547,6 @@ function formatChange(change: CanvasCommandApplyResult["changes"][number]): stri
   return `${change.objectId}.${change.field}: ${String(change.before)} -> ${String(change.after)}`;
 }
 
-function formatFileSize(text: string): string {
-  return `${text.length.toLocaleString()} chars`;
-}
-
 function formatBlobSize(size: number): string {
   if (size < 1024) return `${size.toLocaleString()} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 102.4) / 10} KB`;
@@ -560,34 +581,6 @@ function isToolGroupVisibleForMode(
   group: CanvasToolGroupId,
 ): boolean {
   return mode.visibleToolGroups?.includes(group) ?? true;
-}
-
-function getExportValidationClass(validation: CanvasExportValidationResult | undefined): string {
-  if (!validation) return "is-pending";
-  if (!validation.ok) return "is-error";
-  if (validation.diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
-    return "is-warning";
-  }
-  return "is-ok";
-}
-
-function getExportValidationLabel(validation: CanvasExportValidationResult | undefined): string {
-  if (!validation) return "Not validated";
-  if (!validation.ok) return "Validation failed";
-  if (validation.diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
-    return "Validation passed with warnings";
-  }
-  return "Validation passed";
-}
-
-function formatExportDiagnosticDetail(diagnostic: CanvasExportValidationDiagnostic): string {
-  const refs = [
-    diagnostic.path ? `path ${diagnostic.path}` : undefined,
-    diagnostic.objectId ? `object ${diagnostic.objectId}` : undefined,
-    diagnostic.layerId ? `layer ${diagnostic.layerId}` : undefined,
-  ].filter(Boolean);
-
-  return refs.length ? `${refs.join(" / ")}: ${diagnostic.message}` : diagnostic.message;
 }
 
 function SceneTree(props: MachinaSlotProps) {
@@ -2882,168 +2875,34 @@ function GeometryDiagnosticsSection(props: MachinaSlotProps) {
 
 function ExportPanel(props: MachinaSlotProps) {
   const {
-    isToolGroupVisible,
-    exportBundle,
-    exportValidation,
+    exportArtifacts,
+    exportCart,
+    exportPresets,
+    checkpointNote,
+    lastCheckout,
     exportStatus,
-    rasterScale,
-    rasterBackground,
-    rasterArtifact,
-    rasterStatus,
-    selectedExportPath,
-    generateExport,
-    generateTsxExport,
-    setRasterScale,
-    setRasterBackground,
-    generatePngExport,
-    selectExportFile,
-    copySelectedExportFile,
-    copyValidationReport,
-    downloadSelectedExportFile,
-    downloadRasterArtifact,
+    applyExportPreset,
+    toggleExportArtifact,
+    checkoutExportCart,
+    setCheckpointNote,
+    saveCheckpoint,
   } = readViewData(props);
-  const selectedFile = getSelectedExportFile(exportBundle, selectedExportPath);
-  const validationReport = exportValidation
-    ? formatCanvasExportValidationReport(exportValidation)
-    : undefined;
-  const showTsxLowering = isToolGroupVisible("webUi");
 
   return (
     <InspectorSection title="Export">
-      <div className="export-actions">
-        <button type="button" onClick={generateExport}>
-          Generate Export
-        </button>
-        <button type="button" onClick={copySelectedExportFile} disabled={!selectedFile}>
-          Copy
-        </button>
-        <button type="button" onClick={copyValidationReport} disabled={!validationReport}>
-          Copy Report
-        </button>
-        <button type="button" onClick={downloadSelectedExportFile} disabled={!selectedFile}>
-          Download
-        </button>
-      </div>
-      {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
-      {showTsxLowering ? (
-        <div className="tsx-lowering">
-          <strong>TSX LOWERING</strong>
-          <p>generated-page.tsx - text/typescript</p>
-          <div className="tsx-actions">
-            <button type="button" onClick={generateTsxExport}>
-              Generate TSX Page
-            </button>
-            <button
-              type="button"
-              onClick={() => selectExportFile("generated-page.tsx")}
-              disabled={!exportBundle?.files.some((file) => file.path === "generated-page.tsx")}
-            >
-              Show TSX
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <div className="raster-lowering">
-        <div className="raster-control">
-          <span>Scale</span>
-          <div className="raster-button-group">
-            {[1, 2, 4].map((scale) => (
-              <button
-                className={rasterScale === scale ? "is-active" : ""}
-                key={scale}
-                type="button"
-                onClick={() => setRasterScale(scale)}
-              >
-                {scale}x
-              </button>
-            ))}
-          </div>
-        </div>
-        <label className="raster-control">
-          <span>Background</span>
-          <select
-            value={rasterBackground}
-            onChange={(event) => setRasterBackground(event.target.value)}
-          >
-            <option value="transparent">transparent</option>
-            <option value="#ffffff">white</option>
-            <option value="#000000">black</option>
-          </select>
-        </label>
-        <div className="raster-actions">
-          <button type="button" onClick={generatePngExport}>
-            Generate PNG
-          </button>
-          <button type="button" onClick={downloadRasterArtifact} disabled={!rasterArtifact}>
-            Download PNG
-          </button>
-        </div>
-        {rasterArtifact ? (
-          <p className="export-status">
-            {rasterArtifact.path} - {rasterArtifact.mimeType} -{" "}
-            {formatBlobSize(rasterArtifact.size)}
-          </p>
-        ) : null}
-        {rasterStatus ? <p className="export-status">{rasterStatus}</p> : null}
-      </div>
-      <div className={`validation-result ${getExportValidationClass(exportValidation)}`}>
-        <strong>{getExportValidationLabel(exportValidation)}</strong>
-        {exportValidation ? (
-          <p>
-            {exportValidation.diagnostics.length} diagnostic
-            {exportValidation.diagnostics.length === 1 ? "" : "s"}
-          </p>
-        ) : null}
-        {exportValidation?.diagnostics.length ? (
-          <ul>
-            {exportValidation.diagnostics.map((diagnostic, index) => (
-              <li key={`${diagnostic.code}-${index}`}>
-                <span>
-                  {diagnostic.severity} {diagnostic.code}
-                </span>
-                : {formatExportDiagnosticDetail(diagnostic)}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-      {validationReport ? (
-        <textarea
-          className="export-validation-report"
-          value={validationReport}
-          readOnly
-          spellCheck={false}
-          aria-label="Canvas export validation report"
-        />
-      ) : null}
-      {exportBundle ? (
-        <>
-          <div className="export-file-list">
-            {exportBundle.files.map((file) => (
-              <button
-                className={`export-file-row ${selectedFile?.path === file.path ? "is-selected" : ""}`}
-                key={file.path}
-                type="button"
-                onClick={() => selectExportFile(file.path)}
-              >
-                <span>{file.path}</span>
-                <small>
-                  {file.mimeType} / {formatFileSize(file.text)}
-                </small>
-              </button>
-            ))}
-          </div>
-          <textarea
-            className="export-preview"
-            value={selectedFile?.text ?? ""}
-            readOnly
-            spellCheck={false}
-            aria-label="Selected export file preview"
-          />
-        </>
-      ) : (
-        <p className="empty-note">No export generated yet.</p>
-      )}
+      <ExportCartPanel
+        artifacts={exportArtifacts}
+        cart={exportCart}
+        checkpointNote={checkpointNote}
+        lastCheckout={lastCheckout}
+        onApplyPreset={applyExportPreset}
+        onCheckpointNoteChange={setCheckpointNote}
+        onCheckout={() => void checkoutExportCart()}
+        onSaveCheckpoint={() => void saveCheckpoint()}
+        onToggleArtifact={toggleExportArtifact}
+        presets={exportPresets}
+        status={exportStatus}
+      />
     </InspectorSection>
   );
 }
@@ -3892,6 +3751,12 @@ export function App() {
   const [aidToggles, setAidToggles] = useState<CanvasAidToggles>(getDefaultCanvasAidToggles());
   const [lastApplyResults, setLastApplyResults] = useState<CanvasCommandApplyResult[]>([]);
   const [lastToolResult, setLastToolResult] = useState<CanvasToolResult>();
+  const [exportCart, setExportCart] = useState<CanvasExportCart>({
+    selectedArtifactIds: [],
+    checkoutMode: "downloadFiles",
+  });
+  const [checkpointNote, setCheckpointNote] = useState("");
+  const [lastCheckout, setLastCheckout] = useState<CanvasExportCheckoutResult>();
   const [exportBundle, setExportBundle] = useState<CanvasExportBundle>();
   const [exportValidation, setExportValidation] = useState<CanvasExportValidationResult>();
   const [selectedExportPath, setSelectedExportPath] = useState<string>();
@@ -3908,6 +3773,21 @@ export function App() {
   const activeMode = activeModeId
     ? getCanvasEditorModeTemplate(activeModeId)
     : INITIAL_MODE_TEMPLATE;
+  const selectedSpriteFrame = getSelectedSpriteFrameState(document, getSelectedObject(document));
+  const exportArtifacts = useMemo(
+    () =>
+      collectCanvasExportArtifacts({
+        scene: document,
+        activeModeId,
+        selectedObjectId: document.selectedObjectId,
+        selectedSpriteFrameId: selectedSpriteFrame?.frame.id,
+      }),
+    [activeModeId, document, selectedSpriteFrame?.frame.id],
+  );
+
+  useEffect(() => {
+    setExportCart((current) => reconcileExportCart(exportArtifacts, current));
+  }, [exportArtifacts]);
 
   const loadMode = (modeId: CanvasEditorModeId) => {
     const template = getCanvasEditorModeTemplate(modeId);
@@ -3936,6 +3816,17 @@ export function App() {
     setAidToggles(getDefaultCanvasAidToggles(modeId));
     setLastApplyResults([]);
     setLastToolResult(undefined);
+    setExportCart(
+      createExportCart(
+        collectCanvasExportArtifacts({
+          scene: resolvedDocument,
+          activeModeId: modeId,
+          selectedObjectId: resolvedDocument.selectedObjectId,
+        }),
+      ),
+    );
+    setCheckpointNote("");
+    setLastCheckout(undefined);
     setExportBundle(undefined);
     setExportValidation(undefined);
     setSelectedExportPath(undefined);
@@ -4001,8 +3892,99 @@ export function App() {
       runCommands([command]);
     };
 
+    const setCheckpointNoteValue = (value: string) => {
+      setCheckpointNote(value);
+    };
+
+    const applyCartPreset = (presetId: string) => {
+      const preset = CANVAS_EXPORT_PRESETS.find((candidate) => candidate.id === presetId);
+      if (!preset) {
+        setExportStatus(`Unknown export preset "${presetId}".`);
+        return;
+      }
+      setExportCart(applyExportPreset(exportArtifacts, preset));
+      setExportStatus(`Preset ${preset.title} selected.`);
+    };
+
+    const toggleCartArtifact = (artifactId: string) => {
+      setExportCart((current) => toggleExportArtifact(current, artifactId, exportArtifacts));
+    };
+
+    const saveCheckpoint = async (message?: string) => {
+      const artifact = createCanvasCheckpointArtifact({
+        scene: document,
+        activeModeId,
+        selectedObjectId: document.selectedObjectId,
+        selectedSpriteFrameId: selectedSpriteFrame?.frame.id,
+        message: message ?? (checkpointNote.trim() || undefined),
+      });
+      const result = await checkoutExportCart({
+        artifacts: [artifact],
+        cart: {
+          selectedArtifactIds: [artifact.id],
+          checkoutMode: "downloadFiles",
+        },
+        activeModeId,
+      });
+      setLastCheckout(result);
+      if (result.kind === "ok") {
+        setExportStatus(`Checkpoint saved as ${artifact.filename}.`);
+        setCheckpointNote("");
+        setLastCommand("checkpoint saved");
+      } else {
+        setExportStatus(`Checkpoint failed: ${result.message}`);
+        setLastCommand("checkpoint failed");
+      }
+    };
+
+    const runCartCheckout = async () => {
+      const result = await checkoutExportCart({
+        artifacts: exportArtifacts,
+        cart: exportCart,
+        activeModeId,
+      });
+      setLastCheckout(result);
+      if (result.kind === "ok") {
+        setExportStatus(
+          `Checked out ${result.artifactCount} file${result.artifactCount === 1 ? "" : "s"}: ${result.filenames.join(", ")}`,
+        );
+        setLastCommand("export checkout completed");
+      } else {
+        setExportStatus(
+          `Checkout failed${result.failedArtifactId ? ` on ${result.failedArtifactId}` : ""}: ${result.message}`,
+        );
+        setLastCommand("export checkout failed");
+      }
+    };
+
+    const applyTerminalSideEffect = (sideEffect: CanvasTerminalSideEffect) => {
+      switch (sideEffect.kind) {
+        case "applyExportPreset":
+          applyCartPreset(sideEffect.presetId);
+          break;
+        case "setExportArtifactSelected":
+          setExportCart((current) => {
+            const isSelected = current.selectedArtifactIds.includes(sideEffect.artifactId);
+            if (isSelected === sideEffect.selected) return current;
+            return toggleExportArtifact(current, sideEffect.artifactId, exportArtifacts);
+          });
+          break;
+        case "checkoutExportCart":
+          void runCartCheckout();
+          break;
+        case "saveCheckpoint":
+          void saveCheckpoint(sideEffect.message);
+          break;
+      }
+    };
+
     const runTerminalCommand = (input: string) => {
-      const result = executeCanvasTerminalCommand(input, { document });
+      const result = executeCanvasTerminalCommand(input, {
+        document,
+        exportArtifacts,
+        exportCart,
+        exportPresets: CANVAS_EXPORT_PRESETS,
+      });
       if (result.clearLog) {
         setTerminalLog([]);
         setTerminalInput("");
@@ -4011,6 +3993,11 @@ export function App() {
       }
       if (result.commands?.length) {
         runCommands(result.commands);
+      }
+      if (result.sideEffects?.length) {
+        for (const sideEffect of result.sideEffects) {
+          applyTerminalSideEffect(sideEffect);
+        }
       }
       const logEntry = result.logEntry;
       if (logEntry) {
@@ -4392,6 +4379,11 @@ export function App() {
       spriteFrameEditSettings,
       lastToolResult,
       geometryDiagnostics,
+      exportArtifacts,
+      exportCart,
+      exportPresets: CANVAS_EXPORT_PRESETS,
+      checkpointNote,
+      lastCheckout,
       exportBundle,
       exportValidation,
       selectedExportPath,
@@ -4425,6 +4417,11 @@ export function App() {
       applyCommandJson,
       generateExport,
       generateTsxExport,
+      applyExportPreset: applyCartPreset,
+      toggleExportArtifact: toggleCartArtifact,
+      checkoutExportCart: runCartCheckout,
+      saveCheckpoint,
+      setCheckpointNote: setCheckpointNoteValue,
       setRasterScale,
       setRasterBackground,
       generatePngExport,
@@ -4450,6 +4447,10 @@ export function App() {
     spriteFrameEditSettings,
     lastToolResult,
     geometryDiagnostics,
+    exportArtifacts,
+    exportCart,
+    checkpointNote,
+    lastCheckout,
     exportBundle,
     exportValidation,
     selectedExportPath,
@@ -4460,6 +4461,8 @@ export function App() {
     rasterStatus,
     commandLogCollapsed,
     returnToModeSelection,
+    activeModeId,
+    selectedSpriteFrame?.frame.id,
   ]);
 
   if (activeModeId === undefined) {
