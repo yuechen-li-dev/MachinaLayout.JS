@@ -293,7 +293,9 @@ If a guide sidecar, sprite sidecar, sketch overlay, or alpha mask is loaded with
 
 Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums, dimensions, and alignment marks used to edit visual artifacts. They are separate from runtime sidecars such as `*.sprite.toml`.
 
-Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Alignment marks are placeholders for future alignment workflows.
+Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels.
+
+Alignment marks are authored registration points in `*.guide.toml`. MachinaCanvas can translate one layer/image so its mark matches another mark, but M38d does not perform automatic image feature detection, rotation, scale, or general registration.
 
 Datums provide explicit snap targets for sprite-frame editing. MachinaCanvas snaps selected frame edges or centers to authored datum lines; it does not run a general 2D constraint solver.
 
@@ -305,7 +307,11 @@ Selected sprite frames can also use `Datum snapping` in the inspector for `Snap 
 
 Datums remain in `*.guide.toml`. Runtime `*.sprite.toml` exports only keep the resulting frame rectangles after snapping.
 
-This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, alignment-mark behavior, or guide-to-sprite compilation here.
+Alignment marks are point marks only in this pass. The inspector can align an image to another resolved mark, and the command terminal exposes `list-alignment-marks`, `align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>`, and `align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>`.
+
+Alignment metadata remains guide-only authoring IR. It stays in `*.guide.toml`, does not compile into runtime `*.sprite.toml`, and does not use computer vision or automatic feature detection.
+
+This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, guide-to-sprite compilation, or full registration beyond translation-only alignment between authored marks.
 
 ## UI Components And TSX Lowering
 

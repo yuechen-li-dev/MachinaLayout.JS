@@ -1438,6 +1438,9 @@ function serializeResolvedGuideSidecar(
     const point = mapPoint(mark.x, mark.y);
     lines.push(
       `    <circle class="canvas-guide-mark" cx="${point.x}" cy="${point.y}" r="4" fill="#d63384" pointer-events="none" />`,
+      `    <line class="canvas-guide-mark" x1="${point.x - 8}" y1="${point.y}" x2="${point.x + 8}" y2="${point.y}" stroke="#d63384" pointer-events="none" />`,
+      `    <line class="canvas-guide-mark" x1="${point.x}" y1="${point.y - 8}" x2="${point.x}" y2="${point.y + 8}" stroke="#d63384" pointer-events="none" />`,
+      `    <text class="canvas-guide-label" x="${point.x + 8}" y="${point.y + 14}" pointer-events="none">${escapeXmlText(mark.label ?? mark.id)}</text>`,
     );
   }
   lines.push("  </g>");

@@ -1,7 +1,8 @@
 import { summarizeScene } from "./sceneSummary";
-import type { CanvasCommand } from "./sceneCommands";
+import { alignObjectByGuideMarks, type CanvasCommand } from "./sceneCommands";
 import type { CanvasDocument, ImageObject, SpriteSidecarObject } from "./sceneModel";
 import type { CanvasExportArtifact, CanvasExportCart, CanvasExportPreset } from "./exportCart";
+import { resolveGuideAlignmentMarks } from "./guideAlignment";
 import {
   findDatumSnapTargetsForSpriteFrame,
   type SpriteFrameDatumAnchor,
@@ -110,6 +111,19 @@ function getExportSummary(context: CanvasTerminalCommandContext) {
   return `${baseSummary} artifacts=${exportArtifacts.length} selected=${exportCart.selectedArtifactIds.length} preset=${exportCart.presetId ?? "custom"} presets=[${presetSummary}]`;
 }
 
+function getAlignmentMarkList(document: CanvasDocument) {
+  const marks = resolveGuideAlignmentMarks(document);
+  if (marks.length === 0) {
+    return "No resolved alignment marks. Add alignment_marks to a .guide.toml and attach it to an image.";
+  }
+  return marks
+    .map(
+      (mark) =>
+        `${mark.targetObjectId}:${mark.markId}@${mark.scene.x.toFixed(1)},${mark.scene.y.toFixed(1)}${mark.label ? ` "${mark.label}"` : ""}`,
+    )
+    .join(" | ");
+}
+
 export function executeCanvasTerminalCommand(
   input: string,
   context: CanvasTerminalCommandContext,
@@ -127,7 +141,7 @@ export function executeCanvasTerminalCommand(
       return {
         logEntry: makeLog(
           "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
+          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], list-alignment-marks, align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>, align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
           trimmed,
         ),
       };
@@ -329,6 +343,83 @@ export function executeCanvasTerminalCommand(
           `snapped ${selected.frame.id} to ${target.datumId} (${target.datumKind === "point" ? "center" : target.anchor})`,
           trimmed,
         ),
+      };
+    }
+
+    if (commandName === "list-alignment-marks") {
+      return {
+        logEntry: makeLog("info", getAlignmentMarkList(context.document), trimmed),
+      };
+    }
+
+    if (commandName === "align-by-mark") {
+      const sourceObjectId = tokens[1];
+      const sourceMarkId = tokens[2];
+      const targetObjectId = tokens[3];
+      const targetMarkId = tokens[4];
+      if (!sourceObjectId || !sourceMarkId || !targetObjectId || !targetMarkId) {
+        throw new Error(
+          "align-by-mark requires sourceObjectId, sourceMarkId, targetObjectId, and targetMarkId.",
+        );
+      }
+      const preview = alignObjectByGuideMarks(context.document, {
+        sourceObjectId,
+        sourceMarkId,
+        targetObjectId,
+        targetMarkId,
+      });
+      if (!preview.ok) {
+        return {
+          logEntry: makeLog("error", preview.message, trimmed),
+        };
+      }
+      return {
+        commands: [
+          {
+            kind: "alignObjectByGuideMarks",
+            sourceObjectId,
+            sourceMarkId,
+            targetObjectId,
+            targetMarkId,
+          },
+        ],
+        logEntry: makeLog(preview.ok ? "success" : "error", preview.message, trimmed),
+      };
+    }
+
+    if (commandName === "align-selected-by-mark") {
+      const sourceObjectId = context.document.selectedObjectId;
+      const sourceMarkId = tokens[1];
+      const targetObjectId = tokens[2];
+      const targetMarkId = tokens[3];
+      if (!sourceObjectId) throw new Error("Select an object first.");
+      if (!sourceMarkId || !targetObjectId || !targetMarkId) {
+        throw new Error(
+          "align-selected-by-mark requires sourceMarkId, targetObjectId, and targetMarkId.",
+        );
+      }
+      const preview = alignObjectByGuideMarks(context.document, {
+        sourceObjectId,
+        sourceMarkId,
+        targetObjectId,
+        targetMarkId,
+      });
+      if (!preview.ok) {
+        return {
+          logEntry: makeLog("error", preview.message, trimmed),
+        };
+      }
+      return {
+        commands: [
+          {
+            kind: "alignObjectByGuideMarks",
+            sourceObjectId,
+            sourceMarkId,
+            targetObjectId,
+            targetMarkId,
+          },
+        ],
+        logEntry: makeLog(preview.ok ? "success" : "error", preview.message, trimmed),
       };
     }
 

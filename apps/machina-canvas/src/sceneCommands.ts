@@ -12,6 +12,12 @@ import {
   collectGuideRegionDiagnosticsForSpriteSidecar,
   findGuideRegionForSpriteFrame,
 } from "./spriteGuideRegions";
+import {
+  computeGuideAlignmentTranslation,
+  resolveGuideAlignmentMarks,
+  type GuideAlignmentTranslation,
+  type ResolvedGuideAlignmentMark,
+} from "./guideAlignment";
 import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type {
@@ -78,6 +84,15 @@ export type CanvasCommand =
       id: string;
       prop: string;
       value: CanvasUiPropValue;
+    }
+  | {
+      kind: "alignObjectByGuideMarks";
+      sourceObjectId: string;
+      sourceMarkId: string;
+      targetObjectId: string;
+      targetMarkId: string;
+      sourceGuideSidecarId?: string;
+      targetGuideSidecarId?: string;
     }
   | {
       kind: "addImageObject";
@@ -245,6 +260,13 @@ export type CanvasCommandApplyResult = {
   command: CanvasCommand;
   changes: CanvasCommandChange[];
   message: string;
+};
+
+export type AlignObjectByGuideMarksResult = {
+  readonly document: CanvasDocument;
+  readonly ok: boolean;
+  readonly message: string;
+  readonly translation?: GuideAlignmentTranslation;
 };
 
 const alignAxes = new Set(["left", "centerX", "right", "top", "centerY", "bottom"]);
@@ -1078,6 +1100,58 @@ function validateSetUiPropCommand(
   }
 }
 
+function validateGuideAlignmentCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  command: Record<string, unknown>,
+  commandIndex: number | undefined,
+) {
+  validateObjectId(document, diagnostics, command.sourceObjectId, commandIndex, "sourceObjectId");
+  validateObjectId(document, diagnostics, command.targetObjectId, commandIndex, "targetObjectId");
+  if (!isString(command.sourceMarkId) || command.sourceMarkId.trim().length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCommand",
+      message: "sourceMarkId must be a non-empty string.",
+      commandIndex,
+    });
+  }
+  if (!isString(command.targetMarkId) || command.targetMarkId.trim().length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidCommand",
+      message: "targetMarkId must be a non-empty string.",
+      commandIndex,
+    });
+  }
+  if (
+    command.sourceGuideSidecarId !== undefined &&
+    (!isString(command.sourceGuideSidecarId) ||
+      document.objects[command.sourceGuideSidecarId]?.kind !== "guideSidecar")
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGuideSidecarRelation",
+      message: "sourceGuideSidecarId must reference a guide sidecar when present.",
+      commandIndex,
+      objectId: isString(command.sourceGuideSidecarId) ? command.sourceGuideSidecarId : undefined,
+    });
+  }
+  if (
+    command.targetGuideSidecarId !== undefined &&
+    (!isString(command.targetGuideSidecarId) ||
+      document.objects[command.targetGuideSidecarId]?.kind !== "guideSidecar")
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidGuideSidecarRelation",
+      message: "targetGuideSidecarId must reference a guide sidecar when present.",
+      commandIndex,
+      objectId: isString(command.targetGuideSidecarId) ? command.targetGuideSidecarId : undefined,
+    });
+  }
+}
+
 function validateDetachAlphaMapCommand(
   document: CanvasDocument,
   diagnostics: CanvasCommandValidationDiagnostic[],
@@ -1341,6 +1415,9 @@ export function validateCanvasCommand(
       break;
     case "setUiProp":
       validateSetUiPropCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "alignObjectByGuideMarks":
+      validateGuideAlignmentCommand(document, diagnostics, command, commandIndex);
       break;
     case "addImageObject":
       validateAddImageObjectCommand(document, diagnostics, command.object, commandIndex);
@@ -1699,6 +1776,26 @@ function applyObjectPosition(
   return replaceObject(document, object.id, { ...object, x, y });
 }
 
+function isGuideAlignmentMovableObject(object: CanvasObject): object is ImageObject {
+  return object.kind === "image" && (object.role === undefined || object.role === "image");
+}
+
+function findGuideAlignmentMark(
+  marks: readonly ResolvedGuideAlignmentMark[],
+  input: {
+    readonly objectId: string;
+    readonly markId: string;
+    readonly guideSidecarId?: string;
+  },
+) {
+  return marks.filter(
+    (mark) =>
+      mark.targetObjectId === input.objectId &&
+      mark.markId === input.markId &&
+      (input.guideSidecarId === undefined || mark.guideSidecarId === input.guideSidecarId),
+  );
+}
+
 function applyAlignCommand(
   document: CanvasDocument,
   command: Extract<CanvasCommand, { kind: "align" }>,
@@ -1792,6 +1889,11 @@ function applyDistributeCommand(
 }
 
 function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
+  if (command.kind === "alignObjectByGuideMarks") {
+    return changes.length === 0
+      ? `GuideAlignmentNoop: ${command.sourceObjectId} was already aligned to ${command.targetObjectId}.`
+      : `Aligned ${command.sourceObjectId} to ${command.targetObjectId} by guide marks.`;
+  }
   if (command.kind === "addImageObject") {
     return changes.length === 0
       ? `Image object ${command.object.id} was already present.`
@@ -1929,6 +2031,108 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
   return `${command.kind} changed ${changes.length} field${changes.length === 1 ? "" : "s"} on ${objectCount} object${objectCount === 1 ? "" : "s"}.`;
 }
 
+export function alignObjectByGuideMarks(
+  scene: CanvasDocument,
+  input: {
+    readonly sourceObjectId: string;
+    readonly sourceMarkId: string;
+    readonly targetObjectId: string;
+    readonly targetMarkId: string;
+    readonly sourceGuideSidecarId?: string;
+    readonly targetGuideSidecarId?: string;
+  },
+): AlignObjectByGuideMarksResult {
+  const sourceObject = scene.objects[input.sourceObjectId];
+  if (!sourceObject) {
+    return {
+      document: scene,
+      ok: false,
+      message: `Source object "${input.sourceObjectId}" does not exist.`,
+    };
+  }
+  const sourceImageObject = sourceObject.kind === "image" ? sourceObject : undefined;
+  if (!isGuideAlignmentMovableObject(sourceObject)) {
+    const message =
+      sourceImageObject &&
+      (sourceImageObject.role === "alphaMap" || sourceImageObject.role === "mask")
+        ? "UnsupportedGuideAlignmentTransform: alpha masks still render using the parent image transform."
+        : `UnsupportedGuideAlignmentTransform: ${sourceObject.kind} objects do not have an independent rendered transform for guide alignment.`;
+    return { document: scene, ok: false, message };
+  }
+  if (!scene.objects[input.targetObjectId]) {
+    return {
+      document: scene,
+      ok: false,
+      message: `Target object "${input.targetObjectId}" does not exist.`,
+    };
+  }
+
+  const resolvedMarks = resolveGuideAlignmentMarks(scene);
+  const sourceMarks = findGuideAlignmentMark(resolvedMarks, {
+    objectId: input.sourceObjectId,
+    markId: input.sourceMarkId,
+    guideSidecarId: input.sourceGuideSidecarId,
+  });
+  if (sourceMarks.length === 0) {
+    return {
+      document: scene,
+      ok: false,
+      message: `MissingGuideAlignmentMark: source mark "${input.sourceMarkId}" was not found for "${input.sourceObjectId}".`,
+    };
+  }
+  if (sourceMarks.length > 1) {
+    return {
+      document: scene,
+      ok: false,
+      message: `AmbiguousGuideAlignmentMark: source mark "${input.sourceMarkId}" is ambiguous for "${input.sourceObjectId}".`,
+    };
+  }
+
+  const targetMarks = findGuideAlignmentMark(resolvedMarks, {
+    objectId: input.targetObjectId,
+    markId: input.targetMarkId,
+    guideSidecarId: input.targetGuideSidecarId,
+  });
+  if (targetMarks.length === 0) {
+    return {
+      document: scene,
+      ok: false,
+      message: `MissingGuideAlignmentMark: target mark "${input.targetMarkId}" was not found for "${input.targetObjectId}".`,
+    };
+  }
+  if (targetMarks.length > 1) {
+    return {
+      document: scene,
+      ok: false,
+      message: `AmbiguousGuideAlignmentMark: target mark "${input.targetMarkId}" is ambiguous for "${input.targetObjectId}".`,
+    };
+  }
+
+  const translation = computeGuideAlignmentTranslation({
+    sourceMark: sourceMarks[0],
+    targetMark: targetMarks[0],
+  });
+  if (translation.dx === 0 && translation.dy === 0) {
+    return {
+      document: scene,
+      ok: true,
+      message: `GuideAlignmentNoop: ${input.sourceObjectId} is already aligned to ${input.targetObjectId}.`,
+      translation,
+    };
+  }
+
+  return {
+    document: replaceObject(scene, sourceObject.id, {
+      ...sourceObject,
+      x: sourceObject.x + translation.dx,
+      y: sourceObject.y + translation.dy,
+    }),
+    ok: true,
+    message: `Aligned ${input.sourceObjectId} by dx=${translation.dx}, dy=${translation.dy}.`,
+    translation,
+  };
+}
+
 export function applyCanvasCommand(
   document: CanvasDocument,
   command: CanvasCommand,
@@ -1936,6 +2140,28 @@ export function applyCanvasCommand(
 ): CanvasCommandApplyResult {
   const changes: CanvasCommandChange[] = [];
   let nextDocument = document;
+
+  if (command.kind === "alignObjectByGuideMarks") {
+    const result = alignObjectByGuideMarks(document, command);
+    if (!result.ok) {
+      return { document, command, changes, message: result.message };
+    }
+    const object = document.objects[command.sourceObjectId];
+    const moved = result.document.objects[command.sourceObjectId];
+    if (object && moved) {
+      changeField(changes, object, "x", moved.x);
+      changeField(changes, object, "y", moved.y);
+    }
+    return {
+      document: result.document,
+      command,
+      changes,
+      message:
+        changes.length === 0
+          ? result.message
+          : `${result.message} (${messageFor(command, changes)})`,
+    };
+  }
 
   if (command.kind === "addImageObject") {
     if (document.objects[command.object.id] !== undefined) {

@@ -1,4 +1,5 @@
 import type { CanvasDocument, CanvasObject } from "./sceneModel";
+import { validateGuideAlignmentMarks } from "./guideAlignment";
 
 export type GeometryDiagnostic = {
   severity: "info" | "warning";
@@ -30,6 +31,7 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
   const selected = document.selectedObjectId
     ? document.objects[document.selectedObjectId]
     : undefined;
+  const guideAlignmentDiagnostics = validateGuideAlignmentMarks(document);
 
   for (const object of Object.values(document.objects)) {
     if (object.width < 0 || object.height < 0) {
@@ -209,6 +211,22 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
             objectIds: [object.id],
           });
         }
+      }
+
+      for (const diagnostic of guideAlignmentDiagnostics.filter((entry) =>
+        object.guide.alignmentMarks.some((mark) => mark.id === entry.alignmentMarkId),
+      )) {
+        diagnostics.push({
+          severity:
+            diagnostic.severity === "error"
+              ? "warning"
+              : diagnostic.severity === "note"
+                ? "info"
+                : diagnostic.severity,
+          code: diagnostic.code,
+          message: diagnostic.message,
+          objectIds: [object.id],
+        });
       }
     }
   }
