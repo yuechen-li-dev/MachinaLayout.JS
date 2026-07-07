@@ -8,6 +8,9 @@ import {
   type SpriteFrameDatumAnchor,
 } from "./spriteGuideDatums";
 
+const CANVAS_TERMINAL_HELP =
+  "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], list-alignment-marks, align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>, align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear";
+
 export type CanvasTerminalLogEntry = {
   readonly kind: "info" | "success" | "error";
   readonly command?: string;
@@ -139,11 +142,7 @@ export function executeCanvasTerminalCommand(
   try {
     if (commandName === "help") {
       return {
-        logEntry: makeLog(
-          "info",
-          "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], list-alignment-marks, align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>, align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear",
-          trimmed,
-        ),
+        logEntry: makeLog("info", CANVAS_TERMINAL_HELP, trimmed),
       };
     }
 

@@ -175,6 +175,10 @@ describe("MachinaCanvas workflow API", () => {
 
     expect(result.kind).toBe("ok");
     expect(result.logs.map((entry) => entry.level)).toEqual(["info", "info", "success"]);
+    expect(result.logs[0]?.message).toContain('Starting workflow "happy path" in /tmp/workflow.');
+    expect(result.logs.at(-1)?.message).toContain(
+      'Completed workflow "happy path" with 1 artifact.',
+    );
     expect(result.artifacts).toEqual([
       { kind: "note", path: "artifact.txt", description: undefined },
     ]);
@@ -192,6 +196,7 @@ describe("MachinaCanvas workflow API", () => {
     expect(result.kind).toBe("err");
     expect(result.error).toBe("workflow exploded");
     expect(result.logs.at(-1)?.level).toBe("error");
+    expect(result.logs.at(-1)?.message).toContain('Workflow "broken" failed in /tmp/workflow');
   });
 
   it("creates manifests with logs and artifacts", () => {
@@ -287,6 +292,7 @@ describe("MachinaCanvas workflow API", () => {
     expect(script).toContain('from "../src/canvasWorkflow"');
     expect(script).toContain("runCanvasWorkflow");
     expect(script).toContain("createCanvasWorkflowManifest");
+    expect(script).toContain("Wrote guide authoring TOML");
   });
 
   it("keeps the browser-safe workflow core free of node imports", () => {

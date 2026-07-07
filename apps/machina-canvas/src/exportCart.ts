@@ -109,7 +109,8 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
   {
     id: "sprite-handoff",
     title: "Sprite handoff",
-    description: "Sidecars, audit metadata, and handoff contracts for sprite-import workflows.",
+    description:
+      "Runtime-facing sprite exports: compiled sprite TOML, compile/audit reports, diagnostics, and handoff metadata.",
     artifactKinds: [
       "spriteToml",
       "spriteAudit",
@@ -123,13 +124,14 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
   {
     id: "visual-review",
     title: "Visual review",
-    description: "Rendered artifacts and reports for human review.",
+    description: "Rendered previews and reports for human review instead of runtime import.",
     artifactKinds: ["renderSvg", "renderPng", "diagnostics", "spriteAudit"],
   },
   {
     id: "full-archive",
     title: "Full archive",
-    description: "Source, sidecars, reports, and rendered artifacts for a complete handoff.",
+    description:
+      "Broad source + runtime archive: authoring guide TOML, compiled sprite TOML, reports, and rendered artifacts.",
     artifactKinds: [
       "documentJson",
       "handoffToml",
@@ -148,7 +150,8 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
   {
     id: "source-checkpoint",
     title: "Source checkpoint",
-    description: "Work-in-progress state you can checkpoint without implying final delivery.",
+    description:
+      "Work-in-progress editor state for resuming later, not a runtime/export deliverable.",
     artifactKinds: ["checkpoint", "documentJson"],
   },
 ] as const;
@@ -382,7 +385,7 @@ export function createCanvasCheckpointArtifact(input: {
     id: "checkpoint",
     kind: "checkpoint",
     title: "Checkpoint",
-    description: "Work-in-progress editor state for resuming canvas edits later.",
+    description: "Work-in-progress editor state for resuming later. Not a runtime/export artifact.",
     filename,
     selectedByDefault: false,
     group: "source",
@@ -519,8 +522,8 @@ export function collectCanvasExportArtifacts(input: {
         title: "Guide TOML (authoring)",
         description:
           target?.kind === "image"
-            ? `Authoring guide IR. Regions/datums/dimensions/alignment marks for ${target.name}.`
-            : "Authoring guide / constraint IR awaiting image attachment.",
+            ? `Authoring guide IR for ${target.name}: regions, datums, dimensions, and alignment marks used only in the editor/source workflow.`
+            : "Authoring guide IR awaiting image attachment. Guide regions and datums do not export into runtime sprite TOML.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,
@@ -536,8 +539,8 @@ export function collectCanvasExportArtifacts(input: {
       kind: "spriteToml",
       title: "Compiled sprite TOML",
       description: image
-        ? `Runtime sprite metadata compiled from current sidecar and guide authoring data for ${image.name}.`
-        : "Sprite sidecar TOML awaiting image attachment.",
+        ? `Runtime target for ${image.name}, compiled from the current sprite sidecar plus guide authoring data and safe for import/handoff pipelines.`
+        : "Runtime sprite TOML awaiting image attachment.",
       filename: getObjectAssetFilename(object),
       selectedByDefault: false,
       sourceObjectId: object.id,
@@ -554,8 +557,8 @@ export function collectCanvasExportArtifacts(input: {
       kind: "other",
       title: "Sprite TOML (authoring source)",
       description: image
-        ? `Source sprite sidecar for ${image.name}, preserving current authoring-side metadata and legacy backcompat fields.`
-        : "Source sprite sidecar TOML awaiting image attachment.",
+        ? `Authoring/source sprite sidecar for ${image.name}, preserving editor-facing metadata and legacy backcompat fields before runtime compile.`
+        : "Authoring/source sprite sidecar TOML awaiting image attachment.",
       filename: `objects/${sanitizePathId(object.id)}.source.sprite.toml`,
       selectedByDefault: false,
       sourceObjectId: object.id,
@@ -569,7 +572,7 @@ export function collectCanvasExportArtifacts(input: {
       id: `sprite-compile-report:${object.id}`,
       kind: "spriteCompileReport",
       title: "Sprite compile report",
-      description: `How runtime sprite TOML was compiled for ${image.name}, including generated frames and authored overrides.`,
+      description: `How the runtime sprite TOML for ${image.name} was produced, including generated frames, preserved authored cuts, and overrides.`,
       filename: `reports/${sanitizePathId(object.id)}-sprite-compile.md`,
       selectedByDefault: true,
       sourceObjectId: object.id,
@@ -588,7 +591,7 @@ export function collectCanvasExportArtifacts(input: {
       id: `sprite-audit:${object.id}`,
       kind: "spriteAudit",
       title: `${object.name} audit report`,
-      description: `Audit findings and suggested fixes for the sprite sidecar attached to ${image.name}.`,
+      description: `Geometry/cut quality audit for the sprite sidecar attached to ${image.name}, with findings and suggested fixes.`,
       filename: `reports/${sanitizePathId(object.id)}-sprite-audit.md`,
       selectedByDefault: true,
       sourceObjectId: object.id,

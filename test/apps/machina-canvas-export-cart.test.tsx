@@ -155,7 +155,7 @@ describe("MachinaCanvas export cart", () => {
     expect(artifacts.some((artifact) => artifact.kind === "spriteToml")).toBe(true);
     expect(artifacts.some((artifact) => artifact.kind === "spriteAudit")).toBe(true);
     expect(artifacts.find((artifact) => artifact.kind === "spriteToml")?.description).toContain(
-      "Runtime sprite metadata compiled",
+      "Runtime target",
     );
   });
 
@@ -382,6 +382,7 @@ describe("ExportCartPanel", () => {
     expect(screen.getByText("Export cart")).toBeInTheDocument();
     expect(screen.getByText("Document index")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save checkpoint" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Checkout selected" })).toBeInTheDocument();
   });
 
   it("applies presets, toggles artifacts, and triggers checkout", () => {
@@ -405,7 +406,7 @@ describe("ExportCartPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Sprite handoff/i }));
     fireEvent.click(screen.getByLabelText(/Handoff contract/i));
-    fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
+    fireEvent.click(screen.getByRole("button", { name: "Checkout selected" }));
 
     expect(onApplyPreset).toHaveBeenCalledWith("sprite-handoff");
     expect(onToggleArtifact).toHaveBeenCalledWith("handoff-toml");

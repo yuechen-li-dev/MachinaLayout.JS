@@ -285,6 +285,10 @@ describe("MachinaCanvas layer tree", () => {
       "SPRITE",
       "SKETCH",
     ]);
+    expect(imageItem?.children?.[1]?.subtitle).toContain(
+      "authoring guide for tinytown_sprite_alpha.png",
+    );
+    expect(imageItem?.children?.[2]?.subtitle).toContain("attached to tinytown_sprite_alpha.png");
   });
 
   it("places unattached sprite sidecars under Unattached Sidecars", () => {

@@ -116,11 +116,19 @@ Supported commands:
 - `list-datums`
 - `snap-frame <anchor> [datumId]`
 - `snap-frame-nearest [anchor]`
+- `list-alignment-marks`
+- `align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>`
+- `align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>`
 - `overlay-mode <focus|cutEdit|gridEdit|audit|debug>`
 - `toggle-sprite-overlay`
 - `toggle-sprite-labels`
 - `toggle-selected-only`
 - `export-summary`
+- `export-preset <presetId>`
+- `export-select <artifactId>`
+- `export-unselect <artifactId>`
+- `export-checkout`
+- `checkpoint [message...]`
 - `clear`
 
 ## Command JSON Workflow
@@ -491,7 +499,7 @@ The Export cart keeps checkpointing and handoff separate:
 
 - `Save checkpoint` downloads a browser-local checkpoint JSON for the current
   editable scene, active mode, and current selection.
-- `Export selected` checks out external deliverables such as `render.svg`,
+- `Checkout selected` checks out external deliverables such as `render.svg`,
   `render.png`, `document.json`, `handoff.toml`, sidecars, reports, and TSX
   lowerings when those artifacts are available in the current scene.
 
@@ -499,8 +507,8 @@ Presets are selection helpers, not locks:
 
 - `Sprite handoff` selects compiled runtime sprite TOML, sprite audit reports,
   sprite compile reports, diagnostics, `handoff.toml`, and overlay review
-  artifacts. Guide sidecars stay optional here because they are authoring IR,
-  not runtime metadata.
+  artifacts. Guide sidecars stay optional here because `*.guide.toml` is
+  authoring IR, not runtime metadata.
 - `Visual review` selects rendered SVG/PNG artifacts plus diagnostics and sprite
   audit output when present.
 - `Full archive` selects source indexes, handoff contracts, compiled runtime
@@ -508,6 +516,14 @@ Presets are selection helpers, not locks:
   rendered artifacts for a broad handoff bundle.
 - `Source checkpoint` selects the checkpoint artifact plus source-oriented scene
   files for work-in-progress capture.
+
+Artifact wording follows the runtime/authoring split:
+
+- `Compiled sprite TOML` is the runtime target for import pipelines and runtime consumers.
+- `Guide TOML (authoring)` is editor/source IR with regions, datums, dimensions, and alignment marks.
+- `Sprite compile report` explains how the runtime TOML was produced.
+- `Sprite audit report` explains cut quality and review findings.
+- `Checkpoint` is editor WIP state for resuming later, not a runtime export.
 
 Multi-artifact checkout also writes an `export-manifest.json` file that lists
 the selected artifact IDs, kinds, filenames, and source-object links. This is

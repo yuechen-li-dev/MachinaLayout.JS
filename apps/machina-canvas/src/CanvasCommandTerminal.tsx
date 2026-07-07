@@ -40,7 +40,9 @@ export function CanvasCommandTerminal({
         <>
           <div aria-label="Terminal log" className="command-terminal__log" role="log">
             {recentLog.length === 0 ? (
-              <p className="empty-note">No terminal commands yet.</p>
+              <p className="empty-note">
+                No terminal commands yet. Run `help` for the current editor command list.
+              </p>
             ) : (
               recentLog.map((entry, index) => (
                 <article
@@ -60,7 +62,7 @@ export function CanvasCommandTerminal({
               aria-label="Command input"
               className="command-terminal__input"
               onChange={(event) => onChangeInput(event.currentTarget.value)}
-              placeholder="help"
+              placeholder="help, export-summary, checkpoint before audit"
               type="text"
               value={inputValue}
             />

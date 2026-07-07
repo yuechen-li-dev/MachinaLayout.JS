@@ -350,10 +350,13 @@ export async function runCanvasWorkflow(
   },
 ): Promise<CanvasWorkflowResult> {
   const context = createCanvasWorkflowContext(options);
-  context.log("info", `Starting workflow "${name}".`);
+  context.log("info", `Starting workflow "${name}" in ${context.cwd}.`);
   try {
     await workflow(context);
-    context.log("success", `Completed workflow "${name}".`);
+    context.log(
+      "success",
+      `Completed workflow "${name}" with ${context.artifacts.length} artifact${context.artifacts.length === 1 ? "" : "s"}.`,
+    );
     return {
       kind: "ok",
       logs: [...context.logs],
@@ -361,7 +364,7 @@ export async function runCanvasWorkflow(
     };
   } catch (error) {
     const message = formatWorkflowError(error);
-    context.log("error", `Workflow "${name}" failed: ${message}`);
+    context.log("error", `Workflow "${name}" failed in ${context.cwd}: ${message}`);
     return {
       kind: "err",
       logs: [...context.logs],

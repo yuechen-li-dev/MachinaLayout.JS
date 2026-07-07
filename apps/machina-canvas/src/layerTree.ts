@@ -247,9 +247,10 @@ function makeAttachmentItem(
   ownerImageId: string,
 ): CanvasLayerTreeItem {
   const owner = scene.objects[ownerImageId];
+  const baseSubtitle = getObjectSubtitle(object);
   const relationText =
     relation === "alphaMap"
-      ? "attached alpha"
+      ? `attached alpha for ${getDisplayTitle(owner ?? object)}`
       : relation === "guideSidecar"
         ? `authoring guide for ${getDisplayTitle(owner ?? object)}`
         : relation === "spriteSidecar"
@@ -266,7 +267,7 @@ function makeAttachmentItem(
     kind: "attachment",
     objectId: object.id,
     title: getDisplayTitle(object),
-    subtitle: getObjectSubtitle(object) ?? relationText,
+    subtitle: baseSubtitle ? `${baseSubtitle} · ${relationText}` : relationText,
     badge: getObjectBadge(object),
     warning,
     selected: scene.selectedObjectId === object.id,

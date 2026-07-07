@@ -75,6 +75,24 @@ function invariant(condition: unknown, message: string): asserts condition {
   }
 }
 
+function readRequiredTextFile(path: string, label: string): string {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Missing ${label} at ${path}: ${reason}`);
+  }
+}
+
+function assertReadableFile(path: string, label: string): void {
+  try {
+    readFileSync(path);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Missing ${label} at ${path}: ${reason}`);
+  }
+}
+
 function asTable(value: unknown): TomlTable | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as TomlTable)
@@ -645,10 +663,16 @@ export function generateTinyTownSpriteArtifacts(): TinyTownArtifacts {
     "TinyTown source paths are not configured.",
   );
 
-  const sourceSpriteToml = readFileSync(sourceSpriteTomlPath, "utf8");
-  const sourceSpriteforgeToml = readFileSync(sourceSpriteforgeTomlPath, "utf8");
-  readFileSync(sourceImagePath);
-  readFileSync(fixtureImagePath);
+  const sourceSpriteToml = readRequiredTextFile(
+    sourceSpriteTomlPath,
+    "TinyTown runtime sprite TOML",
+  );
+  const sourceSpriteforgeToml = readRequiredTextFile(
+    sourceSpriteforgeTomlPath,
+    "TinyTown SpriteForge TOML",
+  );
+  assertReadableFile(sourceImagePath, "TinyTown atlas PNG");
+  assertReadableFile(fixtureImagePath, "MachinaCanvas TinyTown fixture image");
 
   const sourceSpec = parseSpriteSidecarToml(sourceSpriteToml, {
     id: "tinytown-source",

@@ -21,3 +21,4 @@ tmp/
 .env
 *.tsbuildinfo
 apps/**/vite-dev*.log
+apps/**/.codex-temp/

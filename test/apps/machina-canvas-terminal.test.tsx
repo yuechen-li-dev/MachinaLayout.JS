@@ -134,10 +134,12 @@ function applyTerminal(input: string, document: CanvasDocument) {
 
 describe("MachinaCanvas terminal commands", () => {
   it("returns the help command list", () => {
-    expect(
-      executeCanvasTerminalCommand("help", { document: createTerminalDocument() }).logEntry
-        ?.message,
-    ).toContain("select-frame|sf");
+    const message = executeCanvasTerminalCommand("help", {
+      document: createTerminalDocument(),
+    }).logEntry?.message;
+    expect(message).toContain("select-frame|sf");
+    expect(message).toContain("export-checkout");
+    expect(message).toContain("list-alignment-marks");
   });
 
   it("reports scene summary", () => {
@@ -371,5 +373,26 @@ describe("CanvasCommandTerminal UI", () => {
       screen.getByRole("button", { name: "Run" }).closest("form") as HTMLFormElement,
     );
     expect(onSubmitCommand).toHaveBeenCalledWith("help");
+  });
+
+  it("shows a help-oriented empty state when expanded with no log entries", () => {
+    render(
+      <CanvasCommandTerminal
+        collapsed={false}
+        inputValue=""
+        log={[]}
+        onChangeInput={() => undefined}
+        onSubmitCommand={() => undefined}
+        onToggleCollapsed={() => undefined}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Run `help` for the current editor command list\./),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Command input")).toHaveAttribute(
+      "placeholder",
+      "help, export-summary, checkpoint before audit",
+    );
   });
 });

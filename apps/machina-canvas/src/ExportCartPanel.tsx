@@ -70,10 +70,10 @@ export function ExportCartPanel({
       <div className="export-cart-panel__intro">
         <h4>Export cart</h4>
         <p>
-          Export is a cart: choose a preset or individual artifacts, then checkout the bundle you
-          need.
+          Export is a cart: choose a preset or individual artifacts, then check out the bundle you
+          actually need.
         </p>
-        <p>Checkpoint your work. Checkout your artifacts.</p>
+        <p>Checkpoint keeps editor state. Export checkout produces handoff artifacts.</p>
       </div>
 
       <ul className="export-cart-presets" aria-label="Export presets">
@@ -128,7 +128,7 @@ export function ExportCartPanel({
 
       <div className="export-cart-actions">
         <button type="button" onClick={onCheckout} disabled={cart.selectedArtifactIds.length === 0}>
-          Export selected
+          Checkout selected
         </button>
       </div>
 
