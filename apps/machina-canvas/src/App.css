@@ -450,6 +450,10 @@ button {
   background: #e6f6f2;
 }
 
+.kind-guide {
+  background: #eef7ea;
+}
+
 .canvas-panel {
   display: flex;
   flex-direction: column;
@@ -689,6 +693,10 @@ button {
   pointer-events: none;
 }
 
+.canvas-guide-overlay {
+  pointer-events: none;
+}
+
 .canvas-sketch-box,
 .canvas-sketch-line,
 .canvas-sketch-point,
@@ -826,6 +834,45 @@ button {
 
 .canvas-sprite-label-chip.sprite-frame-label--audit {
   opacity: 0.92;
+}
+
+.canvas-guide-region,
+.canvas-guide-grid,
+.canvas-guide-datum,
+.canvas-guide-dimension,
+.canvas-guide-mark,
+.canvas-guide-label {
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-guide-region,
+.canvas-guide-grid,
+.canvas-guide-datum,
+.canvas-guide-dimension,
+.canvas-guide-mark {
+  stroke-width: 2px;
+}
+
+.canvas-guide-grid {
+  opacity: 0.55;
+}
+
+.canvas-guide-datum {
+  stroke-dasharray: 6 4;
+  opacity: 0.8;
+}
+
+.canvas-guide-dimension {
+  stroke-dasharray: 3 3;
+}
+
+.canvas-guide-label {
+  fill: #243d1a;
+  font-size: 11px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 3px;
 }
 
 .reference-grid-border,

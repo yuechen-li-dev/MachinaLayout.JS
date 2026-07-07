@@ -16,6 +16,7 @@ export type CanvasExportValidationDiagnosticCode =
   | "InvalidCompositeRelation"
   | "InvalidSketchOverlayRelation"
   | "InvalidSpriteSidecarRelation"
+  | "InvalidGuideSidecarRelation"
   | "MissingCompositeMask"
   | "MissingCommandRecipe"
   | "EmptyExportBundle";
@@ -67,6 +68,7 @@ type DocumentIndex = {
     alphaId?: string;
     overlayId?: string;
     sidecarId?: string;
+    guideId?: string;
   }>;
 };
 
@@ -132,12 +134,14 @@ function readDocumentIndex(value: unknown): DocumentIndex | undefined {
         return undefined;
       if (relation.sidecarId !== undefined && typeof relation.sidecarId !== "string")
         return undefined;
+      if (relation.guideId !== undefined && typeof relation.guideId !== "string") return undefined;
       relations.push({
         kind: relation.kind,
         sourceId: relation.sourceId,
         alphaId: relation.alphaId,
         overlayId: relation.overlayId,
         sidecarId: relation.sidecarId,
+        guideId: relation.guideId,
       });
     }
   }
@@ -337,7 +341,8 @@ export function validateCanvasExportBundle(
     for (const path of [...paths]
       .filter(
         (path) =>
-          path.startsWith("objects/") && (path.endsWith(".toml") || path.endsWith(".sketch.toml")),
+          path.startsWith("objects/") &&
+          (path.endsWith(".toml") || path.endsWith(".sketch.toml") || path.endsWith(".guide.toml")),
       )
       .sort()) {
       const owner = Object.entries(documentIndex.objects).find(
@@ -506,6 +511,48 @@ export function validateCanvasExportBundle(
             path: "document.json",
             objectId: sidecarId,
             message: `spriteSidecarFor sidecar ${sidecarId} must be a spriteSidecar object.`,
+          });
+        }
+      }
+
+      if (relation.kind === "guideSidecarFor") {
+        const guideId = relation.guideId;
+        const source = documentIndex.objects[relation.sourceId];
+        const guide = guideId ? documentIndex.objects[guideId] : undefined;
+
+        if (source === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidGuideSidecarRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `guideSidecarFor source ${relation.sourceId} is not present in document.json.`,
+          });
+        } else if (source.kind !== "image") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidGuideSidecarRelation",
+            path: "document.json",
+            objectId: relation.sourceId,
+            message: `guideSidecarFor source ${relation.sourceId} must be an image object.`,
+          });
+        }
+
+        if (guideId === undefined || guide === undefined) {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidGuideSidecarRelation",
+            path: "document.json",
+            objectId: guideId,
+            message: `guideSidecarFor guide ${guideId} is not present in document.json.`,
+          });
+        } else if (guide.kind !== "guideSidecar") {
+          diagnostics.push({
+            severity: "error",
+            code: "InvalidGuideSidecarRelation",
+            path: "document.json",
+            objectId: guideId,
+            message: `guideSidecarFor guide ${guideId} must be a guideSidecar object.`,
           });
         }
       }

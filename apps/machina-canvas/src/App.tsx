@@ -62,6 +62,7 @@ import {
   addObjectToLayerGroup,
   applyCanvasCommands,
   attachAlphaMapToImage,
+  attachGuideSidecarToImage,
   attachSketchOverlayToImage,
   attachSpriteSidecarToImage,
   createLayerGroup,
@@ -83,6 +84,12 @@ import {
 } from "./editorModes";
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
+import {
+  createGuideSidecarObject,
+  createUnattachedGuideSidecarObject,
+  parseGuideSidecarToml,
+  validateGuideSidecar,
+} from "./guideSidecar";
 import { resolveSketchSpec } from "./sketchOverlay";
 import { createSketchOverlayObject, parseSketchOverlayToml } from "./sketchOverlay";
 import {
@@ -123,6 +130,7 @@ import type {
   CanvasObject,
   CanvasObjectKind,
   CanvasSpriteFrame,
+  GuideSidecarObject,
   ImageObject,
   SpriteSidecarObject,
   TextObject,
@@ -170,6 +178,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   uiComponent: "UI Component",
   sketchOverlay: "Sketch Overlay",
   spriteSidecar: "Sprite Sidecar",
+  guideSidecar: "Guide Sidecar",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -187,12 +196,16 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   setUiProp: "Set UI prop",
   addImageObject: "Add image object",
   addSpriteSidecarObject: "Add sprite sidecar",
+  addGuideSidecarObject: "Add guide sidecar",
   removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
   detachAlphaMap: "Detach alpha map",
   attachSketchOverlay: "Attach sketch overlay",
   detachSketchOverlay: "Detach sketch overlay",
   setSketchOverlayVisible: "Set sketch overlay visible",
+  attachGuideSidecar: "Attach guide sidecar",
+  detachGuideSidecar: "Detach guide sidecar",
+  setGuideSidecarVisible: "Set guide sidecar visible",
   attachSpriteSidecar: "Attach sprite sidecar",
   detachSpriteSidecar: "Detach sprite sidecar",
   setSpriteSidecarVisible: "Set sprite sidecar visible",
@@ -345,6 +358,10 @@ type AppViewData = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void>;
+  loadGuideSidecarFile: (
+    file: File,
+    options?: { targetId?: string; groupId?: string },
+  ) => Promise<void>;
   loadSpriteSidecarFile: (
     file: File,
     options?: { targetId?: string; groupId?: string },
@@ -424,6 +441,11 @@ function getOwnerImageForSelection(
     const target = targetId ? document.objects[targetId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
+  if (object.kind === "guideSidecar") {
+    const targetId = object.targetId ?? object.guide.target;
+    const target = targetId ? document.objects[targetId] : undefined;
+    return target?.kind === "image" ? target : undefined;
+  }
   if (object.kind === "image" && (object.role === "alphaMap" || object.role === "mask")) {
     return Object.values(document.objects).find(
       (candidate): candidate is ImageObject =>
@@ -463,6 +485,7 @@ function getKindClass(object: CanvasObject): string {
     uiComponent: () => "kind-ui",
     sketchOverlay: () => "kind-sketch",
     spriteSidecar: () => "kind-sprite",
+    guideSidecar: () => "kind-guide",
   });
 }
 
@@ -482,6 +505,7 @@ function getKindShortLabel(object: CanvasObject): string {
     uiComponent: () => "UI",
     sketchOverlay: () => "SKETCH",
     spriteSidecar: () => "SPRITE",
+    guideSidecar: () => "GUIDE",
   });
 }
 
@@ -504,6 +528,16 @@ function getSpriteSidecarTarget(document: CanvasDocument, object: SpriteSidecarO
   const target = document.objects[object.targetId];
   if (target?.kind !== "image") return undefined;
   return target;
+}
+
+function getGuideSidecarsForImage(
+  document: CanvasDocument,
+  object: ImageObject,
+): readonly GuideSidecarObject[] {
+  return Object.values(document.objects).filter(
+    (candidate): candidate is GuideSidecarObject =>
+      candidate.kind === "guideSidecar" && candidate.targetId === object.id,
+  );
 }
 
 function formatSpriteAuditScope(scope: SpriteAuditScope) {
@@ -619,6 +653,7 @@ function SceneTree(props: MachinaSlotProps) {
     activeMode,
     createLayerGroup,
     document,
+    loadGuideSidecarFile,
     loadImageFile,
     loadSketchOverlayFile,
     loadSpriteSidecarFile,
@@ -645,6 +680,7 @@ function SceneTree(props: MachinaSlotProps) {
           groupId: options?.groupId,
         })
       }
+      onLoadGuideToml={(file, options) => loadGuideSidecarFile(file, options)}
       onLoadSketchToml={(file, options) => loadSketchOverlayFile(file, options)}
       onLoadSpriteToml={(file, options) => loadSpriteSidecarFile(file, options)}
       onReturnToModeSelection={returnToModeSelection}
@@ -685,7 +721,13 @@ function SceneObjectSvg({
   onSelect: (id: string) => void;
 }) {
   if (!object.visible) return null;
-  if (object.kind === "sketchOverlay" || object.kind === "spriteSidecar") return null;
+  if (
+    object.kind === "sketchOverlay" ||
+    object.kind === "spriteSidecar" ||
+    object.kind === "guideSidecar"
+  ) {
+    return null;
+  }
 
   const common = {
     "data-canvas-object-id": object.id,
@@ -1081,6 +1123,208 @@ function SpriteSidecarSvg({
           width={sidecar.width + 10}
           x={sidecar.x - 5}
           y={sidecar.y - 5}
+        />
+      ) : null}
+    </g>
+  );
+}
+
+function GuideSidecarSvg({
+  image,
+  guideObject,
+  selected,
+}: {
+  image: ImageObject;
+  guideObject: GuideSidecarObject;
+  selected: boolean;
+}) {
+  if (!guideObject.visible) return null;
+
+  const scaleX = image.width / (image.intrinsicWidth ?? image.width);
+  const scaleY = image.height / (image.intrinsicHeight ?? image.height);
+  const mapPoint = (x: number, y: number) => ({
+    x: image.x + x * scaleX,
+    y: image.y + y * scaleY,
+  });
+  const diagnostics = validateGuideSidecar(guideObject.guide, {
+    imageWidth: image.intrinsicWidth ?? image.width,
+    imageHeight: image.intrinsicHeight ?? image.height,
+  });
+
+  return (
+    <g
+      className={`canvas-guide-overlay ${selected ? "is-selected" : ""}`}
+      data-canvas-object-id={guideObject.id}
+      data-canvas-kind={guideObject.kind}
+      data-canvas-name={guideObject.name}
+      pointerEvents="none"
+    >
+      {guideObject.guide.regions.map((region) => {
+        const origin = mapPoint(region.x, region.y);
+        const width = region.width * scaleX;
+        const height = region.height * scaleY;
+        const grid = region.grid;
+        return (
+          <Fragment key={`guide-region:${region.id}`}>
+            <rect
+              className="canvas-guide-region"
+              data-canvas-guide-region-id={region.id}
+              x={origin.x}
+              y={origin.y}
+              width={width}
+              height={height}
+              fill="rgba(13, 110, 253, 0.03)"
+              stroke="#0d6efd"
+              strokeDasharray="8 6"
+            />
+            <text className="canvas-guide-label" x={origin.x + 6} y={origin.y + 16}>
+              {region.id}
+            </text>
+            {grid
+              ? Array.from({ length: grid.columns - 1 }, (_, index) => {
+                  const lineX = origin.x + (index + 1) * grid.cellWidth * scaleX;
+                  return (
+                    <line
+                      className="canvas-guide-grid"
+                      key={`guide-grid-col:${region.id}:${index}`}
+                      x1={lineX}
+                      y1={origin.y}
+                      x2={lineX}
+                      y2={origin.y + height}
+                      stroke="#7aa7ff"
+                    />
+                  );
+                })
+              : null}
+            {grid
+              ? Array.from({ length: grid.rows - 1 }, (_, index) => {
+                  const lineY = origin.y + (index + 1) * grid.cellHeight * scaleY;
+                  return (
+                    <line
+                      className="canvas-guide-grid"
+                      key={`guide-grid-row:${region.id}:${index}`}
+                      x1={origin.x}
+                      y1={lineY}
+                      x2={origin.x + width}
+                      y2={lineY}
+                      stroke="#7aa7ff"
+                    />
+                  );
+                })
+              : null}
+          </Fragment>
+        );
+      })}
+      {guideObject.guide.datums.map((datum) => {
+        if (datum.kind === "vertical") {
+          const x = image.x + datum.x * scaleX;
+          return (
+            <g key={`guide-datum:${datum.id}`}>
+              <line
+                className="canvas-guide-datum"
+                x1={x}
+                y1={image.y}
+                x2={x}
+                y2={image.y + image.height}
+                stroke="#28a745"
+              />
+              <text className="canvas-guide-label" x={x + 4} y={image.y + 14}>
+                {datum.label ?? datum.id}
+              </text>
+            </g>
+          );
+        }
+        if (datum.kind === "horizontal") {
+          const y = image.y + datum.y * scaleY;
+          return (
+            <g key={`guide-datum:${datum.id}`}>
+              <line
+                className="canvas-guide-datum"
+                x1={image.x}
+                y1={y}
+                x2={image.x + image.width}
+                y2={y}
+                stroke="#28a745"
+              />
+              <text className="canvas-guide-label" x={image.x + 6} y={y - 4}>
+                {datum.label ?? datum.id}
+              </text>
+            </g>
+          );
+        }
+        const point = mapPoint(datum.x, datum.y);
+        return (
+          <g key={`guide-datum:${datum.id}`}>
+            <line
+              className="canvas-guide-datum"
+              x1={point.x - 6}
+              y1={point.y}
+              x2={point.x + 6}
+              y2={point.y}
+              stroke="#28a745"
+            />
+            <line
+              className="canvas-guide-datum"
+              x1={point.x}
+              y1={point.y - 6}
+              x2={point.x}
+              y2={point.y + 6}
+              stroke="#28a745"
+            />
+            <text className="canvas-guide-label" x={point.x + 8} y={point.y - 8}>
+              {datum.label ?? datum.id}
+            </text>
+          </g>
+        );
+      })}
+      {guideObject.guide.dimensions.map((dimension) => {
+        if (dimension.kind !== "linear" || !dimension.from || !dimension.to) return null;
+        const from = mapPoint(dimension.from[0], dimension.from[1]);
+        const to = mapPoint(dimension.to[0], dimension.to[1]);
+        const labelX = (from.x + to.x) / 2;
+        const labelY = (from.y + to.y) / 2 - 6;
+        return (
+          <g key={`guide-dimension:${dimension.id}`}>
+            <line
+              className="canvas-guide-dimension"
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke="#ff8c00"
+            />
+            <text className="canvas-guide-label" x={labelX} y={labelY} textAnchor="middle">
+              {dimension.label}
+            </text>
+          </g>
+        );
+      })}
+      {guideObject.guide.alignmentMarks.map((mark) => {
+        const point = mapPoint(mark.x, mark.y);
+        return (
+          <g key={`guide-mark:${mark.id}`}>
+            <circle className="canvas-guide-mark" cx={point.x} cy={point.y} r={4} fill="#d63384" />
+            <line x1={point.x - 8} y1={point.y} x2={point.x + 8} y2={point.y} stroke="#d63384" />
+            <line x1={point.x} y1={point.y - 8} x2={point.x} y2={point.y + 8} stroke="#d63384" />
+            <text className="canvas-guide-label" x={point.x + 8} y={point.y + 14}>
+              {mark.label ?? mark.id}
+            </text>
+          </g>
+        );
+      })}
+      {diagnostics.length > 0 ? (
+        <text className="canvas-guide-label" x={image.x + 8} y={image.y + image.height - 8}>
+          {`${diagnostics.length} guide finding${diagnostics.length === 1 ? "" : "s"}`}
+        </text>
+      ) : null}
+      {selected ? (
+        <rect
+          className="selection-box"
+          height={guideObject.height + 10}
+          rx={4}
+          width={guideObject.width + 10}
+          x={guideObject.x - 5}
+          y={guideObject.y - 5}
         />
       ) : null}
     </g>
@@ -1496,6 +1740,8 @@ function CanvasPanel(props: MachinaSlotProps) {
                   : undefined;
               const sketchOverlay =
                 object.kind === "image" ? getSketchOverlayForImage(document, object) : undefined;
+              const guideSidecars =
+                object.kind === "image" ? getGuideSidecarsForImage(document, object) : [];
               const spriteSidecar =
                 object.kind === "image" ? getSpriteSidecarForImage(document, object) : undefined;
               return (
@@ -1513,6 +1759,16 @@ function CanvasPanel(props: MachinaSlotProps) {
                       selected={document.selectedObjectId === sketchOverlay.id}
                     />
                   ) : null}
+                  {object.kind === "image"
+                    ? guideSidecars.map((guideObject) => (
+                        <GuideSidecarSvg
+                          guideObject={guideObject}
+                          image={object}
+                          key={guideObject.id}
+                          selected={document.selectedObjectId === guideObject.id}
+                        />
+                      ))
+                    : null}
                   {object.kind === "image" && spriteSidecar ? (
                     <SpriteSidecarSvg
                       draftRect={
@@ -2092,11 +2348,18 @@ function SpriteAuditSectionContent({
 }
 
 function ImageAssetSection(props: MachinaSlotProps) {
-  const { document, loadImageFile, loadSketchOverlayFile, loadSpriteSidecarFile, runCommand } =
-    readViewData(props);
+  const {
+    document,
+    loadGuideSidecarFile,
+    loadImageFile,
+    loadSketchOverlayFile,
+    loadSpriteSidecarFile,
+    runCommand,
+  } = readViewData(props);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const alphaInputRef = useRef<HTMLInputElement>(null);
   const spriteInputRef = useRef<HTMLInputElement>(null);
+  const guideInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const selected = getSelectedObject(document);
   const imageObjects = Object.values(document.objects).filter(
@@ -2155,6 +2418,13 @@ function ImageAssetSection(props: MachinaSlotProps) {
     if (file) void loadSketchOverlayFile(file, { targetId });
   };
 
+  const loadGuideFromInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    const targetId = getOwnerImageForSelection(document, selected)?.id;
+    if (file) void loadGuideSidecarFile(file, { targetId });
+  };
+
   return (
     <InspectorSection title="Image assets">
       <input
@@ -2179,6 +2449,13 @@ function ImageAssetSection(props: MachinaSlotProps) {
         onChange={loadSpriteFromInput}
       />
       <input
+        ref={guideInputRef}
+        className="asset-file-input"
+        type="file"
+        accept=".toml,.guide.toml,text/plain"
+        onChange={loadGuideFromInput}
+      />
+      <input
         ref={sketchInputRef}
         className="asset-file-input"
         type="file"
@@ -2191,6 +2468,9 @@ function ImageAssetSection(props: MachinaSlotProps) {
         </button>
         <button type="button" onClick={() => alphaInputRef.current?.click()}>
           Load alpha map
+        </button>
+        <button type="button" onClick={() => guideInputRef.current?.click()}>
+          Load guide sidecar
         </button>
         <button type="button" onClick={() => sketchInputRef.current?.click()}>
           Load sketch overlay
@@ -3400,6 +3680,80 @@ function Inspector(props: MachinaSlotProps) {
           })()}
         </InspectorAccordionGroup>
       ) : null}
+      {selected.kind === "guideSidecar" ? (
+        <InspectorAccordionGroup
+          id="sprite-sidecar"
+          key={`${inspectorContextKey}:guide-sidecar`}
+          onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
+          open={accordionState["sprite-sidecar"]}
+          subtitle={`${selected.guide.regions.length} regions`}
+          title="Guide sidecar"
+        >
+          {(() => {
+            const targetImage =
+              selected.targetId && document.objects[selected.targetId]?.kind === "image"
+                ? (document.objects[selected.targetId] as ImageObject)
+                : undefined;
+            const diagnostics = validateGuideSidecar(selected.guide, {
+              imageWidth: targetImage?.intrinsicWidth ?? targetImage?.width,
+              imageHeight: targetImage?.intrinsicHeight ?? targetImage?.height,
+            });
+            return (
+              <>
+                <Field label="Target image" value={selected.targetId ?? "unattached"} />
+                <Field label="Units" value={selected.guide.units} />
+                <Field label="Regions" value={selected.guide.regions.length} />
+                <Field label="Datums" value={selected.guide.datums.length} />
+                <Field label="Dimensions" value={selected.guide.dimensions.length} />
+                <Field label="Alignment marks" value={selected.guide.alignmentMarks.length} />
+                <Field label="Validation findings" value={diagnostics.length} />
+                {selected.guide.description ? (
+                  <Field label="Description" value={selected.guide.description} />
+                ) : null}
+                <div className="command-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setGuideSidecarVisible",
+                        guideId: selected.id,
+                        visible: !selected.visible,
+                      })
+                    }
+                  >
+                    {selected.visible ? "Hide Guide Overlay" : "Show Guide Overlay"}
+                  </button>
+                  <button
+                    disabled={!selected.targetId}
+                    type="button"
+                    onClick={() => runCommand({ kind: "detachGuideSidecar", guideId: selected.id })}
+                  >
+                    Detach Guide Sidecar
+                  </button>
+                </div>
+                {diagnostics.length ? (
+                  <div className="validation-result is-error">
+                    <strong>Guide validation</strong>
+                    <ul>
+                      {diagnostics.map((diagnostic, index) => (
+                        <li key={`${diagnostic.code}-${index}`}>
+                          <span>{diagnostic.code}</span>
+                          {`: ${diagnostic.message}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="validation-result is-ok">
+                    <strong>Guide validation</strong>
+                    <p>No guide findings.</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </InspectorAccordionGroup>
+      ) : null}
       {selected.kind === "image" || selected.kind === "spriteSidecar" ? (
         <InspectorAccordionGroup
           id="sprite-audit"
@@ -3516,6 +3870,37 @@ function Inspector(props: MachinaSlotProps) {
                       >
                         Detach Sketch Overlay
                       </button>
+                    </div>
+                  </>
+                );
+              })()}
+              {(() => {
+                const guides = getGuideSidecarsForImage(document, selected);
+                if (guides.length === 0) {
+                  return <Field label="Guide sidecars" value="none" />;
+                }
+                return (
+                  <>
+                    <Field
+                      label="Guide sidecars"
+                      value={guides.map((guide) => guide.id).join(", ")}
+                    />
+                    <div className="command-row">
+                      {guides.map((guide) => (
+                        <button
+                          key={guide.id}
+                          type="button"
+                          onClick={() =>
+                            runCommand({
+                              kind: "setGuideSidecarVisible",
+                              guideId: guide.id,
+                              visible: !guide.visible,
+                            })
+                          }
+                        >
+                          {guide.visible ? `Hide ${guide.id}` : `Show ${guide.id}`}
+                        </button>
+                      ))}
                     </div>
                   </>
                 );
@@ -4129,6 +4514,66 @@ export function App() {
       }
     };
 
+    const loadGuideSidecarFile: AppViewData["loadGuideSidecarFile"] = async (file, options) => {
+      try {
+        const selected = getOwnerImageForSelection(document, getSelectedObject(document));
+        const target =
+          (options?.targetId ? document.objects[options.targetId] : selected) ?? undefined;
+        const targetImage =
+          target?.kind === "image" && (target.role === undefined || target.role === "image")
+            ? target
+            : undefined;
+
+        const text = await file.text();
+        const baseName = file.name.replace(/\.guide\.toml$/i, "").replace(/\.toml$/i, "");
+        const guideId = makeUniqueObjectId(
+          `${(targetImage?.id ?? baseName) || "guide-sidecar"}-guide-sidecar`,
+          document,
+        );
+        const guide = parseGuideSidecarToml(text);
+        const name = `${baseName || targetImage?.name || file.name}.guide.toml`;
+        const object = targetImage
+          ? createGuideSidecarObject(
+              targetImage,
+              { ...guide, id: guideId, rawToml: text },
+              { name },
+            )
+          : createUnattachedGuideSidecarObject(
+              { ...guide, id: guideId, rawToml: text },
+              {
+                layerId: getDefaultImageLayerId(document),
+                name,
+              },
+            );
+        const command: CanvasCommand = {
+          kind: "addGuideSidecarObject",
+          object,
+          attach: Boolean(targetImage),
+        };
+        const validation = validateCanvasCommands(document, command);
+        setCommandValidation(validation);
+        if (!validation.ok) {
+          setLastCommand("guide sidecar command invalid");
+          return;
+        }
+
+        const applyResult = applyCanvasCommands(document, [command]);
+        let nextDocument = applyResult.document;
+        if (options?.groupId) {
+          nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
+        }
+        if (targetImage) {
+          nextDocument = attachGuideSidecarToImage(nextDocument, targetImage.id, object.id);
+        }
+        setDocument(nextDocument);
+        recordAppliedCommands([command], applyResult.results);
+      } catch (caught) {
+        setLastCommand(
+          caught instanceof Error ? caught.message : "Guide sidecar could not be loaded.",
+        );
+      }
+    };
+
     const loadSketchOverlayFile: AppViewData["loadSketchOverlayFile"] = async (file, options) => {
       try {
         const selected = getOwnerImageForSelection(document, getSelectedObject(document));
@@ -4497,6 +4942,7 @@ export function App() {
       runCanvasTool,
       createLayerGroup: createLayerGroupFromPanel,
       loadImageFile,
+      loadGuideSidecarFile,
       loadSketchOverlayFile,
       loadSpriteSidecarFile,
       setCommandJson,

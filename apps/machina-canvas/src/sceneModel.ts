@@ -1,3 +1,4 @@
+import type { CanvasGuideSidecar } from "./guideSidecar";
 import type { ReferenceGridConfig } from "./referenceGrid";
 
 export type CanvasUnitName = "px" | "pt" | "mm" | "cm" | "in" | "cu";
@@ -46,7 +47,8 @@ export type CanvasObject =
   | ImageObject
   | UiComponentObject
   | SketchOverlayObject
-  | SpriteSidecarObject;
+  | SpriteSidecarObject
+  | GuideSidecarObject;
 
 export type CanvasFrame =
   | CanvasAbsoluteFrame
@@ -110,7 +112,8 @@ export type CanvasObjectKind =
   | "image"
   | "uiComponent"
   | "sketchOverlay"
-  | "spriteSidecar";
+  | "spriteSidecar"
+  | "guideSidecar";
 
 export type CanvasUiPropValue =
   | string
@@ -341,4 +344,11 @@ export type SpriteSidecarObject = CanvasObjectBase & {
   role?: "spriteSidecar";
   targetId?: string;
   spec: CanvasSpriteSpec;
+};
+
+export type GuideSidecarObject = CanvasObjectBase & {
+  kind: "guideSidecar";
+  role?: "guideSidecar";
+  targetId?: string;
+  guide: CanvasGuideSidecar;
 };

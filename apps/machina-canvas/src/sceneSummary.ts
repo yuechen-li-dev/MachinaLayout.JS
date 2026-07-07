@@ -29,7 +29,11 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
     object.kind === "spriteSidecar"
       ? `; target ${object.targetId ?? "unattached"}; subgrids ${object.spec.grids.length}; frames ${object.spec.frames.length}; animations ${object.spec.animations.length}; overlay ${object.spec.overlay.displayMode}; dialect ${object.spec.dialect}`
       : "";
-  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}`;
+  const guideSummary =
+    object.kind === "guideSidecar"
+      ? `; target ${object.targetId ?? "unattached"}; regions ${object.guide.regions.length}; datums ${object.guide.datums.length}; dimensions ${object.guide.dimensions.length}; units ${object.guide.units}`
+      : "";
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}${guideSummary}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {
@@ -60,7 +64,9 @@ export function summarizeScene(document: CanvasDocument): string {
                   : "";
               }
             )()
-          : ""
+          : selected.kind === "guideSidecar"
+            ? ` Guide sidecar has ${selected.guide.regions.length} regions, ${selected.guide.datums.length} datums, and ${selected.guide.dimensions.length} dimensions.`
+            : ""
       }`
     : " No object selected.";
 

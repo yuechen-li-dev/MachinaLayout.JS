@@ -82,6 +82,59 @@ function createSketchDocument(): CanvasDocument {
   };
 }
 
+function createGuideDocument(): CanvasDocument {
+  const image: Extract<CanvasObject, { kind: "image" }> = {
+    id: "source-image",
+    name: "Source image",
+    kind: "image",
+    layerId: "foreground",
+    visible: true,
+    x: 0,
+    y: 0,
+    width: 160,
+    height: 100,
+    src: "/asset.png",
+  };
+  const guide: Extract<CanvasObject, { kind: "guideSidecar" }> = {
+    id: "source-image-guide",
+    name: "source-image.guide.toml",
+    kind: "guideSidecar",
+    layerId: "foreground",
+    visible: true,
+    x: 0,
+    y: 0,
+    width: 160,
+    height: 100,
+    targetId: image.id,
+    guide: {
+      kind: "canvasGuideSidecar",
+      id: "source-image-guide",
+      target: image.id,
+      units: "px",
+      regions: [{ id: "r1", kind: "region", x: 10, y: 10, width: 30, height: 20 }],
+      datums: [],
+      dimensions: [],
+      alignmentMarks: [],
+    },
+  };
+  return {
+    id: "guide-doc",
+    name: "Guide Doc",
+    width: 320,
+    height: 180,
+    unit: "px",
+    unitSystem: createCanvasUnitSystem("px"),
+    layers: [
+      { id: "foreground", name: "Foreground", visible: true, objectIds: [image.id, guide.id] },
+    ],
+    objects: {
+      [image.id]: image,
+      [guide.id]: guide,
+    },
+    selectedObjectId: guide.id,
+  };
+}
+
 describe("MachinaCanvas export cart", () => {
   it("collects always-available artifacts", () => {
     const artifacts = collectCanvasExportArtifacts({ scene: createSketchDocument() });
@@ -109,6 +162,14 @@ describe("MachinaCanvas export cart", () => {
   it("collects sketch TOML artifacts when sketch overlays exist", () => {
     const artifacts = collectCanvasExportArtifacts({ scene: createSketchDocument() });
     expect(artifacts.some((artifact) => artifact.kind === "sketchToml")).toBe(true);
+  });
+
+  it("collects guide TOML artifacts for guide sidecars", () => {
+    const artifacts = collectCanvasExportArtifacts({ scene: createGuideDocument() });
+    expect(artifacts.some((artifact) => artifact.kind === "guideToml")).toBe(true);
+    expect(artifacts.find((artifact) => artifact.kind === "guideToml")?.description).toContain(
+      "Authoring guide / constraint IR",
+    );
   });
 
   it("collects TSX lowering artifacts for web/ui scenes", () => {
@@ -157,6 +218,22 @@ describe("MachinaCanvas export cart", () => {
     expect(full.selectedArtifactIds).toContain("handoff-toml");
     expect(checkpoint.selectedArtifactIds).toContain("checkpoint");
     expect(checkpoint.selectedArtifactIds).toContain("document-json");
+  });
+
+  it("keeps guide sidecars out of sprite handoff but includes them in full archive", () => {
+    const artifacts = collectCanvasExportArtifacts({ scene: createGuideDocument() });
+    const spriteHandoff = applyExportPreset(
+      artifacts,
+      CANVAS_EXPORT_PRESETS.find((candidate) => candidate.id === "sprite-handoff")!,
+    );
+    const fullArchive = applyExportPreset(
+      artifacts,
+      CANVAS_EXPORT_PRESETS.find((candidate) => candidate.id === "full-archive")!,
+    );
+    expect(spriteHandoff.selectedArtifactIds.some((id) => id.startsWith("guide-toml:"))).toBe(
+      false,
+    );
+    expect(fullArchive.selectedArtifactIds.some((id) => id.startsWith("guide-toml:"))).toBe(true);
   });
 
   it("toggles artifact selection and preserves required artifacts", () => {

@@ -26,6 +26,7 @@ export type CanvasExportArtifactKind =
   | "renderSvg"
   | "renderPng"
   | "spriteToml"
+  | "guideToml"
   | "sketchToml"
   | "spriteAudit"
   | "diagnostics"
@@ -125,6 +126,7 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
       "renderSvg",
       "renderPng",
       "spriteToml",
+      "guideToml",
       "sketchToml",
       "spriteAudit",
       "diagnostics",
@@ -175,6 +177,9 @@ function getFile(bundle: CanvasExportBundle, path: string): CanvasExportFile {
 function getObjectAssetFilename(object: CanvasObject): string {
   if (object.kind === "sketchOverlay") {
     return `objects/${sanitizePathId(object.id)}.sketch.toml`;
+  }
+  if (object.kind === "guideSidecar") {
+    return `objects/${sanitizePathId(object.id)}.guide.toml`;
   }
   if (object.kind === "spriteSidecar") {
     return `objects/${sanitizePathId(object.id)}.sprite.toml`;
@@ -476,6 +481,24 @@ export function collectCanvasExportArtifacts(input: {
           target?.kind === "image"
             ? `Structured sketch overlay sidecar attached to ${target.name}.`
             : "Structured sketch overlay sidecar awaiting image attachment.",
+        filename: getObjectAssetFilename(object),
+        selectedByDefault: false,
+        sourceObjectId: object.id,
+        group: "sidecars",
+        create: () => getFile(bundle, getObjectAssetFilename(object)).text,
+      });
+    }
+    if (object.kind === "guideSidecar") {
+      const target =
+        object.targetId !== undefined ? input.scene.objects[object.targetId] : undefined;
+      artifacts.push({
+        id: `guide-toml:${object.id}`,
+        kind: "guideToml",
+        title: `${object.name} guide sidecar`,
+        description:
+          target?.kind === "image"
+            ? `Authoring guide / constraint IR attached to ${target.name}. This is separate from runtime sprite metadata.`
+            : "Authoring guide / constraint IR awaiting image attachment.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,

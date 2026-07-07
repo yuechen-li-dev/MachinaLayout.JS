@@ -5,6 +5,7 @@ import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
   CanvasDocument,
   CanvasFrame,
+  GuideSidecarObject,
   CanvasSketchRef,
   CanvasUiPropValue,
   ImageObject,
@@ -16,6 +17,7 @@ import type {
   TextObject,
   UiComponentObject,
 } from "./sceneModel";
+import { stringifyGuideSidecarToml } from "./guideSidecar";
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
@@ -151,12 +153,31 @@ function getSpriteSidecarRelations(document: CanvasDocument) {
     }));
 }
 
+function getGuideSidecarRelations(document: CanvasDocument) {
+  return getObjectOrder(document)
+    .map((objectId) => document.objects[objectId])
+    .filter(
+      (object): object is GuideSidecarObject =>
+        object.kind === "guideSidecar" &&
+        object.targetId !== undefined &&
+        document.objects[object.targetId] !== undefined,
+    )
+    .map((object) => ({
+      kind: "guideSidecarFor" as const,
+      sourceId: object.targetId as string,
+      guideId: object.id,
+    }));
+}
+
 function getObjectAssetPath(object: CanvasObject): string {
   if (object.kind === "sketchOverlay" && object.spec.dialect === "sketch") {
     return `objects/${sanitizePathId(object.id)}.sketch.toml`;
   }
   if (object.kind === "spriteSidecar") {
     return `objects/${sanitizePathId(object.id)}.sprite.toml`;
+  }
+  if (object.kind === "guideSidecar") {
+    return `objects/${sanitizePathId(object.id)}.guide.toml`;
   }
   return `objects/${sanitizePathId(object.id)}.toml`;
 }
@@ -394,6 +415,7 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         ...getAlphaMapRelations(document),
         ...getSketchOverlayRelations(document),
         ...getSpriteSidecarRelations(document),
+        ...getGuideSidecarRelations(document),
       ],
     },
     null,
@@ -692,6 +714,9 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
   if (object.kind === "spriteSidecar") {
     return serializeCanvasSpriteToml(object);
   }
+  if (object.kind === "guideSidecar") {
+    return stringifyGuideSidecarToml(object.guide);
+  }
 
   const lines = [
     `id = ${quoteTomlString(object.id)}`,
@@ -801,7 +826,13 @@ export function serializeCanvasCommandsToml(
   if (description) lines.push(`description = ${quoteTomlString(description)}`);
 
   for (const command of commands) {
-    if (command.kind === "addImageObject" || command.kind === "addSpriteSidecarObject") continue;
+    if (
+      command.kind === "addImageObject" ||
+      command.kind === "addSpriteSidecarObject" ||
+      command.kind === "addGuideSidecarObject"
+    ) {
+      continue;
+    }
 
     lines.push("", "[[command]]", `kind = ${quoteTomlString(command.kind)}`);
     switch (command.kind) {
@@ -899,6 +930,21 @@ export function serializeCanvasCommandsToml(
       case "setSketchOverlayVisible":
         lines.push(
           `overlay_id = ${quoteTomlString(command.overlayId)}`,
+          `visible = ${command.visible}`,
+        );
+        break;
+      case "attachGuideSidecar":
+        lines.push(
+          `source_id = ${quoteTomlString(command.sourceId)}`,
+          `guide_id = ${quoteTomlString(command.guideId)}`,
+        );
+        break;
+      case "detachGuideSidecar":
+        lines.push(`guide_id = ${quoteTomlString(command.guideId)}`);
+        break;
+      case "setGuideSidecarVisible":
+        lines.push(
+          `guide_id = ${quoteTomlString(command.guideId)}`,
           `visible = ${command.visible}`,
         );
         break;
@@ -1080,6 +1126,16 @@ export function serializeCanvasHandoffToml(
     );
   }
 
+  for (const relation of getGuideSidecarRelations(document)) {
+    lines.push(
+      "",
+      "[[guide_sidecar]]",
+      `source_id = ${quoteTomlString(relation.sourceId)}`,
+      `guide_id = ${quoteTomlString(relation.guideId)}`,
+      `path = ${quoteTomlString(getObjectAssetPath(document.objects[relation.guideId]))}`,
+    );
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
@@ -1117,6 +1173,17 @@ function getVisibleSpriteSidecar(
     return undefined;
   }
   return sidecar;
+}
+
+function getVisibleGuideSidecars(
+  document: CanvasDocument,
+  object: ImageObject,
+): readonly GuideSidecarObject[] {
+  if (!object.visible) return [];
+  return Object.values(document.objects).filter(
+    (candidate): candidate is GuideSidecarObject =>
+      candidate.kind === "guideSidecar" && candidate.visible && candidate.targetId === object.id,
+  );
 }
 
 function mapSpriteFrameToCanvasRect(
@@ -1270,6 +1337,82 @@ function serializeResolvedSketchOverlay(
   return lines;
 }
 
+function serializeResolvedGuideSidecar(
+  object: ImageObject,
+  guideObject: GuideSidecarObject,
+): string[] {
+  const scaleX = object.width / (object.intrinsicWidth ?? object.width);
+  const scaleY = object.height / (object.intrinsicHeight ?? object.height);
+  const mapPoint = (x: number, y: number) => ({
+    x: object.x + x * scaleX,
+    y: object.y + y * scaleY,
+  });
+  const lines = [
+    `  <g class="canvas-guide-overlay" data-canvas-object-id="${quoteXmlAttribute(guideObject.id)}" data-canvas-kind="guideSidecar" data-canvas-name="${quoteXmlAttribute(guideObject.name)}">`,
+  ];
+  for (const region of guideObject.guide.regions) {
+    const origin = mapPoint(region.x, region.y);
+    const width = region.width * scaleX;
+    const height = region.height * scaleY;
+    lines.push(
+      `    <rect class="canvas-guide-region" data-canvas-guide-region-id="${quoteXmlAttribute(region.id)}" x="${origin.x}" y="${origin.y}" width="${width}" height="${height}" fill="rgba(13, 110, 253, 0.03)" stroke="#0d6efd" stroke-dasharray="8 6" pointer-events="none" />`,
+      `    <text class="canvas-guide-label" x="${origin.x + 6}" y="${origin.y + 16}" pointer-events="none">${escapeXmlText(region.id)}</text>`,
+    );
+    if (region.grid) {
+      for (let index = 0; index < region.grid.columns - 1; index += 1) {
+        const x = origin.x + (index + 1) * region.grid.cellWidth * scaleX;
+        lines.push(
+          `    <line class="canvas-guide-grid" x1="${x}" y1="${origin.y}" x2="${x}" y2="${origin.y + height}" stroke="#7aa7ff" pointer-events="none" />`,
+        );
+      }
+      for (let index = 0; index < region.grid.rows - 1; index += 1) {
+        const y = origin.y + (index + 1) * region.grid.cellHeight * scaleY;
+        lines.push(
+          `    <line class="canvas-guide-grid" x1="${origin.x}" y1="${y}" x2="${origin.x + width}" y2="${y}" stroke="#7aa7ff" pointer-events="none" />`,
+        );
+      }
+    }
+  }
+  for (const datum of guideObject.guide.datums) {
+    if (datum.kind === "vertical") {
+      const x = object.x + datum.x * scaleX;
+      lines.push(
+        `    <line class="canvas-guide-datum" x1="${x}" y1="${object.y}" x2="${x}" y2="${object.y + object.height}" stroke="#28a745" pointer-events="none" />`,
+      );
+      continue;
+    }
+    if (datum.kind === "horizontal") {
+      const y = object.y + datum.y * scaleY;
+      lines.push(
+        `    <line class="canvas-guide-datum" x1="${object.x}" y1="${y}" x2="${object.x + object.width}" y2="${y}" stroke="#28a745" pointer-events="none" />`,
+      );
+      continue;
+    }
+    const point = mapPoint(datum.x, datum.y);
+    lines.push(
+      `    <line class="canvas-guide-datum" x1="${point.x - 6}" y1="${point.y}" x2="${point.x + 6}" y2="${point.y}" stroke="#28a745" pointer-events="none" />`,
+      `    <line class="canvas-guide-datum" x1="${point.x}" y1="${point.y - 6}" x2="${point.x}" y2="${point.y + 6}" stroke="#28a745" pointer-events="none" />`,
+    );
+  }
+  for (const dimension of guideObject.guide.dimensions) {
+    if (dimension.kind !== "linear" || !dimension.from || !dimension.to) continue;
+    const from = mapPoint(dimension.from[0], dimension.from[1]);
+    const to = mapPoint(dimension.to[0], dimension.to[1]);
+    lines.push(
+      `    <line class="canvas-guide-dimension" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#ff8c00" pointer-events="none" />`,
+      `    <text class="canvas-guide-label" x="${(from.x + to.x) / 2}" y="${(from.y + to.y) / 2 - 6}" text-anchor="middle" pointer-events="none">${escapeXmlText(dimension.label)}</text>`,
+    );
+  }
+  for (const mark of guideObject.guide.alignmentMarks) {
+    const point = mapPoint(mark.x, mark.y);
+    lines.push(
+      `    <circle class="canvas-guide-mark" cx="${point.x}" cy="${point.y}" r="4" fill="#d63384" pointer-events="none" />`,
+    );
+  }
+  lines.push("  </g>");
+  return lines;
+}
+
 export function serializeCanvasRenderSvg(document: CanvasDocument): string {
   const lines = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}">`,
@@ -1341,6 +1484,9 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
         const overlay = getVisibleSketchOverlay(document, object);
         if (overlay) {
           lines.push(...serializeResolvedSketchOverlay(document, overlay));
+        }
+        for (const guideObject of getVisibleGuideSidecars(document, object)) {
+          lines.push(...serializeResolvedGuideSidecar(object, guideObject));
         }
         const spriteSidecar = getVisibleSpriteSidecar(document, object);
         if (spriteSidecar) {

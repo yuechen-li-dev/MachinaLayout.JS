@@ -190,6 +190,27 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
         });
       }
     }
+
+    if (object.kind === "guideSidecar") {
+      if (!object.targetId) {
+        diagnostics.push({
+          severity: "warning",
+          code: "UnattachedGuideSidecar",
+          message: `${object.name} is not attached to an image yet.`,
+          objectIds: [object.id],
+        });
+      } else {
+        const target = document.objects[object.targetId];
+        if (target?.kind !== "image") {
+          diagnostics.push({
+            severity: "warning",
+            code: "InvalidGuideSidecarRelation",
+            message: `${object.name} targets missing or non-image object ${object.targetId}.`,
+            objectIds: [object.id],
+          });
+        }
+      }
+    }
   }
 
   if (selected?.visible) {

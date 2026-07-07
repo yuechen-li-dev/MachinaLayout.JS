@@ -1,6 +1,7 @@
 import type {
   CanvasDocument,
   CanvasObject,
+  GuideSidecarObject,
   ImageObject,
   SketchOverlayObject,
   SpriteSidecarObject,
@@ -8,6 +9,7 @@ import type {
 
 export type CanvasLayerTreeRelation =
   | "alphaMap"
+  | "guideSidecar"
   | "spriteSidecar"
   | "sketchOverlay"
   | "child"
@@ -62,6 +64,8 @@ function getObjectBadge(object: CanvasObject): string {
       return "SKETCH";
     case "spriteSidecar":
       return "SPRITE";
+    case "guideSidecar":
+      return "GUIDE";
   }
 }
 
@@ -71,6 +75,9 @@ function getDisplayTitle(object: CanvasObject): string {
   }
   if (object.kind === "spriteSidecar") {
     return object.spec.sourceName ?? object.name;
+  }
+  if (object.kind === "guideSidecar") {
+    return object.name;
   }
   return object.name;
 }
@@ -94,6 +101,15 @@ function getSketchSubtitle(object: SketchOverlayObject): string {
   return `${object.spec.primitives.length} primitive${object.spec.primitives.length === 1 ? "" : "s"}`;
 }
 
+function getGuideSubtitle(object: GuideSidecarObject): string {
+  const itemCount =
+    object.guide.regions.length +
+    object.guide.datums.length +
+    object.guide.dimensions.length +
+    object.guide.alignmentMarks.length;
+  return `${object.guide.regions.length} regions · ${object.guide.datums.length} datums · ${itemCount} guide items`;
+}
+
 function getObjectSubtitle(object: CanvasObject): string | undefined {
   switch (object.kind) {
     case "image":
@@ -102,6 +118,8 @@ function getObjectSubtitle(object: CanvasObject): string | undefined {
       return getSpriteSubtitle(object);
     case "sketchOverlay":
       return getSketchSubtitle(object);
+    case "guideSidecar":
+      return getGuideSubtitle(object);
     case "text":
       return object.text;
     case "uiComponent":
@@ -160,6 +178,15 @@ function getOwnerImageIdByAttachment(scene: CanvasDocument): ReadonlyMap<string,
       relations.set(object.sketchOverlayId, object.id);
     }
   }
+  for (const object of Object.values(scene.objects)) {
+    if (
+      object.kind === "guideSidecar" &&
+      object.targetId &&
+      scene.objects[object.targetId]?.kind === "image"
+    ) {
+      relations.set(object.id, object.targetId);
+    }
+  }
   return relations;
 }
 
@@ -175,6 +202,8 @@ function getAttachmentRelation(
     if (candidate.spriteSidecarId === objectId) return "spriteSidecar";
     if (candidate.sketchOverlayId === objectId) return "sketchOverlay";
   }
+  const guide = scene.objects[objectId];
+  if (guide?.kind === "guideSidecar" && guide.targetId) return "guideSidecar";
   return undefined;
 }
 
@@ -186,6 +215,12 @@ function getImageAttachmentIds(
   const ids = [image.alphaMapId, image.spriteSidecarId, image.sketchOverlayId].filter(
     (value): value is string => Boolean(value && scene.objects[value]),
   );
+  for (const objectId of orderedIds) {
+    const object = scene.objects[objectId];
+    if (object?.kind === "guideSidecar" && object.targetId === image.id) {
+      ids.push(object.id);
+    }
+  }
   const order = new Map(orderedIds.map((id, index) => [id, index]));
   return [...ids].sort((left, right) => (order.get(left) ?? 0) - (order.get(right) ?? 0));
 }
@@ -215,9 +250,11 @@ function makeAttachmentItem(
   const relationText =
     relation === "alphaMap"
       ? "attached alpha"
-      : relation === "spriteSidecar"
-        ? `attached to ${getDisplayTitle(owner ?? object)}`
-        : `attached to ${getDisplayTitle(owner ?? object)}`;
+      : relation === "guideSidecar"
+        ? `authoring guide for ${getDisplayTitle(owner ?? object)}`
+        : relation === "spriteSidecar"
+          ? `attached to ${getDisplayTitle(owner ?? object)}`
+          : `attached to ${getDisplayTitle(owner ?? object)}`;
 
   const warning =
     relation === "alphaMap" && object.kind === "image" && owner?.kind === "image"
@@ -277,6 +314,7 @@ function makeObjectItem(
 function isAttachmentCapable(object: CanvasObject): boolean {
   return (
     object.kind === "spriteSidecar" ||
+    object.kind === "guideSidecar" ||
     object.kind === "sketchOverlay" ||
     (object.kind === "image" && (object.role === "alphaMap" || object.role === "mask"))
   );

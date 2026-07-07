@@ -9,6 +9,7 @@ import type {
   CanvasObject,
   CanvasSpriteFrame,
   CanvasUiPropValue,
+  GuideSidecarObject,
   ImageObject,
   SpriteOverlayDisplayMode,
   SpriteSidecarObject,
@@ -76,6 +77,11 @@ export type CanvasCommand =
       attach?: boolean;
     }
   | {
+      kind: "addGuideSidecarObject";
+      object: GuideSidecarObject;
+      attach?: boolean;
+    }
+  | {
       kind: "removeObject";
       id: string;
     }
@@ -100,6 +106,20 @@ export type CanvasCommand =
   | {
       kind: "setSketchOverlayVisible";
       overlayId: string;
+      visible: boolean;
+    }
+  | {
+      kind: "attachGuideSidecar";
+      sourceId: string;
+      guideId: string;
+    }
+  | {
+      kind: "detachGuideSidecar";
+      guideId: string;
+    }
+  | {
+      kind: "setGuideSidecarVisible";
+      guideId: string;
       visible: boolean;
     }
   | {
@@ -1154,6 +1174,23 @@ export function validateCanvasCommand(
     case "addSpriteSidecarObject":
       validateAddSpriteSidecarCommand(document, diagnostics, command.object, commandIndex);
       break;
+    case "addGuideSidecarObject":
+      if (
+        "object" in command &&
+        command.object &&
+        typeof command.object === "object" &&
+        "targetId" in command.object &&
+        command.object.targetId !== undefined
+      ) {
+        validateObjectId(
+          document,
+          diagnostics,
+          command.object.targetId,
+          commandIndex,
+          "object.targetId",
+        );
+      }
+      break;
     case "removeObject":
       validateRemoveObjectCommand(document, diagnostics, command.id, commandIndex);
       break;
@@ -1171,6 +1208,24 @@ export function validateCanvasCommand(
       break;
     case "setSketchOverlayVisible":
       validateSetSketchOverlayVisibleCommand(document, diagnostics, command, commandIndex);
+      break;
+    case "attachGuideSidecar":
+      validateObjectId(document, diagnostics, command.sourceId, commandIndex, "sourceId");
+      validateObjectId(document, diagnostics, command.guideId, commandIndex, "guideId");
+      break;
+    case "detachGuideSidecar":
+      validateObjectId(document, diagnostics, command.guideId, commandIndex, "guideId");
+      break;
+    case "setGuideSidecarVisible":
+      validateObjectId(document, diagnostics, command.guideId, commandIndex, "guideId");
+      if (typeof command.visible !== "boolean") {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "visible must be a boolean.",
+          commandIndex,
+        });
+      }
       break;
     case "attachSpriteSidecar":
       validateSpriteSidecarCommand(document, diagnostics, command, commandIndex);
@@ -1512,6 +1567,11 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
       ? `Sprite sidecar ${command.object.id} was already present.`
       : `Added sprite sidecar ${command.object.id}.`;
   }
+  if (command.kind === "addGuideSidecarObject") {
+    return changes.length === 0
+      ? `Guide sidecar ${command.object.id} was already present.`
+      : `Added guide sidecar ${command.object.id}.`;
+  }
   if (command.kind === "removeObject") {
     return changes.length === 0
       ? `Object ${command.id} was not removed.`
@@ -1541,6 +1601,21 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Sketch overlay ${command.overlayId} visibility was already ${command.visible}.`
       : `Set sketch overlay ${command.overlayId} visible ${command.visible}.`;
+  }
+  if (command.kind === "attachGuideSidecar") {
+    return changes.length === 0
+      ? `Guide sidecar ${command.guideId} was already attached to ${command.sourceId}.`
+      : `Attached guide sidecar ${command.guideId} to ${command.sourceId}.`;
+  }
+  if (command.kind === "detachGuideSidecar") {
+    return changes.length === 0
+      ? `Guide sidecar ${command.guideId} was already detached.`
+      : `Detached guide sidecar ${command.guideId}.`;
+  }
+  if (command.kind === "setGuideSidecarVisible") {
+    return changes.length === 0
+      ? `Guide sidecar ${command.guideId} visibility was already ${command.visible}.`
+      : `Set guide sidecar ${command.guideId} visible ${command.visible}.`;
   }
   if (command.kind === "attachSpriteSidecar") {
     return changes.length === 0
@@ -1663,6 +1738,77 @@ export function applyCanvasCommand(
       layers: document.layers.map((layer) =>
         layer.id === command.object.layerId
           ? { ...layer, objectIds: [...layer.objectIds, command.object.id] }
+          : layer,
+      ),
+    };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "addGuideSidecarObject") {
+    if (document.objects[command.object.id] !== undefined) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addGuideSidecarObject skipped duplicate object "${command.object.id}".`,
+      };
+    }
+
+    const layerExists = document.layers.some((layer) => layer.id === command.object.layerId);
+    const target = command.object.targetId ? document.objects[command.object.targetId] : undefined;
+    const targetImage = target?.kind === "image" ? target : undefined;
+    if (
+      !layerExists ||
+      command.object.kind !== "guideSidecar" ||
+      (command.attach && !targetImage)
+    ) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addGuideSidecarObject skipped invalid guide sidecar "${command.object.id}".`,
+      };
+    }
+
+    const nextObject =
+      command.attach && targetImage
+        ? {
+            ...command.object,
+            targetId: targetImage.id,
+            guide: { ...command.object.guide, target: targetImage.id },
+          }
+        : command.object;
+
+    changes.push({
+      objectId: nextObject.id,
+      field: "objects",
+      before: undefined,
+      after: nextObject,
+    });
+    changes.push({
+      objectId: nextObject.id,
+      field: "layer.objectIds",
+      before: undefined,
+      after: nextObject.id,
+    });
+    changes.push({
+      objectId: nextObject.id,
+      field: "selectedObjectId",
+      before: document.selectedObjectId,
+      after: nextObject.id,
+    });
+
+    nextDocument = {
+      ...document,
+      selectedObjectId: nextObject.id,
+      objects: {
+        ...document.objects,
+        [nextObject.id]: nextObject,
+      },
+      layers: document.layers.map((layer) =>
+        layer.id === nextObject.layerId
+          ? { ...layer, objectIds: [...layer.objectIds, nextObject.id] }
           : layer,
       ),
     };
@@ -1829,6 +1975,13 @@ export function applyCanvasCommand(
           ...object,
           targetId: undefined,
           spec: { ...object.spec, targetId: undefined },
+        };
+      }
+      if (object.kind === "guideSidecar" && object.targetId === command.id) {
+        nextObjects[objectId] = {
+          ...object,
+          targetId: undefined,
+          guide: { ...object.guide, target: undefined },
         };
       }
     }
@@ -2029,6 +2182,74 @@ export function applyCanvasCommand(
     changeField(changes, overlay, "visible", command.visible);
     if (changes.length > 0) {
       nextDocument = replaceObject(document, overlay.id, { ...overlay, visible: command.visible });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "attachGuideSidecar") {
+    const source = document.objects[command.sourceId];
+    const guide = document.objects[command.guideId];
+    if (source?.kind !== "image") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachGuideSidecar skipped invalid image object "${command.sourceId}".`,
+      };
+    }
+    if (guide?.kind !== "guideSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachGuideSidecar skipped invalid guide sidecar "${command.guideId}".`,
+      };
+    }
+    changeField(changes, guide, "targetId", source.id);
+    if (guide.targetId !== source.id || guide.guide.target !== source.id) {
+      nextDocument = replaceObject(document, guide.id, {
+        ...guide,
+        targetId: source.id,
+        guide: { ...guide.guide, target: source.id },
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "detachGuideSidecar") {
+    const guide = document.objects[command.guideId];
+    if (guide?.kind !== "guideSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `detachGuideSidecar skipped invalid guide sidecar "${command.guideId}".`,
+      };
+    }
+    changeField(changes, guide, "targetId", undefined);
+    if (guide.targetId !== undefined || guide.guide.target !== undefined) {
+      nextDocument = replaceObject(document, guide.id, {
+        ...guide,
+        targetId: undefined,
+        guide: { ...guide.guide, target: undefined },
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setGuideSidecarVisible") {
+    const guide = document.objects[command.guideId];
+    if (guide?.kind !== "guideSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setGuideSidecarVisible skipped invalid guide sidecar "${command.guideId}".`,
+      };
+    }
+    changeField(changes, guide, "visible", command.visible);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, guide.id, { ...guide, visible: command.visible });
     }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
@@ -2518,6 +2739,18 @@ export function attachSpriteSidecarToImage(
   }).document;
 }
 
+export function attachGuideSidecarToImage(
+  document: CanvasDocument,
+  imageId: string,
+  guideId: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "attachGuideSidecar",
+    sourceId: imageId,
+    guideId,
+  }).document;
+}
+
 export function attachSketchOverlayToImage(
   document: CanvasDocument,
   imageId: string,
@@ -2547,8 +2780,15 @@ export function detachAttachment(
   relation:
     | { kind: "spriteSidecar"; imageId: string }
     | { kind: "sketchOverlay"; imageId: string }
-    | { kind: "alphaMap"; imageId: string },
+    | { kind: "alphaMap"; imageId: string }
+    | { kind: "guideSidecar"; guideId: string },
 ): CanvasDocument {
+  if (relation.kind === "guideSidecar") {
+    return applyCanvasCommand(document, {
+      kind: "detachGuideSidecar",
+      guideId: relation.guideId,
+    }).document;
+  }
   if (relation.kind === "spriteSidecar") {
     return applyCanvasCommand(document, {
       kind: "detachSpriteSidecar",

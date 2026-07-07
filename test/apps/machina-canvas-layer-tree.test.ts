@@ -3,6 +3,7 @@ import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnit
 import {
   addObjectToLayerGroup,
   attachAlphaMapToImage,
+  attachGuideSidecarToImage,
   attachSketchOverlayToImage,
   attachSpriteSidecarToImage,
   createLayerGroup,
@@ -35,6 +36,14 @@ function expectSketch(document: CanvasDocument, id: string) {
   return object;
 }
 
+function expectGuide(document: CanvasDocument, id: string) {
+  const object = document.objects[id];
+  if (object.kind !== "guideSidecar") {
+    throw new Error(`Expected guide sidecar ${id}.`);
+  }
+  return object;
+}
+
 function createLayerTreeDocument(): CanvasDocument {
   return {
     id: "layer-tree-doc",
@@ -54,7 +63,7 @@ function createLayerTreeDocument(): CanvasDocument {
         id: "overlays",
         name: "Overlays",
         visible: true,
-        objectIds: ["sheet-sprite", "sheet-sketch", "orphan-sprite"],
+        objectIds: ["sheet-guide", "sheet-sprite", "sheet-sketch", "orphan-guide", "orphan-sprite"],
       },
     ],
     layerGroups: [
@@ -148,6 +157,28 @@ function createLayerTreeDocument(): CanvasDocument {
           ],
         },
       },
+      "sheet-guide": {
+        id: "sheet-guide",
+        name: "tinytown_sprite_alpha.guide.toml",
+        kind: "guideSidecar",
+        layerId: "overlays",
+        visible: true,
+        x: 10,
+        y: 10,
+        width: 320,
+        height: 160,
+        targetId: "sheet-image",
+        guide: {
+          kind: "canvasGuideSidecar",
+          id: "sheet-guide",
+          target: "sheet-image",
+          units: "px",
+          regions: [{ id: "characters", kind: "sprite-region", x: 0, y: 0, width: 24, height: 24 }],
+          datums: [],
+          dimensions: [],
+          alignmentMarks: [],
+        },
+      },
       title: {
         id: "title",
         name: "Headline",
@@ -213,27 +244,55 @@ function createLayerTreeDocument(): CanvasDocument {
           },
         },
       },
+      "orphan-guide": {
+        id: "orphan-guide",
+        name: "orphan.guide.toml",
+        kind: "guideSidecar",
+        layerId: "overlays",
+        visible: true,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        guide: {
+          kind: "canvasGuideSidecar",
+          id: "orphan-guide",
+          units: "px",
+          regions: [],
+          datums: [],
+          dimensions: [],
+          alignmentMarks: [],
+        },
+      },
     },
     selectedObjectId: "sheet-sprite",
   };
 }
 
 describe("MachinaCanvas layer tree", () => {
-  it("nests sprite sidecars, alpha maps, and sketch overlays under their image", () => {
+  it("nests guide, sprite, alpha, and sketch sidecars under their image", () => {
     const tree = buildCanvasLayerTree(createLayerTreeDocument());
     const spriteSheet = tree[0];
     const imageItem = spriteSheet.children?.[0];
 
     expect(spriteSheet.title).toBe("Sprite Sheet");
     expect(imageItem?.title).toBe("tinytown_sprite_alpha.png");
-    expect(imageItem?.children?.map((child) => child.badge)).toEqual(["ALPHA", "SPRITE", "SKETCH"]);
+    expect(imageItem?.children?.map((child) => child.badge)).toEqual([
+      "ALPHA",
+      "GUIDE",
+      "SPRITE",
+      "SKETCH",
+    ]);
   });
 
   it("places unattached sprite sidecars under Unattached Sidecars", () => {
     const tree = buildCanvasLayerTree(createLayerTreeDocument());
     const unattached = tree.find((item) => item.title === "Unattached Sidecars");
 
-    expect(unattached?.children?.map((child) => child.objectId)).toEqual(["orphan-sprite"]);
+    expect(unattached?.children?.map((child) => child.objectId)).toEqual([
+      "orphan-guide",
+      "orphan-sprite",
+    ]);
     expect(unattached?.children?.[0]?.warning).toContain("No image owner");
   });
 
@@ -274,9 +333,10 @@ describe("MachinaCanvas layer group and attachment commands", () => {
     expect(updated.layerGroups?.at(-1)?.objectIds).toContain("orphan-sprite");
   });
 
-  it("attaches sprite, alpha, and sketch sidecars through helpers", () => {
+  it("attaches guide, sprite, alpha, and sketch sidecars through helpers", () => {
     const document = createLayerTreeDocument();
     const image = expectImage(document, "sheet-image");
+    const guide = expectGuide(document, "sheet-guide");
     const sprite = expectSprite(document, "sheet-sprite");
     const sketch = expectSketch(document, "sheet-sketch");
     const withoutLinks: CanvasDocument = {
@@ -288,6 +348,11 @@ describe("MachinaCanvas layer group and attachment commands", () => {
           spriteSidecarId: undefined,
           alphaMapId: undefined,
           sketchOverlayId: undefined,
+        },
+        "sheet-guide": {
+          ...guide,
+          targetId: undefined,
+          guide: { ...guide.guide, target: undefined },
         },
         "sheet-sprite": {
           ...sprite,
@@ -302,10 +367,12 @@ describe("MachinaCanvas layer group and attachment commands", () => {
       },
     };
 
-    const withSprite = attachSpriteSidecarToImage(withoutLinks, "sheet-image", "sheet-sprite");
+    const withGuide = attachGuideSidecarToImage(withoutLinks, "sheet-image", "sheet-guide");
+    const withSprite = attachSpriteSidecarToImage(withGuide, "sheet-image", "sheet-sprite");
     const withAlpha = attachAlphaMapToImage(withSprite, "sheet-image", "sheet-alpha");
     const withSketch = attachSketchOverlayToImage(withAlpha, "sheet-image", "sheet-sketch");
 
+    expect(expectGuide(withSketch, "sheet-guide").targetId).toBe("sheet-image");
     expect(expectImage(withSketch, "sheet-image").spriteSidecarId).toBe("sheet-sprite");
     expect(expectImage(withSketch, "sheet-image").alphaMapId).toBe("sheet-alpha");
     expect(expectImage(withSketch, "sheet-image").sketchOverlayId).toBe("sheet-sketch");
@@ -315,7 +382,11 @@ describe("MachinaCanvas layer group and attachment commands", () => {
 
   it("detaches attachments when requested", () => {
     const document = createLayerTreeDocument();
-    const withoutSprite = detachAttachment(document, {
+    const withoutGuide = detachAttachment(document, {
+      kind: "guideSidecar",
+      guideId: "sheet-guide",
+    });
+    const withoutSprite = detachAttachment(withoutGuide, {
       kind: "spriteSidecar",
       imageId: "sheet-image",
     });
@@ -328,6 +399,7 @@ describe("MachinaCanvas layer group and attachment commands", () => {
       imageId: "sheet-image",
     });
 
+    expect(expectGuide(withoutSketch, "sheet-guide").targetId).toBeUndefined();
     expect(expectImage(withoutSketch, "sheet-image").spriteSidecarId).toBeUndefined();
     expect(expectImage(withoutSketch, "sheet-image").alphaMapId).toBeUndefined();
     expect(expectImage(withoutSketch, "sheet-image").sketchOverlayId).toBeUndefined();

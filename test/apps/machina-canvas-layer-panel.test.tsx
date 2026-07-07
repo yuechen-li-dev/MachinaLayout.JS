@@ -121,6 +121,7 @@ function createPanelDocument(): CanvasDocument {
 
 type PanelHarnessProps = {
   onAddAlphaMask?: () => void;
+  onAddGuideToml?: () => void;
   onAddGroup?: () => void;
   onAddImage?: () => void;
   onAddSketchToml?: () => void;
@@ -145,6 +146,7 @@ function renderLayerPanel(overrides: PanelHarnessProps = {}) {
         isAddMenuOpen={isAddMenuOpen}
         tree={tree}
         onAddAlphaMask={overrides.onAddAlphaMask ?? (() => undefined)}
+        onAddGuideToml={overrides.onAddGuideToml ?? (() => undefined)}
         onAddGroup={overrides.onAddGroup ?? (() => undefined)}
         onAddImage={overrides.onAddImage ?? (() => undefined)}
         onAddSketchToml={overrides.onAddSketchToml ?? (() => undefined)}
@@ -195,6 +197,9 @@ describe("MachinaCanvas layer panel", () => {
     expect(screen.getByRole("menuitem", { name: /^GroupOrganize layers$/i })).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^ImageAdd a source image$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^Guide TOMLAttach authoring guide IR$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^Sprite TOMLAttach sprite metadata$/i }),

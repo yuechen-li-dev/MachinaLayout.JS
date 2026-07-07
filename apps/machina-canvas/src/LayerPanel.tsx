@@ -23,6 +23,10 @@ type LayerPanelProps = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void> | void;
+  onLoadGuideToml: (
+    file: File,
+    options?: { targetId?: string; groupId?: string },
+  ) => Promise<void> | void;
   onLoadSpriteToml: (
     file: File,
     options?: { targetId?: string; groupId?: string },
@@ -39,6 +43,7 @@ type CanvasLayerPanelViewProps = {
   onCloseAddMenu: () => void;
   tree: readonly CanvasLayerTreeItem[];
   onAddAlphaMask: () => void;
+  onAddGuideToml: () => void;
   onAddGroup: () => void;
   onAddImage: () => void;
   onAddSketchToml: () => void;
@@ -62,6 +67,12 @@ const LAYER_ADD_ACTIONS = [
     title: "Image",
     description: "Add a source image",
     action: "image",
+  },
+  {
+    id: "guide",
+    title: "Guide TOML",
+    description: "Attach authoring guide IR",
+    action: "guide",
   },
   {
     id: "sprite",
@@ -91,8 +102,15 @@ function getOwnerImageForObject(
   if (selected.kind === "image" && (selected.role === undefined || selected.role === "image")) {
     return selected;
   }
-  if (selected.kind === "spriteSidecar" || selected.kind === "sketchOverlay") {
-    const targetId = selected.targetId ?? selected.spec.targetId;
+  if (
+    selected.kind === "spriteSidecar" ||
+    selected.kind === "sketchOverlay" ||
+    selected.kind === "guideSidecar"
+  ) {
+    const targetId =
+      selected.kind === "guideSidecar"
+        ? (selected.targetId ?? selected.guide.target)
+        : (selected.targetId ?? selected.spec.targetId);
     const target = targetId ? document.objects[targetId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
@@ -202,6 +220,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
     onCloseAddMenu,
     tree,
     onAddAlphaMask,
+    onAddGuideToml,
     onAddGroup,
     onAddImage,
     onAddSketchToml,
@@ -214,6 +233,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
   } = props;
   const addMenuActions = {
     alpha: onAddAlphaMask,
+    guide: onAddGuideToml,
     group: onAddGroup,
     image: onAddImage,
     sketch: onAddSketchToml,
@@ -308,6 +328,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
     onClearSelection,
     onCreateGroup,
     onLoadAlphaMask,
+    onLoadGuideToml,
     onLoadImage,
     onLoadSketchToml,
     onLoadSpriteToml,
@@ -316,6 +337,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
   } = props;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const spriteInputRef = useRef<HTMLInputElement>(null);
+  const guideInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const alphaInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -389,6 +411,15 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
         )}
       />
       <input
+        accept=".toml,.guide.toml,text/plain"
+        className="asset-file-input"
+        ref={guideInputRef}
+        type="file"
+        onChange={onInput((file) =>
+          onLoadGuideToml(file, { groupId: selection.groupId, targetId: selection.imageId }),
+        )}
+      />
+      <input
         accept=".toml,.sketch.toml,text/plain"
         className="asset-file-input"
         ref={sketchInputRef}
@@ -417,6 +448,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
           isAddMenuOpen={isAddMenuOpen}
           tree={tree}
           onAddAlphaMask={() => alphaInputRef.current?.click()}
+          onAddGuideToml={() => guideInputRef.current?.click()}
           onAddGroup={() => onCreateGroup(window.prompt("Group name", "New group") ?? "New group")}
           onAddImage={() => imageInputRef.current?.click()}
           onAddSketchToml={() => sketchInputRef.current?.click()}

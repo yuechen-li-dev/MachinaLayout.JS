@@ -277,13 +277,21 @@ shape is intended to generalize later to things like `.pcb.toml`,
 
 ## Layer groups and sidecar attachments
 
-The layer panel shows ownership relationships: images can own sprite sidecars, sketch overlays, and alpha masks. Layer groups organize objects but do not change rendering semantics in this pass.
+The layer panel shows ownership relationships: images can own sprite sidecars, guide sidecars, sketch overlays, and alpha masks. Layer groups organize objects but do not change rendering semantics in this pass.
 
-The Layers panel uses an Add menu for groups, images, sprite TOML, sketch TOML, and alpha masks.
+The Layers panel uses an Add menu for groups, images, sprite TOML, guide TOML, sketch TOML, and alpha masks.
 
-Use the Add menu to add `Group`, `Image`, `Sprite TOML`, `Sketch TOML`, and `Alpha mask` items directly where you are working. Attached alpha maps, sprite sidecars, and sketch overlays render as nested rows under their owning image so the relationship is visible before you open the inspector.
+Use the Add menu to add `Group`, `Image`, `Sprite TOML`, `Guide TOML`, `Sketch TOML`, and `Alpha mask` items directly where you are working. Attached alpha maps, guide sidecars, sprite sidecars, and sketch overlays render as nested rows under their owning image so the relationship is visible before you open the inspector.
 
-If a sprite sidecar, sketch overlay, or alpha mask is loaded without a matching image attachment, MachinaCanvas keeps it visible under `Unattached Sidecars` until you link it.
+If a guide sidecar, sprite sidecar, sketch overlay, or alpha mask is loaded without a matching image attachment, MachinaCanvas keeps it visible under `Unattached Sidecars` until you link it.
+
+## Guide sidecars
+
+Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums, dimensions, and alignment marks used to edit visual artifacts. They are separate from runtime sidecars such as `*.sprite.toml`.
+
+Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Alignment marks are placeholders for future alignment workflows.
+
+M38a parses, validates, renders, attaches, and exports guide sidecars, but it does not enforce constraints, snap frames, align images, or compile guide regions into final sprite TOML yet.
 
 ## UI Components And TSX Lowering
 
@@ -447,12 +455,13 @@ The Export cart keeps checkpointing and handoff separate:
 
 Presets are selection helpers, not locks:
 
-- `Sprite handoff` selects sprite sidecars, audit reports, diagnostics,
-  `handoff.toml`, and overlay review artifacts.
+- `Sprite handoff` selects runtime sprite sidecars, audit reports, diagnostics,
+  `handoff.toml`, and overlay review artifacts. Guide sidecars stay optional
+  here because they are authoring IR, not runtime metadata.
 - `Visual review` selects rendered SVG/PNG artifacts plus diagnostics and sprite
   audit output when present.
-- `Full archive` selects source indexes, handoff contracts, sidecars, reports,
-  and rendered artifacts for a broad handoff bundle.
+- `Full archive` selects source indexes, handoff contracts, sidecars including
+  `*.guide.toml`, reports, and rendered artifacts for a broad handoff bundle.
 - `Source checkpoint` selects the checkpoint artifact plus source-oriented scene
   files for work-in-progress capture.
 
