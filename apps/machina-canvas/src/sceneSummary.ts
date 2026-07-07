@@ -33,11 +33,15 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
     object.kind === "guideSidecar"
       ? `; target ${object.targetId ?? "unattached"}; regions ${object.guide.regions.length}; datums ${object.guide.datums.length}; dimensions ${object.guide.dimensions.length}; units ${object.guide.units}`
       : "";
+  const blockoutSummary =
+    object.kind === "blockoutSidecar"
+      ? `; target ${object.targetObjectId ?? "unattached"}; boxes ${object.blockout.boxes.length}; points ${object.blockout.points.length}; curves ${object.blockout.curves.length}`
+      : "";
   const mechanicalSummary =
     object.kind === "mechanicalAnnotationSidecar"
       ? `; target ${object.targetObjectId ?? "canvas"}; dimensions ${object.annotations.dimensions.length}; notes ${object.annotations.notes.length}; datums ${object.annotations.datums.length}; blocks ${object.annotations.blocks.length}; units ${object.annotations.units}`
       : "";
-  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}${guideSummary}${mechanicalSummary}`;
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}${guideSummary}${blockoutSummary}${mechanicalSummary}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {
@@ -70,9 +74,11 @@ export function summarizeScene(document: CanvasDocument): string {
             )()
           : selected.kind === "guideSidecar"
             ? ` Guide sidecar has ${selected.guide.regions.length} regions, ${selected.guide.datums.length} datums, and ${selected.guide.dimensions.length} dimensions.`
-            : selected.kind === "mechanicalAnnotationSidecar"
-              ? ` Mechanical annotations include ${selected.annotations.dimensions.length} dimensions, ${selected.annotations.notes.length} notes, ${selected.annotations.datums.length} datums, and ${selected.annotations.blocks.length} blocks.`
-              : ""
+            : selected.kind === "blockoutSidecar"
+              ? ` Blockout sidecar has ${selected.blockout.boxes.length} boxes, ${selected.blockout.points.length} points, and ${selected.blockout.curves.length} curves.`
+              : selected.kind === "mechanicalAnnotationSidecar"
+                ? ` Mechanical annotations include ${selected.annotations.dimensions.length} dimensions, ${selected.annotations.notes.length} notes, ${selected.annotations.datums.length} datums, and ${selected.annotations.blocks.length} blocks.`
+                : ""
       }`
     : " No object selected.";
 

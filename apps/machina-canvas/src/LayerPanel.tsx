@@ -27,6 +27,10 @@ type LayerPanelProps = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void> | void;
+  onLoadBlockoutToml: (
+    file: File,
+    options?: { targetObjectId?: string; groupId?: string },
+  ) => Promise<void> | void;
   onCreateMechanicalAnnotations: (options?: {
     targetObjectId?: string;
     groupId?: string;
@@ -37,6 +41,7 @@ type LayerPanelProps = {
   ) => Promise<void> | void;
   onReturnToModeSelection: () => void;
   onSelectObject: (id: string) => void;
+  onToggleObjectVisibility?: (id: string, visible: boolean) => void;
 };
 
 type CanvasLayerPanelViewProps = {
@@ -48,6 +53,7 @@ type CanvasLayerPanelViewProps = {
   tree: readonly CanvasLayerTreeItem[];
   onAddAlphaMask: () => void;
   onAddGuideToml: () => void;
+  onAddBlockoutToml: () => void;
   onAddGroup: () => void;
   onAddImage: () => void;
   onAddMechanicalAnnotations: () => void;
@@ -56,6 +62,7 @@ type CanvasLayerPanelViewProps = {
   onClearSelection: () => void;
   onReturnToModeSelection: () => void;
   onSelectObject: (id: string) => void;
+  onToggleObjectVisibility?: (id: string, visible: boolean) => void;
   onToggleAddMenu: () => void;
   onToggleGroup: (id: string) => void;
 };
@@ -72,6 +79,12 @@ const LAYER_ADD_ACTIONS = [
     title: "Image",
     description: "Add a source image",
     action: "image",
+  },
+  {
+    id: "blockout",
+    title: "Blockout TOML",
+    description: "Attach blockout feature IR",
+    action: "blockout",
   },
   {
     id: "mechanical",
@@ -117,14 +130,17 @@ function getOwnerImageForObject(
     selected.kind === "spriteSidecar" ||
     selected.kind === "sketchOverlay" ||
     selected.kind === "guideSidecar" ||
+    selected.kind === "blockoutSidecar" ||
     selected.kind === "mechanicalAnnotationSidecar"
   ) {
     const targetId =
       selected.kind === "guideSidecar"
         ? (selected.targetId ?? selected.guide.target)
-        : selected.kind === "mechanicalAnnotationSidecar"
+        : selected.kind === "blockoutSidecar"
           ? selected.targetObjectId
-          : (selected.targetId ?? selected.spec.targetId);
+          : selected.kind === "mechanicalAnnotationSidecar"
+            ? selected.targetObjectId
+            : (selected.targetId ?? selected.spec.targetId);
     const target = targetId ? document.objects[targetId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
@@ -154,11 +170,13 @@ function LayerTreeRow({
   item,
   collapsedGroups,
   onSelectObject,
+  onToggleObjectVisibility,
   onToggleGroup,
 }: {
   item: CanvasLayerTreeItem;
   collapsedGroups: ReadonlySet<string>;
   onSelectObject: (id: string) => void;
+  onToggleObjectVisibility?: (id: string, visible: boolean) => void;
   onToggleGroup: (id: string) => void;
 }) {
   if (item.kind === "group") {
@@ -182,6 +200,7 @@ function LayerTreeRow({
                 item={child}
                 key={child.id}
                 onSelectObject={onSelectObject}
+                onToggleObjectVisibility={onToggleObjectVisibility}
                 onToggleGroup={onToggleGroup}
               />
             ))}
@@ -207,6 +226,21 @@ function LayerTreeRow({
           {item.subtitle ? <small>{item.subtitle}</small> : null}
           {item.warning ? <em>{item.warning}</em> : null}
         </span>
+        {item.kind === "attachment" &&
+        item.objectId &&
+        item.visible !== undefined &&
+        onToggleObjectVisibility ? (
+          <button
+            className={`tree-visibility ${item.visible ? "is-visible" : "is-hidden"}`}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleObjectVisibility(item.objectId as string, !item.visible);
+            }}
+          >
+            {item.visible ? "Visible" : "Hidden"}
+          </button>
+        ) : null}
       </button>
       {item.children?.length ? (
         <div className="tree-children">
@@ -216,6 +250,7 @@ function LayerTreeRow({
               item={child}
               key={child.id}
               onSelectObject={onSelectObject}
+              onToggleObjectVisibility={onToggleObjectVisibility}
               onToggleGroup={onToggleGroup}
             />
           ))}
@@ -234,6 +269,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
     onCloseAddMenu,
     tree,
     onAddAlphaMask,
+    onAddBlockoutToml,
     onAddGuideToml,
     onAddGroup,
     onAddImage,
@@ -243,11 +279,13 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
     onClearSelection,
     onReturnToModeSelection,
     onSelectObject,
+    onToggleObjectVisibility,
     onToggleAddMenu,
     onToggleGroup,
   } = props;
   const addMenuActions = {
     alpha: onAddAlphaMask,
+    blockout: onAddBlockoutToml,
     guide: onAddGuideToml,
     group: onAddGroup,
     image: onAddImage,
@@ -329,6 +367,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
             item={item}
             key={item.id}
             onSelectObject={onSelectObject}
+            onToggleObjectVisibility={onToggleObjectVisibility}
             onToggleGroup={onToggleGroup}
           />
         ))}
@@ -345,16 +384,19 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
     onCreateGroup,
     onCreateMechanicalAnnotations,
     onLoadAlphaMask,
+    onLoadBlockoutToml,
     onLoadGuideToml,
     onLoadImage,
     onLoadSketchToml,
     onLoadSpriteToml,
     onReturnToModeSelection,
     onSelectObject,
+    onToggleObjectVisibility,
   } = props;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const spriteInputRef = useRef<HTMLInputElement>(null);
   const guideInputRef = useRef<HTMLInputElement>(null);
+  const blockoutInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const alphaInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -397,9 +439,19 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
     (
       callback: (
         file: File,
-        options?: { attachToImageId?: string; groupId?: string; targetId?: string },
+        options?: {
+          attachToImageId?: string;
+          groupId?: string;
+          targetId?: string;
+          targetObjectId?: string;
+        },
       ) => Promise<void> | void,
-      options?: { attachToImageId?: string; groupId?: string; targetId?: string },
+      options?: {
+        attachToImageId?: string;
+        groupId?: string;
+        targetId?: string;
+        targetObjectId?: string;
+      },
     ) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.currentTarget.files?.[0];
@@ -437,6 +489,18 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
         )}
       />
       <input
+        accept=".toml,.blockout.toml,text/plain"
+        className="asset-file-input"
+        ref={blockoutInputRef}
+        type="file"
+        onChange={onInput((file) =>
+          onLoadBlockoutToml(file, {
+            groupId: selection.groupId,
+            targetObjectId: document.selectedObjectId,
+          }),
+        )}
+      />
+      <input
         accept=".toml,.sketch.toml,text/plain"
         className="asset-file-input"
         ref={sketchInputRef}
@@ -465,6 +529,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
           isAddMenuOpen={isAddMenuOpen}
           tree={tree}
           onAddAlphaMask={() => alphaInputRef.current?.click()}
+          onAddBlockoutToml={() => blockoutInputRef.current?.click()}
           onAddGuideToml={() => guideInputRef.current?.click()}
           onAddGroup={() => onCreateGroup(window.prompt("Group name", "New group") ?? "New group")}
           onAddImage={() => imageInputRef.current?.click()}
@@ -480,6 +545,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
           onCloseAddMenu={() => setIsAddMenuOpen(false)}
           onReturnToModeSelection={onReturnToModeSelection}
           onSelectObject={onSelectObject}
+          onToggleObjectVisibility={onToggleObjectVisibility}
           onToggleAddMenu={() => setIsAddMenuOpen((current) => !current)}
           onToggleGroup={(id) =>
             setCollapsedGroups((current) => {

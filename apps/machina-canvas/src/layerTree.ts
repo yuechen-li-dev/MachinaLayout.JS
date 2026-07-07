@@ -1,4 +1,5 @@
 import type {
+  BlockoutSidecarObject,
   CanvasDocument,
   CanvasObject,
   GuideSidecarObject,
@@ -15,6 +16,7 @@ import {
 export type CanvasLayerTreeRelation =
   | "alphaMap"
   | "guideSidecar"
+  | "blockoutSidecar"
   | "mechanicalAnnotationSidecar"
   | "spriteSidecar"
   | "sketchOverlay"
@@ -30,6 +32,7 @@ export type CanvasLayerTreeItem = {
   readonly badge?: string;
   readonly warning?: string;
   readonly selected?: boolean;
+  readonly visible?: boolean;
   readonly children?: readonly CanvasLayerTreeItem[];
   readonly relation?: CanvasLayerTreeRelation;
   readonly count?: number;
@@ -60,6 +63,8 @@ function getObjectBadge(object: CanvasObject): string {
       return "RECT";
     case "ellipse":
       return "OVAL";
+    case "path":
+      return "PATH";
     case "text":
       return "TEXT";
     case "image":
@@ -72,6 +77,8 @@ function getObjectBadge(object: CanvasObject): string {
       return "SPRITE";
     case "guideSidecar":
       return "GUIDE";
+    case "blockoutSidecar":
+      return "BLOCK";
     case "mechanicalAnnotationSidecar":
       return "ANNO";
   }
@@ -85,6 +92,9 @@ function getDisplayTitle(object: CanvasObject): string {
     return object.spec.sourceName ?? object.name;
   }
   if (object.kind === "guideSidecar") {
+    return object.name;
+  }
+  if (object.kind === "blockoutSidecar") {
     return object.name;
   }
   if (object.kind === "mechanicalAnnotationSidecar") {
@@ -113,12 +123,11 @@ function getSketchSubtitle(object: SketchOverlayObject): string {
 }
 
 function getGuideSubtitle(object: GuideSidecarObject): string {
-  const itemCount =
-    object.guide.regions.length +
-    object.guide.datums.length +
-    object.guide.dimensions.length +
-    object.guide.alignmentMarks.length;
-  return `${object.guide.regions.length} regions · ${object.guide.datums.length} datums · ${itemCount} guide items`;
+  return `Construction guide · ${object.guide.regions.length} regions · ${object.guide.datums.length} datums`;
+}
+
+function getBlockoutSubtitle(object: BlockoutSidecarObject): string {
+  return `Blockout mask · ${object.blockout.boxes.length} boxes · ${object.blockout.points.length} points · ${object.blockout.curves.length} curves`;
 }
 
 function getObjectSubtitle(object: CanvasObject): string | undefined {
@@ -131,6 +140,8 @@ function getObjectSubtitle(object: CanvasObject): string | undefined {
       return getSketchSubtitle(object);
     case "guideSidecar":
       return getGuideSubtitle(object);
+    case "blockoutSidecar":
+      return getBlockoutSubtitle(object);
     case "mechanicalAnnotationSidecar":
       return undefined;
     case "text":
@@ -202,6 +213,15 @@ function getOwnerImageIdByAttachment(scene: CanvasDocument): ReadonlyMap<string,
   }
   for (const object of Object.values(scene.objects)) {
     if (
+      object.kind === "blockoutSidecar" &&
+      object.targetObjectId &&
+      scene.objects[object.targetObjectId] !== undefined
+    ) {
+      relations.set(object.id, object.targetObjectId);
+    }
+  }
+  for (const object of Object.values(scene.objects)) {
+    if (
       object.kind === "mechanicalAnnotationSidecar" &&
       object.targetObjectId &&
       scene.objects[object.targetObjectId] !== undefined
@@ -226,6 +246,8 @@ function getAttachmentRelation(
   }
   const guide = scene.objects[objectId];
   if (guide?.kind === "guideSidecar" && guide.targetId) return "guideSidecar";
+  const blockout = scene.objects[objectId];
+  if (blockout?.kind === "blockoutSidecar" && blockout.targetObjectId) return "blockoutSidecar";
   const mechanical = scene.objects[objectId];
   if (mechanical?.kind === "mechanicalAnnotationSidecar" && mechanical.targetObjectId) {
     return "mechanicalAnnotationSidecar";
@@ -238,15 +260,19 @@ function getAttachmentIdsForOwner(
   owner: CanvasObject,
   orderedIds: readonly string[],
 ): readonly string[] {
-  const ids =
-    owner.kind === "image"
+  const ids = [
+    ...(owner.kind === "image"
       ? [owner.alphaMapId, owner.spriteSidecarId, owner.sketchOverlayId].filter(
           (value): value is string => Boolean(value && scene.objects[value]),
         )
-      : [];
+      : []),
+  ];
   for (const objectId of orderedIds) {
     const object = scene.objects[objectId];
     if (object?.kind === "guideSidecar" && object.targetId === owner.id) {
+      ids.push(object.id);
+    }
+    if (object?.kind === "blockoutSidecar" && object.targetObjectId === owner.id) {
       ids.push(object.id);
     }
     if (object?.kind === "mechanicalAnnotationSidecar" && object.targetObjectId === owner.id) {
@@ -288,11 +314,13 @@ function makeAttachmentItem(
       ? `attached alpha for ${getDisplayTitle(owner ?? object)}`
       : relation === "guideSidecar"
         ? `authoring guide for ${getDisplayTitle(owner ?? object)}`
-        : relation === "mechanicalAnnotationSidecar"
-          ? undefined
-          : relation === "spriteSidecar"
-            ? `attached to ${getDisplayTitle(owner ?? object)}`
-            : `attached to ${getDisplayTitle(owner ?? object)}`;
+        : relation === "blockoutSidecar"
+          ? `attached blockout for ${getDisplayTitle(owner ?? object)}`
+          : relation === "mechanicalAnnotationSidecar"
+            ? undefined
+            : relation === "spriteSidecar"
+              ? `attached to ${getDisplayTitle(owner ?? object)}`
+              : `attached to ${getDisplayTitle(owner ?? object)}`;
 
   const warning =
     relation === "alphaMap" && object.kind === "image" && owner?.kind === "image"
@@ -342,6 +370,7 @@ function makeAttachmentItem(
     badge: getObjectBadge(object),
     warning,
     selected: scene.selectedObjectId === object.id,
+    visible: object.visible,
     relation,
     children,
   };
@@ -375,6 +404,7 @@ function makeObjectItem(
       subtitle,
       badge: getObjectBadge(object),
       selected: scene.selectedObjectId === object.id,
+      visible: object.visible,
       children,
     };
   }
@@ -387,12 +417,14 @@ function makeObjectItem(
     subtitle,
     badge: getObjectBadge(object),
     selected: scene.selectedObjectId === object.id,
+    visible: object.visible,
   };
 }
 
 function isAttachmentCapable(object: CanvasObject): boolean {
   return (
     object.kind === "mechanicalAnnotationSidecar" ||
+    object.kind === "blockoutSidecar" ||
     object.kind === "spriteSidecar" ||
     object.kind === "guideSidecar" ||
     object.kind === "sketchOverlay" ||
@@ -410,6 +442,7 @@ function makeUnattachedItem(scene: CanvasDocument, object: CanvasObject): Canvas
     badge: getObjectBadge(object),
     warning: object.kind === "image" ? "No image owner" : "No image owner",
     selected: scene.selectedObjectId === object.id,
+    visible: object.visible,
     relation: "unattached",
   };
 }

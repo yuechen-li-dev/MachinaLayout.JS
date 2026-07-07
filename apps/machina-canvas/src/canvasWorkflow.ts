@@ -7,6 +7,11 @@ import {
 import { createCanvasUnitSystem } from "./canvasUnits";
 import type { CanvasEditorModeId } from "./editorModes";
 import {
+  createBlockoutSidecarObject,
+  parseBlockoutSidecarToml,
+  type CanvasBlockoutSidecar,
+} from "./blockoutSidecar";
+import {
   createGuideSidecarObject,
   parseGuideSidecarToml,
   type CanvasGuideSidecar,
@@ -220,6 +225,10 @@ export function loadGuideSidecarFromToml(source: string): CanvasGuideSidecar {
   return parseGuideSidecarToml(source);
 }
 
+export function loadBlockoutSidecarFromToml(source: string): CanvasBlockoutSidecar {
+  return parseBlockoutSidecarToml(source);
+}
+
 export function attachSpriteSidecarToImage(
   image: ImageObject,
   spriteSidecar: SpriteSidecar,
@@ -245,6 +254,14 @@ export function attachGuideSidecarToImage(
   options?: { readonly id?: string; readonly name?: string; readonly layerId?: string },
 ) {
   return createGuideSidecarObject(image, guideSidecar, options);
+}
+
+export function attachBlockoutToImage(
+  image: ImageObject,
+  blockoutSidecar: CanvasBlockoutSidecar,
+  options?: { readonly id?: string; readonly name?: string; readonly layerId?: string },
+) {
+  return createBlockoutSidecarObject(image, blockoutSidecar, options);
 }
 
 export function compileSpriteRuntimeToml(input: {

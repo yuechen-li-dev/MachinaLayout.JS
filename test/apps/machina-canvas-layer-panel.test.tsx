@@ -123,6 +123,7 @@ function createPanelDocument(): CanvasDocument {
 
 type PanelHarnessProps = {
   onAddAlphaMask?: () => void;
+  onAddBlockoutToml?: () => void;
   onAddGuideToml?: () => void;
   onAddGroup?: () => void;
   onAddImage?: () => void;
@@ -149,6 +150,7 @@ function renderLayerPanel(overrides: PanelHarnessProps = {}) {
         isAddMenuOpen={isAddMenuOpen}
         tree={tree}
         onAddAlphaMask={overrides.onAddAlphaMask ?? (() => undefined)}
+        onAddBlockoutToml={overrides.onAddBlockoutToml ?? (() => undefined)}
         onAddGuideToml={overrides.onAddGuideToml ?? (() => undefined)}
         onAddGroup={overrides.onAddGroup ?? (() => undefined)}
         onAddImage={overrides.onAddImage ?? (() => undefined)}
@@ -201,6 +203,9 @@ describe("MachinaCanvas layer panel", () => {
     expect(screen.getByRole("menuitem", { name: /^GroupOrganize layers$/i })).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^ImageAdd a source image$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^Blockout TOMLAttach blockout feature IR$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^Guide TOMLAttach authoring guide IR$/i }),

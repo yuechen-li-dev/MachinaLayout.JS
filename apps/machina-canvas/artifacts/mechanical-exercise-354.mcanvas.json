@@ -1,0 +1,504 @@
+{
+  "id": "mechanical-exercise-354",
+  "name": "2D Exercise 354",
+  "width": 297,
+  "height": 210,
+  "unit": "mm",
+  "unitSystem": {
+    "unit": "mm",
+    "label": "mm",
+    "unitsPerInch": 25.4,
+    "pixelsPerUnit": 3.7795275590551185,
+    "precision": 2
+  },
+  "referenceGrid": {
+    "columns": 6,
+    "rows": 4,
+    "columnStart": "A",
+    "rowStart": 1,
+    "showBorder": false,
+    "showLines": false,
+    "showLabels": false
+  },
+  "layers": [
+    {
+      "id": "geometry",
+      "name": "Part geometry",
+      "visible": true,
+      "objectIds": [
+        "exercise-354-filled-body-profile",
+        "exercise-354-outer-profile",
+        "exercise-354-boss-reference",
+        "exercise-354-inner-hole",
+        "exercise-354-rounded-slot",
+        "exercise-354-lower-hole",
+        "exercise-354-upper-hole"
+      ]
+    },
+    {
+      "id": "construction",
+      "name": "Centerlines and construction",
+      "visible": true,
+      "objectIds": [
+        "exercise-354-boss-centerline-x",
+        "exercise-354-boss-centerline-y",
+        "exercise-354-slot-centerline",
+        "exercise-354-small-hole-axis",
+        "exercise-354-angle-leg-a",
+        "exercise-354-angle-leg-b"
+      ]
+    },
+    {
+      "id": "annotations",
+      "name": "Mechanical Drafting",
+      "visible": true,
+      "objectIds": ["exercise-354-mechanical-annotations"]
+    }
+  ],
+  "layerGroups": [
+    {
+      "id": "mechanical-exercise-354-dogfood",
+      "title": "Mechanical Exercise 354 Dogfood",
+      "description": "Approximate reference recreation using MachinaCanvas geometry plus semantic mechanical annotations.",
+      "objectIds": [
+        "exercise-354-filled-body-profile",
+        "exercise-354-outer-profile",
+        "exercise-354-boss-reference",
+        "exercise-354-inner-hole",
+        "exercise-354-rounded-slot",
+        "exercise-354-lower-hole",
+        "exercise-354-upper-hole",
+        "exercise-354-boss-centerline-x",
+        "exercise-354-boss-centerline-y",
+        "exercise-354-slot-centerline",
+        "exercise-354-small-hole-axis",
+        "exercise-354-angle-leg-a",
+        "exercise-354-angle-leg-b",
+        "exercise-354-mechanical-annotations"
+      ]
+    }
+  ],
+  "objects": {
+    "exercise-354-filled-body-profile": {
+      "id": "exercise-354-filled-body-profile",
+      "name": "Filled body profile with semantic voids",
+      "kind": "path",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "#68bfe9",
+      "stroke": "none",
+      "strokeWidth": 0,
+      "fillRule": "evenodd",
+      "d": "M 74 38 C 52 38 35 56 35 78 C 35 95 45 107 58 114 C 69 120 71 133 63 145 C 56 156 63 167 76 164 C 103 161 132 151 148 126 C 155 105 160 98 172 98 L 204 98 A 20 20 0 0 1 204 58 L 126 58 A 30.438463 30.438463 0 0 0 98 51 C 94 43 85 38 74 38 Z M 54 78 A 20 20 0 0 0 94 78 A 20 20 0 0 0 54 78 Z M 79 144 A 7 7 0 0 0 93 144 A 7 7 0 0 0 79 144 Z M 119 132 A 7 7 0 0 0 133 132 A 7 7 0 0 0 119 132 Z M 159 68 L 202 68 A 10 10 0 0 0 202 88 L 159 88 A 10 10 0 0 0 159 68 Z",
+      "tags": ["mechanical-body-profile", "filled-profile"],
+      "notes": "M39f topology-first rendering: one filled material profile with even-odd void subpaths for holes and the rounded slot."
+    },
+    "exercise-354-outer-profile": {
+      "id": "exercise-354-outer-profile",
+      "name": "Approximate outer profile",
+      "kind": "path",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "strokeWidth": 0.55,
+      "d": "M 74 38 C 52 38 35 56 35 78 C 35 95 45 107 58 114 C 69 120 71 133 63 145 C 56 156 63 167 76 164 C 103 161 132 151 148 126 C 155 105 160 98 172 98 L 204 98 A 20 20 0 0 1 204 58 L 126 58 A 30.438463 30.438463 0 0 0 98 51 C 94 43 85 38 74 38 Z",
+      "notes": "Dogfood approximation of the reference profile using SVG-like path geometry, not solved CAD constraints."
+    },
+    "exercise-354-boss-reference": {
+      "id": "exercise-354-boss-reference",
+      "name": "Large left boss reference circle",
+      "kind": "ellipse",
+      "layerId": "geometry",
+      "visible": false,
+      "x": 42,
+      "y": 46,
+      "width": 64,
+      "height": 64,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "tags": ["reference-boss"],
+      "notes": "Reference-only boss circle retained as source geometry; the visible outer boss boundary is carried by the filled profile and outline path."
+    },
+    "exercise-354-inner-hole": {
+      "id": "exercise-354-inner-hole",
+      "name": "Inner circular hole",
+      "kind": "ellipse",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 54,
+      "y": 58,
+      "width": 40,
+      "height": 40,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "tags": ["mechanical-void"]
+    },
+    "exercise-354-rounded-slot": {
+      "id": "exercise-354-rounded-slot",
+      "name": "Rounded slot",
+      "kind": "path",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "strokeWidth": 0.55,
+      "d": "M 159 68 L 202 68 A 10 10 0 0 0 202 88 L 159 88 A 10 10 0 0 0 159 68 Z",
+      "tags": ["mechanical-void"],
+      "notes": "Rounded slot authored as ordinary path geometry and punched from the filled body profile as an even-odd void."
+    },
+    "exercise-354-lower-hole": {
+      "id": "exercise-354-lower-hole",
+      "name": "Lower small hole",
+      "kind": "ellipse",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 79,
+      "y": 137,
+      "width": 14,
+      "height": 14,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "tags": ["mechanical-void"]
+    },
+    "exercise-354-upper-hole": {
+      "id": "exercise-354-upper-hole",
+      "name": "Upper small hole",
+      "kind": "ellipse",
+      "layerId": "geometry",
+      "visible": true,
+      "x": 119,
+      "y": 125,
+      "width": 14,
+      "height": 14,
+      "fill": "transparent",
+      "stroke": "#1c2430",
+      "tags": ["mechanical-void"]
+    },
+    "exercise-354-boss-centerline-x": {
+      "id": "exercise-354-boss-centerline-x",
+      "name": "Boss horizontal centerline",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 26 78 L 214 78",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-boss-centerline-y": {
+      "id": "exercise-354-boss-centerline-y",
+      "name": "Boss vertical centerline",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 74 20 L 74 176",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-slot-centerline": {
+      "id": "exercise-354-slot-centerline",
+      "name": "Slot centerline",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 145 78 L 216 78",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-small-hole-axis": {
+      "id": "exercise-354-small-hole-axis",
+      "name": "Small hole construction axis",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 75 148 L 137 128",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-angle-leg-a": {
+      "id": "exercise-354-angle-leg-a",
+      "name": "Angle dimension construction leg A",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 74 166 L 74 151",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-angle-leg-b": {
+      "id": "exercise-354-angle-leg-b",
+      "name": "Angle dimension construction leg B",
+      "kind": "path",
+      "layerId": "construction",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "fill": "transparent",
+      "stroke": "#7f8896",
+      "strokeWidth": 0.25,
+      "strokeDasharray": "8 4 2 4",
+      "d": "M 74 166 L 122 132",
+      "tags": ["construction", "centerline"]
+    },
+    "exercise-354-mechanical-annotations": {
+      "id": "exercise-354-mechanical-annotations",
+      "name": "Exercise 354 mechanical annotations",
+      "kind": "mechanicalAnnotationSidecar",
+      "layerId": "annotations",
+      "visible": true,
+      "x": 0,
+      "y": 0,
+      "width": 297,
+      "height": 210,
+      "role": "mechanicalAnnotationSidecar",
+      "tags": ["mechanical", "annotation", "drafting", "sidecar"],
+      "notes": "15 dimensions, 2 notes, 0 datums, 1 blocks.",
+      "annotations": {
+        "kind": "mechanicalAnnotationSet",
+        "id": "exercise-354-annotations",
+        "units": "mm",
+        "scale": "Fit to A4",
+        "sheet": {
+          "size": "A4",
+          "orientation": "landscape",
+          "units": "mm",
+          "scale": "Fit to A4",
+          "drawingNumber": "M39D-354",
+          "title": "2D Exercise 354",
+          "revision": "A"
+        },
+        "dimensions": [
+          {
+            "id": "overall-top-100",
+            "kind": "linear",
+            "axis": "horizontal",
+            "from": [74, 38],
+            "to": [204, 38],
+            "offset": 22,
+            "label": "100"
+          },
+          {
+            "id": "slot-length-30",
+            "kind": "linear",
+            "axis": "horizontal",
+            "from": [170, 68],
+            "to": [204, 68],
+            "offset": 17,
+            "label": "30"
+          },
+          {
+            "id": "left-height-62",
+            "kind": "linear",
+            "axis": "vertical",
+            "from": [35, 78],
+            "to": [63, 145],
+            "offset": -20,
+            "label": "62",
+            "labelOffset": -2
+          },
+          {
+            "id": "bottom-offset-10",
+            "kind": "linear",
+            "axis": "horizontal",
+            "from": [74, 166],
+            "to": [86, 164],
+            "offset": -14,
+            "label": "10",
+            "labelOffset": -8
+          },
+          {
+            "id": "small-hole-spacing",
+            "kind": "aligned",
+            "from": [86, 144],
+            "to": [126, 132],
+            "offset": 12,
+            "label": "42",
+            "labelOffset": 5
+          },
+          {
+            "id": "angle-35",
+            "kind": "angle",
+            "center": [74, 166],
+            "from": [74, 151],
+            "to": [122, 132],
+            "label": "35°",
+            "radius": 42,
+            "labelOffset": 10
+          },
+          {
+            "id": "boss-radius-32",
+            "kind": "radius",
+            "center": [74, 78],
+            "radius": 32,
+            "label": "R32",
+            "leaderAngle": -135,
+            "leaderLength": 16,
+            "labelOffset": [-3, -2]
+          },
+          {
+            "id": "inner-radius-20",
+            "kind": "radius",
+            "center": [74, 78],
+            "radius": 20,
+            "label": "R20",
+            "leaderAngle": 120,
+            "leaderLength": 10,
+            "labelOffset": [-3, 3]
+          },
+          {
+            "id": "neck-radius-30",
+            "kind": "radius",
+            "center": [126, 38],
+            "radius": 30,
+            "label": "R30",
+            "leaderAngle": 108,
+            "leaderLength": 13,
+            "labelOffset": [-3, -1]
+          },
+          {
+            "id": "right-radius-20",
+            "kind": "radius",
+            "center": [204, 78],
+            "radius": 20,
+            "label": "R20",
+            "leaderAngle": -48,
+            "leaderLength": 13,
+            "labelOffset": [3, -1]
+          },
+          {
+            "id": "slot-radius-8",
+            "kind": "radius",
+            "center": [202, 78],
+            "radius": 8,
+            "label": "R8",
+            "leaderAngle": 45,
+            "leaderLength": 14,
+            "labelOffset": [3, 4]
+          },
+          {
+            "id": "lower-hole-radius-7",
+            "kind": "radius",
+            "center": [86, 144],
+            "radius": 7,
+            "label": "R7",
+            "leaderAngle": -75,
+            "leaderLength": 17,
+            "labelOffset": [2, -2]
+          },
+          {
+            "id": "upper-hole-radius-7",
+            "kind": "radius",
+            "center": [126, 132],
+            "radius": 7,
+            "label": "R7",
+            "leaderAngle": -80,
+            "leaderLength": 15,
+            "labelOffset": [2, -2]
+          },
+          {
+            "id": "inside-radius-15",
+            "kind": "radius",
+            "center": [170, 123],
+            "radius": 15,
+            "label": "R15",
+            "leaderAngle": -135,
+            "leaderLength": 12,
+            "labelOffset": [-3, -1]
+          },
+          {
+            "id": "bottom-radius-72",
+            "kind": "radius",
+            "center": [74, 166],
+            "radius": 72,
+            "label": "R72",
+            "leaderAngle": -32,
+            "leaderLength": 8,
+            "labelOffset": [3, 4]
+          }
+        ],
+        "notes": [
+          {
+            "id": "source-note",
+            "kind": "note",
+            "at": [218, 38],
+            "text": "2D EXERCISES"
+          },
+          {
+            "id": "exercise-number",
+            "kind": "note",
+            "at": [221, 52],
+            "text": "354"
+          }
+        ],
+        "datums": [],
+        "blocks": [
+          {
+            "id": "exercise-354-title-block",
+            "kind": "titleBlock",
+            "x": 197,
+            "y": 165,
+            "width": 90,
+            "height": 35,
+            "fields": {
+              "Title": "2D Exercise 354",
+              "Drawing": "M39D-354",
+              "Rev": "A",
+              "Scale": "Fit to A4",
+              "Units": "mm"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "selectedObjectId": "exercise-354-mechanical-annotations"
+}

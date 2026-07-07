@@ -1,3 +1,4 @@
+import type { CanvasBlockoutSidecar } from "./blockoutSidecar";
 import type { CanvasGuideSidecar } from "./guideSidecar";
 import type { MechanicalAnnotationSet } from "./mechanicalAnnotations";
 import type { ReferenceGridConfig } from "./referenceGrid";
@@ -44,12 +45,14 @@ export type CanvasLayerGroup = {
 export type CanvasObject =
   | RectObject
   | EllipseObject
+  | PathObject
   | TextObject
   | ImageObject
   | UiComponentObject
   | SketchOverlayObject
   | SpriteSidecarObject
   | GuideSidecarObject
+  | BlockoutSidecarObject
   | MechanicalAnnotationSidecarObject;
 
 export type CanvasFrame =
@@ -110,12 +113,14 @@ export type CanvasObjectBase = {
 export type CanvasObjectKind =
   | "rect"
   | "ellipse"
+  | "path"
   | "text"
   | "image"
   | "uiComponent"
   | "sketchOverlay"
   | "spriteSidecar"
   | "guideSidecar"
+  | "blockoutSidecar"
   | "mechanicalAnnotationSidecar";
 
 export type CanvasUiPropValue =
@@ -328,6 +333,14 @@ export type EllipseObject = CanvasObjectBase & {
   kind: "ellipse";
 };
 
+export type PathObject = CanvasObjectBase & {
+  kind: "path";
+  d: string;
+  strokeWidth?: number;
+  strokeDasharray?: string;
+  fillRule?: "nonzero" | "evenodd";
+};
+
 export type TextObject = CanvasObjectBase & {
   kind: "text";
   text: string;
@@ -375,7 +388,18 @@ export type GuideSidecarObject = CanvasObjectBase & {
   kind: "guideSidecar";
   role?: "guideSidecar";
   targetId?: string;
+  opacity?: number;
+  showLabels?: boolean;
   guide: CanvasGuideSidecar;
+};
+
+export type BlockoutSidecarObject = CanvasObjectBase & {
+  kind: "blockoutSidecar";
+  role?: "blockoutSidecar";
+  targetObjectId?: string;
+  opacity?: number;
+  showLabels?: boolean;
+  blockout: CanvasBlockoutSidecar;
 };
 
 export type MechanicalAnnotationSidecarObject = CanvasObjectBase & {

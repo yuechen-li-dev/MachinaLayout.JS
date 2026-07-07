@@ -73,6 +73,7 @@ export type MechanicalLinearDimension = MechanicalDimensionBase & {
   readonly from: readonly [number, number];
   readonly to: readonly [number, number];
   readonly offset?: number;
+  readonly labelOffset?: number;
 };
 
 export type MechanicalAlignedDimension = MechanicalDimensionBase & {
@@ -80,6 +81,7 @@ export type MechanicalAlignedDimension = MechanicalDimensionBase & {
   readonly from: readonly [number, number];
   readonly to: readonly [number, number];
   readonly offset?: number;
+  readonly labelOffset?: number;
 };
 
 export type MechanicalAngleDimension = MechanicalDimensionBase & {
@@ -87,18 +89,28 @@ export type MechanicalAngleDimension = MechanicalDimensionBase & {
   readonly center: readonly [number, number];
   readonly from: readonly [number, number];
   readonly to: readonly [number, number];
+  readonly radius?: number;
+  readonly labelOffset?: number;
 };
 
 export type MechanicalRadiusDimension = MechanicalDimensionBase & {
   readonly kind: "radius";
   readonly center: readonly [number, number];
   readonly radius: number;
+  readonly leaderAngle?: number;
+  readonly leaderLength?: number;
+  readonly labelOffset?: readonly [number, number];
+  readonly showCenterMark?: boolean;
 };
 
 export type MechanicalDiameterDimension = MechanicalDimensionBase & {
   readonly kind: "diameter";
   readonly center: readonly [number, number];
   readonly diameter: number;
+  readonly leaderAngle?: number;
+  readonly leaderLength?: number;
+  readonly labelOffset?: readonly [number, number];
+  readonly showCenterMark?: boolean;
 };
 
 export type MechanicalNoteAnnotation = {
@@ -1177,7 +1189,7 @@ function renderMechanicalSheetFrame(sidecar: MechanicalAnnotationSidecarObject, 
   const layout = getMechanicalSheetLayout(sidecar.annotations.sheet);
   lines.push(
     `<g class="canvas-mechanical-sheet-frame" data-canvas-mechanical-sheet="A4-landscape">`,
-    `<rect class="canvas-mechanical-sheet-boundary" x="0" y="0" width="${layout.widthMm}" height="${layout.heightMm}" fill="#ffffff" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
+    `<rect class="canvas-mechanical-sheet-boundary" x="0" y="0" width="${layout.widthMm}" height="${layout.heightMm}" fill="none" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
     `<rect class="canvas-mechanical-sheet-margin" x="${layout.contentBoxMm.x}" y="${layout.contentBoxMm.y}" width="${layout.contentBoxMm.width}" height="${layout.contentBoxMm.height}" fill="none" stroke="#7f8896" stroke-width="${MECHANICAL_LIGHT_STROKE}" stroke-dasharray="2 1.4" />`,
     `<rect class="canvas-mechanical-sheet-content" x="${layout.contentBoxMm.x}" y="${layout.contentBoxMm.y}" width="${layout.contentBoxMm.width}" height="${layout.contentBoxMm.height}" fill="none" stroke="#c7ccd4" stroke-width="${MECHANICAL_LIGHT_STROKE}" />`,
     `</g>`,
@@ -1226,9 +1238,47 @@ function renderLeader(
   to: readonly [number, number],
   lines: string[],
   className: string,
+  options?: { readonly arrows?: "start" | "end" | "both" },
 ) {
+  const markerStart =
+    options?.arrows === "start" || options?.arrows === "both"
+      ? ' marker-start="url(#canvas-mechanical-arrow)"'
+      : "";
+  const markerEnd =
+    options?.arrows === "end" || options?.arrows === "both"
+      ? ' marker-end="url(#canvas-mechanical-arrow)"'
+      : "";
   lines.push(
-    `<line class="${className}" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" stroke="#253043" stroke-width="${className === "canvas-mechanical-extension" ? MECHANICAL_LIGHT_STROKE : MECHANICAL_LINE_STROKE}" />`,
+    `<line class="${className}" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" stroke="#253043" stroke-width="${className === "canvas-mechanical-extension" ? MECHANICAL_LIGHT_STROKE : MECHANICAL_LINE_STROKE}"${markerStart}${markerEnd} />`,
+  );
+}
+
+function estimateLabelWidth(text: string): number {
+  return Math.max(8, text.length * MECHANICAL_LABEL_FONT_SIZE * 0.62 + 2.8);
+}
+
+function renderDimensionLabel(
+  text: string,
+  at: readonly [number, number],
+  lines: string[],
+  options?: {
+    readonly textAnchor?: "start" | "middle" | "end";
+    readonly rotate?: number;
+  },
+) {
+  const width = estimateLabelWidth(text);
+  const height = MECHANICAL_LABEL_FONT_SIZE + 2.2;
+  const anchor = options?.textAnchor ?? "middle";
+  const rectX =
+    anchor === "start" ? at[0] - 1.4 : anchor === "end" ? at[0] - width + 1.4 : at[0] - width / 2;
+  const rectY = at[1] - MECHANICAL_LABEL_FONT_SIZE - 1.2;
+  const transform =
+    options?.rotate !== undefined ? ` transform="rotate(${options.rotate} ${at[0]} ${at[1]})"` : "";
+  lines.push(
+    `<g class="canvas-mechanical-label-group"${transform}>`,
+    `<rect class="canvas-mechanical-label-backplate" x="${rectX}" y="${rectY}" width="${width}" height="${height}" fill="#ffffff" stroke="none" />`,
+    `<text class="canvas-mechanical-label" x="${at[0]}" y="${at[1]}" text-anchor="${anchor}" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(text)}</text>`,
+    `</g>`,
   );
 }
 
@@ -1245,18 +1295,34 @@ function renderLinearDimension(
   const normalY =
     dimension.kind === "linear" ? (dimension.axis === "horizontal" ? -1 : 0) : dx / length;
   const offset = dimension.offset ?? 18;
-  const start = [
-    dimension.from[0] + normalX * offset,
-    dimension.from[1] + normalY * offset,
-  ] as const;
-  const end = [dimension.to[0] + normalX * offset, dimension.to[1] + normalY * offset] as const;
+  const start =
+    dimension.kind === "linear" && dimension.axis === "horizontal"
+      ? ([dimension.from[0], dimension.from[1] + normalY * offset] as const)
+      : dimension.kind === "linear" && dimension.axis === "vertical"
+        ? ([dimension.from[0] + normalX * offset, dimension.from[1]] as const)
+        : ([dimension.from[0] + normalX * offset, dimension.from[1] + normalY * offset] as const);
+  const end =
+    dimension.kind === "linear" && dimension.axis === "horizontal"
+      ? ([dimension.to[0], dimension.from[1] + normalY * offset] as const)
+      : dimension.kind === "linear" && dimension.axis === "vertical"
+        ? ([dimension.from[0] + normalX * offset, dimension.to[1]] as const)
+        : ([dimension.to[0] + normalX * offset, dimension.to[1] + normalY * offset] as const);
   const labelX = (start[0] + end[0]) / 2;
-  const labelY = (start[1] + end[1]) / 2 - 4;
+  const labelY = (start[1] + end[1]) / 2 - (dimension.labelOffset ?? 4);
+  const labelAngle =
+    dimension.kind === "aligned"
+      ? (Math.atan2(end[1] - start[1], end[0] - start[0]) * 180) / Math.PI
+      : 0;
   renderLeader(dimension.from, start, lines, "canvas-mechanical-extension");
   renderLeader(dimension.to, end, lines, "canvas-mechanical-extension");
-  renderLeader(start, end, lines, "canvas-mechanical-dimension");
-  lines.push(
-    `<text class="canvas-mechanical-label" x="${labelX}" y="${labelY}" text-anchor="middle" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
+  renderLeader(start, end, lines, "canvas-mechanical-dimension", { arrows: "both" });
+  renderDimensionLabel(
+    formatMechanicalDimensionText(dimension, defaultUnits),
+    [labelX, labelY],
+    lines,
+    {
+      rotate: dimension.kind === "aligned" ? labelAngle : undefined,
+    },
   );
 }
 
@@ -1265,7 +1331,7 @@ function renderAngleDimension(
   defaultUnits: MechanicalUnits,
   lines: string[],
 ) {
-  const radius = 22;
+  const radius = dimension.radius ?? 22;
   const startAngle = Math.atan2(
     dimension.from[1] - dimension.center[1],
     dimension.from[0] - dimension.center[0],
@@ -1284,16 +1350,17 @@ function renderAngleDimension(
   ] as const;
   const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
   const midAngle = startAngle + (endAngle - startAngle) / 2;
+  const labelOffset = dimension.labelOffset ?? 14;
   const label = [
-    dimension.center[0] + Math.cos(midAngle) * (radius + 14),
-    dimension.center[1] + Math.sin(midAngle) * (radius + 14),
+    dimension.center[0] + Math.cos(midAngle) * (radius + labelOffset),
+    dimension.center[1] + Math.sin(midAngle) * (radius + labelOffset),
   ] as const;
   renderLeader(dimension.center, dimension.from, lines, "canvas-mechanical-extension");
   renderLeader(dimension.center, dimension.to, lines, "canvas-mechanical-extension");
   lines.push(
-    `<path class="canvas-mechanical-dimension" d="M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}" fill="none" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
-    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}" text-anchor="middle" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
+    `<path class="canvas-mechanical-dimension" d="M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}" fill="none" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" marker-start="url(#canvas-mechanical-arrow)" marker-end="url(#canvas-mechanical-arrow)" />`,
   );
+  renderDimensionLabel(formatMechanicalDimensionText(dimension, defaultUnits), label, lines);
 }
 
 function renderCircularDimension(
@@ -1302,13 +1369,28 @@ function renderCircularDimension(
   lines: string[],
 ) {
   const radius = dimension.kind === "radius" ? dimension.radius : dimension.diameter / 2;
-  const anchor = [dimension.center[0] + radius, dimension.center[1]] as const;
-  const label = [anchor[0] + 18, anchor[1] - 8] as const;
-  renderLeader(dimension.center, anchor, lines, "canvas-mechanical-dimension");
-  lines.push(
-    `<circle class="canvas-mechanical-center-mark" cx="${dimension.center[0]}" cy="${dimension.center[1]}" r="1.4" fill="#253043" stroke="none" />`,
-    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
-  );
+  const angle = ((dimension.leaderAngle ?? 0) * Math.PI) / 180;
+  const radial = [Math.cos(angle), Math.sin(angle)] as const;
+  const anchor = [
+    dimension.center[0] + radial[0] * radius,
+    dimension.center[1] + radial[1] * radius,
+  ] as const;
+  const leaderLength = dimension.leaderLength ?? 18;
+  const leaderEnd = [
+    anchor[0] + radial[0] * leaderLength,
+    anchor[1] + radial[1] * leaderLength,
+  ] as const;
+  const labelOffset = dimension.labelOffset ?? ([radial[0] >= 0 ? 3 : -3, -2] as const);
+  const label = [leaderEnd[0] + labelOffset[0], leaderEnd[1] + labelOffset[1]] as const;
+  renderLeader(leaderEnd, anchor, lines, "canvas-mechanical-dimension", { arrows: "end" });
+  if (dimension.showCenterMark ?? dimension.kind === "diameter") {
+    lines.push(
+      `<circle class="canvas-mechanical-center-mark" cx="${dimension.center[0]}" cy="${dimension.center[1]}" r="1.1" fill="#253043" stroke="none" />`,
+    );
+  }
+  renderDimensionLabel(formatMechanicalDimensionText(dimension, defaultUnits), label, lines, {
+    textAnchor: radial[0] >= 0 ? "start" : "end",
+  });
 }
 
 export function serializeMechanicalAnnotationOverlayContent(
@@ -1318,6 +1400,7 @@ export function serializeMechanicalAnnotationOverlayContent(
   const units = sidecar.annotations.units;
   lines.push(
     `<g class="canvas-mechanical-annotation-layer" font-family="Arial, Helvetica, sans-serif" fill="none" stroke="#253043" stroke-linecap="square" stroke-linejoin="miter">`,
+    `<defs><marker id="canvas-mechanical-arrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M 5 2.5 L 0 0 L 0 5 Z" fill="#253043" stroke="none" /></marker></defs>`,
   );
 
   renderMechanicalSheetFrame(sidecar, lines);

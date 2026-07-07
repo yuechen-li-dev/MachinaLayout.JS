@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "canvas:tinytown-artifacts": "vite-node apps/machina-canvas/scripts/run-generate-tinytown-sprite-artifacts.ts",
+    "canvas:mechanical-exercise-354": "vite-node apps/machina-canvas/scripts/create-mechanical-exercise-354.ts",
+    "canvas:mechanical-exercise-354-blockout": "vite-node apps/machina-canvas/scripts/create-mechanical-exercise-354-blockout.ts",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
     "test": "vitest run",

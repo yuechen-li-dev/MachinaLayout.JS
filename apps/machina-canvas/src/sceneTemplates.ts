@@ -575,6 +575,42 @@ export function createMechanicalDraftingScene(): CanvasDocument {
     stroke: "#1c2430",
     notes: "Simple existing geometry object used as a referenced annotation target.",
   };
+  const bodyProfile: Extract<CanvasObject, { kind: "path" }> = {
+    id: "draft-plate-filled-profile",
+    name: "Filled plate body profile",
+    kind: "path",
+    layerId: "geometry",
+    visible: true,
+    x: 0,
+    y: 0,
+    width: layout.widthMm,
+    height: layout.heightMm,
+    fill: "#68bfe9",
+    stroke: "none",
+    strokeWidth: 0,
+    fillRule: "evenodd",
+    d: [
+      `M ${plate.x + 2} ${plate.y}`,
+      `L ${plate.x + plate.width - 2} ${plate.y}`,
+      `A 2 2 0 0 1 ${plate.x + plate.width} ${plate.y + 2}`,
+      `L ${plate.x + plate.width} ${plate.y + plate.height - 2}`,
+      `A 2 2 0 0 1 ${plate.x + plate.width - 2} ${plate.y + plate.height}`,
+      `L ${plate.x + 2} ${plate.y + plate.height}`,
+      `A 2 2 0 0 1 ${plate.x} ${plate.y + plate.height - 2}`,
+      `L ${plate.x} ${plate.y + 2}`,
+      `A 2 2 0 0 1 ${plate.x + 2} ${plate.y}`,
+      "Z",
+      `M ${hole.x} ${hole.y + hole.height / 2}`,
+      `A ${hole.width / 2} ${hole.height / 2} 0 1 0 ${hole.x + hole.width} ${
+        hole.y + hole.height / 2
+      }`,
+      `A ${hole.width / 2} ${hole.height / 2} 0 1 0 ${hole.x} ${hole.y + hole.height / 2}`,
+      "Z",
+    ].join(" "),
+    tags: ["mechanical-body-profile", "filled-profile"],
+    notes:
+      "Mechanical mode defaults to topology-first filled profile rendering; the hole subpath is an even-odd void.",
+  };
   const sheet = {
     ...createDefaultMechanicalSheetMetadata(),
     scale: "1:1",
@@ -735,7 +771,7 @@ export function createMechanicalDraftingScene(): CanvasDocument {
         id: "geometry",
         name: "Geometry",
         visible: true,
-        objectIds: [plate.id, hole.id],
+        objectIds: [bodyProfile.id, plate.id, hole.id],
       },
       {
         id: "annotations",
@@ -748,11 +784,12 @@ export function createMechanicalDraftingScene(): CanvasDocument {
       {
         id: "mechanical-drafting",
         title: "Mechanical Drafting",
-        description: "Existing scene geometry with semantic mechanical drafting overlays.",
-        objectIds: [plate.id, hole.id],
+        description: "Filled profile scene geometry with semantic mechanical drafting overlays.",
+        objectIds: [bodyProfile.id, plate.id, hole.id],
       },
     ],
     objects: {
+      [bodyProfile.id]: bodyProfile,
       [plate.id]: plate,
       [hole.id]: hole,
       [sidecar.id]: sidecar,

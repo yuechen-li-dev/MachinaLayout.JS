@@ -31,11 +31,17 @@ Mechanical drafting mode is annotation-first 2D drafting. It adds semantic dimen
 
 Mechanical drafting mode reuses existing MachinaCanvas SVG-like scene geometry as the drawing substrate. Mechanical annotations add semantic dimensions, notes, datums, and block/table records on top. Dimensions may reference geometry anchors, but they do not solve or drive geometry.
 
+Mechanical mode defaults to profile-first filled rendering: the material body is authored as a filled profile, holes and slots are authored as voids, and outlines/centerlines/dimensions render above that topology. This is intentionally more legible for LLM-native CAD inspection than paper-era line-only drafting because the solid body and cutouts are visible before reading annotations.
+
 There is no separate CAD geometry kernel here, and no parametric sketch solver. Mechanical mode is a drafting workflow over the same `.mcanvas` scene objects used by the other editor modes.
 
 Mechanical drafting currently targets A4 landscape office-printer sheets. MachinaCanvas intentionally avoids AutoCAD-style plotter/profile setup for this mode.
 
 Use A4 landscape for general mechanical drawings. Specialized 1:1 manufacturing outputs such as wire harness boards are out of scope for the current mechanical drafting mode.
+
+M39d/M39e/M39f include a dogfood exercise that recreates a reference 2D mechanical drawing as MachinaCanvas geometry plus semantic mechanical annotations. M39f renders the exercise as a filled topology-first profile with holes and the rounded slot punched out as voids. It is intended to reveal workflow gaps, not to perform automatic image-to-CAD conversion. Run `npm run canvas:mechanical-exercise-354` from the repository root to regenerate the exercise JSON, SVG, preview PNG, and dogfood report artifacts.
+
+M39g extends that dogfood with a staged blockout method: first establish global bounds and datum lines, then feature blockout boxes, then lower the guide masks into filled body/void topology and annotations. This is not automatic image-to-CAD extraction; it is an explicit authoring method for LLM-assisted drafting. Run `npm run canvas:mechanical-exercise-354-blockout` to regenerate the global mask, feature mask, filled-profile render, preview PNG, scene JSON, and process notes artifacts.
 
 The core source artifact remains editable `.mcanvas` editor state plus scene object records. SVG is the current review/print-oriented artifact, and PDF may come later.
 
@@ -318,15 +324,23 @@ shape is intended to generalize later to things like `.pcb.toml`,
 
 ## Layer groups and sidecar attachments
 
-The layer panel shows ownership relationships: images can own sprite sidecars, guide sidecars, sketch overlays, and alpha masks. Layer groups organize objects but do not change rendering semantics in this pass.
+The layer panel shows ownership relationships: images and scene objects can own sprite sidecars, guide sidecars, blockout sidecars, sketch overlays, and alpha masks. Layer groups organize objects but do not change rendering semantics in this pass.
 
-The Layers panel uses an Add menu for groups, images, sprite TOML, guide TOML, sketch TOML, and alpha masks.
+The Layers panel uses an Add menu for groups, images, sprite TOML, guide TOML, blockout TOML, sketch TOML, and alpha masks.
 
-Use the Add menu to add `Group`, `Image`, `Sprite TOML`, `Guide TOML`, `Sketch TOML`, and `Alpha mask` items directly where you are working. Attached alpha maps, guide sidecars, sprite sidecars, and sketch overlays render as nested rows under their owning image so the relationship is visible before you open the inspector.
+Use the Add menu to add `Group`, `Image`, `Sprite TOML`, `Guide TOML`, `Blockout TOML`, `Sketch TOML`, and `Alpha mask` items directly where you are working. Attached alpha maps, guide sidecars, blockout sidecars, sprite sidecars, and sketch overlays render as nested rows under their owning object so the relationship is visible before you open the inspector.
 
-If a guide sidecar, sprite sidecar, sketch overlay, or alpha mask is loaded without a matching image attachment, MachinaCanvas keeps it visible under `Unattached Sidecars` until you link it.
+If a guide sidecar, blockout sidecar, sprite sidecar, sketch overlay, or alpha mask is loaded without a matching attachment, MachinaCanvas keeps it visible under `Unattached Sidecars` until you link it.
 
-## Guide sidecars
+## Guide and blockout sidecars
+
+Guide sidecars (`*.guide.toml`) represent construction masks: regions, datums, dimensions, alignment marks, and future construction curves.
+
+Blockout sidecars (`*.blockout.toml`) represent spatial feature/component masks. They are general-purpose authoring IR for layout, sprites, mechanical drafting, diagrams, and other canvas workflows.
+
+Blockout is layout IR. It helps authors and LLMs solve composition before final geometry or rendering.
+
+Attach guide and blockout sidecars to an image or scene object, toggle their visibility like layers, and use them as visible red and green overlays during editing and visual review. They are authoring-side overlays, not automatic image-to-CAD extraction, not a solver, and not mCAD-specific.
 
 Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums, dimensions, and alignment marks used to edit visual artifacts. They are separate from runtime sidecars such as `*.sprite.toml`.
 
@@ -355,6 +369,20 @@ Alignment marks are point marks only in this pass. The inspector can align an im
 Alignment metadata remains guide-only authoring IR. It stays in `*.guide.toml`, does not compile into runtime `*.sprite.toml`, and does not use computer vision or automatic feature detection.
 
 This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, full auto-segmentation, or full registration beyond translation-only alignment between authored marks.
+
+### Arc construction helpers
+
+Arc helpers construct local SVG path geometry from drafting inputs such as three points, center/radius angles, chord/radius centers, and fixed tangent references.
+
+Tangency helpers adjust the generated arc only; they do not move the entities the arc is tangent to.
+
+These helpers are not a parametric sketch solver or CAD kernel.
+
+Three-point arcs remain valid authoring input, and center/radius arcs remain valid authoring input.
+
+Radius center helpers can return two possible centers so a drafter can choose which side of a chord the arc should live on.
+
+Guide and blockout cues can lower to ordinary path geometry, including helper-generated arc paths, without introducing a separate CAD-only scene primitive.
 
 ## TinyTown sprite artifact generation
 

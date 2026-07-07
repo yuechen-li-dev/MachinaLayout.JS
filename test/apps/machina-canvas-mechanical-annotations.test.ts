@@ -276,6 +276,12 @@ describe("MachinaCanvas mechanical annotations", () => {
         (object) => object.kind === "mechanicalAnnotationSidecar",
       ),
     ).toBe(true);
+    const bodyProfile = document.objects["draft-plate-filled-profile"];
+    expect(bodyProfile.kind).toBe("path");
+    if (bodyProfile.kind !== "path") return;
+    expect(bodyProfile.tags).toEqual(expect.arrayContaining(["mechanical-body-profile"]));
+    expect(bodyProfile.fillRule).toBe("evenodd");
+    expect(bodyProfile.fill).not.toBe("transparent");
   });
 
   it("layer tree includes the mechanical annotation sidecar", () => {

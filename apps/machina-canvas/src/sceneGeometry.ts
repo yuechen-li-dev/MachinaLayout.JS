@@ -229,6 +229,24 @@ export function getSceneGeometryDiagnostics(document: CanvasDocument): GeometryD
         });
       }
     }
+
+    if (object.kind === "blockoutSidecar") {
+      if (!object.targetObjectId) {
+        diagnostics.push({
+          severity: "warning",
+          code: "UnattachedBlockoutSidecar",
+          message: `${object.name} is not attached to a scene object yet.`,
+          objectIds: [object.id],
+        });
+      } else if (!document.objects[object.targetObjectId]) {
+        diagnostics.push({
+          severity: "warning",
+          code: "InvalidBlockoutSidecarRelation",
+          message: `${object.name} targets missing object ${object.targetObjectId}.`,
+          objectIds: [object.id],
+        });
+      }
+    }
   }
 
   if (selected?.visible) {

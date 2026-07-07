@@ -390,6 +390,28 @@ button {
   color: #a24f0a;
 }
 
+.tree-visibility {
+  align-self: center;
+  margin-left: auto;
+  border: 1px solid #d0d0ca;
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: #4f4f49;
+  font-size: 9px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.tree-visibility.is-hidden {
+  background: #f5f1ee;
+  color: #8a4f20;
+}
+
+.tree-visibility.is-visible {
+  background: #edf7ef;
+  color: #216c36;
+}
+
 .tree-object.is-attachment {
   margin-left: 18px;
 }
@@ -452,6 +474,10 @@ button {
 
 .kind-guide {
   background: #eef7ea;
+}
+
+.kind-blockout {
+  background: #e7f7ea;
 }
 
 .canvas-panel {
@@ -697,6 +723,10 @@ button {
   pointer-events: none;
 }
 
+.canvas-blockout-overlay {
+  pointer-events: none;
+}
+
 .canvas-sketch-box,
 .canvas-sketch-line,
 .canvas-sketch-point,
@@ -890,6 +920,28 @@ button {
 }
 
 .canvas-guide-region.guide-region--warning {
+  stroke-width: 3px;
+}
+
+.canvas-blockout-box,
+.canvas-blockout-point,
+.canvas-blockout-curve,
+.canvas-blockout-label {
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-blockout-box,
+.canvas-blockout-point,
+.canvas-blockout-curve {
+  stroke-width: 2px;
+}
+
+.canvas-blockout-label {
+  fill: #0f5c26;
+  font-size: 11px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.94);
   stroke-width: 3px;
 }
 

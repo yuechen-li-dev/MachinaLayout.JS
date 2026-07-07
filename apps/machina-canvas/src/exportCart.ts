@@ -31,6 +31,7 @@ export type CanvasExportArtifactKind =
   | "spriteToml"
   | "spriteCompileReport"
   | "guideToml"
+  | "blockoutToml"
   | "mechanicalJson"
   | "sketchToml"
   | "spriteAudit"
@@ -143,6 +144,7 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
       "spriteToml",
       "spriteCompileReport",
       "guideToml",
+      "blockoutToml",
       "mechanicalJson",
       "sketchToml",
       "spriteAudit",
@@ -198,6 +200,9 @@ function getObjectAssetFilename(object: CanvasObject): string {
   }
   if (object.kind === "guideSidecar") {
     return `objects/${sanitizePathId(object.id)}.guide.toml`;
+  }
+  if (object.kind === "blockoutSidecar") {
+    return `objects/${sanitizePathId(object.id)}.blockout.toml`;
   }
   if (object.kind === "mechanicalAnnotationSidecar") {
     return `objects/${sanitizePathId(object.id)}.mechanical.json`;
@@ -542,6 +547,26 @@ export function collectCanvasExportArtifacts(input: {
           target?.kind === "image"
             ? `Authoring guide IR for ${target.name}: regions, datums, dimensions, and alignment marks used only in the editor/source workflow.`
             : "Authoring guide IR awaiting image attachment. Guide regions and datums do not export into runtime sprite TOML.",
+        filename: getObjectAssetFilename(object),
+        selectedByDefault: false,
+        sourceObjectId: object.id,
+        group: "sidecars",
+        create: () => getFile(bundle, getObjectAssetFilename(object)).text,
+      });
+    }
+    if (object.kind === "blockoutSidecar") {
+      const target =
+        object.targetObjectId !== undefined
+          ? input.scene.objects[object.targetObjectId]
+          : undefined;
+      artifacts.push({
+        id: `blockout-toml:${object.id}`,
+        kind: "blockoutToml",
+        title: "Blockout TOML (authoring)",
+        description:
+          target !== undefined
+            ? `Spatial feature/component mask IR for ${target.name}: boxes, points, and curves used during layout and authoring review.`
+            : "Spatial feature/component mask IR awaiting attachment. Blockout remains authoring IR, not final geometry output.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,

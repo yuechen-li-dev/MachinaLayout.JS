@@ -1,3 +1,4 @@
+import { createBlockoutSidecarObject } from "./blockoutSidecar";
 import { resolveCanvasFrame } from "./canvasFrames";
 import { addCanvasObjectToLayerGroup, createCanvasLayerGroup } from "./layerTree";
 import { selectSpriteFrameInSpec, updateSpriteFrameRectInSpec } from "./spriteSidecar";
@@ -34,6 +35,7 @@ import type {
   CanvasSpriteDiagnostics,
   CanvasSpriteFrame,
   CanvasUiPropValue,
+  BlockoutSidecarObject,
   GuideSidecarObject,
   ImageObject,
   SpriteOverlayDisplayMode,
@@ -116,6 +118,11 @@ export type CanvasCommand =
       attach?: boolean;
     }
   | {
+      kind: "addBlockoutSidecarObject";
+      object: BlockoutSidecarObject;
+      attach?: boolean;
+    }
+  | {
       kind: "removeObject";
       id: string;
     }
@@ -157,6 +164,11 @@ export type CanvasCommand =
       visible: boolean;
     }
   | {
+      kind: "setGuideSidecarOpacity";
+      guideId: string;
+      opacity: number;
+    }
+  | {
       kind: "attachSpriteSidecar";
       sourceId: string;
       sidecarId: string;
@@ -169,6 +181,25 @@ export type CanvasCommand =
       kind: "setSpriteSidecarVisible";
       sidecarId: string;
       visible: boolean;
+    }
+  | {
+      kind: "attachBlockoutSidecar";
+      targetObjectId: string;
+      blockoutId: string;
+    }
+  | {
+      kind: "detachBlockoutSidecar";
+      blockoutId: string;
+    }
+  | {
+      kind: "setBlockoutSidecarVisible";
+      blockoutId: string;
+      visible: boolean;
+    }
+  | {
+      kind: "setBlockoutSidecarOpacity";
+      blockoutId: string;
+      opacity: number;
     }
   | {
       kind: "setSpriteOverlayOption";
@@ -803,6 +834,73 @@ function validateAddSpriteSidecarCommand(
       severity: "error",
       code: "InvalidSpriteSidecarRelation",
       message: `Sprite sidecar target "${String(object.targetId)}" must be an image object.`,
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+}
+
+function validateAddBlockoutSidecarCommand(
+  document: CanvasDocument,
+  diagnostics: CanvasCommandValidationDiagnostic[],
+  object: unknown,
+  commandIndex: number | undefined,
+) {
+  if (!isRecord(object)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidBlockoutSidecar",
+      message: "addBlockoutSidecarObject requires a blockout sidecar object.",
+      commandIndex,
+    });
+    return;
+  }
+
+  if (!isString(object.id) || object.id.length === 0) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidBlockoutSidecar",
+      message: "Blockout sidecar id must be a non-empty string.",
+      commandIndex,
+    });
+  } else if (document.objects[object.id] !== undefined) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "DuplicateObjectId",
+      message: `Object "${object.id}" already exists.`,
+      commandIndex,
+      objectId: object.id,
+    });
+  }
+
+  if (object.kind !== "blockoutSidecar") {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidBlockoutSidecar",
+      message: "addBlockoutSidecarObject only accepts objects with kind blockoutSidecar.",
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (!isString(object.layerId) || !document.layers.some((layer) => layer.id === object.layerId)) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "MissingLayer",
+      message: `Blockout sidecar layer "${String(object.layerId)}" does not exist.`,
+      commandIndex,
+      objectId: isString(object.id) ? object.id : undefined,
+    });
+  }
+
+  if (
+    object.targetObjectId !== undefined &&
+    (!isString(object.targetObjectId) || document.objects[object.targetObjectId] === undefined)
+  ) {
+    addDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidBlockoutSidecarRelation",
+      message: `Blockout sidecar target "${String(object.targetObjectId)}" must reference an existing scene object.`,
       commandIndex,
       objectId: isString(object.id) ? object.id : undefined,
     });
@@ -1449,6 +1547,9 @@ export function validateCanvasCommand(
         );
       }
       break;
+    case "addBlockoutSidecarObject":
+      validateAddBlockoutSidecarCommand(document, diagnostics, command.object, commandIndex);
+      break;
     case "removeObject":
       validateRemoveObjectCommand(document, diagnostics, command.id, commandIndex);
       break;
@@ -1485,6 +1586,10 @@ export function validateCanvasCommand(
         });
       }
       break;
+    case "setGuideSidecarOpacity":
+      validateObjectId(document, diagnostics, command.guideId, commandIndex, "guideId");
+      validateNumber(diagnostics, command.opacity, "opacity", commandIndex);
+      break;
     case "attachSpriteSidecar":
       validateSpriteSidecarCommand(document, diagnostics, command, commandIndex);
       break;
@@ -1501,6 +1606,34 @@ export function validateCanvasCommand(
           commandIndex,
         });
       }
+      break;
+    case "attachBlockoutSidecar":
+      validateObjectId(
+        document,
+        diagnostics,
+        command.targetObjectId,
+        commandIndex,
+        "targetObjectId",
+      );
+      validateObjectId(document, diagnostics, command.blockoutId, commandIndex, "blockoutId");
+      break;
+    case "detachBlockoutSidecar":
+      validateObjectId(document, diagnostics, command.blockoutId, commandIndex, "blockoutId");
+      break;
+    case "setBlockoutSidecarVisible":
+      validateObjectId(document, diagnostics, command.blockoutId, commandIndex, "blockoutId");
+      if (typeof command.visible !== "boolean") {
+        addDiagnostic(diagnostics, {
+          severity: "error",
+          code: "InvalidCommand",
+          message: "visible must be a boolean.",
+          commandIndex,
+        });
+      }
+      break;
+    case "setBlockoutSidecarOpacity":
+      validateObjectId(document, diagnostics, command.blockoutId, commandIndex, "blockoutId");
+      validateNumber(diagnostics, command.opacity, "opacity", commandIndex);
       break;
     case "setSpriteOverlayOption":
       validateSpriteSidecarMutationCommand(document, diagnostics, command, commandIndex);
@@ -1916,6 +2049,11 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
       ? `Guide sidecar ${command.object.id} was already present.`
       : `Added guide sidecar ${command.object.id}.`;
   }
+  if (command.kind === "addBlockoutSidecarObject") {
+    return changes.length === 0
+      ? `Blockout sidecar ${command.object.id} was already present.`
+      : `Added blockout sidecar ${command.object.id}.`;
+  }
   if (command.kind === "removeObject") {
     return changes.length === 0
       ? `Object ${command.id} was not removed.`
@@ -1960,6 +2098,31 @@ function messageFor(command: CanvasCommand, changes: CanvasCommandChange[]) {
     return changes.length === 0
       ? `Guide sidecar ${command.guideId} visibility was already ${command.visible}.`
       : `Set guide sidecar ${command.guideId} visible ${command.visible}.`;
+  }
+  if (command.kind === "setGuideSidecarOpacity") {
+    return changes.length === 0
+      ? `Guide sidecar ${command.guideId} opacity was already ${command.opacity}.`
+      : `Set guide sidecar ${command.guideId} opacity ${command.opacity}.`;
+  }
+  if (command.kind === "attachBlockoutSidecar") {
+    return changes.length === 0
+      ? `Blockout sidecar ${command.blockoutId} was already attached to ${command.targetObjectId}.`
+      : `Attached blockout sidecar ${command.blockoutId} to ${command.targetObjectId}.`;
+  }
+  if (command.kind === "detachBlockoutSidecar") {
+    return changes.length === 0
+      ? `Blockout sidecar ${command.blockoutId} was already detached.`
+      : `Detached blockout sidecar ${command.blockoutId}.`;
+  }
+  if (command.kind === "setBlockoutSidecarVisible") {
+    return changes.length === 0
+      ? `Blockout sidecar ${command.blockoutId} visibility was already ${command.visible}.`
+      : `Set blockout sidecar ${command.blockoutId} visible ${command.visible}.`;
+  }
+  if (command.kind === "setBlockoutSidecarOpacity") {
+    return changes.length === 0
+      ? `Blockout sidecar ${command.blockoutId} opacity was already ${command.opacity}.`
+      : `Set blockout sidecar ${command.blockoutId} opacity ${command.opacity}.`;
   }
   if (command.kind === "attachSpriteSidecar") {
     return changes.length === 0
@@ -2228,6 +2391,74 @@ export function applyCanvasCommand(
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
 
+  if (command.kind === "addBlockoutSidecarObject") {
+    if (document.objects[command.object.id] !== undefined) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addBlockoutSidecarObject skipped duplicate object "${command.object.id}".`,
+      };
+    }
+
+    const layerExists = document.layers.some((layer) => layer.id === command.object.layerId);
+    const target = command.object.targetObjectId
+      ? document.objects[command.object.targetObjectId]
+      : undefined;
+    if (!layerExists || command.object.kind !== "blockoutSidecar" || (command.attach && !target)) {
+      return {
+        document,
+        command,
+        changes,
+        message: `addBlockoutSidecarObject skipped invalid blockout sidecar "${command.object.id}".`,
+      };
+    }
+
+    const nextObject =
+      command.attach && target
+        ? createBlockoutSidecarObject(target, command.object.blockout, {
+            id: command.object.id,
+            layerId: command.object.layerId,
+            name: command.object.name,
+          })
+        : command.object;
+
+    changes.push({
+      objectId: nextObject.id,
+      field: "objects",
+      before: undefined,
+      after: nextObject,
+    });
+    changes.push({
+      objectId: nextObject.id,
+      field: "layer.objectIds",
+      before: undefined,
+      after: nextObject.id,
+    });
+    changes.push({
+      objectId: nextObject.id,
+      field: "selectedObjectId",
+      before: document.selectedObjectId,
+      after: nextObject.id,
+    });
+
+    nextDocument = {
+      ...document,
+      selectedObjectId: nextObject.id,
+      objects: {
+        ...document.objects,
+        [nextObject.id]: nextObject,
+      },
+      layers: document.layers.map((layer) =>
+        layer.id === nextObject.layerId
+          ? { ...layer, objectIds: [...layer.objectIds, nextObject.id] }
+          : layer,
+      ),
+    };
+
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
   if (command.kind === "addGuideSidecarObject") {
     if (document.objects[command.object.id] !== undefined) {
       return {
@@ -2465,6 +2696,12 @@ export function applyCanvasCommand(
           ...object,
           targetId: undefined,
           guide: { ...object.guide, target: undefined },
+        };
+      }
+      if (object.kind === "blockoutSidecar" && object.targetObjectId === command.id) {
+        nextObjects[objectId] = {
+          ...object,
+          targetObjectId: undefined,
         };
       }
     }
@@ -2733,6 +2970,112 @@ export function applyCanvasCommand(
     changeField(changes, guide, "visible", command.visible);
     if (changes.length > 0) {
       nextDocument = replaceObject(document, guide.id, { ...guide, visible: command.visible });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setGuideSidecarOpacity") {
+    const guide = document.objects[command.guideId];
+    if (guide?.kind !== "guideSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setGuideSidecarOpacity skipped invalid guide sidecar "${command.guideId}".`,
+      };
+    }
+    changeField(changes, guide, "opacity", command.opacity);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, guide.id, { ...guide, opacity: command.opacity });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "attachBlockoutSidecar") {
+    const target = document.objects[command.targetObjectId];
+    const blockout = document.objects[command.blockoutId];
+    if (!target) {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachBlockoutSidecar skipped invalid target object "${command.targetObjectId}".`,
+      };
+    }
+    if (blockout?.kind !== "blockoutSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `attachBlockoutSidecar skipped invalid blockout sidecar "${command.blockoutId}".`,
+      };
+    }
+    changeField(changes, blockout, "targetObjectId", target.id);
+    if (blockout.targetObjectId !== target.id) {
+      nextDocument = replaceObject(document, blockout.id, {
+        ...blockout,
+        targetObjectId: target.id,
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "detachBlockoutSidecar") {
+    const blockout = document.objects[command.blockoutId];
+    if (blockout?.kind !== "blockoutSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `detachBlockoutSidecar skipped invalid blockout sidecar "${command.blockoutId}".`,
+      };
+    }
+    changeField(changes, blockout, "targetObjectId", undefined);
+    if (blockout.targetObjectId !== undefined) {
+      nextDocument = replaceObject(document, blockout.id, {
+        ...blockout,
+        targetObjectId: undefined,
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setBlockoutSidecarVisible") {
+    const blockout = document.objects[command.blockoutId];
+    if (blockout?.kind !== "blockoutSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setBlockoutSidecarVisible skipped invalid blockout sidecar "${command.blockoutId}".`,
+      };
+    }
+    changeField(changes, blockout, "visible", command.visible);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, blockout.id, {
+        ...blockout,
+        visible: command.visible,
+      });
+    }
+    return { document: nextDocument, command, changes, message: messageFor(command, changes) };
+  }
+
+  if (command.kind === "setBlockoutSidecarOpacity") {
+    const blockout = document.objects[command.blockoutId];
+    if (blockout?.kind !== "blockoutSidecar") {
+      return {
+        document,
+        command,
+        changes,
+        message: `setBlockoutSidecarOpacity skipped invalid blockout sidecar "${command.blockoutId}".`,
+      };
+    }
+    changeField(changes, blockout, "opacity", command.opacity);
+    if (changes.length > 0) {
+      nextDocument = replaceObject(document, blockout.id, {
+        ...blockout,
+        opacity: command.opacity,
+      });
     }
     return { document: nextDocument, command, changes, message: messageFor(command, changes) };
   }
@@ -3449,6 +3792,13 @@ export function createMechanicalAnnotationSidecar(
   return appendObjectToScene(document, object);
 }
 
+export function createBlockoutSidecar(
+  document: CanvasDocument,
+  object: BlockoutSidecarObject,
+): CanvasDocument {
+  return appendObjectToScene(document, object);
+}
+
 export function addMechanicalDimension(
   document: CanvasDocument,
   sidecarId: string,
@@ -3541,6 +3891,18 @@ export function attachGuideSidecarToImage(
   }).document;
 }
 
+export function attachBlockoutSidecarToObject(
+  document: CanvasDocument,
+  targetObjectId: string,
+  blockoutId: string,
+): CanvasDocument {
+  return applyCanvasCommand(document, {
+    kind: "attachBlockoutSidecar",
+    targetObjectId,
+    blockoutId,
+  }).document;
+}
+
 export function attachSketchOverlayToImage(
   document: CanvasDocument,
   imageId: string,
@@ -3571,12 +3933,19 @@ export function detachAttachment(
     | { kind: "spriteSidecar"; imageId: string }
     | { kind: "sketchOverlay"; imageId: string }
     | { kind: "alphaMap"; imageId: string }
-    | { kind: "guideSidecar"; guideId: string },
+    | { kind: "guideSidecar"; guideId: string }
+    | { kind: "blockoutSidecar"; blockoutId: string },
 ): CanvasDocument {
   if (relation.kind === "guideSidecar") {
     return applyCanvasCommand(document, {
       kind: "detachGuideSidecar",
       guideId: relation.guideId,
+    }).document;
+  }
+  if (relation.kind === "blockoutSidecar") {
+    return applyCanvasCommand(document, {
+      kind: "detachBlockoutSidecar",
+      blockoutId: relation.blockoutId,
     }).document;
   }
   if (relation.kind === "spriteSidecar") {

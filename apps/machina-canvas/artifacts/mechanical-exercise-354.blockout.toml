@@ -1,0 +1,112 @@
+[blockout]
+id = "exercise-354-feature-blockout"
+name = "Exercise 354 feature blockout"
+description = "Green feature/component blockout mask"
+
+[[boxes]]
+id = "exercise-354-feature-box-boss"
+kind = "boss"
+x = 35
+y = 38
+width = 78
+height = 80
+role = "solid"
+label = "large boss blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-large-hole"
+kind = "hole"
+x = 54
+y = 58
+width = 40
+height = 40
+role = "void"
+label = "large hole blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-right-arm"
+kind = "bodyRegion"
+x = 112
+y = 58
+width = 111
+height = 40
+role = "solid"
+label = "right arm blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-slot"
+kind = "slot"
+x = 159
+y = 68
+width = 54
+height = 20
+role = "void"
+label = "slot blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-lower-lobe"
+kind = "bodyRegion"
+x = 58
+y = 98
+width = 114
+height = 68
+role = "solid"
+label = "lower lobe blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-left-small-hole"
+kind = "hole"
+x = 79
+y = 137
+width = 14
+height = 14
+role = "void"
+label = "small left hole blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-right-small-hole"
+kind = "hole"
+x = 119
+y = 125
+width = 14
+height = 14
+role = "void"
+label = "small right hole blockout"
+
+[[boxes]]
+id = "exercise-354-feature-box-inside-relief"
+kind = "transition"
+x = 156
+y = 98
+width = 18
+height = 18
+role = "construction"
+label = "inside relief cue"
+
+[[points]]
+id = "boss-center"
+kind = "center"
+x = 74
+y = 78
+label = "Boss center"
+
+[[points]]
+id = "left-small-hole-center"
+kind = "center"
+x = 86
+y = 144
+label = "Left hole"
+
+[[points]]
+id = "right-small-hole-center"
+kind = "center"
+x = 126
+y = 132
+label = "Right hole"
+
+[[curves]]
+id = "lower-sweep-cue"
+kind = "arcCue"
+points = [ [ 75, 152 ], [ 96, 149 ], [ 124, 139 ], [ 151, 114 ] ]
+role = "construction"
+label = "Lower sweep"

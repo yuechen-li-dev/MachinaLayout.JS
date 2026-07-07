@@ -86,6 +86,12 @@ import {
 import { getSceneGeometryDiagnostics, type GeometryDiagnostic } from "./sceneGeometry";
 import { getSelectedObjectMeasurements } from "./sceneMeasurement";
 import {
+  createBlockoutSidecarObject,
+  createUnattachedBlockoutSidecarObject,
+  parseBlockoutSidecarToml,
+  validateBlockoutSidecar,
+} from "./blockoutSidecar";
+import {
   createGuideSidecarObject,
   createUnattachedGuideSidecarObject,
   parseGuideSidecarToml,
@@ -159,6 +165,7 @@ import type {
   CanvasObject,
   CanvasObjectKind,
   CanvasSpriteFrame,
+  BlockoutSidecarObject,
   GuideSidecarObject,
   ImageObject,
   MechanicalAnnotationSidecarObject,
@@ -203,12 +210,14 @@ const INITIAL_EDITOR_DOCUMENT = INITIAL_MODE_TEMPLATE.createScene();
 const objectKindLabels = enumTable<CanvasObjectKind, string>({
   rect: "Rectangle",
   ellipse: "Ellipse",
+  path: "Path",
   text: "Text",
   image: "Image",
   uiComponent: "UI Component",
   sketchOverlay: "Sketch Overlay",
   spriteSidecar: "Sprite Sidecar",
   guideSidecar: "Guide Sidecar",
+  blockoutSidecar: "Blockout Sidecar",
   mechanicalAnnotationSidecar: "Mechanical Annotations",
 });
 
@@ -229,6 +238,7 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   addImageObject: "Add image object",
   addSpriteSidecarObject: "Add sprite sidecar",
   addGuideSidecarObject: "Add guide sidecar",
+  addBlockoutSidecarObject: "Add blockout sidecar",
   removeObject: "Remove object",
   attachAlphaMap: "Attach alpha map",
   detachAlphaMap: "Detach alpha map",
@@ -238,6 +248,11 @@ const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
   attachGuideSidecar: "Attach guide sidecar",
   detachGuideSidecar: "Detach guide sidecar",
   setGuideSidecarVisible: "Set guide sidecar visible",
+  setGuideSidecarOpacity: "Set guide sidecar opacity",
+  attachBlockoutSidecar: "Attach blockout sidecar",
+  detachBlockoutSidecar: "Detach blockout sidecar",
+  setBlockoutSidecarVisible: "Set blockout sidecar visible",
+  setBlockoutSidecarOpacity: "Set blockout sidecar opacity",
   attachSpriteSidecar: "Attach sprite sidecar",
   detachSpriteSidecar: "Detach sprite sidecar",
   setSpriteSidecarVisible: "Set sprite sidecar visible",
@@ -401,6 +416,10 @@ type AppViewData = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void>;
+  loadBlockoutSidecarFile: (
+    file: File,
+    options?: { targetObjectId?: string; groupId?: string },
+  ) => Promise<void>;
   createMechanicalAnnotationsSidecar: (options?: {
     targetObjectId?: string;
     groupId?: string;
@@ -488,6 +507,10 @@ function getOwnerImageForSelection(
     const target = object.targetObjectId ? document.objects[object.targetObjectId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
+  if (object.kind === "blockoutSidecar") {
+    const target = object.targetObjectId ? document.objects[object.targetObjectId] : undefined;
+    return target?.kind === "image" ? target : undefined;
+  }
   if (object.kind === "guideSidecar") {
     const targetId = object.targetId ?? object.guide.target;
     const target = targetId ? document.objects[targetId] : undefined;
@@ -527,12 +550,14 @@ function getKindClass(object: CanvasObject): string {
   return matchEnum(object.kind, {
     rect: () => "kind-rect",
     ellipse: () => "kind-ellipse",
+    path: () => "kind-rect",
     text: () => "kind-text",
     image: () => "kind-image",
     uiComponent: () => "kind-ui",
     sketchOverlay: () => "kind-sketch",
     spriteSidecar: () => "kind-sprite",
     guideSidecar: () => "kind-guide",
+    blockoutSidecar: () => "kind-blockout",
     mechanicalAnnotationSidecar: () => "kind-guide",
   });
 }
@@ -541,6 +566,7 @@ function getKindShortLabel(object: CanvasObject): string {
   return matchEnum(object.kind, {
     rect: () => "RECT",
     ellipse: () => "OVAL",
+    path: () => "PATH",
     text: () => "TEXT",
     image: () =>
       object.kind === "image"
@@ -554,6 +580,7 @@ function getKindShortLabel(object: CanvasObject): string {
     sketchOverlay: () => "SKETCH",
     spriteSidecar: () => "SPRITE",
     guideSidecar: () => "GUIDE",
+    blockoutSidecar: () => "BLOCK",
     mechanicalAnnotationSidecar: () => "ANNO",
   });
 }
@@ -586,6 +613,16 @@ function getGuideSidecarsForImage(
   return Object.values(document.objects).filter(
     (candidate): candidate is GuideSidecarObject =>
       candidate.kind === "guideSidecar" && candidate.targetId === object.id,
+  );
+}
+
+function getBlockoutSidecarsForObject(
+  document: CanvasDocument,
+  object: CanvasObject,
+): readonly BlockoutSidecarObject[] {
+  return Object.values(document.objects).filter(
+    (candidate): candidate is BlockoutSidecarObject =>
+      candidate.kind === "blockoutSidecar" && candidate.targetObjectId === object.id,
   );
 }
 
@@ -713,6 +750,7 @@ function SceneTree(props: MachinaSlotProps) {
     createLayerGroup,
     createMechanicalAnnotationsSidecar,
     document,
+    loadBlockoutSidecarFile,
     loadGuideSidecarFile,
     loadImageFile,
     loadSketchOverlayFile,
@@ -742,10 +780,30 @@ function SceneTree(props: MachinaSlotProps) {
         })
       }
       onLoadGuideToml={(file, options) => loadGuideSidecarFile(file, options)}
+      onLoadBlockoutToml={(file, options) => loadBlockoutSidecarFile(file, options)}
       onLoadSketchToml={(file, options) => loadSketchOverlayFile(file, options)}
       onLoadSpriteToml={(file, options) => loadSpriteSidecarFile(file, options)}
       onReturnToModeSelection={returnToModeSelection}
       onSelectObject={(id) => runCommand({ kind: "select", id })}
+      onToggleObjectVisibility={(id, visible) => {
+        const object = document.objects[id];
+        if (!object) return;
+        if (object.kind === "guideSidecar") {
+          runCommand({ kind: "setGuideSidecarVisible", guideId: id, visible });
+          return;
+        }
+        if (object.kind === "blockoutSidecar") {
+          runCommand({ kind: "setBlockoutSidecarVisible", blockoutId: id, visible });
+          return;
+        }
+        if (object.kind === "spriteSidecar") {
+          runCommand({ kind: "setSpriteSidecarVisible", sidecarId: id, visible });
+          return;
+        }
+        if (object.kind === "sketchOverlay") {
+          runCommand({ kind: "setSketchOverlayVisible", overlayId: id, visible });
+        }
+      }}
     />
   );
 }
@@ -786,6 +844,7 @@ function SceneObjectSvg({
     object.kind === "sketchOverlay" ||
     object.kind === "spriteSidecar" ||
     object.kind === "guideSidecar" ||
+    object.kind === "blockoutSidecar" ||
     object.kind === "mechanicalAnnotationSidecar"
   ) {
     return null;
@@ -822,6 +881,16 @@ function SceneObjectSvg({
         ry={object.height / 2}
         fill={object.fill ?? "transparent"}
         stroke={object.stroke ?? "none"}
+      />
+    ) : object.kind === "path" ? (
+      <path
+        {...common}
+        d={object.d}
+        fill={object.fill ?? "transparent"}
+        fillRule={object.fillRule}
+        stroke={object.stroke ?? "none"}
+        strokeWidth={object.strokeWidth ?? 1}
+        strokeDasharray={object.strokeDasharray}
       />
     ) : object.kind === "text" ? (
       <text
@@ -1228,6 +1297,8 @@ function GuideSidecarSvg({
   });
   const selectedDatumIds = new Set(selectedDatumTargets.map((target) => target.datumId));
   const nearestDatumId = selectedDatumTargets[0]?.datumId;
+  const opacity = guideObject.opacity ?? 0.9;
+  const showLabels = guideObject.showLabels ?? true;
 
   return (
     <g
@@ -1235,6 +1306,7 @@ function GuideSidecarSvg({
       data-canvas-object-id={guideObject.id}
       data-canvas-kind={guideObject.kind}
       data-canvas-name={guideObject.name}
+      opacity={opacity}
       pointerEvents="none"
     >
       {guideObject.guide.regions.map((region) => {
@@ -1258,15 +1330,15 @@ function GuideSidecarSvg({
               y={origin.y}
               width={width}
               height={height}
-              fill={
-                isSelectedContextRegion ? "rgba(13, 110, 253, 0.06)" : "rgba(13, 110, 253, 0.03)"
-              }
-              stroke={isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#175bc9" : "#0d6efd"}
+              fill={isSelectedContextRegion ? "rgba(255, 122, 0, 0.1)" : "rgba(233, 77, 26, 0.06)"}
+              stroke={isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#ff7a00" : "#e94d1a"}
               strokeDasharray={isWarningRegion ? "10 4" : isSelectedContextRegion ? "10 5" : "8 6"}
             />
-            <text className="canvas-guide-label" x={origin.x + 6} y={origin.y + 16}>
-              {region.id}
-            </text>
+            {showLabels ? (
+              <text className="canvas-guide-label" x={origin.x + 6} y={origin.y + 16}>
+                {region.id}
+              </text>
+            ) : null}
             {grid
               ? Array.from({ length: grid.columns - 1 }, (_, index) => {
                   const lineX = origin.x + (index + 1) * grid.cellWidth * scaleX;
@@ -1278,7 +1350,7 @@ function GuideSidecarSvg({
                       y1={origin.y}
                       x2={lineX}
                       y2={origin.y + height}
-                      stroke="#7aa7ff"
+                      stroke="#f58d61"
                     />
                   );
                 })
@@ -1294,7 +1366,7 @@ function GuideSidecarSvg({
                       y1={lineY}
                       x2={origin.x + width}
                       y2={lineY}
-                      stroke="#7aa7ff"
+                      stroke="#f58d61"
                     />
                   );
                 })
@@ -1316,11 +1388,13 @@ function GuideSidecarSvg({
                 y1={image.y}
                 x2={x}
                 y2={image.y + image.height}
-                stroke="#28a745"
+                stroke="#d9480f"
               />
-              <text className="canvas-guide-label" x={x + 4} y={image.y + 14}>
-                {datum.label ?? datum.id}
-              </text>
+              {showLabels ? (
+                <text className="canvas-guide-label" x={x + 4} y={image.y + 14}>
+                  {datum.label ?? datum.id}
+                </text>
+              ) : null}
             </g>
           );
         }
@@ -1334,11 +1408,13 @@ function GuideSidecarSvg({
                 y1={y}
                 x2={image.x + image.width}
                 y2={y}
-                stroke="#28a745"
+                stroke="#d9480f"
               />
-              <text className="canvas-guide-label" x={image.x + 6} y={y - 4}>
-                {datum.label ?? datum.id}
-              </text>
+              {showLabels ? (
+                <text className="canvas-guide-label" x={image.x + 6} y={y - 4}>
+                  {datum.label ?? datum.id}
+                </text>
+              ) : null}
             </g>
           );
         }
@@ -1351,7 +1427,7 @@ function GuideSidecarSvg({
               y1={point.y}
               x2={point.x + 6}
               y2={point.y}
-              stroke="#28a745"
+              stroke="#d9480f"
             />
             <line
               className={datumClassName}
@@ -1359,11 +1435,13 @@ function GuideSidecarSvg({
               y1={point.y - 6}
               x2={point.x}
               y2={point.y + 6}
-              stroke="#28a745"
+              stroke="#d9480f"
             />
-            <text className="canvas-guide-label" x={point.x + 8} y={point.y - 8}>
-              {datum.label ?? datum.id}
-            </text>
+            {showLabels ? (
+              <text className="canvas-guide-label" x={point.x + 8} y={point.y - 8}>
+                {datum.label ?? datum.id}
+              </text>
+            ) : null}
           </g>
         );
       })}
@@ -1381,11 +1459,13 @@ function GuideSidecarSvg({
               y1={from.y}
               x2={to.x}
               y2={to.y}
-              stroke="#ff8c00"
+              stroke="#ff7a00"
             />
-            <text className="canvas-guide-label" x={labelX} y={labelY} textAnchor="middle">
-              {dimension.label}
-            </text>
+            {showLabels ? (
+              <text className="canvas-guide-label" x={labelX} y={labelY} textAnchor="middle">
+                {dimension.label}
+              </text>
+            ) : null}
           </g>
         );
       })}
@@ -1393,16 +1473,18 @@ function GuideSidecarSvg({
         const point = mapPoint(mark.x, mark.y);
         return (
           <g key={`guide-mark:${mark.id}`}>
-            <circle className="canvas-guide-mark" cx={point.x} cy={point.y} r={4} fill="#d63384" />
-            <line x1={point.x - 8} y1={point.y} x2={point.x + 8} y2={point.y} stroke="#d63384" />
-            <line x1={point.x} y1={point.y - 8} x2={point.x} y2={point.y + 8} stroke="#d63384" />
-            <text className="canvas-guide-label" x={point.x + 8} y={point.y + 14}>
-              {mark.label ?? mark.id}
-            </text>
+            <circle className="canvas-guide-mark" cx={point.x} cy={point.y} r={4} fill="#c92a2a" />
+            <line x1={point.x - 8} y1={point.y} x2={point.x + 8} y2={point.y} stroke="#c92a2a" />
+            <line x1={point.x} y1={point.y - 8} x2={point.x} y2={point.y + 8} stroke="#c92a2a" />
+            {showLabels ? (
+              <text className="canvas-guide-label" x={point.x + 8} y={point.y + 14}>
+                {mark.label ?? mark.id}
+              </text>
+            ) : null}
           </g>
         );
       })}
-      {diagnostics.length > 0 ? (
+      {showLabels && diagnostics.length > 0 ? (
         <text className="canvas-guide-label" x={image.x + 8} y={image.y + image.height - 8}>
           {`${diagnostics.length} guide finding${diagnostics.length === 1 ? "" : "s"}`}
         </text>
@@ -1415,6 +1497,164 @@ function GuideSidecarSvg({
           width={guideObject.width + 10}
           x={guideObject.x - 5}
           y={guideObject.y - 5}
+        />
+      ) : null}
+    </g>
+  );
+}
+
+function BlockoutSidecarSvg({
+  owner,
+  sidecar,
+  selected,
+}: {
+  owner: CanvasObject;
+  sidecar: BlockoutSidecarObject;
+  selected: boolean;
+}) {
+  if (!sidecar.visible) return null;
+
+  const sourceWidth =
+    owner.kind === "image" ? (owner.intrinsicWidth ?? owner.width) : sidecar.width || owner.width;
+  const sourceHeight =
+    owner.kind === "image"
+      ? (owner.intrinsicHeight ?? owner.height)
+      : sidecar.height || owner.height;
+  const scaleX = owner.width / (sourceWidth || owner.width || 1);
+  const scaleY = owner.height / (sourceHeight || owner.height || 1);
+  const opacity = sidecar.opacity ?? 0.72;
+  const showLabels = sidecar.showLabels ?? true;
+  const mapPoint = (x: number, y: number) => ({
+    x: owner.x + x * scaleX,
+    y: owner.y + y * scaleY,
+  });
+  const diagnostics = validateBlockoutSidecar(sidecar.blockout);
+
+  return (
+    <g
+      className={`canvas-blockout-overlay ${selected ? "is-selected" : ""}`}
+      data-canvas-object-id={sidecar.id}
+      data-canvas-kind={sidecar.kind}
+      data-canvas-name={sidecar.name}
+      opacity={opacity}
+      pointerEvents="none"
+    >
+      {sidecar.blockout.boxes.map((box) => {
+        const origin = mapPoint(box.x, box.y);
+        const width = box.width * scaleX;
+        const height = box.height * scaleY;
+        const stroke =
+          box.role === "construction" ? "#ff8c00" : box.role === "void" ? "#169c46" : "#13a538";
+        const fill =
+          box.role === "void"
+            ? "rgba(19, 165, 56, 0.06)"
+            : box.role === "construction"
+              ? "rgba(255, 140, 0, 0.05)"
+              : "rgba(19, 165, 56, 0.14)";
+        return (
+          <Fragment key={`blockout-box:${box.id}`}>
+            <rect
+              className={`canvas-blockout-box${
+                box.role === "construction"
+                  ? " blockout-role--construction"
+                  : box.role === "void"
+                    ? " blockout-role--void"
+                    : ""
+              }`}
+              x={origin.x}
+              y={origin.y}
+              width={width}
+              height={height}
+              fill={fill}
+              stroke={stroke}
+              strokeDasharray={
+                box.role === "construction" ? "7 4" : box.role === "void" ? "10 4" : "8 5"
+              }
+            />
+            {showLabels ? (
+              <text className="canvas-blockout-label" x={origin.x + 6} y={origin.y + 16}>
+                {box.label ?? box.id}
+              </text>
+            ) : null}
+          </Fragment>
+        );
+      })}
+      {sidecar.blockout.points.map((point) => {
+        const mapped = mapPoint(point.x, point.y);
+        return (
+          <g key={`blockout-point:${point.id}`}>
+            <line
+              className="canvas-blockout-point"
+              x1={mapped.x - 6}
+              y1={mapped.y}
+              x2={mapped.x + 6}
+              y2={mapped.y}
+              stroke="#0f8f37"
+            />
+            <line
+              className="canvas-blockout-point"
+              x1={mapped.x}
+              y1={mapped.y - 6}
+              x2={mapped.x}
+              y2={mapped.y + 6}
+              stroke="#0f8f37"
+            />
+            {showLabels ? (
+              <text className="canvas-blockout-label" x={mapped.x + 8} y={mapped.y - 8}>
+                {point.label ?? point.id}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {sidecar.blockout.curves.map((curve) => {
+        if (curve.points.length < 2) return null;
+        const mappedPoints = curve.points.map((point) => mapPoint(point[0], point[1]));
+        const d = mappedPoints
+          .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+          .join(" ");
+        const stroke =
+          curve.role === "construction" || curve.kind === "centerline" ? "#ff8c00" : "#13a538";
+        return (
+          <g key={`blockout-curve:${curve.id}`}>
+            <path
+              className={`canvas-blockout-curve${
+                curve.role === "construction" || curve.kind === "centerline"
+                  ? " blockout-role--construction"
+                  : ""
+              }`}
+              d={d}
+              fill="none"
+              stroke={stroke}
+              strokeDasharray={
+                curve.role === "construction" || curve.kind === "centerline" ? "6 4" : "5 3"
+              }
+            />
+            {showLabels ? (
+              <text
+                className="canvas-blockout-label"
+                x={mappedPoints[0].x + 6}
+                y={mappedPoints[0].y - 8}
+              >
+                {curve.label ?? curve.id}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+      {showLabels && diagnostics.length > 0 ? (
+        <text className="canvas-blockout-label" x={owner.x + 8} y={owner.y + owner.height - 8}>
+          {`${diagnostics.length} blockout finding${diagnostics.length === 1 ? "" : "s"}`}
+        </text>
+      ) : null}
+      {selected ? (
+        <rect
+          className="selection-box"
+          height={sidecar.height + 10}
+          rx={4}
+          width={sidecar.width + 10}
+          x={sidecar.x - 5}
+          y={sidecar.y - 5}
         />
       ) : null}
     </g>
@@ -2351,6 +2591,7 @@ function CanvasPanel(props: MachinaSlotProps) {
                 object.kind === "image" ? getSketchOverlayForImage(document, object) : undefined;
               const guideSidecars =
                 object.kind === "image" ? getGuideSidecarsForImage(document, object) : [];
+              const blockoutSidecars = getBlockoutSidecarsForObject(document, object);
               const mechanicalSidecars = getMechanicalAnnotationSidecarsForObject(document, object);
               const standaloneMechanicalSidecar =
                 object.kind === "mechanicalAnnotationSidecar" &&
@@ -2392,6 +2633,14 @@ function CanvasPanel(props: MachinaSlotProps) {
                         />
                       ))
                     : null}
+                  {blockoutSidecars.map((sidecar) => (
+                    <BlockoutSidecarSvg
+                      key={sidecar.id}
+                      owner={object}
+                      selected={document.selectedObjectId === sidecar.id}
+                      sidecar={sidecar}
+                    />
+                  ))}
                   {mechanicalSidecars.map((sidecar) => (
                     <MechanicalAnnotationSidecarSvg
                       key={sidecar.id}
@@ -3199,6 +3448,7 @@ function SpriteAuditSectionContent({
 function ImageAssetSection(props: MachinaSlotProps) {
   const {
     document,
+    loadBlockoutSidecarFile,
     loadGuideSidecarFile,
     loadImageFile,
     loadSketchOverlayFile,
@@ -3209,6 +3459,7 @@ function ImageAssetSection(props: MachinaSlotProps) {
   const alphaInputRef = useRef<HTMLInputElement>(null);
   const spriteInputRef = useRef<HTMLInputElement>(null);
   const guideInputRef = useRef<HTMLInputElement>(null);
+  const blockoutInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const selected = getSelectedObject(document);
   const imageObjects = Object.values(document.objects).filter(
@@ -3274,6 +3525,13 @@ function ImageAssetSection(props: MachinaSlotProps) {
     if (file) void loadGuideSidecarFile(file, { targetId });
   };
 
+  const loadBlockoutFromInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    const targetObjectId = selected?.id;
+    if (file) void loadBlockoutSidecarFile(file, { targetObjectId });
+  };
+
   return (
     <InspectorSection title="Image assets">
       <input
@@ -3305,6 +3563,13 @@ function ImageAssetSection(props: MachinaSlotProps) {
         onChange={loadGuideFromInput}
       />
       <input
+        ref={blockoutInputRef}
+        className="asset-file-input"
+        type="file"
+        accept=".toml,.blockout.toml,text/plain"
+        onChange={loadBlockoutFromInput}
+      />
+      <input
         ref={sketchInputRef}
         className="asset-file-input"
         type="file"
@@ -3320,6 +3585,9 @@ function ImageAssetSection(props: MachinaSlotProps) {
         </button>
         <button type="button" onClick={() => guideInputRef.current?.click()}>
           Load guide sidecar
+        </button>
+        <button type="button" onClick={() => blockoutInputRef.current?.click()}>
+          Load blockout sidecar
         </button>
         <button type="button" onClick={() => sketchInputRef.current?.click()}>
           Load sketch overlay
@@ -4786,6 +5054,8 @@ function Inspector(props: MachinaSlotProps) {
             return (
               <>
                 <Field label="Target image" value={selected.targetId ?? "unattached"} />
+                <Field label="Visible" value={selected.visible ? "yes" : "no"} />
+                <Field label="Opacity" value={String(selected.opacity ?? 0.9)} />
                 <Field label="Units" value={selected.guide.units} />
                 <Field label="Regions" value={selected.guide.regions.length} />
                 <Field label="Datums" value={selected.guide.datums.length} />
@@ -4824,6 +5094,32 @@ function Inspector(props: MachinaSlotProps) {
                     Detach Guide Sidecar
                   </button>
                 </div>
+                <div className="command-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setGuideSidecarOpacity",
+                        guideId: selected.id,
+                        opacity: Math.max(0.15, Math.min(1, (selected.opacity ?? 0.9) - 0.15)),
+                      })
+                    }
+                  >
+                    Lower opacity
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setGuideSidecarOpacity",
+                        guideId: selected.id,
+                        opacity: Math.max(0.15, Math.min(1, (selected.opacity ?? 0.9) + 0.15)),
+                      })
+                    }
+                  >
+                    Raise opacity
+                  </button>
+                </div>
                 {diagnostics.length ? (
                   <div className="validation-result is-error">
                     <strong>Guide validation</strong>
@@ -4840,6 +5136,105 @@ function Inspector(props: MachinaSlotProps) {
                   <div className="validation-result is-ok">
                     <strong>Guide validation</strong>
                     <p>No guide findings.</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </InspectorAccordionGroup>
+      ) : null}
+      {selected.kind === "blockoutSidecar" ? (
+        <InspectorAccordionGroup
+          id="sprite-sidecar"
+          key={`${inspectorContextKey}:blockout-sidecar`}
+          onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
+          open={accordionState["sprite-sidecar"]}
+          subtitle={`${selected.blockout.boxes.length} boxes`}
+          title="Blockout sidecar"
+        >
+          {(() => {
+            const targetObject = selected.targetObjectId
+              ? document.objects[selected.targetObjectId]
+              : undefined;
+            const diagnostics = validateBlockoutSidecar(selected.blockout);
+            return (
+              <>
+                <Field label="Target object" value={selected.targetObjectId ?? "unattached"} />
+                <Field label="Visible" value={selected.visible ? "yes" : "no"} />
+                <Field label="Opacity" value={String(selected.opacity ?? 0.72)} />
+                <Field label="Boxes" value={selected.blockout.boxes.length} />
+                <Field label="Points" value={selected.blockout.points.length} />
+                <Field label="Curves" value={selected.blockout.curves.length} />
+                <Field label="Diagnostics" value={diagnostics.length} />
+                {selected.blockout.description ? (
+                  <Field label="Description" value={selected.blockout.description} />
+                ) : null}
+                {targetObject ? <Field label="Owner" value={targetObject.name} /> : null}
+                <div className="command-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setBlockoutSidecarVisible",
+                        blockoutId: selected.id,
+                        visible: !selected.visible,
+                      })
+                    }
+                  >
+                    {selected.visible ? "Hide Blockout Overlay" : "Show Blockout Overlay"}
+                  </button>
+                  <button
+                    disabled={!selected.targetObjectId}
+                    type="button"
+                    onClick={() =>
+                      runCommand({ kind: "detachBlockoutSidecar", blockoutId: selected.id })
+                    }
+                  >
+                    Detach Blockout Sidecar
+                  </button>
+                </div>
+                <div className="command-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setBlockoutSidecarOpacity",
+                        blockoutId: selected.id,
+                        opacity: Math.max(0.15, Math.min(1, (selected.opacity ?? 0.72) - 0.15)),
+                      })
+                    }
+                  >
+                    Lower opacity
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setBlockoutSidecarOpacity",
+                        blockoutId: selected.id,
+                        opacity: Math.max(0.15, Math.min(1, (selected.opacity ?? 0.72) + 0.15)),
+                      })
+                    }
+                  >
+                    Raise opacity
+                  </button>
+                </div>
+                {diagnostics.length ? (
+                  <div className="validation-result is-error">
+                    <strong>Blockout validation</strong>
+                    <ul>
+                      {diagnostics.map((diagnostic, index) => (
+                        <li key={`${diagnostic.code}-${index}`}>
+                          <span>{diagnostic.code}</span>
+                          {`: ${diagnostic.message}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="validation-result is-ok">
+                    <strong>Blockout validation</strong>
+                    <p>No blockout findings.</p>
                   </div>
                 )}
               </>
@@ -5064,6 +5459,37 @@ function Inspector(props: MachinaSlotProps) {
                           }
                         >
                           {guide.visible ? `Hide ${guide.id}` : `Show ${guide.id}`}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+              {(() => {
+                const blockouts = getBlockoutSidecarsForObject(document, selected);
+                if (blockouts.length === 0) {
+                  return <Field label="Blockout sidecars" value="none" />;
+                }
+                return (
+                  <>
+                    <Field
+                      label="Blockout sidecars"
+                      value={blockouts.map((blockout) => blockout.id).join(", ")}
+                    />
+                    <div className="command-row">
+                      {blockouts.map((blockout) => (
+                        <button
+                          key={blockout.id}
+                          type="button"
+                          onClick={() =>
+                            runCommand({
+                              kind: "setBlockoutSidecarVisible",
+                              blockoutId: blockout.id,
+                              visible: !blockout.visible,
+                            })
+                          }
+                        >
+                          {blockout.visible ? `Hide ${blockout.id}` : `Show ${blockout.id}`}
                         </button>
                       ))}
                     </div>
@@ -5833,6 +6259,79 @@ export function App() {
       }
     };
 
+    const loadBlockoutSidecarFile: AppViewData["loadBlockoutSidecarFile"] = async (
+      file,
+      options,
+    ) => {
+      try {
+        const selectedObject = getSelectedObject(document);
+        const targetObject =
+          (options?.targetObjectId ? document.objects[options.targetObjectId] : selectedObject) ??
+          undefined;
+        const text = await file.text();
+        const baseName = file.name.replace(/\.blockout\.toml$/i, "").replace(/\.toml$/i, "");
+        const blockoutId = makeUniqueObjectId(
+          `${(targetObject?.id ?? baseName) || "blockout-sidecar"}-blockout-sidecar`,
+          document,
+        );
+        const blockout = parseBlockoutSidecarToml(text);
+        const name = `${baseName || targetObject?.name || file.name}.blockout.toml`;
+        const object = targetObject
+          ? createBlockoutSidecarObject(
+              targetObject,
+              { ...blockout, id: blockoutId, rawToml: text },
+              { name },
+            )
+          : createUnattachedBlockoutSidecarObject(
+              { ...blockout, id: blockoutId, rawToml: text },
+              {
+                layerId: getDefaultImageLayerId(document),
+                name,
+              },
+            );
+        const command: CanvasCommand = {
+          kind: "addBlockoutSidecarObject",
+          object,
+          attach: Boolean(targetObject),
+        };
+        const validation = validateCanvasCommands(document, command);
+        setCommandValidation(validation);
+        if (!validation.ok) {
+          setLastCommand("blockout sidecar command invalid");
+          return;
+        }
+
+        const applyResult = applyCanvasCommands(
+          document,
+          [command],
+          getSpriteCommandApplyContext(spriteFrameEditSettings),
+        );
+        let nextDocument = applyResult.document;
+        if (options?.groupId) {
+          nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, object.id);
+        }
+        if (targetObject) {
+          nextDocument = applyCanvasCommands(
+            nextDocument,
+            [
+              {
+                kind: "attachBlockoutSidecar",
+                targetObjectId: targetObject.id,
+                blockoutId: object.id,
+              },
+            ],
+            getSpriteCommandApplyContext(spriteFrameEditSettings),
+          ).document;
+        }
+        setDocument(nextDocument);
+        recordAppliedCommands([command], applyResult.results);
+      } catch (caught) {
+        setLastCommand(
+          caught instanceof Error ? caught.message : "Blockout sidecar could not be loaded.",
+        );
+      }
+    };
+
     const loadSketchOverlayFile: AppViewData["loadSketchOverlayFile"] = async (file, options) => {
       try {
         const selected = getOwnerImageForSelection(document, getSelectedObject(document));
@@ -6206,6 +6705,7 @@ export function App() {
       createLayerGroup: createLayerGroupFromPanel,
       loadImageFile,
       loadGuideSidecarFile,
+      loadBlockoutSidecarFile,
       createMechanicalAnnotationsSidecar,
       loadSketchOverlayFile,
       loadSpriteSidecarFile,

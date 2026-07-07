@@ -1,8 +1,10 @@
 import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
+import { createArcFromThreePoints } from "./arcGeometry";
 import { getCanvasUnitSystem } from "./canvasUnits";
 import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
+  BlockoutSidecarObject,
   CanvasDocument,
   CanvasFrame,
   GuideSidecarObject,
@@ -18,6 +20,7 @@ import type {
   TextObject,
   UiComponentObject,
 } from "./sceneModel";
+import { stringifyBlockoutSidecarToml } from "./blockoutSidecar";
 import { stringifyGuideSidecarToml } from "./guideSidecar";
 import {
   getMechanicalSheetDimensions,
@@ -185,6 +188,22 @@ function getGuideSidecarRelations(document: CanvasDocument) {
     }));
 }
 
+function getBlockoutSidecarRelations(document: CanvasDocument) {
+  return getObjectOrder(document)
+    .map((objectId) => document.objects[objectId])
+    .filter(
+      (object): object is BlockoutSidecarObject =>
+        object.kind === "blockoutSidecar" &&
+        object.targetObjectId !== undefined &&
+        document.objects[object.targetObjectId] !== undefined,
+    )
+    .map((object) => ({
+      kind: "blockoutSidecarFor" as const,
+      sourceId: object.targetObjectId as string,
+      blockoutId: object.id,
+    }));
+}
+
 function getObjectAssetPath(object: CanvasObject): string {
   if (object.kind === "sketchOverlay" && object.spec.dialect === "sketch") {
     return `objects/${sanitizePathId(object.id)}.sketch.toml`;
@@ -194,6 +213,9 @@ function getObjectAssetPath(object: CanvasObject): string {
   }
   if (object.kind === "guideSidecar") {
     return `objects/${sanitizePathId(object.id)}.guide.toml`;
+  }
+  if (object.kind === "blockoutSidecar") {
+    return `objects/${sanitizePathId(object.id)}.blockout.toml`;
   }
   if (object.kind === "mechanicalAnnotationSidecar") {
     return `objects/${sanitizePathId(object.id)}.mechanical.json`;
@@ -322,6 +344,25 @@ function pushMetadata(lines: string[], tags?: readonly string[], notes?: string)
   if (notes) lines.push(`notes = ${quoteTomlString(notes)}`);
 }
 
+function serializeBlockoutCurvePath(
+  curve: Extract<CanvasObject, { kind: "blockoutSidecar" }>["blockout"]["curves"][number],
+  mappedPoints: readonly { x: number; y: number }[],
+): string {
+  if (curve.kind === "arcCue" && mappedPoints.length >= 3) {
+    const arc = createArcFromThreePoints({
+      start: [mappedPoints[0].x, mappedPoints[0].y],
+      through: [mappedPoints[1].x, mappedPoints[1].y],
+      end: [mappedPoints[2].x, mappedPoints[2].y],
+    });
+    if (arc.kind === "ok" && arc.path) {
+      return arc.path;
+    }
+  }
+  return mappedPoints
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+}
+
 function getObjectFrame(object: CanvasObject): CanvasFrame {
   return (
     object.frame ?? {
@@ -435,6 +476,7 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         ...getSketchOverlayRelations(document),
         ...getSpriteSidecarRelations(document),
         ...getGuideSidecarRelations(document),
+        ...getBlockoutSidecarRelations(document),
       ],
     },
     null,
@@ -888,6 +930,9 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
   if (object.kind === "guideSidecar") {
     return stringifyGuideSidecarToml(object.guide);
   }
+  if (object.kind === "blockoutSidecar") {
+    return stringifyBlockoutSidecarToml(object.blockout);
+  }
   if (object.kind === "mechanicalAnnotationSidecar") {
     return serializeMechanicalAnnotationSidecarJson(object);
   }
@@ -912,6 +957,16 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
 
   if (object.kind === "rect") {
     lines.push("", "[shape]", `radius = ${object.radius ?? 0}`);
+  }
+
+  if (object.kind === "path") {
+    lines.push("", "[path]", `d = ${quoteTomlString(object.d)}`);
+    if (object.fillRule !== undefined)
+      lines.push(`fill_rule = ${quoteTomlString(object.fillRule)}`);
+    if (object.strokeWidth !== undefined) lines.push(`stroke_width = ${object.strokeWidth}`);
+    if (object.strokeDasharray !== undefined) {
+      lines.push(`stroke_dasharray = ${quoteTomlString(object.strokeDasharray)}`);
+    }
   }
 
   if (object.kind === "text") {
@@ -1316,11 +1371,25 @@ export function serializeCanvasHandoffToml(
     );
   }
 
+  for (const relation of getBlockoutSidecarRelations(document)) {
+    lines.push(
+      "",
+      "[[blockout_sidecar]]",
+      `source_id = ${quoteTomlString(relation.sourceId)}`,
+      `blockout_id = ${quoteTomlString(relation.blockoutId)}`,
+      `path = ${quoteTomlString(getObjectAssetPath(document.objects[relation.blockoutId]))}`,
+    );
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
 function getSvgObjectAttributes(object: CanvasObject): string {
   return `data-canvas-object-id="${quoteXmlAttribute(object.id)}" data-canvas-kind="${quoteXmlAttribute(object.kind)}" data-canvas-name="${quoteXmlAttribute(object.name)}"`;
+}
+
+function getSvgPaint(value: string | undefined, fallback: string): string {
+  return value === "transparent" ? "none" : (value ?? fallback);
 }
 
 function serializeImageElement(object: ImageObject, maskId?: string): string {
@@ -1363,6 +1432,19 @@ function getVisibleGuideSidecars(
   return Object.values(document.objects).filter(
     (candidate): candidate is GuideSidecarObject =>
       candidate.kind === "guideSidecar" && candidate.visible && candidate.targetId === object.id,
+  );
+}
+
+function getVisibleBlockoutSidecars(
+  document: CanvasDocument,
+  object: CanvasObject,
+): readonly BlockoutSidecarObject[] {
+  if (!object.visible) return [];
+  return Object.values(document.objects).filter(
+    (candidate): candidate is BlockoutSidecarObject =>
+      candidate.kind === "blockoutSidecar" &&
+      candidate.visible &&
+      candidate.targetObjectId === object.id,
   );
 }
 
@@ -1617,6 +1699,84 @@ function serializeResolvedGuideSidecar(
   return lines;
 }
 
+function serializeResolvedBlockoutSidecar(
+  owner: CanvasObject,
+  sidecar: BlockoutSidecarObject,
+): string[] {
+  const sourceWidth =
+    owner.kind === "image" ? (owner.intrinsicWidth ?? owner.width) : sidecar.width || owner.width;
+  const sourceHeight =
+    owner.kind === "image"
+      ? (owner.intrinsicHeight ?? owner.height)
+      : sidecar.height || owner.height;
+  const scaleX = owner.width / (sourceWidth || owner.width || 1);
+  const scaleY = owner.height / (sourceHeight || owner.height || 1);
+  const opacity = sidecar.opacity ?? 0.72;
+  const showLabels = sidecar.showLabels ?? true;
+  const mapPoint = (x: number, y: number) => ({
+    x: owner.x + x * scaleX,
+    y: owner.y + y * scaleY,
+  });
+  const lines = [
+    `  <g class="canvas-blockout-overlay" data-canvas-object-id="${quoteXmlAttribute(sidecar.id)}" data-canvas-kind="blockoutSidecar" data-canvas-name="${quoteXmlAttribute(sidecar.name)}" opacity="${opacity}">`,
+  ];
+
+  for (const box of sidecar.blockout.boxes) {
+    const origin = mapPoint(box.x, box.y);
+    const width = box.width * scaleX;
+    const height = box.height * scaleY;
+    const stroke =
+      box.role === "construction" ? "#ff8c00" : box.role === "void" ? "#169c46" : "#13a538";
+    const fill =
+      box.role === "void"
+        ? "rgba(19, 165, 56, 0.06)"
+        : box.role === "construction"
+          ? "rgba(255, 140, 0, 0.04)"
+          : "rgba(19, 165, 56, 0.12)";
+    lines.push(
+      `    <rect class="canvas-blockout-box${box.role === "construction" ? " blockout-role--construction" : box.role === "void" ? " blockout-role--void" : ""}" data-canvas-blockout-id="${quoteXmlAttribute(box.id)}" x="${origin.x}" y="${origin.y}" width="${width}" height="${height}" fill="${quoteXmlAttribute(fill)}" stroke="${quoteXmlAttribute(stroke)}" stroke-dasharray="${quoteXmlAttribute(box.role === "construction" ? "7 4" : box.role === "void" ? "10 4" : "8 5")}" />`,
+    );
+    if (showLabels && (box.label ?? box.id)) {
+      lines.push(
+        `    <text class="canvas-blockout-label" x="${origin.x + 6}" y="${origin.y + 16}">${escapeXmlText(box.label ?? box.id)}</text>`,
+      );
+    }
+  }
+
+  for (const point of sidecar.blockout.points) {
+    const mapped = mapPoint(point.x, point.y);
+    lines.push(
+      `    <line class="canvas-blockout-point" x1="${mapped.x - 6}" y1="${mapped.y}" x2="${mapped.x + 6}" y2="${mapped.y}" stroke="#0f8f37" />`,
+      `    <line class="canvas-blockout-point" x1="${mapped.x}" y1="${mapped.y - 6}" x2="${mapped.x}" y2="${mapped.y + 6}" stroke="#0f8f37" />`,
+    );
+    if (showLabels && (point.label ?? point.id)) {
+      lines.push(
+        `    <text class="canvas-blockout-label" x="${mapped.x + 8}" y="${mapped.y - 8}">${escapeXmlText(point.label ?? point.id)}</text>`,
+      );
+    }
+  }
+
+  for (const curve of sidecar.blockout.curves) {
+    if (curve.points.length < 2) continue;
+    const mappedPoints = curve.points.map((point) => mapPoint(point[0], point[1]));
+    const d = serializeBlockoutCurvePath(curve, mappedPoints);
+    const stroke =
+      curve.role === "construction" || curve.kind === "centerline" ? "#ff8c00" : "#13a538";
+    lines.push(
+      `    <path class="canvas-blockout-curve${curve.role === "construction" || curve.kind === "centerline" ? " blockout-role--construction" : ""}" data-canvas-blockout-id="${quoteXmlAttribute(curve.id)}" d="${quoteXmlAttribute(d)}" fill="none" stroke="${quoteXmlAttribute(stroke)}" stroke-dasharray="${quoteXmlAttribute(curve.role === "construction" || curve.kind === "centerline" ? "6 4" : "5 3")}" />`,
+    );
+    if (showLabels && (curve.label ?? curve.id)) {
+      const anchor = mappedPoints[0];
+      lines.push(
+        `    <text class="canvas-blockout-label" x="${anchor.x + 6}" y="${anchor.y - 8}">${escapeXmlText(curve.label ?? curve.id)}</text>`,
+      );
+    }
+  }
+
+  lines.push("  </g>");
+  return lines;
+}
+
 function serializeResolvedMechanicalAnnotationSidecar(
   sidecar: Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }>,
 ): string[] {
@@ -1690,11 +1850,15 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
       const attrs = getSvgObjectAttributes(object);
       if (object.kind === "rect") {
         lines.push(
-          `  <rect ${attrs} x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" rx="${object.radius ?? 0}" fill="${quoteXmlAttribute(object.fill ?? "transparent")}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
+          `  <rect ${attrs} x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" rx="${object.radius ?? 0}" fill="${quoteXmlAttribute(getSvgPaint(object.fill, "none"))}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
         );
       } else if (object.kind === "ellipse") {
         lines.push(
-          `  <ellipse ${attrs} cx="${object.x + object.width / 2}" cy="${object.y + object.height / 2}" rx="${object.width / 2}" ry="${object.height / 2}" fill="${quoteXmlAttribute(object.fill ?? "transparent")}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
+          `  <ellipse ${attrs} cx="${object.x + object.width / 2}" cy="${object.y + object.height / 2}" rx="${object.width / 2}" ry="${object.height / 2}" fill="${quoteXmlAttribute(getSvgPaint(object.fill, "none"))}" stroke="${quoteXmlAttribute(object.stroke ?? "none")}" />`,
+        );
+      } else if (object.kind === "path") {
+        lines.push(
+          `  <path ${attrs} d="${quoteXmlAttribute(object.d)}" fill="${quoteXmlAttribute(getSvgPaint(object.fill, "none"))}"${object.fillRule ? ` fill-rule="${quoteXmlAttribute(object.fillRule)}"` : ""} stroke="${quoteXmlAttribute(object.stroke ?? "none")}" stroke-width="${object.strokeWidth ?? 1}"${object.strokeDasharray ? ` stroke-dasharray="${quoteXmlAttribute(object.strokeDasharray)}"` : ""} />`,
         );
       } else if (object.kind === "text") {
         lines.push(
@@ -1743,6 +1907,9 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
                 : undefined,
             ),
           );
+        }
+        for (const blockoutObject of getVisibleBlockoutSidecars(document, object)) {
+          lines.push(...serializeResolvedBlockoutSidecar(object, blockoutObject));
         }
         if (spriteSidecar) {
           lines.push(
