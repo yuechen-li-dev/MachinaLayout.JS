@@ -889,6 +889,10 @@ button {
   padding-bottom: 16px;
 }
 
+.inspector-accordion__panel[hidden] {
+  display: none;
+}
+
 .command-json-input {
   width: 100%;
   min-height: 196px;

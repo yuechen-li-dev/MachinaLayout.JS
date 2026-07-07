@@ -3074,44 +3074,27 @@ function Inspector(props: MachinaSlotProps) {
       (selected?.kind === "image" &&
         getSpriteSidecarForImage(document, selected)?.spec.diagnostics.length),
   );
-  const [accordionState, setAccordionState] = useState(() =>
-    getDefaultInspectorAccordionState({
-      modeId: activeMode.id,
-      selected,
-      showViewAids,
-      showImageTools,
-      showExport,
-      hasSelectedSpriteFrame: selectedSpriteFrame !== undefined,
-      hasSpriteAuditResults,
-    }),
-  );
-
-  useEffect(() => {
-    setAccordionState(
-      getDefaultInspectorAccordionState({
-        modeId: activeMode.id,
-        selected,
-        showViewAids,
-        showImageTools,
-        showExport,
-        hasSelectedSpriteFrame: selectedSpriteFrame !== undefined,
-        hasSpriteAuditResults,
-      }),
-    );
-  }, [
-    activeMode.id,
+  const accordionDefaults = getDefaultInspectorAccordionState({
+    modeId: activeMode.id,
     selected,
     showViewAids,
     showImageTools,
     showExport,
-    selectedSpriteFrame,
+    hasSelectedSpriteFrame: selectedSpriteFrame !== undefined,
     hasSpriteAuditResults,
-  ]);
-
-  const toggleAccordion = (id: string) =>
-    setAccordionState((current) => ({
+  });
+  const inspectorContextKey = `${activeMode.id}:${selected?.id ?? "document"}`;
+  const [accordionStateByContext, setAccordionStateByContext] = useState<
+    Partial<Record<string, Record<InspectorGroupId, boolean>>>
+  >({});
+  const accordionState = accordionStateByContext[inspectorContextKey] ?? accordionDefaults;
+  const setAccordionOpen = (groupId: InspectorGroupId, open: boolean) =>
+    setAccordionStateByContext((current) => ({
       ...current,
-      [id]: !current[id as InspectorGroupId],
+      [inspectorContextKey]: {
+        ...(current[inspectorContextKey] ?? accordionDefaults),
+        [groupId]: open,
+      },
     }));
 
   if (!selected) {
@@ -3124,9 +3107,10 @@ function Inspector(props: MachinaSlotProps) {
         {showGeometryTools ? (
           <InspectorAccordionGroup
             id="selected-object"
-            onToggle={toggleAccordion}
+            key={`${inspectorContextKey}:selected-object`}
+            onOpenChange={(open) => setAccordionOpen("selected-object", open)}
             open={accordionState["selected-object"]}
-            summary="Document"
+            subtitle="Document"
             title="Selected object"
           >
             <Field label="ID" value={document.id} />
@@ -3140,9 +3124,10 @@ function Inspector(props: MachinaSlotProps) {
         {showViewAids ? (
           <InspectorAccordionGroup
             id="viewport"
-            onToggle={toggleAccordion}
+            key={`${inspectorContextKey}:viewport`}
+            onOpenChange={(open) => setAccordionOpen("viewport", open)}
             open={accordionState.viewport}
-            summary={`${Math.round(view.viewport.zoom * 100)}%`}
+            subtitle={`${Math.round(view.viewport.zoom * 100)}%`}
             title="Viewport"
           >
             <ViewportSection {...props} />
@@ -3151,7 +3136,8 @@ function Inspector(props: MachinaSlotProps) {
         {showViewAids ? (
           <InspectorAccordionGroup
             id="view-aids"
-            onToggle={toggleAccordion}
+            key={`${inspectorContextKey}:view-aids`}
+            onOpenChange={(open) => setAccordionOpen("view-aids", open)}
             open={accordionState["view-aids"]}
             title="View aids"
           >
@@ -3161,7 +3147,8 @@ function Inspector(props: MachinaSlotProps) {
         {showImageTools ? (
           <InspectorAccordionGroup
             id="image-assets"
-            onToggle={toggleAccordion}
+            key={`${inspectorContextKey}:image-assets`}
+            onOpenChange={(open) => setAccordionOpen("image-assets", open)}
             open={accordionState["image-assets"]}
             title="Image assets"
           >
@@ -3171,7 +3158,8 @@ function Inspector(props: MachinaSlotProps) {
         {showExport ? (
           <InspectorAccordionGroup
             id="export"
-            onToggle={toggleAccordion}
+            key={`${inspectorContextKey}:export`}
+            onOpenChange={(open) => setAccordionOpen("export", open)}
             open={accordionState.export}
             title="Export / Handoff"
           >
@@ -3180,7 +3168,8 @@ function Inspector(props: MachinaSlotProps) {
         ) : null}
         <InspectorAccordionGroup
           id="command-diagnostics"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:command-diagnostics`}
+          onOpenChange={(open) => setAccordionOpen("command-diagnostics", open)}
           open={accordionState["command-diagnostics"]}
           title="Command / Diagnostics"
         >
@@ -3209,9 +3198,10 @@ function Inspector(props: MachinaSlotProps) {
       {showGeometryTools ? (
         <InspectorAccordionGroup
           id="selected-object"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:selected-object`}
+          onOpenChange={(open) => setAccordionOpen("selected-object", open)}
           open={accordionState["selected-object"]}
-          summary={objectKindLabels[selected.kind]}
+          subtitle={objectKindLabels[selected.kind]}
           title="Selected object"
         >
           <div className="command-row">
@@ -3285,9 +3275,10 @@ function Inspector(props: MachinaSlotProps) {
       {selectedSpriteFrame ? (
         <InspectorAccordionGroup
           id="selected-sprite-frame"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:selected-sprite-frame`}
+          onOpenChange={(open) => setAccordionOpen("selected-sprite-frame", open)}
           open={accordionState["selected-sprite-frame"]}
-          summary={selectedSpriteFrame.frame.id}
+          subtitle={selectedSpriteFrame.frame.id}
           title="Selected sprite frame"
         >
           <SelectedSpriteFrameSection
@@ -3304,9 +3295,10 @@ function Inspector(props: MachinaSlotProps) {
       {showGeometryTools ? (
         <InspectorAccordionGroup
           id="geometry"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:geometry`}
+          onOpenChange={(open) => setAccordionOpen("geometry", open)}
           open={accordionState.geometry}
-          summary={selectedGrid.span}
+          subtitle={selectedGrid.span}
           title="Geometry"
         >
           <Field
@@ -3333,9 +3325,10 @@ function Inspector(props: MachinaSlotProps) {
       {showViewAids ? (
         <InspectorAccordionGroup
           id="viewport"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:viewport`}
+          onOpenChange={(open) => setAccordionOpen("viewport", open)}
           open={accordionState.viewport}
-          summary={`${Math.round(view.viewport.zoom * 100)}%`}
+          subtitle={`${Math.round(view.viewport.zoom * 100)}%`}
           title="Viewport"
         >
           <ViewportSection {...props} />
@@ -3344,9 +3337,10 @@ function Inspector(props: MachinaSlotProps) {
       {selected.kind === "spriteSidecar" ? (
         <InspectorAccordionGroup
           id="sprite-sidecar"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:sprite-sidecar`}
+          onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
           open={accordionState["sprite-sidecar"]}
-          summary={`${selected.spec.frames.length} frames`}
+          subtitle={`${selected.spec.frames.length} frames`}
           title="Sprite sidecar"
         >
           <Field label="Target" value={selected.targetId} />
@@ -3494,7 +3488,8 @@ function Inspector(props: MachinaSlotProps) {
       {selected.kind === "image" ? (
         <InspectorAccordionGroup
           id="sprite-sidecar"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:sprite-sidecar`}
+          onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
           open={accordionState["sprite-sidecar"]}
           title="Sprite sidecar"
         >
@@ -3548,7 +3543,8 @@ function Inspector(props: MachinaSlotProps) {
       {selected.kind === "image" || selected.kind === "spriteSidecar" ? (
         <InspectorAccordionGroup
           id="sprite-audit"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:sprite-audit`}
+          onOpenChange={(open) => setAccordionOpen("sprite-audit", open)}
           open={accordionState["sprite-audit"]}
           title="Sprite audit"
         >
@@ -3584,7 +3580,8 @@ function Inspector(props: MachinaSlotProps) {
       {showViewAids ? (
         <InspectorAccordionGroup
           id="view-aids"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:view-aids`}
+          onOpenChange={(open) => setAccordionOpen("view-aids", open)}
           open={accordionState["view-aids"]}
           title="View aids"
         >
@@ -3594,7 +3591,8 @@ function Inspector(props: MachinaSlotProps) {
       {showImageTools ? (
         <InspectorAccordionGroup
           id="image-assets"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:image-assets`}
+          onOpenChange={(open) => setAccordionOpen("image-assets", open)}
           open={accordionState["image-assets"]}
           title="Image assets"
         >
@@ -3678,9 +3676,10 @@ function Inspector(props: MachinaSlotProps) {
       {selected.kind === "uiComponent" ? (
         <InspectorAccordionGroup
           id="ui-component"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:ui-component`}
+          onOpenChange={(open) => setAccordionOpen("ui-component", open)}
           open={accordionState["ui-component"]}
-          summary={selected.componentId}
+          subtitle={selected.componentId}
           title="UI Component"
         >
           {(() => {
@@ -3718,7 +3717,8 @@ function Inspector(props: MachinaSlotProps) {
       ) : null}
       <InspectorAccordionGroup
         id="metadata"
-        onToggle={toggleAccordion}
+        key={`${inspectorContextKey}:metadata`}
+        onOpenChange={(open) => setAccordionOpen("metadata", open)}
         open={accordionState.metadata}
         title="Metadata"
       >
@@ -3729,7 +3729,8 @@ function Inspector(props: MachinaSlotProps) {
       {showExport ? (
         <InspectorAccordionGroup
           id="export"
-          onToggle={toggleAccordion}
+          key={`${inspectorContextKey}:export`}
+          onOpenChange={(open) => setAccordionOpen("export", open)}
           open={accordionState.export}
           title="Export / Handoff"
         >
@@ -3738,7 +3739,8 @@ function Inspector(props: MachinaSlotProps) {
       ) : null}
       <InspectorAccordionGroup
         id="command-diagnostics"
-        onToggle={toggleAccordion}
+        key={`${inspectorContextKey}:command-diagnostics`}
+        onOpenChange={(open) => setAccordionOpen("command-diagnostics", open)}
         open={accordionState["command-diagnostics"]}
         title="Command / Diagnostics"
       >

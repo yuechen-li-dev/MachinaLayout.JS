@@ -22,6 +22,26 @@ afterEach(() => {
   cleanup();
 });
 
+function AccordionHarness({
+  children,
+  id = "test",
+  initialOpen = true,
+  title = "Selected object",
+}: {
+  children: React.ReactNode;
+  id?: string;
+  initialOpen?: boolean;
+  title?: string;
+}) {
+  const [open, setOpen] = React.useState(initialOpen);
+
+  return (
+    <InspectorAccordionGroup id={id} onOpenChange={setOpen} open={open} title={title}>
+      {children}
+    </InspectorAccordionGroup>
+  );
+}
+
 const spriteToml = `
 [atlas]
 width = 64
@@ -76,35 +96,101 @@ function createSpriteDocument() {
 describe("MachinaCanvas sprite ergonomics", () => {
   it("renders an inspector accordion title and children", () => {
     render(
-      <InspectorAccordionGroup id="test" onToggle={() => undefined} open title="Selected object">
+      <AccordionHarness id="test" title="Selected object">
         <p>Inner content</p>
-      </InspectorAccordionGroup>,
+      </AccordionHarness>,
     );
 
     expect(screen.getByRole("button", { name: /selected object/i })).toBeInTheDocument();
     expect(screen.getByText("Inner content")).toBeInTheDocument();
   });
 
-  it("collapses and expands an inspector accordion group", () => {
-    function Wrapper() {
-      const [open, setOpen] = React.useState(true);
-      return (
-        <InspectorAccordionGroup
-          id="test"
-          onToggle={() => setOpen((current) => !current)}
-          open={open}
-          title="Sprite sidecar"
-        >
-          <p>Accordion body</p>
-        </InspectorAccordionGroup>
-      );
-    }
+  it("defaultOpen=true shows content", () => {
+    render(
+      <AccordionHarness id="open" initialOpen title="Selected object">
+        <p>Visible body</p>
+      </AccordionHarness>,
+    );
 
-    render(<Wrapper />);
+    expect(screen.getByText("Visible body")).toBeVisible();
+    expect(screen.getByRole("button", { name: /selected object/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("defaultOpen=false hides content", () => {
+    render(
+      <AccordionHarness id="closed" initialOpen={false} title="Geometry">
+        <p>Hidden body</p>
+      </AccordionHarness>,
+    );
+
+    expect(screen.getByText("Hidden body").closest("[hidden]")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /geometry/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("clicking the header toggles closed and open again", () => {
+    render(
+      <AccordionHarness id="test" initialOpen title="Sprite sidecar">
+        <p>Accordion body</p>
+      </AccordionHarness>,
+    );
+
     fireEvent.click(screen.getByRole("button", { name: /sprite sidecar/i }));
-    expect(screen.queryByText("Accordion body")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sprite sidecar/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByText("Accordion body").closest("[hidden]")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /sprite sidecar/i }));
-    expect(screen.getByText("Accordion body")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sprite sidecar/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByText("Accordion body")).toBeVisible();
+  });
+
+  it("clicking a button inside content does not toggle the accordion", () => {
+    render(
+      <AccordionHarness id="content" initialOpen title="Sprite audit">
+        <button type="button">Run audit</button>
+      </AccordionHarness>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Run audit" }));
+    expect(screen.getByRole("button", { name: /sprite audit/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Run audit" })).toBeVisible();
+  });
+
+  it("multiple accordions maintain independent state", () => {
+    render(
+      <>
+        <AccordionHarness id="one" initialOpen title="Selected object">
+          <p>First panel</p>
+        </AccordionHarness>
+        <AccordionHarness id="two" initialOpen title="Geometry">
+          <p>Second panel</p>
+        </AccordionHarness>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /selected object/i }));
+    expect(screen.getByRole("button", { name: /selected object/i })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: /geometry/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByText("Second panel")).toBeVisible();
   });
 
   it("uses sprite-mode accordion defaults that prioritize selected frame editing", () => {
@@ -161,5 +247,52 @@ describe("MachinaCanvas sprite ergonomics", () => {
     expect(preview).toEqual({
       reason: "Preview unavailable: missing linked image",
     });
+  });
+
+  it("uses sprite-mode defaults that keep the selected sprite frame accordion open", () => {
+    const document = createSpriteDocument();
+    const selected = document.objects[document.selectedObjectId as string];
+    const state = getDefaultInspectorAccordionState({
+      modeId: "sprites",
+      selected,
+      showViewAids: true,
+      showImageTools: true,
+      showExport: true,
+      hasSelectedSpriteFrame: true,
+      hasSpriteAuditResults: false,
+    });
+
+    render(
+      <InspectorAccordionGroup
+        id="selected-sprite-frame"
+        onOpenChange={() => undefined}
+        open={state["selected-sprite-frame"]}
+        title="Selected sprite frame"
+      >
+        <button type="button">Zoom to selected frame</button>
+      </InspectorAccordionGroup>,
+    );
+
+    expect(screen.getByRole("button", { name: /selected sprite frame/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Zoom to selected frame" })).toBeVisible();
+  });
+
+  it("command terminal collapse behavior still works", () => {
+    function Wrapper() {
+      const [collapsed, setCollapsed] = React.useState(true);
+      return (
+        <button onClick={() => setCollapsed((current) => !current)} type="button">
+          {collapsed ? "Expand" : "Collapse"}
+        </button>
+      );
+    }
+
+    render(<Wrapper />);
+    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Expand" }));
+    expect(screen.getByRole("button", { name: "Collapse" })).toBeInTheDocument();
   });
 });

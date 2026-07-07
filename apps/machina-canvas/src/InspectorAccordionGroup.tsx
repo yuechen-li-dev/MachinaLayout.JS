@@ -1,39 +1,45 @@
 import type { ReactNode } from "react";
 
+export type InspectorAccordionGroupProps = {
+  readonly id: string;
+  readonly title: string;
+  readonly subtitle?: ReactNode;
+  readonly open: boolean;
+  readonly children: ReactNode;
+  readonly onOpenChange: (open: boolean) => void;
+};
+
 export function InspectorAccordionGroup({
   id,
   title,
-  summary,
+  subtitle,
   open,
   children,
-  onToggle,
-}: {
-  readonly id: string;
-  readonly title: string;
-  readonly summary?: ReactNode;
-  readonly open: boolean;
-  readonly children: ReactNode;
-  readonly onToggle: (id: string) => void;
-}) {
+  onOpenChange,
+}: InspectorAccordionGroupProps) {
+  const panelId = `inspector-accordion-panel-${id}`;
+
+  const toggle = () => {
+    onOpenChange(!open);
+  };
+
   return (
     <section className={`inspector-accordion ${open ? "is-open" : "is-collapsed"}`}>
       <h3>
         <button
-          aria-controls={`inspector-accordion-panel-${id}`}
+          aria-controls={panelId}
           aria-expanded={open}
           className="inspector-accordion__trigger"
-          onClick={() => onToggle(id)}
+          onClick={toggle}
           type="button"
         >
           <span>{title}</span>
-          <small>{summary ?? (open ? "Collapse" : "Expand")}</small>
+          <small>{subtitle ?? (open ? "Collapse" : "Expand")}</small>
         </button>
       </h3>
-      {open ? (
-        <div className="inspector-accordion__panel" id={`inspector-accordion-panel-${id}`}>
-          <div className="inspector-rows">{children}</div>
-        </div>
-      ) : null}
+      <div className="inspector-accordion__panel" hidden={!open} id={panelId}>
+        <div className="inspector-rows">{children}</div>
+      </div>
     </section>
   );
 }
