@@ -321,6 +321,12 @@ Alignment metadata remains guide-only authoring IR. It stays in `*.guide.toml`, 
 
 This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, full auto-segmentation, or full registration beyond translation-only alignment between authored marks.
 
+## TinyTown sprite artifact generation
+
+Run `npm run canvas:tinytown-artifacts` to generate TinyTown review artifacts from the real Dominatus sprite atlas and hand-edited TOML sidecars.
+
+The script writes a `tinytown_sprite_alpha.guide.toml` authoring IR plus a `tinytown_sprite_alpha.compiled.sprite.toml` runtime artifact for the next Dominatus Godot integration milestone. It does not modify Godot code and does not generate or edit image pixels.
+
 ## UI Components And TSX Lowering
 
 M30o adds the first smoke-test version of LLM-native Figma:

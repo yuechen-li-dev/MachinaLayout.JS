@@ -3,6 +3,7 @@
   "version": "0.6.0",
   "type": "module",
   "scripts": {
+    "canvas:tinytown-artifacts": "vite-node apps/machina-canvas/scripts/run-generate-tinytown-sprite-artifacts.ts",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
     "test": "vitest run",
