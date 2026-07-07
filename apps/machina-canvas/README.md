@@ -2,6 +2,8 @@
 
 MachinaCanvas is the first dogfood app for MachinaLayout.JS: a small React/Vite prototype for an LLM-friendly 2D graphics editor substrate.
 
+Please note that while MachinaLayout.JS is MIT licensed, MachinaCanvas is licensed under AGPL v3. 
+
 Canvas modes are soft templates over the same scene model. They choose starting content and visible affordances; they do not fork MachinaCanvas into separate editors.
 
 Current start modes:
