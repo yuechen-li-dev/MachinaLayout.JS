@@ -19,6 +19,10 @@ import type {
   UiComponentObject,
 } from "./sceneModel";
 import { stringifyGuideSidecarToml } from "./guideSidecar";
+import {
+  serializeMechanicalAnnotationOverlayContent,
+  serializeMechanicalAnnotationSidecarJson,
+} from "./mechanicalAnnotations";
 import { getCanvasImageMaskId, getImagePreserveAspectRatio } from "./canvasImageSvg";
 import { summarizeScene } from "./sceneSummary";
 import { createReferenceGridConfig, getColumnLabel } from "./referenceGrid";
@@ -189,6 +193,9 @@ function getObjectAssetPath(object: CanvasObject): string {
   }
   if (object.kind === "guideSidecar") {
     return `objects/${sanitizePathId(object.id)}.guide.toml`;
+  }
+  if (object.kind === "mechanicalAnnotationSidecar") {
+    return `objects/${sanitizePathId(object.id)}.mechanical.json`;
   }
   return `objects/${sanitizePathId(object.id)}.toml`;
 }
@@ -879,6 +886,9 @@ export function serializeCanvasObjectToml(object: CanvasObject): string {
   }
   if (object.kind === "guideSidecar") {
     return stringifyGuideSidecarToml(object.guide);
+  }
+  if (object.kind === "mechanicalAnnotationSidecar") {
+    return serializeMechanicalAnnotationSidecarJson(object);
   }
 
   const lines = [
@@ -1606,6 +1616,20 @@ function serializeResolvedGuideSidecar(
   return lines;
 }
 
+function serializeResolvedMechanicalAnnotationSidecar(
+  sidecar: Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }>,
+): string[] {
+  const lines = [
+    `  <g class="canvas-mechanical-overlay" data-canvas-object-id="${quoteXmlAttribute(sidecar.id)}" data-canvas-kind="mechanicalAnnotationSidecar" data-canvas-name="${quoteXmlAttribute(sidecar.name)}">`,
+  ];
+  const content = serializeMechanicalAnnotationOverlayContent(sidecar);
+  if (content.length > 0) {
+    lines.push(`    ${content}`);
+  }
+  lines.push("  </g>");
+  return lines;
+}
+
 export function serializeCanvasRenderSvg(document: CanvasDocument): string {
   const lines = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}">`,
@@ -1702,6 +1726,25 @@ export function serializeCanvasRenderSvg(document: CanvasDocument): string {
             ...serializeResolvedSpriteSidecar(object, spriteSidecar, selectedGuideRegionContext),
           );
         }
+      } else if (object.kind === "mechanicalAnnotationSidecar") {
+        const target =
+          object.targetObjectId !== undefined ? document.objects[object.targetObjectId] : undefined;
+        if (target?.visible) {
+          continue;
+        }
+        lines.push(...serializeResolvedMechanicalAnnotationSidecar(object));
+      } else {
+        continue;
+      }
+
+      const attachedMechanicalSidecars = Object.values(document.objects).filter(
+        (candidate): candidate is Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }> =>
+          candidate.kind === "mechanicalAnnotationSidecar" &&
+          candidate.visible &&
+          candidate.targetObjectId === object.id,
+      );
+      for (const sidecar of attachedMechanicalSidecars) {
+        lines.push(...serializeResolvedMechanicalAnnotationSidecar(sidecar));
       }
     }
   }

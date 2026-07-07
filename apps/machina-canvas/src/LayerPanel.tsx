@@ -27,6 +27,10 @@ type LayerPanelProps = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void> | void;
+  onCreateMechanicalAnnotations: (options?: {
+    targetObjectId?: string;
+    groupId?: string;
+  }) => Promise<void> | void;
   onLoadSpriteToml: (
     file: File,
     options?: { targetId?: string; groupId?: string },
@@ -46,6 +50,7 @@ type CanvasLayerPanelViewProps = {
   onAddGuideToml: () => void;
   onAddGroup: () => void;
   onAddImage: () => void;
+  onAddMechanicalAnnotations: () => void;
   onAddSketchToml: () => void;
   onAddSpriteToml: () => void;
   onClearSelection: () => void;
@@ -67,6 +72,12 @@ const LAYER_ADD_ACTIONS = [
     title: "Image",
     description: "Add a source image",
     action: "image",
+  },
+  {
+    id: "mechanical",
+    title: "Mechanical annotations",
+    description: "Add drafting dimensions and notes",
+    action: "mechanical",
   },
   {
     id: "guide",
@@ -105,12 +116,15 @@ function getOwnerImageForObject(
   if (
     selected.kind === "spriteSidecar" ||
     selected.kind === "sketchOverlay" ||
-    selected.kind === "guideSidecar"
+    selected.kind === "guideSidecar" ||
+    selected.kind === "mechanicalAnnotationSidecar"
   ) {
     const targetId =
       selected.kind === "guideSidecar"
         ? (selected.targetId ?? selected.guide.target)
-        : (selected.targetId ?? selected.spec.targetId);
+        : selected.kind === "mechanicalAnnotationSidecar"
+          ? selected.targetObjectId
+          : (selected.targetId ?? selected.spec.targetId);
     const target = targetId ? document.objects[targetId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
@@ -223,6 +237,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
     onAddGuideToml,
     onAddGroup,
     onAddImage,
+    onAddMechanicalAnnotations,
     onAddSketchToml,
     onAddSpriteToml,
     onClearSelection,
@@ -236,6 +251,7 @@ export function CanvasLayerPanelView(props: CanvasLayerPanelViewProps) {
     guide: onAddGuideToml,
     group: onAddGroup,
     image: onAddImage,
+    mechanical: onAddMechanicalAnnotations,
     sketch: onAddSketchToml,
     sprite: onAddSpriteToml,
   } as const;
@@ -327,6 +343,7 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
     document,
     onClearSelection,
     onCreateGroup,
+    onCreateMechanicalAnnotations,
     onLoadAlphaMask,
     onLoadGuideToml,
     onLoadImage,
@@ -451,6 +468,12 @@ export function CanvasLayerPanel(props: LayerPanelProps) {
           onAddGuideToml={() => guideInputRef.current?.click()}
           onAddGroup={() => onCreateGroup(window.prompt("Group name", "New group") ?? "New group")}
           onAddImage={() => imageInputRef.current?.click()}
+          onAddMechanicalAnnotations={() =>
+            onCreateMechanicalAnnotations({
+              groupId: selection.groupId,
+              targetObjectId: selection.imageId,
+            })
+          }
           onAddSketchToml={() => sketchInputRef.current?.click()}
           onAddSpriteToml={() => spriteInputRef.current?.click()}
           onClearSelection={onClearSelection}

@@ -126,6 +126,7 @@ type PanelHarnessProps = {
   onAddGuideToml?: () => void;
   onAddGroup?: () => void;
   onAddImage?: () => void;
+  onAddMechanicalAnnotations?: () => void;
   onAddSketchToml?: () => void;
   onAddSpriteToml?: () => void;
   onClearSelection?: () => void;
@@ -151,6 +152,7 @@ function renderLayerPanel(overrides: PanelHarnessProps = {}) {
         onAddGuideToml={overrides.onAddGuideToml ?? (() => undefined)}
         onAddGroup={overrides.onAddGroup ?? (() => undefined)}
         onAddImage={overrides.onAddImage ?? (() => undefined)}
+        onAddMechanicalAnnotations={overrides.onAddMechanicalAnnotations ?? (() => undefined)}
         onAddSketchToml={overrides.onAddSketchToml ?? (() => undefined)}
         onAddSpriteToml={overrides.onAddSpriteToml ?? (() => undefined)}
         onClearSelection={overrides.onClearSelection ?? (() => undefined)}
@@ -202,6 +204,11 @@ describe("MachinaCanvas layer panel", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^Guide TOMLAttach authoring guide IR$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", {
+        name: /^Mechanical annotationsAdd drafting dimensions and notes$/i,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: /^Sprite TOMLAttach sprite metadata$/i }),

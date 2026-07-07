@@ -3,6 +3,7 @@ import type {
   CanvasObject,
   GuideSidecarObject,
   ImageObject,
+  MechanicalAnnotationSidecarObject,
   SketchOverlayObject,
   SpriteSidecarObject,
 } from "./sceneModel";
@@ -10,6 +11,7 @@ import type {
 export type CanvasLayerTreeRelation =
   | "alphaMap"
   | "guideSidecar"
+  | "mechanicalAnnotationSidecar"
   | "spriteSidecar"
   | "sketchOverlay"
   | "child"
@@ -66,6 +68,8 @@ function getObjectBadge(object: CanvasObject): string {
       return "SPRITE";
     case "guideSidecar":
       return "GUIDE";
+    case "mechanicalAnnotationSidecar":
+      return "ANNO";
   }
 }
 
@@ -77,6 +81,9 @@ function getDisplayTitle(object: CanvasObject): string {
     return object.spec.sourceName ?? object.name;
   }
   if (object.kind === "guideSidecar") {
+    return object.name;
+  }
+  if (object.kind === "mechanicalAnnotationSidecar") {
     return object.name;
   }
   return object.name;
@@ -110,6 +117,15 @@ function getGuideSubtitle(object: GuideSidecarObject): string {
   return `${object.guide.regions.length} regions · ${object.guide.datums.length} datums · ${itemCount} guide items`;
 }
 
+function getMechanicalSubtitle(object: MechanicalAnnotationSidecarObject): string {
+  const counts =
+    object.annotations.dimensions.length +
+    object.annotations.notes.length +
+    object.annotations.datums.length +
+    object.annotations.blocks.length;
+  return `${object.annotations.dimensions.length} dimensions · ${object.annotations.notes.length} notes · ${counts} drafting items`;
+}
+
 function getObjectSubtitle(object: CanvasObject): string | undefined {
   switch (object.kind) {
     case "image":
@@ -120,6 +136,8 @@ function getObjectSubtitle(object: CanvasObject): string | undefined {
       return getSketchSubtitle(object);
     case "guideSidecar":
       return getGuideSubtitle(object);
+    case "mechanicalAnnotationSidecar":
+      return getMechanicalSubtitle(object);
     case "text":
       return object.text;
     case "uiComponent":
@@ -187,6 +205,15 @@ function getOwnerImageIdByAttachment(scene: CanvasDocument): ReadonlyMap<string,
       relations.set(object.id, object.targetId);
     }
   }
+  for (const object of Object.values(scene.objects)) {
+    if (
+      object.kind === "mechanicalAnnotationSidecar" &&
+      object.targetObjectId &&
+      scene.objects[object.targetObjectId] !== undefined
+    ) {
+      relations.set(object.id, object.targetObjectId);
+    }
+  }
   return relations;
 }
 
@@ -204,20 +231,30 @@ function getAttachmentRelation(
   }
   const guide = scene.objects[objectId];
   if (guide?.kind === "guideSidecar" && guide.targetId) return "guideSidecar";
+  const mechanical = scene.objects[objectId];
+  if (mechanical?.kind === "mechanicalAnnotationSidecar" && mechanical.targetObjectId) {
+    return "mechanicalAnnotationSidecar";
+  }
   return undefined;
 }
 
-function getImageAttachmentIds(
+function getAttachmentIdsForOwner(
   scene: CanvasDocument,
-  image: ImageObject,
+  owner: CanvasObject,
   orderedIds: readonly string[],
 ): readonly string[] {
-  const ids = [image.alphaMapId, image.spriteSidecarId, image.sketchOverlayId].filter(
-    (value): value is string => Boolean(value && scene.objects[value]),
-  );
+  const ids =
+    owner.kind === "image"
+      ? [owner.alphaMapId, owner.spriteSidecarId, owner.sketchOverlayId].filter(
+          (value): value is string => Boolean(value && scene.objects[value]),
+        )
+      : [];
   for (const objectId of orderedIds) {
     const object = scene.objects[objectId];
-    if (object?.kind === "guideSidecar" && object.targetId === image.id) {
+    if (object?.kind === "guideSidecar" && object.targetId === owner.id) {
+      ids.push(object.id);
+    }
+    if (object?.kind === "mechanicalAnnotationSidecar" && object.targetObjectId === owner.id) {
       ids.push(object.id);
     }
   }
@@ -253,9 +290,11 @@ function makeAttachmentItem(
       ? `attached alpha for ${getDisplayTitle(owner ?? object)}`
       : relation === "guideSidecar"
         ? `authoring guide for ${getDisplayTitle(owner ?? object)}`
-        : relation === "spriteSidecar"
-          ? `attached to ${getDisplayTitle(owner ?? object)}`
-          : `attached to ${getDisplayTitle(owner ?? object)}`;
+        : relation === "mechanicalAnnotationSidecar"
+          ? `mechanical annotations for ${getDisplayTitle(owner ?? object)}`
+          : relation === "spriteSidecar"
+            ? `attached to ${getDisplayTitle(owner ?? object)}`
+            : `attached to ${getDisplayTitle(owner ?? object)}`;
 
   const warning =
     relation === "alphaMap" && object.kind === "image" && owner?.kind === "image"
@@ -280,8 +319,10 @@ function makeObjectItem(
   object: CanvasObject,
   orderedIds: readonly string[],
 ): CanvasLayerTreeItem {
-  if (object.kind === "image" && (object.role === undefined || object.role === "image")) {
-    const children = getImageAttachmentIds(scene, object, orderedIds)
+  const canOwnChildren =
+    object.kind !== "image" || object.role === undefined || object.role === "image";
+  if (canOwnChildren) {
+    const children = getAttachmentIdsForOwner(scene, object, orderedIds)
       .map((attachmentId) => {
         const attachment = scene.objects[attachmentId];
         const relation = getAttachmentRelation(scene, attachmentId);
@@ -314,6 +355,7 @@ function makeObjectItem(
 
 function isAttachmentCapable(object: CanvasObject): boolean {
   return (
+    object.kind === "mechanicalAnnotationSidecar" ||
     object.kind === "spriteSidecar" ||
     object.kind === "guideSidecar" ||
     object.kind === "sketchOverlay" ||
@@ -350,8 +392,8 @@ export function buildCanvasLayerTree(scene: CanvasDocument): readonly CanvasLaye
       if (ownerImageByAttachment.has(objectId)) continue;
       children.push(makeObjectItem(scene, object, orderedIds));
       consumed.add(objectId);
-      if (object.kind === "image") {
-        for (const attachmentId of getImageAttachmentIds(scene, object, orderedIds)) {
+      if (object.kind !== "image" || object.role === undefined || object.role === "image") {
+        for (const attachmentId of getAttachmentIdsForOwner(scene, object, orderedIds)) {
           consumed.add(attachmentId);
         }
       }

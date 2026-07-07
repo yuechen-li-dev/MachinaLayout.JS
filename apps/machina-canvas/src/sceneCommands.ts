@@ -18,6 +18,13 @@ import {
   type GuideAlignmentTranslation,
   type ResolvedGuideAlignmentMark,
 } from "./guideAlignment";
+import type {
+  MechanicalBlockAnnotation,
+  MechanicalDatumAnnotation,
+  MechanicalDimensionAnnotation,
+  MechanicalNoteAnnotation,
+  MechanicalAnnotationSidecarObject,
+} from "./mechanicalAnnotations";
 import { getCanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type { CanvasUiComponentDefinition } from "./uiComponents/catalog";
 import type {
@@ -3393,6 +3400,109 @@ export function snapSpriteFrameToNearestDatum(
     ],
     context,
   ).document;
+}
+
+function appendObjectToScene<TObject extends CanvasObject>(
+  document: CanvasDocument,
+  object: TObject,
+): CanvasDocument {
+  if (document.objects[object.id] !== undefined) {
+    throw new Error(`Object "${object.id}" already exists.`);
+  }
+  if (!document.layers.some((layer) => layer.id === object.layerId)) {
+    throw new Error(`Layer "${object.layerId}" does not exist.`);
+  }
+
+  return {
+    ...document,
+    selectedObjectId: object.id,
+    objects: {
+      ...document.objects,
+      [object.id]: object,
+    },
+    layers: document.layers.map((layer) =>
+      layer.id === object.layerId
+        ? { ...layer, objectIds: [...layer.objectIds, object.id] }
+        : layer,
+    ),
+  };
+}
+
+function replaceMechanicalSidecar(
+  document: CanvasDocument,
+  sidecarId: string,
+  update: (
+    sidecar: Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }>,
+  ) => Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }>,
+): CanvasDocument {
+  const object = document.objects[sidecarId];
+  if (object?.kind !== "mechanicalAnnotationSidecar") {
+    throw new Error(`Mechanical annotation sidecar "${sidecarId}" does not exist.`);
+  }
+  return replaceObject(document, sidecarId, update(object));
+}
+
+export function createMechanicalAnnotationSidecar(
+  document: CanvasDocument,
+  object: MechanicalAnnotationSidecarObject,
+): CanvasDocument {
+  return appendObjectToScene(document, object);
+}
+
+export function addMechanicalDimension(
+  document: CanvasDocument,
+  sidecarId: string,
+  dimension: MechanicalDimensionAnnotation,
+): CanvasDocument {
+  return replaceMechanicalSidecar(document, sidecarId, (sidecar) => ({
+    ...sidecar,
+    annotations: {
+      ...sidecar.annotations,
+      dimensions: [...sidecar.annotations.dimensions, dimension],
+    },
+  }));
+}
+
+export function addMechanicalNote(
+  document: CanvasDocument,
+  sidecarId: string,
+  note: MechanicalNoteAnnotation,
+): CanvasDocument {
+  return replaceMechanicalSidecar(document, sidecarId, (sidecar) => ({
+    ...sidecar,
+    annotations: {
+      ...sidecar.annotations,
+      notes: [...sidecar.annotations.notes, note],
+    },
+  }));
+}
+
+export function addMechanicalDatum(
+  document: CanvasDocument,
+  sidecarId: string,
+  datum: MechanicalDatumAnnotation,
+): CanvasDocument {
+  return replaceMechanicalSidecar(document, sidecarId, (sidecar) => ({
+    ...sidecar,
+    annotations: {
+      ...sidecar.annotations,
+      datums: [...sidecar.annotations.datums, datum],
+    },
+  }));
+}
+
+export function addMechanicalBlock(
+  document: CanvasDocument,
+  sidecarId: string,
+  block: MechanicalBlockAnnotation,
+): CanvasDocument {
+  return replaceMechanicalSidecar(document, sidecarId, (sidecar) => ({
+    ...sidecar,
+    annotations: {
+      ...sidecar.annotations,
+      blocks: [...sidecar.annotations.blocks, block],
+    },
+  }));
 }
 
 export function createLayerGroup(document: CanvasDocument, title: string): CanvasDocument {

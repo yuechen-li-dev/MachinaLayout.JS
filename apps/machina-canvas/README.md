@@ -8,6 +8,7 @@ Canvas modes are soft templates over the same scene model. They choose starting 
 
 Current start modes:
 
+- `mechanical`
 - `blank`
 - `graphics`
 - `webUi`
@@ -23,6 +24,14 @@ Core thesis:
 LLMs do not need more pixels.
 They need inspectable geometry.
 ```
+
+## Mechanical drafting mode
+
+Mechanical drafting mode is annotation-first 2D drafting. It adds semantic dimensions, tolerances, notes, datums, and table/block records over editable canvas geometry. It does not implement a parametric sketch solver or generalized 2D constraints.
+
+The core source artifact remains `.mcanvas` editor state plus scene object records. PDF/SVG can be future delivery artifacts, while this pass already renders the semantic annotation layer into SVG output and export review flows.
+
+Title blocks, revision tables, and BOM blocks are modeled as records and rendered as structured table/block content. They are not hand-drawn line geometry in the editable source model.
 
 ## Workflows, not macros
 

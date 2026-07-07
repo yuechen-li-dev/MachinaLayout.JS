@@ -1,5 +1,9 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import { createCanvasUnitSystem } from "./canvasUnits";
+import {
+  createMechanicalAnnotationSet,
+  createMechanicalAnnotationSidecarObject,
+} from "./mechanicalAnnotations";
 import { createInitialCanvasDocument } from "./sceneDocument";
 import type { CanvasDocument, CanvasObject, ImageObject } from "./sceneModel";
 import { createSpriteSidecarObject, parseSpriteSidecarToml } from "./spriteSidecar";
@@ -533,6 +537,155 @@ export function createSpriteSheetScene(): CanvasDocument {
         objectIds: [image.id],
       },
     ],
+    selectedObjectId: sidecar.id,
+  });
+}
+
+export function createMechanicalDraftingScene(): CanvasDocument {
+  const plate: Extract<CanvasObject, { kind: "rect" }> = {
+    id: "draft-plate",
+    name: "Base plate",
+    kind: "rect",
+    layerId: "geometry",
+    visible: true,
+    x: 48,
+    y: 40,
+    width: 132,
+    height: 76,
+    fill: "transparent",
+    stroke: "#1c2430",
+    radius: 2,
+    notes: "Simple plate geometry for the first annotation-first drafting mode.",
+  };
+  const annotations = createMechanicalAnnotationSet({
+    id: "draft-plate-annotations",
+    units: "mm",
+    scale: "1:1",
+    dimensions: [
+      {
+        id: "plate-width",
+        kind: "linear",
+        axis: "horizontal",
+        from: [plate.x, plate.y + plate.height],
+        to: [plate.x + plate.width, plate.y + plate.height],
+        offset: 22,
+        label: "132 mm",
+        tolerance: "+/-0.2",
+      },
+      {
+        id: "plate-height",
+        kind: "linear",
+        axis: "vertical",
+        from: [plate.x + plate.width, plate.y],
+        to: [plate.x + plate.width, plate.y + plate.height],
+        offset: 18,
+        label: "76 mm",
+      },
+    ],
+    notes: [
+      {
+        id: "material-note",
+        kind: "callout",
+        at: [212, 70],
+        leaderTo: [plate.x + plate.width, plate.y + 18],
+        text: "Mild steel plate, deburr all edges",
+      },
+    ],
+    datums: [
+      {
+        id: "datum-a",
+        label: "A",
+        at: [plate.x - 18, plate.y + plate.height / 2],
+        target: [plate.x, plate.y + plate.height / 2],
+      },
+    ],
+    blocks: [
+      {
+        id: "sheet-title-block",
+        kind: "titleBlock",
+        x: 182,
+        y: 148,
+        width: 100,
+        height: 48,
+        fields: {
+          Title: "Plate detail",
+          Scale: "1:1",
+          Units: "mm",
+          Rev: "A",
+        },
+      },
+      {
+        id: "sheet-revisions",
+        kind: "revisionTable",
+        x: 182,
+        y: 90,
+        columns: ["Rev", "Desc", "By"],
+        rows: [{ Rev: "A", Desc: "Initial issue", By: "MC" }],
+      },
+      {
+        id: "sheet-bom",
+        kind: "bomTable",
+        x: 14,
+        y: 148,
+        columns: ["Item", "Part", "Qty"],
+        rows: [{ Item: "1", Part: "Base plate", Qty: "1" }],
+      },
+    ],
+  });
+  const sidecar = createMechanicalAnnotationSidecarObject({
+    id: "mechanical-annotations",
+    name: "drawing annotations",
+    layerId: "annotations",
+    x: 0,
+    y: 0,
+    width: 297,
+    height: 210,
+    targetObjectId: plate.id,
+    annotations,
+  });
+
+  return cloneDocument({
+    id: "mechanical-drafting",
+    name: "Mechanical Drafting",
+    width: 297,
+    height: 210,
+    unit: "mm",
+    unitSystem: createCanvasUnitSystem("mm"),
+    referenceGrid: {
+      columns: 6,
+      rows: 4,
+      columnStart: "A",
+      rowStart: 1,
+      showBorder: true,
+      showLines: false,
+      showLabels: true,
+    },
+    layers: [
+      {
+        id: "geometry",
+        name: "Geometry",
+        visible: true,
+        objectIds: [plate.id],
+      },
+      {
+        id: "annotations",
+        name: "Mechanical Drafting",
+        visible: true,
+        objectIds: [sidecar.id],
+      },
+    ],
+    layerGroups: [
+      {
+        id: "mechanical-drafting",
+        title: "Mechanical Drafting",
+        description: "Annotation-first 2D drafting with semantic overlays.",
+        objectIds: [plate.id],
+      },
+    ],
+    objects: {
+      [plate.id]: plate,
+      [sidecar.id]: sidecar,
+    },
     selectedObjectId: sidecar.id,
   });
 }

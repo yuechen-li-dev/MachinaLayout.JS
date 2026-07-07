@@ -16,8 +16,9 @@ afterEach(() => {
 });
 
 describe("MachinaCanvas mode templates", () => {
-  it("registers blank, graphics, webUi, and sprites modes", () => {
+  it("registers mechanical, blank, graphics, webUi, and sprites modes", () => {
     expect(CANVAS_EDITOR_MODE_TEMPLATES.map((template) => template.id)).toEqual([
+      "mechanical",
       "blank",
       "graphics",
       "webUi",
@@ -96,6 +97,7 @@ describe("CanvasModeStart", () => {
     render(<CanvasModeStart onSelectMode={onSelectMode} />);
 
     expect(screen.getByText("Choose what you want to author first.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Mechanical drafting" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Blank canvas" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Graphics editing" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Web/UI editing" })).toBeInTheDocument();

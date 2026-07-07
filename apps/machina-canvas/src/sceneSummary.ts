@@ -33,7 +33,11 @@ export function getObjectBoundsSummary(object: CanvasObject, document?: CanvasDo
     object.kind === "guideSidecar"
       ? `; target ${object.targetId ?? "unattached"}; regions ${object.guide.regions.length}; datums ${object.guide.datums.length}; dimensions ${object.guide.dimensions.length}; units ${object.guide.units}`
       : "";
-  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}${guideSummary}`;
+  const mechanicalSummary =
+    object.kind === "mechanicalAnnotationSidecar"
+      ? `; target ${object.targetObjectId ?? "canvas"}; dimensions ${object.annotations.dimensions.length}; notes ${object.annotations.notes.length}; datums ${object.annotations.datums.length}; blocks ${object.annotations.blocks.length}; units ${object.annotations.units}`
+      : "";
+  return `${object.id} (${object.kind}) ${grid}frame ${getObjectFrameKind(object)}; ${bounds}${imageSummary}${spriteImageSummary}${sketchSummary}${spriteSummary}${guideSummary}${mechanicalSummary}`;
 }
 
 export function summarizeScene(document: CanvasDocument): string {
@@ -66,7 +70,9 @@ export function summarizeScene(document: CanvasDocument): string {
             )()
           : selected.kind === "guideSidecar"
             ? ` Guide sidecar has ${selected.guide.regions.length} regions, ${selected.guide.datums.length} datums, and ${selected.guide.dimensions.length} dimensions.`
-            : ""
+            : selected.kind === "mechanicalAnnotationSidecar"
+              ? ` Mechanical annotations include ${selected.annotations.dimensions.length} dimensions, ${selected.annotations.notes.length} notes, ${selected.annotations.datums.length} datums, and ${selected.annotations.blocks.length} blocks.`
+              : ""
       }`
     : " No object selected.";
 

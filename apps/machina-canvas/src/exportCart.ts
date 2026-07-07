@@ -30,6 +30,7 @@ export type CanvasExportArtifactKind =
   | "spriteToml"
   | "spriteCompileReport"
   | "guideToml"
+  | "mechanicalJson"
   | "sketchToml"
   | "spriteAudit"
   | "diagnostics"
@@ -140,6 +141,7 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
       "spriteToml",
       "spriteCompileReport",
       "guideToml",
+      "mechanicalJson",
       "sketchToml",
       "spriteAudit",
       "diagnostics",
@@ -194,6 +196,9 @@ function getObjectAssetFilename(object: CanvasObject): string {
   }
   if (object.kind === "guideSidecar") {
     return `objects/${sanitizePathId(object.id)}.guide.toml`;
+  }
+  if (object.kind === "mechanicalAnnotationSidecar") {
+    return `objects/${sanitizePathId(object.id)}.mechanical.json`;
   }
   if (object.kind === "spriteSidecar") {
     return `objects/${sanitizePathId(object.id)}.sprite.toml`;
@@ -449,7 +454,8 @@ export function collectCanvasExportArtifacts(input: {
     id: "render-svg",
     kind: "renderSvg",
     title: "Rendered SVG",
-    description: "Clean semantic render of the current scene without editor chrome.",
+    description:
+      "Clean semantic render of the current scene without editor chrome, including mechanical annotations when present.",
     filename: "render.svg",
     selectedByDefault: true,
     group: "review",
@@ -524,6 +530,26 @@ export function collectCanvasExportArtifacts(input: {
           target?.kind === "image"
             ? `Authoring guide IR for ${target.name}: regions, datums, dimensions, and alignment marks used only in the editor/source workflow.`
             : "Authoring guide IR awaiting image attachment. Guide regions and datums do not export into runtime sprite TOML.",
+        filename: getObjectAssetFilename(object),
+        selectedByDefault: false,
+        sourceObjectId: object.id,
+        group: "sidecars",
+        create: () => getFile(bundle, getObjectAssetFilename(object)).text,
+      });
+    }
+    if (object.kind === "mechanicalAnnotationSidecar") {
+      const target =
+        object.targetObjectId !== undefined
+          ? input.scene.objects[object.targetObjectId]
+          : undefined;
+      artifacts.push({
+        id: `mechanical-json:${object.id}`,
+        kind: "mechanicalJson",
+        title: "Mechanical annotations JSON",
+        description:
+          target !== undefined
+            ? `Semantic mechanical annotation record for ${target.name}: dimensions, tolerances, notes, datums, and block/table records.`
+            : "Semantic mechanical annotation record attached to the drawing canvas.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,

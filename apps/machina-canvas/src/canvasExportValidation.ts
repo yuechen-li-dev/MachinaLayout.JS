@@ -342,7 +342,10 @@ export function validateCanvasExportBundle(
       .filter(
         (path) =>
           path.startsWith("objects/") &&
-          (path.endsWith(".toml") || path.endsWith(".sketch.toml") || path.endsWith(".guide.toml")),
+          (path.endsWith(".toml") ||
+            path.endsWith(".sketch.toml") ||
+            path.endsWith(".guide.toml") ||
+            path.endsWith(".mechanical.json")),
       )
       .sort()) {
       const owner = Object.entries(documentIndex.objects).find(

@@ -2,11 +2,12 @@ import type { CanvasDocument } from "./sceneModel";
 import {
   createBlankCanvasScene,
   createGraphicsDemoScene,
+  createMechanicalDraftingScene,
   createSpriteSheetScene,
   createWebUiDemoScene,
 } from "./sceneTemplates";
 
-export type CanvasEditorModeId = "blank" | "graphics" | "webUi" | "sprites";
+export type CanvasEditorModeId = "blank" | "graphics" | "webUi" | "sprites" | "mechanical";
 
 export type CanvasToolGroupId = "geometry" | "image" | "sprite" | "webUi" | "export" | "viewAids";
 
@@ -22,6 +23,17 @@ export type CanvasEditorModeTemplate = {
 };
 
 export const CANVAS_EDITOR_MODE_TEMPLATES: readonly CanvasEditorModeTemplate[] = [
+  {
+    id: "mechanical",
+    title: "Mechanical drafting",
+    subtitle: "Annotation-first 2D drafting",
+    description:
+      "Create semantic 2D technical drawings with dimensions, tolerances, notes, and title blocks.",
+    tags: ["mechanical", "drafting", "annotations"],
+    createScene: createMechanicalDraftingScene,
+    defaultSelectedObjectId: "mechanical-annotations",
+    visibleToolGroups: ["geometry", "export", "viewAids"],
+  },
   {
     id: "blank",
     title: "Blank canvas",

@@ -92,6 +92,12 @@ import {
   validateGuideSidecar,
 } from "./guideSidecar";
 import {
+  createMechanicalAnnotationSet,
+  createMechanicalAnnotationSidecarObject,
+  formatMechanicalDimensionText,
+  validateMechanicalAnnotations,
+} from "./mechanicalAnnotations";
+import {
   resolveGuideAlignmentMarks,
   validateGuideAlignmentMarks,
   type ResolvedGuideAlignmentMark,
@@ -150,6 +156,7 @@ import type {
   CanvasSpriteFrame,
   GuideSidecarObject,
   ImageObject,
+  MechanicalAnnotationSidecarObject,
   SpriteSidecarObject,
   TextObject,
 } from "./sceneModel";
@@ -197,6 +204,7 @@ const objectKindLabels = enumTable<CanvasObjectKind, string>({
   sketchOverlay: "Sketch Overlay",
   spriteSidecar: "Sprite Sidecar",
   guideSidecar: "Guide Sidecar",
+  mechanicalAnnotationSidecar: "Mechanical Annotations",
 });
 
 const commandKindLabels = enumTable<CanvasCommand["kind"], string>({
@@ -388,6 +396,10 @@ type AppViewData = {
     file: File,
     options?: { targetId?: string; groupId?: string },
   ) => Promise<void>;
+  createMechanicalAnnotationsSidecar: (options?: {
+    targetObjectId?: string;
+    groupId?: string;
+  }) => Promise<void>;
   loadSpriteSidecarFile: (
     file: File,
     options?: { targetId?: string; groupId?: string },
@@ -467,6 +479,10 @@ function getOwnerImageForSelection(
     const target = targetId ? document.objects[targetId] : undefined;
     return target?.kind === "image" ? target : undefined;
   }
+  if (object.kind === "mechanicalAnnotationSidecar") {
+    const target = object.targetObjectId ? document.objects[object.targetObjectId] : undefined;
+    return target?.kind === "image" ? target : undefined;
+  }
   if (object.kind === "guideSidecar") {
     const targetId = object.targetId ?? object.guide.target;
     const target = targetId ? document.objects[targetId] : undefined;
@@ -512,6 +528,7 @@ function getKindClass(object: CanvasObject): string {
     sketchOverlay: () => "kind-sketch",
     spriteSidecar: () => "kind-sprite",
     guideSidecar: () => "kind-guide",
+    mechanicalAnnotationSidecar: () => "kind-guide",
   });
 }
 
@@ -532,6 +549,7 @@ function getKindShortLabel(object: CanvasObject): string {
     sketchOverlay: () => "SKETCH",
     spriteSidecar: () => "SPRITE",
     guideSidecar: () => "GUIDE",
+    mechanicalAnnotationSidecar: () => "ANNO",
   });
 }
 
@@ -563,6 +581,16 @@ function getGuideSidecarsForImage(
   return Object.values(document.objects).filter(
     (candidate): candidate is GuideSidecarObject =>
       candidate.kind === "guideSidecar" && candidate.targetId === object.id,
+  );
+}
+
+function getMechanicalAnnotationSidecarsForObject(
+  document: CanvasDocument,
+  object: CanvasObject,
+): readonly MechanicalAnnotationSidecarObject[] {
+  return Object.values(document.objects).filter(
+    (candidate): candidate is MechanicalAnnotationSidecarObject =>
+      candidate.kind === "mechanicalAnnotationSidecar" && candidate.targetObjectId === object.id,
   );
 }
 
@@ -678,6 +706,7 @@ function SceneTree(props: MachinaSlotProps) {
   const {
     activeMode,
     createLayerGroup,
+    createMechanicalAnnotationsSidecar,
     document,
     loadGuideSidecarFile,
     loadImageFile,
@@ -693,6 +722,7 @@ function SceneTree(props: MachinaSlotProps) {
       document={document}
       onClearSelection={() => runCommand({ kind: "select" })}
       onCreateGroup={createLayerGroup}
+      onCreateMechanicalAnnotations={(options) => createMechanicalAnnotationsSidecar(options)}
       onLoadAlphaMask={(file, options) =>
         loadImageFile(file, {
           role: "alphaMap",
@@ -750,7 +780,8 @@ function SceneObjectSvg({
   if (
     object.kind === "sketchOverlay" ||
     object.kind === "spriteSidecar" ||
-    object.kind === "guideSidecar"
+    object.kind === "guideSidecar" ||
+    object.kind === "mechanicalAnnotationSidecar"
   ) {
     return null;
   }
@@ -1385,6 +1416,352 @@ function GuideSidecarSvg({
   );
 }
 
+function MechanicalAnnotationSidecarSvg({
+  sidecar,
+  selected,
+}: {
+  sidecar: MechanicalAnnotationSidecarObject;
+  selected: boolean;
+}) {
+  if (!sidecar.visible) return null;
+
+  const renderLinearDimension = (
+    dimension: Extract<
+      MechanicalAnnotationSidecarObject["annotations"]["dimensions"][number],
+      { kind: "linear" | "aligned" }
+    >,
+  ) => {
+    const dx = dimension.to[0] - dimension.from[0];
+    const dy = dimension.to[1] - dimension.from[1];
+    const length = Math.hypot(dx, dy) || 1;
+    const normalX =
+      dimension.kind === "linear" ? (dimension.axis === "horizontal" ? 0 : 1) : -dy / length;
+    const normalY =
+      dimension.kind === "linear" ? (dimension.axis === "horizontal" ? -1 : 0) : dx / length;
+    const offset = dimension.offset ?? 18;
+    const start = [
+      dimension.from[0] + normalX * offset,
+      dimension.from[1] + normalY * offset,
+    ] as const;
+    const end = [dimension.to[0] + normalX * offset, dimension.to[1] + normalY * offset] as const;
+    return (
+      <Fragment key={dimension.id}>
+        <line
+          className="canvas-mechanical-extension"
+          x1={dimension.from[0]}
+          x2={start[0]}
+          y1={dimension.from[1]}
+          y2={start[1]}
+        />
+        <line
+          className="canvas-mechanical-extension"
+          x1={dimension.to[0]}
+          x2={end[0]}
+          y1={dimension.to[1]}
+          y2={end[1]}
+        />
+        <line
+          className="canvas-mechanical-dimension"
+          x1={start[0]}
+          x2={end[0]}
+          y1={start[1]}
+          y2={end[1]}
+        />
+        <text
+          className="canvas-mechanical-label"
+          textAnchor="middle"
+          x={(start[0] + end[0]) / 2}
+          y={(start[1] + end[1]) / 2 - 4}
+        >
+          {formatMechanicalDimensionText(dimension, sidecar.annotations.units)}
+        </text>
+      </Fragment>
+    );
+  };
+
+  const renderAngleDimension = (
+    dimension: Extract<
+      MechanicalAnnotationSidecarObject["annotations"]["dimensions"][number],
+      { kind: "angle" }
+    >,
+  ) => {
+    const radius = 22;
+    const startAngle = Math.atan2(
+      dimension.from[1] - dimension.center[1],
+      dimension.from[0] - dimension.center[0],
+    );
+    const endAngle = Math.atan2(
+      dimension.to[1] - dimension.center[1],
+      dimension.to[0] - dimension.center[0],
+    );
+    const start = [
+      dimension.center[0] + Math.cos(startAngle) * radius,
+      dimension.center[1] + Math.sin(startAngle) * radius,
+    ] as const;
+    const end = [
+      dimension.center[0] + Math.cos(endAngle) * radius,
+      dimension.center[1] + Math.sin(endAngle) * radius,
+    ] as const;
+    const largeArc = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+    const midAngle = startAngle + (endAngle - startAngle) / 2;
+    const label = [
+      dimension.center[0] + Math.cos(midAngle) * (radius + 14),
+      dimension.center[1] + Math.sin(midAngle) * (radius + 14),
+    ] as const;
+    return (
+      <Fragment key={dimension.id}>
+        <line
+          className="canvas-mechanical-extension"
+          x1={dimension.center[0]}
+          x2={dimension.from[0]}
+          y1={dimension.center[1]}
+          y2={dimension.from[1]}
+        />
+        <line
+          className="canvas-mechanical-extension"
+          x1={dimension.center[0]}
+          x2={dimension.to[0]}
+          y1={dimension.center[1]}
+          y2={dimension.to[1]}
+        />
+        <path
+          className="canvas-mechanical-dimension"
+          d={`M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}`}
+          fill="none"
+        />
+        <text className="canvas-mechanical-label" textAnchor="middle" x={label[0]} y={label[1]}>
+          {formatMechanicalDimensionText(dimension, sidecar.annotations.units)}
+        </text>
+      </Fragment>
+    );
+  };
+
+  const renderCircularDimension = (
+    dimension: Extract<
+      MechanicalAnnotationSidecarObject["annotations"]["dimensions"][number],
+      { kind: "radius" | "diameter" }
+    >,
+  ) => {
+    const radius = dimension.kind === "radius" ? dimension.radius : dimension.diameter / 2;
+    const anchor = [dimension.center[0] + radius, dimension.center[1]] as const;
+    return (
+      <Fragment key={dimension.id}>
+        <line
+          className="canvas-mechanical-dimension"
+          x1={dimension.center[0]}
+          x2={anchor[0]}
+          y1={dimension.center[1]}
+          y2={anchor[1]}
+        />
+        <circle
+          className="canvas-mechanical-center-mark"
+          cx={dimension.center[0]}
+          cy={dimension.center[1]}
+          fill="#253043"
+          r={2.5}
+        />
+        <text className="canvas-mechanical-label" x={anchor[0] + 18} y={anchor[1] - 8}>
+          {formatMechanicalDimensionText(dimension, sidecar.annotations.units)}
+        </text>
+      </Fragment>
+    );
+  };
+
+  const renderBlock = (
+    block: MechanicalAnnotationSidecarObject["annotations"]["blocks"][number],
+  ) => {
+    if (block.kind === "titleBlock") {
+      const entries = Object.entries(block.fields);
+      const rowHeight = Math.max(18, Math.floor((block.height - 22) / Math.max(entries.length, 1)));
+      return (
+        <g className="canvas-mechanical-block" data-canvas-mechanical-id={block.id} key={block.id}>
+          <rect
+            fill="rgba(255,255,255,0.9)"
+            height={block.height}
+            stroke="#253043"
+            width={block.width}
+            x={block.x}
+            y={block.y}
+          />
+          <text className="canvas-mechanical-block-title" x={block.x + 8} y={block.y + 16}>
+            TITLE BLOCK
+          </text>
+          {entries.map(([key, value], index) => {
+            const rowY = block.y + 22 + index * rowHeight;
+            return (
+              <Fragment key={`${block.id}:${key}`}>
+                {index > 0 ? (
+                  <line
+                    stroke="#253043"
+                    x1={block.x}
+                    x2={block.x + block.width}
+                    y1={rowY}
+                    y2={rowY}
+                  />
+                ) : null}
+                <text className="canvas-mechanical-table-header" x={block.x + 8} y={rowY + 13}>
+                  {key}
+                </text>
+                <text
+                  className="canvas-mechanical-table-cell"
+                  x={block.x + Math.max(80, block.width * 0.34)}
+                  y={rowY + 13}
+                >
+                  {value}
+                </text>
+              </Fragment>
+            );
+          })}
+        </g>
+      );
+    }
+
+    const rowHeight = 18;
+    const columnWidth = 96;
+    const width = Math.max(columnWidth * block.columns.length, 120);
+    const height = rowHeight * (block.rows.length + 1);
+    const title = block.kind === "revisionTable" ? "REVISIONS" : "BOM";
+    return (
+      <g className="canvas-mechanical-block" data-canvas-mechanical-id={block.id} key={block.id}>
+        <text className="canvas-mechanical-block-title" x={block.x} y={block.y - 6}>
+          {title}
+        </text>
+        <rect
+          className="canvas-mechanical-table"
+          fill="rgba(255,255,255,0.9)"
+          height={height}
+          stroke="#253043"
+          width={width}
+          x={block.x}
+          y={block.y}
+        />
+        {block.columns.map((column, columnIndex) => (
+          <text
+            className="canvas-mechanical-table-header"
+            key={`${block.id}:header:${column}`}
+            x={block.x + columnIndex * columnWidth + 6}
+            y={block.y + 13}
+          >
+            {column}
+          </text>
+        ))}
+        {Array.from({ length: block.columns.length - 1 }, (_, index) => {
+          const x = block.x + (index + 1) * columnWidth;
+          return (
+            <line
+              className="canvas-mechanical-table-line"
+              key={`${block.id}:col:${index}`}
+              stroke="#253043"
+              x1={x}
+              x2={x}
+              y1={block.y}
+              y2={block.y + height}
+            />
+          );
+        })}
+        {Array.from({ length: block.rows.length }, (_, index) => {
+          const y = block.y + (index + 1) * rowHeight;
+          return (
+            <line
+              className="canvas-mechanical-table-line"
+              key={`${block.id}:row:${index}`}
+              stroke="#253043"
+              x1={block.x}
+              x2={block.x + width}
+              y1={y}
+              y2={y}
+            />
+          );
+        })}
+        {block.rows.map((row, rowIndex) =>
+          block.columns.map((column, columnIndex) => (
+            <text
+              className="canvas-mechanical-table-cell"
+              key={`${block.id}:${rowIndex}:${column}`}
+              x={block.x + columnIndex * columnWidth + 6}
+              y={block.y + (rowIndex + 2) * rowHeight - 5}
+            >
+              {String(row[column] ?? "")}
+            </text>
+          )),
+        )}
+      </g>
+    );
+  };
+
+  return (
+    <g
+      className={`canvas-mechanical-overlay ${selected ? "is-selected" : ""}`}
+      data-canvas-object-id={sidecar.id}
+      data-canvas-kind={sidecar.kind}
+      data-canvas-name={sidecar.name}
+      pointerEvents="none"
+    >
+      {sidecar.annotations.dimensions.map((dimension) =>
+        dimension.kind === "linear" || dimension.kind === "aligned"
+          ? renderLinearDimension(dimension)
+          : dimension.kind === "angle"
+            ? renderAngleDimension(dimension)
+            : renderCircularDimension(dimension),
+      )}
+      {sidecar.annotations.notes.map((note) => (
+        <Fragment key={note.id}>
+          {note.leaderTo ? (
+            <line
+              className="canvas-mechanical-note-leader"
+              stroke="#253043"
+              x1={note.at[0]}
+              x2={note.leaderTo[0]}
+              y1={note.at[1]}
+              y2={note.leaderTo[1]}
+            />
+          ) : null}
+          <text className="canvas-mechanical-note" x={note.at[0]} y={note.at[1]}>
+            {note.text}
+          </text>
+        </Fragment>
+      ))}
+      {sidecar.annotations.datums.map((datum) => (
+        <Fragment key={datum.id}>
+          {datum.target ? (
+            <line
+              className="canvas-mechanical-datum-leader"
+              stroke="#253043"
+              x1={datum.at[0]}
+              x2={datum.target[0]}
+              y1={datum.at[1]}
+              y2={datum.target[1]}
+            />
+          ) : null}
+          <rect
+            className="canvas-mechanical-datum-box"
+            fill="#ffffff"
+            height={16}
+            stroke="#253043"
+            width={20}
+            x={datum.at[0] - 8}
+            y={datum.at[1] - 12}
+          />
+          <text className="canvas-mechanical-datum-label" x={datum.at[0] + 2} y={datum.at[1]}>
+            {datum.label}
+          </text>
+        </Fragment>
+      ))}
+      {sidecar.annotations.blocks.map((block) => renderBlock(block))}
+      {selected ? (
+        <rect
+          className="selection-box"
+          height={sidecar.height + 10}
+          rx={4}
+          width={sidecar.width + 10}
+          x={sidecar.x - 5}
+          y={sidecar.y - 5}
+        />
+      ) : null}
+    </g>
+  );
+}
+
 function ReferenceGridOverlay({
   document,
   showLines,
@@ -1831,6 +2208,12 @@ function CanvasPanel(props: MachinaSlotProps) {
                 object.kind === "image" ? getSketchOverlayForImage(document, object) : undefined;
               const guideSidecars =
                 object.kind === "image" ? getGuideSidecarsForImage(document, object) : [];
+              const mechanicalSidecars = getMechanicalAnnotationSidecarsForObject(document, object);
+              const standaloneMechanicalSidecar =
+                object.kind === "mechanicalAnnotationSidecar" &&
+                (!object.targetObjectId || document.objects[object.targetObjectId] === undefined)
+                  ? object
+                  : undefined;
               const spriteSidecar =
                 object.kind === "image" ? getSpriteSidecarForImage(document, object) : undefined;
               return (
@@ -1866,6 +2249,19 @@ function CanvasPanel(props: MachinaSlotProps) {
                         />
                       ))
                     : null}
+                  {mechanicalSidecars.map((sidecar) => (
+                    <MechanicalAnnotationSidecarSvg
+                      key={sidecar.id}
+                      selected={document.selectedObjectId === sidecar.id}
+                      sidecar={sidecar}
+                    />
+                  ))}
+                  {standaloneMechanicalSidecar ? (
+                    <MechanicalAnnotationSidecarSvg
+                      selected={document.selectedObjectId === standaloneMechanicalSidecar.id}
+                      sidecar={standaloneMechanicalSidecar}
+                    />
+                  ) : null}
                   {object.kind === "image" && spriteSidecar ? (
                     <SpriteSidecarSvg
                       draftRect={
@@ -2226,6 +2622,12 @@ export function getDefaultInspectorAccordionState(options: {
   if (options.showViewAids) state.viewport = options.modeId !== "sprites";
   if (options.showImageTools) state["image-assets"] = options.modeId !== "sprites";
   if (options.showExport) state.export = options.modeId !== "sprites";
+  if (
+    options.selected?.kind === "guideSidecar" ||
+    options.selected?.kind === "mechanicalAnnotationSidecar"
+  ) {
+    state["sprite-sidecar"] = true;
+  }
   if (options.modeId === "sprites") {
     state.viewport = true;
     state["sprite-sidecar"] = options.selected?.kind === "spriteSidecar";
@@ -3897,6 +4299,17 @@ function Inspector(props: MachinaSlotProps) {
               </div>
             </>
           ) : null}
+          {selected.kind === "mechanicalAnnotationSidecar" ? (
+            <>
+              <Field label="Target" value={selected.targetObjectId ?? "canvas"} />
+              <Field label="Units" value={selected.annotations.units} />
+              <Field label="Scale" value={selected.annotations.scale ?? "unspecified"} />
+              <Field label="Dimensions" value={selected.annotations.dimensions.length} />
+              <Field label="Notes" value={selected.annotations.notes.length} />
+              <Field label="Datums" value={selected.annotations.datums.length} />
+              <Field label="Blocks" value={selected.annotations.blocks.length} />
+            </>
+          ) : null}
         </InspectorAccordionGroup>
       ) : null}
       {selectedSpriteFrame ? (
@@ -4270,6 +4683,50 @@ function Inspector(props: MachinaSlotProps) {
                   <div className="validation-result is-ok">
                     <strong>Guide validation</strong>
                     <p>No guide findings.</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </InspectorAccordionGroup>
+      ) : null}
+      {selected.kind === "mechanicalAnnotationSidecar" ? (
+        <InspectorAccordionGroup
+          id="sprite-sidecar"
+          key={`${inspectorContextKey}:mechanical-sidecar`}
+          onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
+          open={accordionState["sprite-sidecar"]}
+          subtitle={`${selected.annotations.dimensions.length} dimensions`}
+          title="Mechanical annotations"
+        >
+          {(() => {
+            const diagnostics = validateMechanicalAnnotations(selected.annotations);
+            return (
+              <>
+                <Field label="Target object" value={selected.targetObjectId ?? "canvas"} />
+                <Field label="Units" value={selected.annotations.units} />
+                <Field label="Scale" value={selected.annotations.scale ?? "unspecified"} />
+                <Field label="Dimensions" value={selected.annotations.dimensions.length} />
+                <Field label="Notes" value={selected.annotations.notes.length} />
+                <Field label="Datums" value={selected.annotations.datums.length} />
+                <Field label="Blocks" value={selected.annotations.blocks.length} />
+                <Field label="Diagnostics" value={diagnostics.length} />
+                {diagnostics.length ? (
+                  <div className="validation-result is-error">
+                    <strong>Mechanical annotation diagnostics</strong>
+                    <ul>
+                      {diagnostics.map((diagnostic, index) => (
+                        <li key={`${diagnostic.code}-${index}`}>
+                          <span>{diagnostic.code}</span>
+                          {`: ${diagnostic.message}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="validation-result is-ok">
+                    <strong>Mechanical annotation diagnostics</strong>
+                    <p>No findings.</p>
                   </div>
                 )}
               </>
@@ -4960,6 +5417,65 @@ export function App() {
       setLastCommand(`created layer group ${nextTitle}`);
     };
 
+    const createMechanicalAnnotationsSidecar: AppViewData["createMechanicalAnnotationsSidecar"] =
+      async (options) => {
+        try {
+          const selected = getSelectedObject(document);
+          const targetObjectId = options?.targetObjectId ?? selected?.id;
+          const target = targetObjectId ? document.objects[targetObjectId] : undefined;
+          const layerId = target?.layerId ?? getDefaultImageLayerId(document);
+          const sidecarId = makeUniqueObjectId("mechanical-annotations", document);
+          const geometryBounds = target
+            ? { x: target.x, y: target.y, width: target.width, height: target.height }
+            : { x: 0, y: 0, width: document.width, height: document.height };
+          const annotationUnits =
+            document.unit === "mm" ||
+            document.unit === "cm" ||
+            document.unit === "in" ||
+            document.unit === "px"
+              ? document.unit
+              : "px";
+          const sidecar = createMechanicalAnnotationSidecarObject({
+            id: sidecarId,
+            name: "Mechanical annotations",
+            layerId,
+            x: geometryBounds.x,
+            y: geometryBounds.y,
+            width: geometryBounds.width,
+            height: geometryBounds.height,
+            targetObjectId,
+            annotations: createMechanicalAnnotationSet({
+              id: `${sidecarId}-set`,
+              units: annotationUnits,
+            }),
+          });
+          let nextDocument: CanvasDocument = {
+            ...document,
+            selectedObjectId: sidecar.id,
+            objects: {
+              ...document.objects,
+              [sidecar.id]: sidecar,
+            },
+            layers: document.layers.map((layer) =>
+              layer.id === sidecar.layerId
+                ? { ...layer, objectIds: [...layer.objectIds, sidecar.id] }
+                : layer,
+            ),
+          };
+          if (options?.groupId) {
+            nextDocument = addObjectToLayerGroup(nextDocument, options.groupId, sidecar.id);
+          }
+          setDocument(nextDocument);
+          setLastCommand(`created ${sidecar.name.toLowerCase()}`);
+        } catch (caught) {
+          setLastCommand(
+            caught instanceof Error
+              ? caught.message
+              : "Mechanical annotations could not be created.",
+          );
+        }
+      };
+
     const loadImageFile: AppViewData["loadImageFile"] = async (file, options) => {
       try {
         const role = options?.role ?? "image";
@@ -5503,6 +6019,7 @@ export function App() {
       createLayerGroup: createLayerGroupFromPanel,
       loadImageFile,
       loadGuideSidecarFile,
+      createMechanicalAnnotationsSidecar,
       loadSketchOverlayFile,
       loadSpriteSidecarFile,
       setCommandJson,
