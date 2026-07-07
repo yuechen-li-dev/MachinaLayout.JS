@@ -12,6 +12,7 @@ import type {
   CanvasLayer,
   CanvasObject,
   CanvasSpriteFrame,
+  CanvasSpriteStackframe,
   SketchOverlayObject,
   SpriteSidecarObject,
   TextObject,
@@ -537,14 +538,74 @@ function createSpriteFrameTomlTable(frame: CanvasSpriteFrame): Record<string, un
   setTomlField(table, "source_row", frame.sourceRow);
   setTomlField(table, "source_column", frame.sourceColumn);
   setTomlField(table, "source_frame", frame.sourceFrameId);
+  setTomlField(table, "source_stackframe", frame.sourceStackframeId);
+  setTomlField(table, "source_stack_index", frame.sourceStackIndex);
   setTomlField(table, "pivot", frame.pivot);
   setTomlField(table, "kind", frame.kind);
   return table;
 }
 
-function createSpriteFramesTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+function createSpriteStackframeTomlTable(
+  stackframe: CanvasSpriteStackframe,
+): Record<string, unknown> {
+  const table: Record<string, unknown> = {
+    x: stackframe.x,
+    y: stackframe.y,
+    width: stackframe.width,
+    height: stackframe.height,
+    count: stackframe.count,
+    direction: stackframe.direction,
+    step: stackframe.step,
+  };
+  setTomlField(table, "labels", stackframe.labels);
+  setTomlField(table, "sprite", stackframe.spriteId);
+  setTomlField(table, "animation", stackframe.animationId);
+  setTomlField(table, "row", stackframe.row);
+  setTomlField(table, "column", stackframe.column);
+  setTomlField(table, "description", stackframe.description);
+  return table;
+}
+
+function createSpriteStackframesTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const stackframes: Record<string, unknown> = {};
+  for (const stackframe of object.spec.stackframes) {
+    stackframes[stackframe.id] = createSpriteStackframeTomlTable(stackframe);
+  }
+  return stackframes;
+}
+
+function frameMatchesRect(
+  frame: CanvasSpriteFrame,
+  rect?: { x: number; y: number; width: number; height: number },
+) {
+  return (
+    rect !== undefined &&
+    frame.x === rect.x &&
+    frame.y === rect.y &&
+    frame.width === rect.width &&
+    frame.height === rect.height
+  );
+}
+
+function shouldExportFrameExplicitly(
+  object: SpriteSidecarObject,
+  frame: CanvasSpriteFrame,
+  options?: SpriteTomlExportOptions,
+) {
+  const sourceKind = getSpriteFrameSourceKind(frame);
+  if (sourceKind !== "stackframe") return true;
+  if (options?.includeStackframes === false) return true;
+  const expected = getSpriteExpectedSourceRect(frame, object.spec.grids, object.spec.stackframes);
+  return !frameMatchesRect(frame, expected);
+}
+
+function createSpriteFramesTomlRecord(
+  object: SpriteSidecarObject,
+  options?: SpriteTomlExportOptions,
+): Record<string, unknown> {
   const frames: Record<string, unknown> = {};
   for (const frame of object.spec.frames) {
+    if (!shouldExportFrameExplicitly(object, frame, options)) continue;
     frames[frame.id] = createSpriteFrameTomlTable(frame);
   }
   return frames;
@@ -612,6 +673,7 @@ function isFrameExportableAsGridCell(
 function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
   const grids = createSpriteGridsTomlRecord(object);
   const cutGrids = createSpriteCutGridsTomlRecord(object);
+  const stackframes = createSpriteStackframesTomlRecord(object);
   const sprites: Record<string, unknown> = {};
   const spriteIds = new Set<string>();
   for (const frame of object.spec.frames) {
@@ -674,10 +736,12 @@ function createSpriteForgeTomlRecord(object: SpriteSidecarObject): Record<string
   };
   if (Object.keys(grids).length > 0) record.grids = grids;
   if (Object.keys(cutGrids).length > 0) record.cut_grids = cutGrids;
+  if (Object.keys(stackframes).length > 0) record.stackframes = stackframes;
   return record;
 }
 
 function createRuntimeSpriteTomlRecord(object: SpriteSidecarObject): Record<string, unknown> {
+  const stackframes = createSpriteStackframesTomlRecord(object);
   const sprites: Record<string, unknown> = {};
   const spriteIds = new Set<string>();
   for (const frame of object.spec.frames) {
@@ -715,9 +779,10 @@ function createRuntimeSpriteTomlRecord(object: SpriteSidecarObject): Record<stri
   }
 
   const record: Record<string, unknown> = {
-    frames: createSpriteFramesTomlRecord(object),
+    frames: createSpriteFramesTomlRecord(object, { mode: "runtime", includeStackframes: true }),
   };
   if (Object.keys(sprites).length > 0) record.sprites = sprites;
+  if (Object.keys(stackframes).length > 0) record.stackframes = stackframes;
   return record;
 }
 
@@ -767,7 +832,9 @@ function createCanvasSpriteTomlDocument(
   if (object.spec.dialect === "spriteforge") {
     Object.assign(document, createSpriteForgeTomlRecord(object));
   } else {
-    document.frames = createSpriteFramesTomlRecord(object);
+    document.frames = createSpriteFramesTomlRecord(object, options);
+    const stackframes = createSpriteStackframesTomlRecord(object);
+    if (Object.keys(stackframes).length > 0) document.stackframes = stackframes;
   }
 
   return document;

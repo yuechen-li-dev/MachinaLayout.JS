@@ -295,6 +295,10 @@ Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums,
 
 Guide sidecars are authoring IR. Compiled sprite TOML is the runtime target. Runtime sprite exports omit guide regions, datums, dimensions, alignment marks, and legacy cut grids by default.
 
+Stackframes are compact runtime sprite metadata for repeated frames arranged vertically or horizontally. They are allowed in `*.sprite.toml`, unlike guide regions and datums, which remain authoring-only in `*.guide.toml`.
+
+Use `[stackframes.*]` entries for common vertical or horizontal sprite-sheet runs when each frame has the same size and advances by a constant step. Leave exact/manual frame edits under `[frames.*]` when one member of the stack needs an explicit override. This keeps stackframes distinct from legacy `cut_grids`: `cut_grids` are authoring scaffolding or backcompat data, while stackframes are valid runtime metadata.
+
 Regions generalize subgrids without declaring final runtime sprite metadata. Datums add authored guide lines and guide points. Dimensions add measurement labels. Legacy `cut_grids` entries remain supported as transitional/backcompat authoring data, but new work should prefer guide regions in `*.guide.toml`.
 
 Alignment marks are authored registration points in `*.guide.toml`. MachinaCanvas can translate one layer/image so its mark matches another mark, but M38d does not perform automatic image feature detection, rotation, scale, or general registration.

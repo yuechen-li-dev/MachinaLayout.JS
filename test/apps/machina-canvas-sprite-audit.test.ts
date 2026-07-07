@@ -277,8 +277,9 @@ describe("MachinaCanvas sprite audit", () => {
     expect(text).toContain("total diagnostics / suspicious findings");
     expect(text).toContain("## Subgrids");
     expect(text).toContain("| Grid | X | Y | Cell | Rows | Cols | Frames |");
+    expect(text).toContain("## Stackframes");
     expect(text).toContain(
-      "| Frame | Source | Grid | Row | Col | Sprite | Animation | X | Y | W | H | Flags |",
+      "| Frame | Source | Grid | Row | Col | Stackframe | Stack Index | Sprite | Animation | X | Y | W | H | Flags |",
     );
     expect(text).toContain("## Alpha-aware cut analysis");
     expect(text).toContain("hero.walk.bad_exact");

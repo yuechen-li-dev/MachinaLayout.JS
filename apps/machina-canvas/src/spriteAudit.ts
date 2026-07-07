@@ -33,11 +33,21 @@ export type SpriteAuditFrameEntry = {
   y: number;
   width: number;
   height: number;
-  sourceKind: "grid" | "exact" | "manual" | "unknown";
+  sourceKind: "grid" | "stackframe" | "exact" | "manual" | "unknown";
   sourceGrid?: string;
   sourceRow?: number;
   sourceColumn?: number;
+  sourceStackframe?: string;
+  sourceStackIndex?: number;
   suspiciousFlags: string[];
+};
+
+export type SpriteAuditStackframeEntry = {
+  stackframeId: string;
+  direction: "vertical" | "horizontal";
+  count: number;
+  step: number;
+  frameSize: string;
 };
 
 export type SpriteAuditSubgridEntry = {
@@ -87,6 +97,7 @@ export type SpriteAuditSummary = {
   totalFrames: number;
   totalAnimations: number;
   totalSubgrids: number;
+  totalStackframes: number;
   totalFindings: number;
   errors: number;
   warnings: number;
@@ -97,6 +108,7 @@ export type SpriteAuditSummary = {
 export type SpriteAuditReport = {
   summary: SpriteAuditSummary;
   subgrids: SpriteAuditSubgridEntry[];
+  stackframes: SpriteAuditStackframeEntry[];
   frames: SpriteAuditFrameEntry[];
   findings: SpriteAuditFinding[];
   alphaCutAnalysis?: SpriteAlphaCutAnalysis;
@@ -368,7 +380,11 @@ export function buildSpriteAuditReport(
 
   for (const frame of frames) {
     const sourceKind = getSpriteFrameSourceKind(frame);
-    const expectedRect = getSpriteExpectedSourceRect(frame, sidecar.spec.grids);
+    const expectedRect = getSpriteExpectedSourceRect(
+      frame,
+      sidecar.spec.grids,
+      sidecar.spec.stackframes,
+    );
     const parentGrid = frame.sourceGridId ? grids.get(frame.sourceGridId) : undefined;
 
     if (frame.width <= 0 || frame.height <= 0) {
@@ -671,7 +687,11 @@ export function buildSpriteAuditReport(
       if (isGridParentExactCrop(frame, other, sidecar)) {
         const exact = getSpriteFrameSourceKind(frame) === "grid" ? other : frame;
         const grid = getSpriteFrameSourceKind(frame) === "grid" ? frame : other;
-        const expected = getSpriteExpectedSourceRect(exact, sidecar.spec.grids);
+        const expected = getSpriteExpectedSourceRect(
+          exact,
+          sidecar.spec.grids,
+          sidecar.spec.stackframes,
+        );
         const dx = expected ? exact.x - expected.x : 0;
         const dy = expected ? exact.y - expected.y : 0;
         const dw = expected ? exact.width - expected.width : 0;
@@ -739,7 +759,11 @@ export function buildSpriteAuditReport(
         },
         seenFindings,
       );
-    } else if (sizeSet.size > 1 && sourceSet.has("grid") && sourceSet.size > 1) {
+    } else if (
+      sizeSet.size > 1 &&
+      (sourceSet.has("grid") || sourceSet.has("stackframe")) &&
+      sourceSet.size > 1
+    ) {
       pushFinding(
         findings,
         {
@@ -747,9 +771,9 @@ export function buildSpriteAuditReport(
           code: "AnimationMixedGridAndExactFrames",
           spriteId: animation.spriteId,
           animationId: animation.id,
-          message: `Animation ${animation.spriteId}.${animation.id} mixes exact/custom crop frames with grid frames. This may be intentional, but may cause visual jitter if dimensions are expected to match.`,
+          message: `Animation ${animation.spriteId}.${animation.id} mixes exact/custom crop frames with generated runtime frames. This may be intentional, but may cause visual jitter if dimensions are expected to match.`,
           reason:
-            "Atlases often use a tighter idle crop beside full grid cells; that mix is valid but can shift silhouettes if playback expects uniform extents.",
+            "Atlases often use a tighter idle crop beside full generated frames; that mix is valid but can shift silhouettes if playback expects uniform extents.",
           suggestedFix:
             "Verify whether the mixed crop sizes are intentional for this animation and normalize only if playback should stay dimensionally stable.",
         },
@@ -854,8 +878,19 @@ export function buildSpriteAuditReport(
     sourceGrid: frame.sourceGridId,
     sourceRow: frame.sourceRow,
     sourceColumn: frame.sourceColumn,
+    sourceStackframe: frame.sourceStackframeId,
+    sourceStackIndex: frame.sourceStackIndex,
     suspiciousFlags: frameFlags.get(frame.id) ?? [],
   }));
+  const stackframeEntries: SpriteAuditStackframeEntry[] = sidecar.spec.stackframes.map(
+    (stackframe) => ({
+      stackframeId: stackframe.id,
+      direction: stackframe.direction,
+      count: stackframe.count,
+      step: stackframe.step,
+      frameSize: `${stackframe.width}x${stackframe.height}`,
+    }),
+  );
 
   const errorCount = findings.filter((finding) => finding.severity === "error").length;
   const warningCount = findings.filter((finding) => finding.severity === "warning").length;
@@ -914,6 +949,7 @@ export function buildSpriteAuditReport(
       totalFrames: frameEntries.length,
       totalAnimations: sidecar.spec.animations.length,
       totalSubgrids: subgrids.length,
+      totalStackframes: stackframeEntries.length,
       totalFindings: orderedFindings.length,
       errors: errorCount,
       warnings: warningCount,
@@ -921,6 +957,7 @@ export function buildSpriteAuditReport(
       scope,
     },
     subgrids,
+    stackframes: stackframeEntries,
     frames: frameEntries,
     findings: orderedFindings,
     alphaCutAnalysis,
@@ -979,14 +1016,33 @@ function formatSubgridTable(report: SpriteAuditReport) {
 
 function formatFrameTable(report: SpriteAuditReport) {
   const lines = [
-    "| Frame | Source | Grid | Row | Col | Sprite | Animation | X | Y | W | H | Flags |",
-    "| --- | --- | --- | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | --- |",
+    "| Frame | Source | Grid | Row | Col | Stackframe | Stack Index | Sprite | Animation | X | Y | W | H | Flags |",
+    "| --- | --- | --- | ---: | ---: | --- | ---: | --- | --- | ---: | ---: | ---: | ---: | --- |",
   ];
 
   for (const frame of report.frames) {
     lines.push(
-      `| ${frame.frameId} | ${frame.sourceKind} | ${frame.sourceGrid ?? "-"} | ${frame.sourceRow ?? "-"} | ${frame.sourceColumn ?? "-"} | ${frame.spriteId ?? "-"} | ${frame.animationId ?? "-"} | ${frame.x} | ${frame.y} | ${frame.width} | ${frame.height} | ${frame.suspiciousFlags.join(", ") || "-"} |`,
+      `| ${frame.frameId} | ${frame.sourceKind} | ${frame.sourceGrid ?? "-"} | ${frame.sourceRow ?? "-"} | ${frame.sourceColumn ?? "-"} | ${frame.sourceStackframe ?? "-"} | ${frame.sourceStackIndex ?? "-"} | ${frame.spriteId ?? "-"} | ${frame.animationId ?? "-"} | ${frame.x} | ${frame.y} | ${frame.width} | ${frame.height} | ${frame.suspiciousFlags.join(", ") || "-"} |`,
     );
+  }
+
+  return lines.join("\n");
+}
+
+function formatStackframeTable(report: SpriteAuditReport) {
+  const lines = [
+    "| stackframe | direction | count | step | frame size |",
+    "| --- | --- | ---: | ---: | --- |",
+  ];
+
+  for (const stackframe of report.stackframes) {
+    lines.push(
+      `| ${stackframe.stackframeId} | ${stackframe.direction} | ${stackframe.count} | ${stackframe.step} | ${stackframe.frameSize} |`,
+    );
+  }
+
+  if (report.stackframes.length === 0) {
+    lines.push("| - | - | 0 | - | - |");
   }
 
   return lines.join("\n");
@@ -1042,6 +1098,7 @@ export function formatSpriteAuditReport(report: SpriteAuditReport): string {
     `- image dimensions: ${summary.imageDimensions.width}x${summary.imageDimensions.height}`,
     `- atlas dimensions: ${summary.atlasDimensions ? `${summary.atlasDimensions.width}x${summary.atlasDimensions.height}` : "unknown"}`,
     `- total subgrids: ${summary.totalSubgrids}`,
+    `- total stackframes: ${summary.totalStackframes}`,
     `- total sprites: ${summary.totalSprites}`,
     `- total frames: ${summary.totalFrames}`,
     `- total animations: ${summary.totalAnimations}`,
@@ -1050,6 +1107,9 @@ export function formatSpriteAuditReport(report: SpriteAuditReport): string {
     "",
     "## Subgrids",
     formatSubgridTable(report),
+    "",
+    "## Stackframes",
+    formatStackframeTable(report),
     "",
     "## Frame list",
     formatFrameTable(report),

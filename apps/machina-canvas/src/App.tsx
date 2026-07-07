@@ -3031,7 +3031,15 @@ function SelectedSpriteFrameSection({
   const atlasHeight = sidecar.spec.atlasHeight ?? image?.intrinsicHeight;
   const spriteEditStep =
     spriteFrameEditSettings.gridSize > 0 ? spriteFrameEditSettings.gridSize : 1;
-  const expectedRect = getSpriteExpectedSourceRect(frame, sidecar.spec.grids);
+  const expectedRect = getSpriteExpectedSourceRect(
+    frame,
+    sidecar.spec.grids,
+    sidecar.spec.stackframes,
+  );
+  const sourceStackframe =
+    frame.sourceStackframeId !== undefined
+      ? sidecar.spec.stackframes.find((stackframe) => stackframe.id === frame.sourceStackframeId)
+      : undefined;
   const updateRect = (rect: SpriteFrameRect) =>
     runCommand({
       kind: "updateSpriteFrameRect",
@@ -3101,6 +3109,14 @@ function SelectedSpriteFrameSection({
       <Field label="Label" value={frame.label} />
       <Field label="Source" value={getSpriteFrameSourceKind(frame)} />
       <Field label="Parent grid" value={frame.sourceGridId ?? "none"} />
+      <Field label="Stackframe" value={frame.sourceStackframeId ?? "none"} />
+      <Field label="Stack index" value={frame.sourceStackIndex ?? "none"} />
+      {sourceStackframe ? (
+        <>
+          <Field label="Direction" value={sourceStackframe.direction} />
+          <Field label="Step" value={sourceStackframe.step} />
+        </>
+      ) : null}
       <Field
         label="Grid cell"
         value={
@@ -3969,6 +3985,7 @@ function Inspector(props: MachinaSlotProps) {
             }
           />
           <Field label="Subgrids" value={selected.spec.grids.length} />
+          <Field label="Stackframes" value={selected.spec.stackframes.length} />
           <Field label="Frames" value={selected.spec.frames.length} />
           <Field label="Animations" value={selected.spec.animations.length} />
           <label className="sprite-frame-select">
@@ -4134,6 +4151,7 @@ function Inspector(props: MachinaSlotProps) {
                 <Field label="Sidecar" value={sidecar.id} />
                 <Field label="Dialect" value={sidecar.spec.dialect} />
                 <Field label="Subgrids" value={sidecar.spec.grids.length} />
+                <Field label="Stackframes" value={sidecar.spec.stackframes.length} />
                 <Field label="Frames" value={sidecar.spec.frames.length} />
                 <Field
                   label="Overlay mode"

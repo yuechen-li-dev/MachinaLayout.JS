@@ -235,6 +235,10 @@ function createRuntimeSpec(
     dialect: "sprite",
     grids:
       options?.mode === "authoring" || options?.includeLegacyCutGrids ? spriteSidecar.grids : [],
+    stackframes:
+      options?.mode === "authoring" || options?.includeStackframes === false
+        ? spriteSidecar.stackframes
+        : spriteSidecar.stackframes,
     frames,
     rawToml: undefined,
   });

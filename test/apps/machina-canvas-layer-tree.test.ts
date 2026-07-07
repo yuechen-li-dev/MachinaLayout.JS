@@ -124,6 +124,7 @@ function createLayerTreeDocument(): CanvasDocument {
           targetId: "sheet-image",
           frames: [{ id: "frame-1", label: "frame-1", x: 0, y: 0, width: 16, height: 16 }],
           grids: [],
+          stackframes: [],
           animations: [],
           diagnostics: [{ severity: "warning", code: "Audit", message: "needs review" }],
           overlay: {
@@ -232,6 +233,7 @@ function createLayerTreeDocument(): CanvasDocument {
           dialect: "sprite",
           frames: [],
           grids: [],
+          stackframes: [],
           animations: [],
           diagnostics: [],
           overlay: {

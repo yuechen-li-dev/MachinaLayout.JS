@@ -58,8 +58,9 @@ export function hitTestSpriteFrameAtPoint(
   const sourceRank = (frame: CanvasSpriteFrame) => {
     const sourceKind = getSpriteFrameSourceKind(frame);
     if (sourceKind === "exact" || sourceKind === "manual") return 0;
-    if (sourceKind === "grid") return 1;
-    return 2;
+    if (sourceKind === "stackframe") return 1;
+    if (sourceKind === "grid") return 2;
+    return 3;
   };
 
   // Prefer exact/manual cuts first, then the smallest containing frame.

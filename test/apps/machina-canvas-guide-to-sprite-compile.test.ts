@@ -255,7 +255,7 @@ describe("MachinaCanvas guide-to-sprite compile", () => {
 
   it("keeps animation references and reports missing animation frames", () => {
     const brokenSpec = parseSpriteSidecarToml(
-      `${spriteToml}\n[sprites.hero.animations.broken]\nframes = [\"missing.frame\"]\n`,
+      `${spriteToml}\n[sprites.hero.animations.broken]\nframes = ["missing.frame"]\n`,
       { id: "broken", name: "Broken", targetId: image.id },
     );
     const compiled = compileSpriteRuntimeSidecar({

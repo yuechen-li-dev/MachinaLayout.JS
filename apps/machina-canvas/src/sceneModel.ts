@@ -213,7 +213,26 @@ export type CanvasSpriteOverlaySettings = {
   showExactFrames: boolean;
 };
 
-export type SpriteFrameSourceKind = "grid" | "exact" | "manual" | "unknown";
+export type SpriteFrameSourceKind = "grid" | "stackframe" | "exact" | "manual" | "unknown";
+
+export type SpriteStackframeDirection = "vertical" | "horizontal";
+
+export type CanvasSpriteStackframe = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  count: number;
+  direction: SpriteStackframeDirection;
+  step: number;
+  labels?: readonly string[];
+  spriteId?: string;
+  animationId?: string;
+  row?: number;
+  column?: number;
+  description?: string;
+};
 
 export type CanvasSpriteSubgridRegion = {
   kind: "spriteSubgridRegion";
@@ -256,6 +275,8 @@ export type CanvasSpriteFrame = {
   sourceRow?: number;
   sourceColumn?: number;
   sourceFrameId?: string;
+  sourceStackframeId?: string;
+  sourceStackIndex?: number;
   pivot?: string;
 };
 
@@ -286,6 +307,7 @@ export type CanvasSpriteSpec = {
   atlasWidth?: number;
   atlasHeight?: number;
   grids: readonly CanvasSpriteGridSpec[];
+  stackframes: readonly CanvasSpriteStackframe[];
   frames: readonly CanvasSpriteFrame[];
   animations: readonly CanvasSpriteAnimation[];
   diagnostics: readonly CanvasSpriteDiagnostics[];

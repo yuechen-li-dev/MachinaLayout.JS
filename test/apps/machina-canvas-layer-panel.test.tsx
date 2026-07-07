@@ -74,6 +74,7 @@ function createPanelDocument(): CanvasDocument {
           targetId: "sheet-image",
           frames: [{ id: "idle", label: "idle", x: 0, y: 0, width: 16, height: 16 }],
           grids: [],
+          stackframes: [],
           animations: [],
           diagnostics: [],
           overlay: {
@@ -102,6 +103,7 @@ function createPanelDocument(): CanvasDocument {
           dialect: "sprite",
           frames: [],
           grids: [],
+          stackframes: [],
           animations: [],
           diagnostics: [],
           overlay: {

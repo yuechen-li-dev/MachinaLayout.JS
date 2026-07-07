@@ -4,7 +4,9 @@ import type {
   CanvasSpriteFrame,
   CanvasSpriteGridSpec,
   CanvasSpriteSpec,
+  CanvasSpriteStackframe,
   ImageObject,
+  SpriteStackframeDirection,
   SpriteFrameSourceKind,
   SpriteSidecarObject,
 } from "./sceneModel";
@@ -21,6 +23,7 @@ export type SpriteSidecarExportMode = "authoring" | "runtime";
 export type SpriteTomlExportOptions = {
   readonly mode?: SpriteSidecarExportMode;
   readonly includeLegacyCutGrids?: boolean;
+  readonly includeStackframes?: boolean;
 };
 
 const defaultOverlay = DEFAULT_SPRITE_OVERLAY_SETTINGS;
@@ -135,6 +138,10 @@ function readStringArray(value: unknown): readonly string[] | undefined {
   return items.every((item) => typeof item === "string") ? (items as readonly string[]) : undefined;
 }
 
+function isPositiveInteger(value: number | undefined): value is number {
+  return value !== undefined && Number.isInteger(value) && value > 0;
+}
+
 function createCutGridFrameId(
   grid: CanvasSpriteGridSpec,
   row: number,
@@ -194,6 +201,144 @@ function makeGridFrame(
   };
 }
 
+function readStackframe(
+  id: string,
+  table: Record<string, unknown>,
+  diagnostics: CanvasSpriteDiagnostics[],
+): CanvasSpriteStackframe | undefined {
+  if (id.trim().length === 0) {
+    pushDiagnostic(diagnostics, "InvalidSpriteStackframe", "Stackframe id must be non-empty.");
+    return undefined;
+  }
+  const x = asNumber(table.x);
+  const y = asNumber(table.y);
+  const width = asNumber(table.width) ?? asNumber(table.w);
+  const height = asNumber(table.height) ?? asNumber(table.h);
+  if (x === undefined || y === undefined || width === undefined || height === undefined) {
+    pushDiagnostic(
+      diagnostics,
+      "InvalidSpriteStackframeRect",
+      `Stackframe ${id} is missing x/y/width/height.`,
+    );
+    return undefined;
+  }
+  if (width <= 0 || height <= 0) {
+    pushDiagnostic(
+      diagnostics,
+      "InvalidSpriteStackframeRect",
+      `Stackframe ${id} has invalid dimensions.`,
+    );
+  }
+  const count = asNumber(table.count);
+  if (!isPositiveInteger(count)) {
+    pushDiagnostic(
+      diagnostics,
+      "InvalidSpriteStackframeCount",
+      `Stackframe ${id} count must be a positive integer.`,
+    );
+  }
+  const direction = asString(table.direction) as SpriteStackframeDirection | undefined;
+  if (direction !== "vertical" && direction !== "horizontal") {
+    pushDiagnostic(
+      diagnostics,
+      "InvalidSpriteStackframeDirection",
+      `Stackframe ${id} direction must be vertical or horizontal.`,
+    );
+  }
+  const step = asNumber(table.step);
+  if (step === undefined || step <= 0) {
+    pushDiagnostic(
+      diagnostics,
+      "InvalidSpriteStackframeStep",
+      `Stackframe ${id} step must be a positive number.`,
+    );
+  }
+  const labels = readStringArray(table.labels);
+  const providedLabels = asArray(table.labels);
+  if (providedLabels) {
+    const seenLabels = new Set<string>();
+    const labelsValid =
+      labels !== undefined &&
+      isPositiveInteger(count) &&
+      labels.length === count &&
+      labels.every((label) => label.trim().length > 0) &&
+      labels.every((label) => {
+        if (seenLabels.has(label)) return false;
+        seenLabels.add(label);
+        return true;
+      });
+    if (!labelsValid) {
+      pushDiagnostic(
+        diagnostics,
+        "InvalidSpriteStackframeLabels",
+        `Stackframe ${id} labels must be ${count ?? "count"} unique non-empty strings.`,
+      );
+    }
+  }
+  if (
+    x === undefined ||
+    y === undefined ||
+    width === undefined ||
+    height === undefined ||
+    !isPositiveInteger(count) ||
+    (direction !== "vertical" && direction !== "horizontal") ||
+    step === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    id,
+    x,
+    y,
+    width,
+    height,
+    count,
+    direction,
+    step,
+    labels: labels?.length === count ? labels : undefined,
+    spriteId: asString(table.sprite) ?? asString(table.sprite_id),
+    animationId: asString(table.animation) ?? asString(table.animation_id),
+    row: asNumber(table.row),
+    column: asNumber(table.col) ?? asNumber(table.column),
+    description: asString(table.description),
+  };
+}
+
+function createStackframeLabel(stackframe: CanvasSpriteStackframe, index: number) {
+  return stackframe.labels?.[index] ?? `${stackframe.id}.${index}`;
+}
+
+export function expandSpriteStackframe(
+  stackframe: CanvasSpriteStackframe,
+): readonly CanvasSpriteFrame[] {
+  const frames: CanvasSpriteFrame[] = [];
+  for (let index = 0; index < stackframe.count; index += 1) {
+    const x =
+      stackframe.direction === "horizontal" ? stackframe.x + stackframe.step * index : stackframe.x;
+    const y =
+      stackframe.direction === "vertical" ? stackframe.y + stackframe.step * index : stackframe.y;
+    const id = createStackframeLabel(stackframe, index);
+    frames.push({
+      id,
+      label: id,
+      spriteId: stackframe.spriteId,
+      animationId: stackframe.animationId,
+      x,
+      y,
+      width: stackframe.width,
+      height: stackframe.height,
+      row: stackframe.row,
+      column: stackframe.column,
+      source: "frame",
+      sourceKind: "stackframe",
+      sourceStackframeId: stackframe.id,
+      sourceStackIndex: index,
+    });
+  }
+  return frames;
+}
+
 function readExplicitFrame(
   id: string,
   table: Record<string, unknown>,
@@ -227,6 +372,8 @@ function readExplicitFrame(
       asNumber(table.col) ??
       asNumber(table.column),
     sourceFrameId: asString(table.source_frame) ?? asString(table.source_frame_id),
+    sourceStackframeId: asString(table.source_stackframe) ?? asString(table.source_stackframe_id),
+    sourceStackIndex: asNumber(table.source_stack_index),
     pivot: asString(table.pivot),
   };
 }
@@ -252,9 +399,38 @@ export function getSpriteGridCellRect(
 }
 
 export function getSpriteExpectedSourceRect(
-  frame: Pick<CanvasSpriteFrame, "sourceGridId" | "sourceRow" | "sourceColumn">,
+  frame: Pick<
+    CanvasSpriteFrame,
+    | "sourceGridId"
+    | "sourceRow"
+    | "sourceColumn"
+    | "sourceStackframeId"
+    | "sourceStackIndex"
+    | "sourceKind"
+  >,
   grids: readonly CanvasSpriteGridSpec[],
+  stackframes: readonly CanvasSpriteStackframe[] = [],
 ): SpriteCellRect | undefined {
+  if (
+    frame.sourceKind === "stackframe" &&
+    frame.sourceStackframeId !== undefined &&
+    frame.sourceStackIndex !== undefined
+  ) {
+    const stackframe = stackframes.find((candidate) => candidate.id === frame.sourceStackframeId);
+    if (!stackframe) return undefined;
+    return {
+      x:
+        stackframe.direction === "horizontal"
+          ? stackframe.x + stackframe.step * frame.sourceStackIndex
+          : stackframe.x,
+      y:
+        stackframe.direction === "vertical"
+          ? stackframe.y + stackframe.step * frame.sourceStackIndex
+          : stackframe.y,
+      width: stackframe.width,
+      height: stackframe.height,
+    };
+  }
   if (
     frame.sourceGridId === undefined ||
     frame.sourceRow === undefined ||
@@ -350,6 +526,48 @@ function addFrame(
   frames.push(frame);
 }
 
+function frameSourcePrecedence(frame: CanvasSpriteFrame) {
+  switch (getSpriteFrameSourceKind(frame)) {
+    case "exact":
+    case "manual":
+      return 3;
+    case "stackframe":
+      return 2;
+    case "grid":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function addGeneratedFrame(
+  frames: CanvasSpriteFrame[],
+  frameById: Map<string, CanvasSpriteFrame>,
+  frame: CanvasSpriteFrame,
+  diagnostics: CanvasSpriteDiagnostics[],
+  duplicateCode: string,
+) {
+  const existing = frameById.get(frame.id);
+  if (!existing) {
+    frameById.set(frame.id, frame);
+    frames.push(frame);
+    return;
+  }
+  const existingPrecedence = frameSourcePrecedence(existing);
+  const nextPrecedence = frameSourcePrecedence(frame);
+  if (nextPrecedence > existingPrecedence) {
+    frameById.set(frame.id, frame);
+    const indexToReplace = frames.findIndex((candidate) => candidate.id === frame.id);
+    if (indexToReplace >= 0) frames[indexToReplace] = frame;
+    return;
+  }
+  if (nextPrecedence === existingPrecedence) {
+    pushDiagnostic(diagnostics, duplicateCode, `Duplicate sprite frame id ${frame.id}.`, [
+      frame.id,
+    ]);
+  }
+}
+
 function validateFrames(
   spec: Omit<CanvasSpriteSpec, "diagnostics">,
   diagnostics: CanvasSpriteDiagnostics[],
@@ -428,6 +646,7 @@ export function parseSpriteSidecarToml(
   const atlas = asTable(root.atlas);
   const gridsTable = asTable(root.grids) ?? {};
   const cutGridsTable = asTable(root.cut_grids) ?? {};
+  const stackframesTable = asTable(root.stackframes) ?? {};
   const spritesTable = asTable(root.sprites) ?? {};
   const framesTable = asTable(root.frames) ?? {};
   const grids = Object.entries(gridsTable)
@@ -457,6 +676,24 @@ export function parseSpriteSidecarToml(
     );
   }
   const gridById = new Map(grids.map((grid) => [grid.id, grid]));
+  const stackframes: CanvasSpriteStackframe[] = [];
+  const stackframeById = new Set<string>();
+  for (const [stackframeId, value] of Object.entries(stackframesTable)) {
+    const table = asTable(value);
+    if (!table) continue;
+    if (stackframeById.has(stackframeId)) {
+      pushDiagnostic(
+        diagnostics,
+        "DuplicateSpriteStackframe",
+        `Duplicate sprite stackframe ${stackframeId}.`,
+      );
+      continue;
+    }
+    const stackframe = readStackframe(stackframeId, table, diagnostics);
+    if (!stackframe) continue;
+    stackframeById.add(stackframeId);
+    stackframes.push(stackframe);
+  }
   const frames: CanvasSpriteFrame[] = [];
   const frameById = new Map<string, CanvasSpriteFrame>();
   const animations: CanvasSpriteAnimation[] = [];
@@ -476,12 +713,35 @@ export function parseSpriteSidecarToml(
     addFrame(frames, frameById, frame, diagnostics);
   }
 
+  const generatedStackframeLabels = new Set<string>();
+  for (const stackframe of stackframes) {
+    for (const frame of expandSpriteStackframe(stackframe)) {
+      if (generatedStackframeLabels.has(frame.id)) {
+        pushDiagnostic(
+          diagnostics,
+          "DuplicateSpriteStackframeFrameLabel",
+          `Duplicate stackframe-generated frame label ${frame.id}.`,
+          [frame.id],
+        );
+        continue;
+      }
+      generatedStackframeLabels.add(frame.id);
+      addGeneratedFrame(
+        frames,
+        frameById,
+        frame,
+        diagnostics,
+        "DuplicateSpriteStackframeFrameLabel",
+      );
+    }
+  }
+
   for (const grid of grids) {
     if (grid.source !== "roughCutGrid") continue;
     let index = 0;
     for (let row = 0; row < grid.rows; row += 1) {
       for (let column = 0; column < grid.columns; column += 1) {
-        addFrame(
+        addGeneratedFrame(
           frames,
           frameById,
           makeGridFrame(grid, row, column, {
@@ -492,6 +752,7 @@ export function parseSpriteSidecarToml(
             pivot: grid.pivot,
           }),
           diagnostics,
+          "DuplicateSpriteFrameId",
         );
         index += 1;
       }
@@ -642,7 +903,9 @@ export function parseSpriteSidecarToml(
     Object.keys(spritesTable).length > 0 ||
     Object.keys(cutGridsTable).length > 0
       ? "spriteforge"
-      : "sprite";
+      : Object.keys(stackframesTable).length > 0
+        ? "sprite"
+        : "sprite";
   const specWithoutDiagnostics = {
     id: options.id,
     name: options.name,
@@ -653,6 +916,7 @@ export function parseSpriteSidecarToml(
     atlasWidth: asNumber(atlas?.width),
     atlasHeight: asNumber(atlas?.height),
     grids,
+    stackframes,
     frames,
     animations,
     overlay: {
@@ -731,7 +995,11 @@ export function getSpriteFrameSummary(frame: CanvasSpriteFrame): string {
     frame.sourceRow !== undefined || frame.sourceColumn !== undefined
       ? ` row ${frame.sourceRow ?? "?"}, col ${frame.sourceColumn ?? "?"}`
       : "";
-  return `${frame.id}: ${frame.x},${frame.y} ${frame.width}x${frame.height}; ${frame.sourceKind}${rowColumn}`;
+  const stackContext =
+    frame.sourceStackframeId !== undefined
+      ? ` stack ${frame.sourceStackframeId}[${frame.sourceStackIndex ?? "?"}]`
+      : "";
+  return `${frame.id}: ${frame.x},${frame.y} ${frame.width}x${frame.height}; ${frame.sourceKind}${rowColumn}${stackContext}`;
 }
 
 export function revalidateSpriteSpec(spec: CanvasSpriteSpec): CanvasSpriteSpec {
@@ -769,7 +1037,10 @@ export function updateSpriteFrameRectInSpec(
   rect: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">,
 ): CanvasSpriteSpec {
   const expectedRects = new Map(
-    spec.frames.map((frame) => [frame.id, getSpriteExpectedSourceRect(frame, spec.grids)]),
+    spec.frames.map((frame) => [
+      frame.id,
+      getSpriteExpectedSourceRect(frame, spec.grids, spec.stackframes),
+    ]),
   );
   return revalidateSpriteSpec({
     ...spec,
@@ -790,15 +1061,19 @@ export function updateSpriteFrameRectInSpec(
             const nextSourceKind =
               priorSourceKind === "exact"
                 ? "exact"
-                : priorSourceKind === "grid"
+                : priorSourceKind === "stackframe"
                   ? stillGridAligned
-                    ? "grid"
+                    ? "stackframe"
                     : "manual"
-                  : priorSourceKind === "manual"
-                    ? "manual"
-                    : expectedRect && stillGridAligned
+                  : priorSourceKind === "grid"
+                    ? stillGridAligned
                       ? "grid"
-                      : "manual";
+                      : "manual"
+                    : priorSourceKind === "manual"
+                      ? "manual"
+                      : expectedRect && stillGridAligned
+                        ? "grid"
+                        : "manual";
             return {
               ...next,
               source: nextSourceKind === "grid" ? "grid" : "frame",

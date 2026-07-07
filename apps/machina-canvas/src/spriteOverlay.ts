@@ -218,7 +218,7 @@ export function createSpriteOverlayRenderPlan(
       !isSelected &&
       !isHovered &&
       !(displayMode === "audit" && isAudit);
-    const exactLike = sourceKind !== "grid";
+    const exactLike = sourceKind === "exact" || sourceKind === "manual" || sourceKind === "unknown";
     const hiddenByExactToggle =
       !sidecar.spec.overlay.showExactFrames &&
       exactLike &&
@@ -299,7 +299,13 @@ export function buildSpriteOverlayLabelChip(
   const title = frame.id;
   const detail =
     emphasis === "selected"
-      ? `${sourceKind} · ${frame.x},${frame.y} ${frame.width}x${frame.height}${frame.sourceGridId ? ` · ${frame.sourceGridId}` : ""}`
+      ? `${sourceKind} · ${frame.x},${frame.y} ${frame.width}x${frame.height}${
+          frame.sourceStackframeId
+            ? ` · ${frame.sourceStackframeId}[${frame.sourceStackIndex ?? "?"}]`
+            : frame.sourceGridId
+              ? ` · ${frame.sourceGridId}`
+              : ""
+        }`
       : undefined;
   const width = Math.max(
     112,
@@ -350,6 +356,8 @@ export function getSpriteOverlayFrameClassNames(
 ): string {
   const classes = ["canvas-sprite-frame"];
   if (presentation.sourceKind === "grid") {
+    classes.push("sprite-frame--grid");
+  } else if (presentation.sourceKind === "stackframe") {
     classes.push("sprite-frame--grid");
   } else if (presentation.sourceKind === "manual") {
     classes.push("sprite-frame--manual");
