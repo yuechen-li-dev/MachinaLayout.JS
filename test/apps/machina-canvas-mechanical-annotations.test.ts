@@ -6,6 +6,7 @@ import {
 import { collectCanvasExportArtifacts } from "../../apps/machina-canvas/src/exportCart";
 import { buildCanvasLayerTree } from "../../apps/machina-canvas/src/layerTree";
 import {
+  createDefaultMechanicalSheetMetadata,
   createMechanicalAnnotationSet,
   createMechanicalAnnotationSidecarObject,
   serializeMechanicalAnnotationOverlayContent,
@@ -71,6 +72,13 @@ function createSidecar() {
       id: "drawing-annotations",
       units: "mm",
       scale: "1:1",
+      sheet: {
+        ...createDefaultMechanicalSheetMetadata(),
+        scale: "1:1",
+        drawingNumber: "BRKT-001",
+        title: "Bracket",
+        revision: "A",
+      },
       dimensions: [
         {
           id: "width",
@@ -98,12 +106,15 @@ function createSidecar() {
           id: "title-block",
           kind: "titleBlock",
           x: 130,
-          y: 110,
+          y: 114,
           width: 90,
           height: 36,
           fields: {
             Title: "Bracket",
+            Drawing: "BRKT-001",
+            Rev: "A",
             Scale: "1:1",
+            Units: "mm",
           },
         },
         {
@@ -112,15 +123,21 @@ function createSidecar() {
           x: 130,
           y: 70,
           columns: ["Rev", "Desc"],
-          rows: [{ Rev: "A", Desc: "Initial" }],
+          rows: [
+            { Rev: "A", Desc: "Initial" },
+            { Rev: "", Desc: "" },
+          ],
         },
         {
           id: "bom-table",
           kind: "bomTable",
           x: 16,
-          y: 110,
+          y: 92,
           columns: ["Item", "Part", "Qty"],
-          rows: [{ Item: "1", Part: "Plate", Qty: "1" }],
+          rows: [
+            { Item: "1", Part: "Plate", Qty: "1" },
+            { Item: "2", Part: "", Qty: "" },
+          ],
         },
       ],
     }),
@@ -195,10 +212,17 @@ describe("MachinaCanvas mechanical annotations", () => {
 
   it("renders dimension, note/callout, datum, and table markup", () => {
     const markup = serializeMechanicalAnnotationOverlayContent(createSidecar());
+    expect(markup).toContain("canvas-mechanical-sheet-boundary");
+    expect(markup).toContain("canvas-mechanical-sheet-margin");
     expect(markup).toContain("canvas-mechanical-dimension");
     expect(markup).toContain("canvas-mechanical-note");
     expect(markup).toContain("canvas-mechanical-datum-box");
     expect(markup).toContain("canvas-mechanical-table");
+  });
+
+  it("renders title blocks and tables without undefined text", () => {
+    const markup = serializeMechanicalAnnotationOverlayContent(createSidecar());
+    expect(markup).not.toContain("undefined");
   });
 
   it("scene can contain a mechanical annotation sidecar and scene command helpers append records", () => {

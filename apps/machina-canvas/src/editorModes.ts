@@ -26,9 +26,9 @@ export const CANVAS_EDITOR_MODE_TEMPLATES: readonly CanvasEditorModeTemplate[] =
   {
     id: "mechanical",
     title: "Mechanical drafting",
-    subtitle: "Annotation-first 2D drafting",
+    subtitle: "Existing geometry + semantic sheet annotations",
     description:
-      "Create semantic 2D technical drawings with dimensions, tolerances, notes, and title blocks.",
+      "Create semantic 2D technical drawings by reusing canvas geometry and layering dimensions, tolerances, notes, datums, and title/revision/BOM records on top.",
     tags: ["mechanical", "drafting", "annotations"],
     createScene: createMechanicalDraftingScene,
     defaultSelectedObjectId: "mechanical-annotations",

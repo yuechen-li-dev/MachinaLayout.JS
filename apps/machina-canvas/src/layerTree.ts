@@ -7,6 +7,10 @@ import type {
   SketchOverlayObject,
   SpriteSidecarObject,
 } from "./sceneModel";
+import {
+  countMechanicalAnnotations,
+  validateMechanicalAnnotationsForScene,
+} from "./mechanicalAnnotations";
 
 export type CanvasLayerTreeRelation =
   | "alphaMap"
@@ -117,15 +121,6 @@ function getGuideSubtitle(object: GuideSidecarObject): string {
   return `${object.guide.regions.length} regions · ${object.guide.datums.length} datums · ${itemCount} guide items`;
 }
 
-function getMechanicalSubtitle(object: MechanicalAnnotationSidecarObject): string {
-  const counts =
-    object.annotations.dimensions.length +
-    object.annotations.notes.length +
-    object.annotations.datums.length +
-    object.annotations.blocks.length;
-  return `${object.annotations.dimensions.length} dimensions · ${object.annotations.notes.length} notes · ${counts} drafting items`;
-}
-
 function getObjectSubtitle(object: CanvasObject): string | undefined {
   switch (object.kind) {
     case "image":
@@ -137,7 +132,7 @@ function getObjectSubtitle(object: CanvasObject): string | undefined {
     case "guideSidecar":
       return getGuideSubtitle(object);
     case "mechanicalAnnotationSidecar":
-      return getMechanicalSubtitle(object);
+      return undefined;
     case "text":
       return object.text;
     case "uiComponent":
@@ -284,14 +279,17 @@ function makeAttachmentItem(
   ownerImageId: string,
 ): CanvasLayerTreeItem {
   const owner = scene.objects[ownerImageId];
-  const baseSubtitle = getObjectSubtitle(object);
+  const baseSubtitle =
+    object.kind === "mechanicalAnnotationSidecar"
+      ? getMechanicalLayerTreeSubtitle(scene, object)
+      : getObjectSubtitle(object);
   const relationText =
     relation === "alphaMap"
       ? `attached alpha for ${getDisplayTitle(owner ?? object)}`
       : relation === "guideSidecar"
         ? `authoring guide for ${getDisplayTitle(owner ?? object)}`
         : relation === "mechanicalAnnotationSidecar"
-          ? `mechanical annotations for ${getDisplayTitle(owner ?? object)}`
+          ? undefined
           : relation === "spriteSidecar"
             ? `attached to ${getDisplayTitle(owner ?? object)}`
             : `attached to ${getDisplayTitle(owner ?? object)}`;
@@ -300,17 +298,52 @@ function makeAttachmentItem(
     relation === "alphaMap" && object.kind === "image" && owner?.kind === "image"
       ? getAlphaWarning(scene, owner, object)
       : undefined;
+  const children =
+    object.kind === "mechanicalAnnotationSidecar"
+      ? [
+          ...object.annotations.dimensions.map((dimension) => ({
+            id: `mechanical-dimension:${object.id}:${dimension.id}`,
+            kind: "attachment" as const,
+            title: `DIM ${dimension.label ?? dimension.id}`,
+            subtitle: undefined,
+            badge: "DIM",
+          })),
+          ...object.annotations.notes.map((note) => ({
+            id: `mechanical-note:${object.id}:${note.id}`,
+            kind: "attachment" as const,
+            title: `NOTE ${note.text}`,
+            subtitle: undefined,
+            badge: "NOTE",
+          })),
+          ...object.annotations.datums.map((datum) => ({
+            id: `mechanical-datum:${object.id}:${datum.id}`,
+            kind: "attachment" as const,
+            title: `DATUM ${datum.label}`,
+            subtitle: undefined,
+            badge: "DATUM",
+          })),
+          ...object.annotations.blocks.map((block) => ({
+            id: `mechanical-block:${object.id}:${block.id}`,
+            kind: "attachment" as const,
+            title: `BLOCK ${block.kind === "titleBlock" ? "title block" : block.kind === "revisionTable" ? "revision table" : "bom table"}`,
+            subtitle: undefined,
+            badge: "BLOCK",
+          })),
+        ]
+      : undefined;
+  const subtitleParts = [baseSubtitle, relationText].filter(Boolean);
 
   return {
     id: `attachment:${object.id}`,
     kind: "attachment",
     objectId: object.id,
     title: getDisplayTitle(object),
-    subtitle: baseSubtitle ? `${baseSubtitle} · ${relationText}` : relationText,
+    subtitle: subtitleParts.join(" · "),
     badge: getObjectBadge(object),
     warning,
     selected: scene.selectedObjectId === object.id,
     relation,
+    children,
   };
 }
 
@@ -319,6 +352,10 @@ function makeObjectItem(
   object: CanvasObject,
   orderedIds: readonly string[],
 ): CanvasLayerTreeItem {
+  const subtitle =
+    object.kind === "mechanicalAnnotationSidecar"
+      ? getMechanicalLayerTreeSubtitle(scene, object)
+      : getObjectSubtitle(object);
   const canOwnChildren =
     object.kind !== "image" || object.role === undefined || object.role === "image";
   if (canOwnChildren) {
@@ -335,7 +372,7 @@ function makeObjectItem(
       kind: "object",
       objectId: object.id,
       title: getDisplayTitle(object),
-      subtitle: getObjectSubtitle(object),
+      subtitle,
       badge: getObjectBadge(object),
       selected: scene.selectedObjectId === object.id,
       children,
@@ -347,7 +384,7 @@ function makeObjectItem(
     kind: "object",
     objectId: object.id,
     title: getDisplayTitle(object),
-    subtitle: getObjectSubtitle(object),
+    subtitle,
     badge: getObjectBadge(object),
     selected: scene.selectedObjectId === object.id,
   };
@@ -453,6 +490,29 @@ export function buildCanvasLayerTree(scene: CanvasDocument): readonly CanvasLaye
   }
 
   return items;
+}
+
+export function getMechanicalLayerTreeSubtitle(
+  scene: CanvasDocument,
+  sidecar: MechanicalAnnotationSidecarObject,
+): string {
+  const counts = countMechanicalAnnotations(sidecar.annotations);
+  const target =
+    sidecar.targetObjectId !== undefined ? scene.objects[sidecar.targetObjectId] : undefined;
+  const base = `Sheet annotations · ${counts.dimensions} dimensions · ${counts.notes} notes`;
+  const diagnostics = validateMechanicalAnnotationsForScene(scene, sidecar);
+  const referenceDiagnostics = diagnostics.filter((diagnostic) =>
+    [
+      "MissingMechanicalReferenceObject",
+      "UnsupportedMechanicalReferenceAnchor",
+      "UnresolvedMechanicalReference",
+      "MechanicalDimensionReferenceMismatch",
+    ].includes(diagnostic.code),
+  ).length;
+  const attachment = target ? `Attached to ${target.name}` : undefined;
+  const status =
+    referenceDiagnostics > 0 ? `${referenceDiagnostics} reference warnings` : undefined;
+  return [attachment, base, status].filter(Boolean).join(" · ");
 }
 
 export function findCanvasLayerGroupForObject(

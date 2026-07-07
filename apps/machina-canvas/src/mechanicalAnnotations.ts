@@ -1,6 +1,55 @@
-import type { CanvasObject, CanvasObjectBase } from "./sceneModel";
+import type { CanvasDocument, CanvasObject, CanvasObjectBase } from "./sceneModel";
+import {
+  getMechanicalA4LandscapeLayout,
+  MECHANICAL_A4_LANDSCAPE_MM,
+  MECHANICAL_A4_PRINT_MARGIN_MM,
+  type MechanicalSheetLayout,
+} from "./mechanicalSheet";
 
 export type MechanicalUnits = "mm" | "cm" | "m" | "in" | "px";
+
+export type MechanicalSheetSize =
+  | "A4"
+  | "A3"
+  | "A2"
+  | "A1"
+  | "A0"
+  | "Letter"
+  | "Legal"
+  | "Tabloid"
+  | "Custom";
+
+export type MechanicalSheetOrientation = "portrait" | "landscape";
+
+export type MechanicalSheetMetadata = {
+  readonly size: MechanicalSheetSize;
+  readonly orientation: MechanicalSheetOrientation;
+  readonly width?: number;
+  readonly height?: number;
+  readonly units: MechanicalUnits;
+  readonly scale?: string;
+  readonly drawingNumber?: string;
+  readonly title?: string;
+  readonly revision?: string;
+};
+
+export type MechanicalGeometryAnchor =
+  | "center"
+  | "top"
+  | "bottom"
+  | "left"
+  | "right"
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight"
+  | "start"
+  | "end";
+
+export type MechanicalGeometryReference = {
+  readonly objectId: string;
+  readonly anchor?: MechanicalGeometryAnchor;
+};
 
 export type MechanicalDimensionAnnotation =
   | MechanicalLinearDimension
@@ -15,6 +64,7 @@ export type MechanicalDimensionBase = {
   readonly tolerance?: string;
   readonly units?: MechanicalUnits;
   readonly note?: string;
+  readonly references?: readonly MechanicalGeometryReference[];
 };
 
 export type MechanicalLinearDimension = MechanicalDimensionBase & {
@@ -104,6 +154,7 @@ export type MechanicalAnnotationSet = {
   readonly id: string;
   readonly units: MechanicalUnits;
   readonly scale?: string;
+  readonly sheet?: MechanicalSheetMetadata;
   readonly dimensions: readonly MechanicalDimensionAnnotation[];
   readonly notes: readonly MechanicalNoteAnnotation[];
   readonly datums: readonly MechanicalDatumAnnotation[];
@@ -126,6 +177,35 @@ export type MechanicalAnnotationSidecarObject = CanvasObjectBase & {
 };
 
 const MECHANICAL_UNITS = new Set<MechanicalUnits>(["mm", "cm", "m", "in", "px"]);
+const MECHANICAL_SHEET_SIZES = new Map<
+  Exclude<MechanicalSheetSize, "Custom">,
+  readonly [number, number]
+>([
+  ["A4", [210, 297]],
+  ["A3", [297, 420]],
+  ["A2", [420, 594]],
+  ["A1", [594, 841]],
+  ["A0", [841, 1189]],
+  ["Letter", [216, 279]],
+  ["Legal", [216, 356]],
+  ["Tabloid", [279, 432]],
+]);
+
+const MECHANICAL_REQUIRED_TITLE_BLOCK_FIELDS = [
+  "Title",
+  "Drawing",
+  "Rev",
+  "Scale",
+  "Units",
+] as const;
+
+const MECHANICAL_LINE_STROKE = 0.35;
+const MECHANICAL_LIGHT_STROKE = 0.25;
+const MECHANICAL_LABEL_FONT_SIZE = 4.2;
+const MECHANICAL_NOTE_FONT_SIZE = 4.4;
+const MECHANICAL_BLOCK_TITLE_FONT_SIZE = 4;
+const MECHANICAL_TABLE_HEADER_FONT_SIZE = 3.1;
+const MECHANICAL_TABLE_CELL_FONT_SIZE = 3.6;
 
 function escapeXmlText(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -158,6 +238,57 @@ function isFinitePoint(
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function pointsEqual(
+  left: readonly [number, number] | undefined,
+  right: readonly [number, number] | undefined,
+  tolerance = 0.001,
+): boolean {
+  if (!left || !right) return false;
+  return Math.abs(left[0] - right[0]) <= tolerance && Math.abs(left[1] - right[1]) <= tolerance;
+}
+
+function hasRectLikeBounds(object: CanvasObject): boolean {
+  return (
+    Number.isFinite(object.x) &&
+    Number.isFinite(object.y) &&
+    Number.isFinite(object.width) &&
+    Number.isFinite(object.height)
+  );
+}
+
+function resolveRectLikeAnchor(
+  object: CanvasObject,
+  anchor: Exclude<MechanicalGeometryAnchor, "start" | "end">,
+): readonly [number, number] | undefined {
+  if (!hasRectLikeBounds(object)) return undefined;
+  const minX = object.x;
+  const minY = object.y;
+  const maxX = object.x + object.width;
+  const maxY = object.y + object.height;
+  const centerX = object.x + object.width / 2;
+  const centerY = object.y + object.height / 2;
+  switch (anchor) {
+    case "center":
+      return [centerX, centerY];
+    case "top":
+      return [centerX, minY];
+    case "bottom":
+      return [centerX, maxY];
+    case "left":
+      return [minX, centerY];
+    case "right":
+      return [maxX, centerY];
+    case "topLeft":
+      return [minX, minY];
+    case "topRight":
+      return [maxX, minY];
+    case "bottomLeft":
+      return [minX, maxY];
+    case "bottomRight":
+      return [maxX, maxY];
+  }
 }
 
 function pushDiagnostic(
@@ -207,6 +338,7 @@ export function createMechanicalAnnotationSet(
     id: input?.id ?? "mechanical-annotations",
     units: input?.units ?? "mm",
     scale: input?.scale,
+    sheet: input?.sheet,
     dimensions: input?.dimensions ?? [],
     notes: input?.notes ?? [],
     datums: input?.datums ?? [],
@@ -214,12 +346,63 @@ export function createMechanicalAnnotationSet(
   };
 }
 
+export function createDefaultMechanicalSheetMetadata(): MechanicalSheetMetadata {
+  return {
+    size: "A4",
+    orientation: "landscape",
+    units: "mm",
+  };
+}
+
+export function isMechanicalA4LandscapeSheet(sheet: MechanicalSheetMetadata | undefined): boolean {
+  return (
+    sheet?.size === "A4" &&
+    sheet.orientation === "landscape" &&
+    getMechanicalSheetDimensions(sheet)?.[0] === MECHANICAL_A4_LANDSCAPE_MM.width &&
+    getMechanicalSheetDimensions(sheet)?.[1] === MECHANICAL_A4_LANDSCAPE_MM.height
+  );
+}
+
+export function getMechanicalSheetLayout(
+  sheet: MechanicalSheetMetadata | undefined,
+): MechanicalSheetLayout {
+  if (sheet === undefined || isMechanicalA4LandscapeSheet(sheet)) {
+    return getMechanicalA4LandscapeLayout();
+  }
+  const dimensions = getMechanicalSheetDimensions(sheet);
+  if (!dimensions) {
+    return getMechanicalA4LandscapeLayout();
+  }
+  const [widthMm, heightMm] = dimensions;
+  return {
+    widthMm,
+    heightMm,
+    marginMm: { ...MECHANICAL_A4_PRINT_MARGIN_MM },
+    contentBoxMm: {
+      x: MECHANICAL_A4_PRINT_MARGIN_MM.left,
+      y: MECHANICAL_A4_PRINT_MARGIN_MM.top,
+      width: Math.max(
+        0,
+        widthMm - MECHANICAL_A4_PRINT_MARGIN_MM.left - MECHANICAL_A4_PRINT_MARGIN_MM.right,
+      ),
+      height: Math.max(
+        0,
+        heightMm - MECHANICAL_A4_PRINT_MARGIN_MM.top - MECHANICAL_A4_PRINT_MARGIN_MM.bottom,
+      ),
+    },
+  };
+}
+
 export function countMechanicalAnnotations(annotations: MechanicalAnnotationSet) {
+  const referenceBackedDimensions = annotations.dimensions.filter(
+    (dimension) => dimension.references && dimension.references.length > 0,
+  ).length;
   return {
     dimensions: annotations.dimensions.length,
     notes: annotations.notes.length,
     datums: annotations.datums.length,
     blocks: annotations.blocks.length,
+    referenceBackedDimensions,
     total:
       annotations.dimensions.length +
       annotations.notes.length +
@@ -249,6 +432,190 @@ export function formatMechanicalDimensionText(
   return parts.join(" ");
 }
 
+export function getMechanicalSheetDimensions(
+  sheet: MechanicalSheetMetadata,
+): readonly [number, number] | undefined {
+  if (sheet.size === "Custom") {
+    if (!isFiniteNumber(sheet.width) || !isFiniteNumber(sheet.height)) {
+      return undefined;
+    }
+    return [sheet.width, sheet.height];
+  }
+  const base = MECHANICAL_SHEET_SIZES.get(sheet.size);
+  if (!base) return undefined;
+  return sheet.orientation === "portrait" ? base : [base[1], base[0]];
+}
+
+function normalizeMechanicalFieldValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+export function getMechanicalTitleBlockEntries(
+  annotations: MechanicalAnnotationSet,
+  block: MechanicalTitleBlock,
+): readonly (readonly [string, string])[] {
+  const sheet = annotations.sheet;
+  const preferred = new Map<string, string>([
+    ["Title", normalizeMechanicalFieldValue(block.fields.Title ?? sheet?.title)],
+    ["Drawing", normalizeMechanicalFieldValue(block.fields.Drawing ?? sheet?.drawingNumber)],
+    ["Rev", normalizeMechanicalFieldValue(block.fields.Rev ?? sheet?.revision)],
+    [
+      "Scale",
+      normalizeMechanicalFieldValue(block.fields.Scale ?? sheet?.scale ?? annotations.scale),
+    ],
+    [
+      "Units",
+      normalizeMechanicalFieldValue(block.fields.Units ?? sheet?.units ?? annotations.units),
+    ],
+  ]);
+  for (const [key, value] of Object.entries(block.fields)) {
+    if (!preferred.has(key)) {
+      preferred.set(key, normalizeMechanicalFieldValue(value));
+    }
+  }
+  return Array.from(preferred.entries());
+}
+
+export type MechanicalTableRenderMetrics = {
+  readonly width: number;
+  readonly height: number;
+  readonly columnWidth: number;
+  readonly rowHeight: number;
+};
+
+export function getMechanicalTableRenderMetrics(
+  annotations: MechanicalAnnotationSet,
+  block: MechanicalRevisionTable | MechanicalBomTable,
+): MechanicalTableRenderMetrics {
+  const layout = getMechanicalSheetLayout(annotations.sheet);
+  const availableWidth = Math.max(72, layout.widthMm - block.x - layout.marginMm.right);
+  const preferredWidth = block.kind === "revisionTable" ? 90 : 120;
+  const minColumnWidth = block.kind === "revisionTable" ? 18 : 17;
+  const minWidth = Math.max(72, block.columns.length * minColumnWidth);
+  const maxWidth = Math.max(
+    Math.min(availableWidth, preferredWidth),
+    Math.min(minWidth, availableWidth),
+  );
+  const width = Math.max(60, maxWidth);
+  const rowHeight = 8.5;
+  return {
+    width,
+    height: rowHeight * (block.rows.length + 1),
+    columnWidth: width / Math.max(block.columns.length, 1),
+    rowHeight,
+  };
+}
+
+function getMechanicalBlockBounds(
+  annotations: MechanicalAnnotationSet,
+  block: MechanicalBlockAnnotation,
+): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
+  if (block.kind === "titleBlock") {
+    return { x: block.x, y: block.y, width: block.width, height: block.height };
+  }
+  const metrics = getMechanicalTableRenderMetrics(annotations, block);
+  return { x: block.x, y: block.y, width: metrics.width, height: metrics.height };
+}
+
+export function resolveMechanicalGeometryAnchor(
+  scene: CanvasDocument,
+  reference: MechanicalGeometryReference,
+): readonly [number, number] | undefined {
+  const object = scene.objects[reference.objectId];
+  if (!object) return undefined;
+  const anchor = reference.anchor ?? "center";
+  if (anchor === "start" || anchor === "end") {
+    return undefined;
+  }
+  return resolveRectLikeAnchor(object, anchor);
+}
+
+export function createLinearDimensionFromGeometryRefs(input: {
+  readonly id: string;
+  readonly scene: CanvasDocument;
+  readonly from: MechanicalGeometryReference;
+  readonly to: MechanicalGeometryReference;
+  readonly axis: "horizontal" | "vertical";
+  readonly offset?: number;
+  readonly label?: string;
+  readonly tolerance?: string;
+}): MechanicalLinearDimension | undefined {
+  const from = resolveMechanicalGeometryAnchor(input.scene, input.from);
+  const to = resolveMechanicalGeometryAnchor(input.scene, input.to);
+  if (!from || !to) return undefined;
+  return {
+    id: input.id,
+    kind: "linear",
+    axis: input.axis,
+    from,
+    to,
+    offset: input.offset,
+    label: input.label,
+    tolerance: input.tolerance,
+    references: [input.from, input.to],
+  };
+}
+
+function getReferenceResolutionIssue(
+  scene: CanvasDocument,
+  reference: MechanicalGeometryReference,
+): "missingObject" | "unsupportedAnchor" | "unresolved" | undefined {
+  const object = scene.objects[reference.objectId];
+  if (!object) return "missingObject";
+  const anchor = reference.anchor ?? "center";
+  if (anchor === "start" || anchor === "end") {
+    return "unsupportedAnchor";
+  }
+  return resolveRectLikeAnchor(object, anchor) ? undefined : "unresolved";
+}
+
+function validateMechanicalSheetMetadata(
+  diagnostics: MechanicalAnnotationDiagnostic[],
+  sheet: MechanicalSheetMetadata,
+) {
+  if (!MECHANICAL_UNITS.has(sheet.units)) {
+    pushDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidMechanicalSheet",
+      message: `Mechanical sheet units "${String(sheet.units)}" are invalid.`,
+      path: "annotations.sheet.units",
+    });
+  }
+  if (sheet.orientation !== "portrait" && sheet.orientation !== "landscape") {
+    pushDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidMechanicalSheet",
+      message: `Mechanical sheet orientation "${String(sheet.orientation)}" is invalid.`,
+      path: "annotations.sheet.orientation",
+    });
+  }
+  if (sheet.size === "Custom") {
+    if (!isFiniteNumber(sheet.width) || sheet.width <= 0) {
+      pushDiagnostic(diagnostics, {
+        severity: "error",
+        code: "InvalidMechanicalSheet",
+        message: "Custom mechanical sheets require a positive width.",
+        path: "annotations.sheet.width",
+      });
+    }
+    if (!isFiniteNumber(sheet.height) || sheet.height <= 0) {
+      pushDiagnostic(diagnostics, {
+        severity: "error",
+        code: "InvalidMechanicalSheet",
+        message: "Custom mechanical sheets require a positive height.",
+        path: "annotations.sheet.height",
+      });
+    }
+  } else if (!MECHANICAL_SHEET_SIZES.has(sheet.size)) {
+    pushDiagnostic(diagnostics, {
+      severity: "error",
+      code: "InvalidMechanicalSheet",
+      message: `Mechanical sheet size "${String(sheet.size)}" is invalid.`,
+      path: "annotations.sheet.size",
+    });
+  }
+}
+
 export function validateMechanicalAnnotations(
   annotations: MechanicalAnnotationSet,
 ): readonly MechanicalAnnotationDiagnostic[] {
@@ -270,6 +637,10 @@ export function validateMechanicalAnnotations(
       message: `Mechanical annotation units "${String(annotations.units)}" are invalid.`,
       path: "annotations.units",
     });
+  }
+
+  if (annotations.sheet) {
+    validateMechanicalSheetMetadata(diagnostics, annotations.sheet);
   }
 
   const seenIds = new Set<string>();
@@ -310,6 +681,28 @@ export function validateMechanicalAnnotations(
         annotationId: dimension.id,
         path: "tolerance",
       });
+    }
+    if (dimension.references) {
+      if (dimension.references.length === 0) {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "InvalidMechanicalReference",
+          message: `Mechanical dimension "${dimension.id}" has an empty references list.`,
+          annotationId: dimension.id,
+          path: "references",
+        });
+      }
+      for (const [referenceIndex, reference] of dimension.references.entries()) {
+        if (!isNonEmptyString(reference.objectId)) {
+          pushDiagnostic(diagnostics, {
+            severity: "error",
+            code: "InvalidMechanicalReference",
+            message: `Mechanical dimension "${dimension.id}" reference ${referenceIndex + 1} requires a non-empty object id.`,
+            annotationId: dimension.id,
+            path: `references.${referenceIndex}.objectId`,
+          });
+        }
+      }
     }
 
     if (dimension.kind === "linear") {
@@ -496,63 +889,324 @@ export function createMechanicalAnnotationSidecarObject(input: {
   };
 }
 
+export function validateMechanicalAnnotationsForScene(
+  scene: CanvasDocument,
+  sidecar: MechanicalAnnotationSidecarObject,
+): readonly MechanicalAnnotationDiagnostic[] {
+  const diagnostics = [...validateMechanicalAnnotations(sidecar.annotations)];
+  const sheet = sidecar.annotations.sheet;
+  const layout = getMechanicalSheetLayout(sheet);
+  const pointWithinSheet = (point: readonly [number, number]) =>
+    point[0] >= 0 && point[1] >= 0 && point[0] <= layout.widthMm && point[1] <= layout.heightMm;
+  const pointWithinPrintMargin = (point: readonly [number, number]) =>
+    point[0] >= layout.contentBoxMm.x &&
+    point[1] >= layout.contentBoxMm.y &&
+    point[0] <= layout.contentBoxMm.x + layout.contentBoxMm.width &&
+    point[1] <= layout.contentBoxMm.y + layout.contentBoxMm.height;
+
+  if (sheet && !isMechanicalA4LandscapeSheet(sheet)) {
+    pushDiagnostic(diagnostics, {
+      severity: "warning",
+      code: "MechanicalSheetNotA4Landscape",
+      message:
+        "Non-A4 sheet metadata is present, but Mechanical drafting mode currently targets A4 landscape.",
+      path: "annotations.sheet",
+    });
+  }
+
+  for (const dimension of sidecar.annotations.dimensions) {
+    if (!dimension.references?.length) continue;
+    for (const [referenceIndex, reference] of dimension.references.entries()) {
+      const issue = getReferenceResolutionIssue(scene, reference);
+      if (issue === "missingObject") {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "MissingMechanicalReferenceObject",
+          message: `Mechanical dimension "${dimension.id}" references missing object "${reference.objectId}".`,
+          annotationId: dimension.id,
+          path: `dimensions.${dimension.id}.references.${referenceIndex}`,
+        });
+      } else if (issue === "unsupportedAnchor") {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "UnsupportedMechanicalReferenceAnchor",
+          message: `Mechanical dimension "${dimension.id}" cannot resolve anchor "${reference.anchor}" on object "${reference.objectId}".`,
+          annotationId: dimension.id,
+          path: `dimensions.${dimension.id}.references.${referenceIndex}`,
+        });
+      } else if (issue === "unresolved") {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "UnresolvedMechanicalReference",
+          message: `Mechanical dimension "${dimension.id}" could not resolve reference "${reference.objectId}".`,
+          annotationId: dimension.id,
+          path: `dimensions.${dimension.id}.references.${referenceIndex}`,
+        });
+      }
+    }
+
+    if (
+      (dimension.kind === "linear" || dimension.kind === "aligned") &&
+      dimension.references.length >= 2
+    ) {
+      const resolvedFrom = resolveMechanicalGeometryAnchor(scene, dimension.references[0]);
+      const resolvedTo = resolveMechanicalGeometryAnchor(scene, dimension.references[1]);
+      if (
+        resolvedFrom &&
+        resolvedTo &&
+        (!pointsEqual(resolvedFrom, dimension.from) || !pointsEqual(resolvedTo, dimension.to))
+      ) {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "MechanicalDimensionReferenceMismatch",
+          message: `Mechanical dimension "${dimension.id}" stores explicit points that differ from its referenced geometry anchors.`,
+          annotationId: dimension.id,
+        });
+      }
+    }
+
+    const points =
+      dimension.kind === "linear" || dimension.kind === "aligned"
+        ? [dimension.from, dimension.to]
+        : dimension.kind === "angle"
+          ? [dimension.center, dimension.from, dimension.to]
+          : [dimension.center];
+    for (const point of points) {
+      if (!pointWithinSheet(point) || !pointWithinPrintMargin(point)) {
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "MechanicalAnnotationOutsidePrintMargin",
+          message: `Mechanical annotation "${dimension.id}" extends outside the A4 print-safe content area.`,
+          annotationId: dimension.id,
+        });
+        break;
+      }
+    }
+  }
+
+  for (const note of sidecar.annotations.notes) {
+    if (!pointWithinSheet(note.at) || !pointWithinPrintMargin(note.at)) {
+      pushDiagnostic(diagnostics, {
+        severity: "warning",
+        code: "MechanicalAnnotationOutsidePrintMargin",
+        message: `Mechanical note "${note.id}" extends outside the A4 print-safe content area.`,
+        annotationId: note.id,
+      });
+    }
+  }
+
+  for (const datum of sidecar.annotations.datums) {
+    if (!pointWithinSheet(datum.at) || !pointWithinPrintMargin(datum.at)) {
+      pushDiagnostic(diagnostics, {
+        severity: "warning",
+        code: "MechanicalAnnotationOutsidePrintMargin",
+        message: `Mechanical datum "${datum.id}" extends outside the A4 print-safe content area.`,
+        annotationId: datum.id,
+      });
+    }
+  }
+
+  for (const block of sidecar.annotations.blocks) {
+    const bounds = getMechanicalBlockBounds(sidecar.annotations, block);
+    if (
+      bounds.x < 0 ||
+      bounds.y < 0 ||
+      bounds.x + bounds.width > layout.widthMm ||
+      bounds.y + bounds.height > layout.heightMm
+    ) {
+      pushDiagnostic(diagnostics, {
+        severity: "warning",
+        code: "MechanicalBlockOutsideSheet",
+        message: `Mechanical block "${block.id}" extends outside the sheet boundary.`,
+        annotationId: block.id,
+      });
+    }
+    if (block.kind === "titleBlock" && sidecar.annotations.sheet) {
+      const entries = new Map(getMechanicalTitleBlockEntries(sidecar.annotations, block));
+      for (const field of MECHANICAL_REQUIRED_TITLE_BLOCK_FIELDS) {
+        if ((entries.get(field) ?? "").trim().length > 0) continue;
+        pushDiagnostic(diagnostics, {
+          severity: "warning",
+          code: "MechanicalTitleBlockMissingField",
+          message: `Mechanical title block "${block.id}" is missing "${field}".`,
+          annotationId: block.id,
+          path: `blocks.${block.id}.${field}`,
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
+
+export type MechanicalReferenceSummary = {
+  readonly objectId: string;
+  readonly anchor: MechanicalGeometryAnchor;
+  readonly resolved: boolean;
+  readonly point?: readonly [number, number];
+};
+
+export type MechanicalInspectorSummary = {
+  readonly sheetSize: string;
+  readonly orientation: string;
+  readonly sheetTarget: string;
+  readonly sheetSizeLabel: string;
+  readonly printMarginLabel: string;
+  readonly units: MechanicalUnits;
+  readonly scale: string;
+  readonly drawingNumber: string;
+  readonly title: string;
+  readonly revision: string;
+  readonly dimensionCount: number;
+  readonly noteCount: number;
+  readonly datumCount: number;
+  readonly blockCount: number;
+  readonly diagnosticsCount: number;
+  readonly referenceDiagnosticCount: number;
+  readonly sheetNotice?: string;
+  readonly dimensionReferenceSummaries: readonly {
+    readonly dimensionId: string;
+    readonly label: string;
+    readonly references: readonly MechanicalReferenceSummary[];
+  }[];
+};
+
+export function getMechanicalDimensionReferenceSummaries(
+  scene: CanvasDocument,
+  dimension: MechanicalDimensionAnnotation,
+): readonly MechanicalReferenceSummary[] {
+  return (dimension.references ?? []).map((reference) => {
+    const point = resolveMechanicalGeometryAnchor(scene, reference);
+    return {
+      objectId: reference.objectId,
+      anchor: reference.anchor ?? "center",
+      resolved: point !== undefined,
+      point,
+    };
+  });
+}
+
+export function getMechanicalInspectorSummary(
+  scene: CanvasDocument,
+  sidecar: MechanicalAnnotationSidecarObject,
+): MechanicalInspectorSummary {
+  const diagnostics = validateMechanicalAnnotationsForScene(scene, sidecar);
+  const sheet = sidecar.annotations.sheet;
+  const layout = getMechanicalSheetLayout(sheet);
+  const nonA4Notice =
+    sheet && !isMechanicalA4LandscapeSheet(sheet)
+      ? "Non-A4 sheet metadata is present, but Mechanical drafting mode currently targets A4 landscape."
+      : undefined;
+  return {
+    sheetSize: sheet?.size ?? "unspecified",
+    orientation: sheet?.orientation ?? "unspecified",
+    sheetTarget: isMechanicalA4LandscapeSheet(sheet) ? "A4 landscape" : "A4 landscape target",
+    sheetSizeLabel: `${layout.widthMm} × ${layout.heightMm} mm`,
+    printMarginLabel: `${layout.marginMm.left} mm`,
+    units: sidecar.annotations.units,
+    scale: sheet?.scale ?? sidecar.annotations.scale ?? "unspecified",
+    drawingNumber: sheet?.drawingNumber ?? "unspecified",
+    title: sheet?.title ?? "unspecified",
+    revision: sheet?.revision ?? "unspecified",
+    dimensionCount: sidecar.annotations.dimensions.length,
+    noteCount: sidecar.annotations.notes.length,
+    datumCount: sidecar.annotations.datums.length,
+    blockCount: sidecar.annotations.blocks.length,
+    diagnosticsCount: diagnostics.length,
+    referenceDiagnosticCount: diagnostics.filter((diagnostic) =>
+      [
+        "MissingMechanicalReferenceObject",
+        "UnsupportedMechanicalReferenceAnchor",
+        "UnresolvedMechanicalReference",
+        "MechanicalDimensionReferenceMismatch",
+      ].includes(diagnostic.code),
+    ).length,
+    sheetNotice: nonA4Notice,
+    dimensionReferenceSummaries: sidecar.annotations.dimensions
+      .filter((dimension) => dimension.references && dimension.references.length > 0)
+      .map((dimension) => ({
+        dimensionId: dimension.id,
+        label: dimension.label ?? dimension.id,
+        references: getMechanicalDimensionReferenceSummaries(scene, dimension),
+      })),
+  };
+}
+
 function formatBlockTitle(kind: MechanicalBlockAnnotation["kind"]): string {
   return kind === "titleBlock" ? "TITLE BLOCK" : kind === "revisionTable" ? "REVISIONS" : "BOM";
 }
 
-function renderTableContent(block: MechanicalRevisionTable | MechanicalBomTable, lines: string[]) {
-  const rowHeight = 18;
-  const columnWidth = 96;
-  const width = Math.max(columnWidth * block.columns.length, 120);
-  const height = rowHeight * (block.rows.length + 1);
+function renderTableContent(
+  annotations: MechanicalAnnotationSet,
+  block: MechanicalRevisionTable | MechanicalBomTable,
+  lines: string[],
+) {
+  const { width, height, columnWidth, rowHeight } = getMechanicalTableRenderMetrics(
+    annotations,
+    block,
+  );
   lines.push(
-    `<rect class="canvas-mechanical-table" x="${block.x}" y="${block.y}" width="${width}" height="${height}" fill="rgba(255,255,255,0.9)" stroke="#253043" />`,
+    `<rect class="canvas-mechanical-table" x="${block.x}" y="${block.y}" width="${width}" height="${height}" fill="#ffffff" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
   );
   for (let columnIndex = 1; columnIndex < block.columns.length; columnIndex += 1) {
     const x = block.x + columnIndex * columnWidth;
     lines.push(
-      `<line class="canvas-mechanical-table-line" x1="${x}" y1="${block.y}" x2="${x}" y2="${block.y + height}" stroke="#253043" />`,
+      `<line class="canvas-mechanical-table-line" x1="${x}" y1="${block.y}" x2="${x}" y2="${block.y + height}" stroke="#253043" stroke-width="${MECHANICAL_LIGHT_STROKE}" />`,
     );
   }
   for (let rowIndex = 1; rowIndex <= block.rows.length; rowIndex += 1) {
     const y = block.y + rowIndex * rowHeight;
     lines.push(
-      `<line class="canvas-mechanical-table-line" x1="${block.x}" y1="${y}" x2="${block.x + width}" y2="${y}" stroke="#253043" />`,
+      `<line class="canvas-mechanical-table-line" x1="${block.x}" y1="${y}" x2="${block.x + width}" y2="${y}" stroke="#253043" stroke-width="${MECHANICAL_LIGHT_STROKE}" />`,
     );
   }
   block.columns.forEach((column, columnIndex) => {
     lines.push(
-      `<text class="canvas-mechanical-table-header" x="${block.x + columnIndex * columnWidth + 6}" y="${block.y + 13}">${escapeXmlText(column)}</text>`,
+      `<text class="canvas-mechanical-table-header" x="${block.x + columnIndex * columnWidth + 2.5}" y="${block.y + 5.7}" fill="#253043" font-size="${MECHANICAL_TABLE_HEADER_FONT_SIZE}" font-weight="700" stroke="none">${escapeXmlText(column)}</text>`,
     );
   });
   block.rows.forEach((row, rowIndex) => {
     block.columns.forEach((column, columnIndex) => {
       lines.push(
-        `<text class="canvas-mechanical-table-cell" x="${block.x + columnIndex * columnWidth + 6}" y="${block.y + (rowIndex + 2) * rowHeight - 5}">${escapeXmlText(String(row[column] ?? ""))}</text>`,
+        `<text class="canvas-mechanical-table-cell" x="${block.x + columnIndex * columnWidth + 2.5}" y="${block.y + (rowIndex + 2) * rowHeight - 2.6}" fill="#253043" font-size="${MECHANICAL_TABLE_CELL_FONT_SIZE}" stroke="none">${escapeXmlText(String(row[column] ?? ""))}</text>`,
       );
     });
   });
 }
 
-function renderBlock(block: MechanicalBlockAnnotation, lines: string[]) {
+function renderMechanicalSheetFrame(sidecar: MechanicalAnnotationSidecarObject, lines: string[]) {
+  const layout = getMechanicalSheetLayout(sidecar.annotations.sheet);
+  lines.push(
+    `<g class="canvas-mechanical-sheet-frame" data-canvas-mechanical-sheet="A4-landscape">`,
+    `<rect class="canvas-mechanical-sheet-boundary" x="0" y="0" width="${layout.widthMm}" height="${layout.heightMm}" fill="#ffffff" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
+    `<rect class="canvas-mechanical-sheet-margin" x="${layout.contentBoxMm.x}" y="${layout.contentBoxMm.y}" width="${layout.contentBoxMm.width}" height="${layout.contentBoxMm.height}" fill="none" stroke="#7f8896" stroke-width="${MECHANICAL_LIGHT_STROKE}" stroke-dasharray="2 1.4" />`,
+    `<rect class="canvas-mechanical-sheet-content" x="${layout.contentBoxMm.x}" y="${layout.contentBoxMm.y}" width="${layout.contentBoxMm.width}" height="${layout.contentBoxMm.height}" fill="none" stroke="#c7ccd4" stroke-width="${MECHANICAL_LIGHT_STROKE}" />`,
+    `</g>`,
+  );
+}
+
+function renderBlock(
+  annotations: MechanicalAnnotationSet,
+  block: MechanicalBlockAnnotation,
+  lines: string[],
+) {
   if (block.kind === "titleBlock") {
+    const entries = getMechanicalTitleBlockEntries(annotations, block);
     lines.push(
       `<g class="canvas-mechanical-block" data-canvas-mechanical-id="${quoteXmlAttribute(block.id)}">`,
-      `<rect x="${block.x}" y="${block.y}" width="${block.width}" height="${block.height}" fill="rgba(255,255,255,0.9)" stroke="#253043" />`,
-      `<text class="canvas-mechanical-block-title" x="${block.x + 8}" y="${block.y + 16}">${formatBlockTitle(block.kind)}</text>`,
+      `<rect x="${block.x}" y="${block.y}" width="${block.width}" height="${block.height}" fill="#ffffff" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
+      `<text class="canvas-mechanical-block-title" x="${block.x + 3}" y="${block.y + 5.5}" fill="#253043" font-size="${MECHANICAL_BLOCK_TITLE_FONT_SIZE}" font-weight="700" stroke="none">${formatBlockTitle(block.kind)}</text>`,
     );
-    const entries = Object.entries(block.fields);
-    const rowHeight = Math.max(18, Math.floor((block.height - 22) / Math.max(entries.length, 1)));
+    const rowHeight = Math.max(5.2, (block.height - 7) / Math.max(entries.length, 1));
     entries.forEach(([key, value], index) => {
-      const rowY = block.y + 22 + index * rowHeight;
+      const rowY = block.y + 7 + index * rowHeight;
       if (index > 0) {
         lines.push(
-          `<line x1="${block.x}" y1="${rowY}" x2="${block.x + block.width}" y2="${rowY}" stroke="#253043" />`,
+          `<line x1="${block.x}" y1="${rowY}" x2="${block.x + block.width}" y2="${rowY}" stroke="#253043" stroke-width="${MECHANICAL_LIGHT_STROKE}" />`,
         );
       }
       lines.push(
-        `<text class="canvas-mechanical-table-header" x="${block.x + 8}" y="${rowY + 13}">${escapeXmlText(key)}</text>`,
-        `<text class="canvas-mechanical-table-cell" x="${block.x + Math.max(80, block.width * 0.34)}" y="${rowY + 13}">${escapeXmlText(value)}</text>`,
+        `<text class="canvas-mechanical-table-header" x="${block.x + 3}" y="${rowY + 4.2}" fill="#253043" font-size="${MECHANICAL_TABLE_HEADER_FONT_SIZE}" font-weight="700" stroke="none">${escapeXmlText(key)}</text>`,
+        `<text class="canvas-mechanical-table-cell" x="${block.x + Math.max(24, block.width * 0.34)}" y="${rowY + 4.4}" fill="#253043" font-size="${MECHANICAL_TABLE_CELL_FONT_SIZE}" stroke="none">${escapeXmlText(value)}</text>`,
       );
     });
     lines.push(`</g>`);
@@ -561,9 +1215,9 @@ function renderBlock(block: MechanicalBlockAnnotation, lines: string[]) {
 
   lines.push(
     `<g class="canvas-mechanical-block" data-canvas-mechanical-id="${quoteXmlAttribute(block.id)}">`,
-    `<text class="canvas-mechanical-block-title" x="${block.x}" y="${block.y - 6}">${formatBlockTitle(block.kind)}</text>`,
+    `<text class="canvas-mechanical-block-title" x="${block.x}" y="${block.y - 2}" fill="#253043" font-size="${MECHANICAL_BLOCK_TITLE_FONT_SIZE}" font-weight="700" stroke="none">${formatBlockTitle(block.kind)}</text>`,
   );
-  renderTableContent(block, lines);
+  renderTableContent(annotations, block, lines);
   lines.push(`</g>`);
 }
 
@@ -574,7 +1228,7 @@ function renderLeader(
   className: string,
 ) {
   lines.push(
-    `<line class="${className}" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" stroke="#253043" />`,
+    `<line class="${className}" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" stroke="#253043" stroke-width="${className === "canvas-mechanical-extension" ? MECHANICAL_LIGHT_STROKE : MECHANICAL_LINE_STROKE}" />`,
   );
 }
 
@@ -602,7 +1256,7 @@ function renderLinearDimension(
   renderLeader(dimension.to, end, lines, "canvas-mechanical-extension");
   renderLeader(start, end, lines, "canvas-mechanical-dimension");
   lines.push(
-    `<text class="canvas-mechanical-label" x="${labelX}" y="${labelY}" text-anchor="middle">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
+    `<text class="canvas-mechanical-label" x="${labelX}" y="${labelY}" text-anchor="middle" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
   );
 }
 
@@ -637,8 +1291,8 @@ function renderAngleDimension(
   renderLeader(dimension.center, dimension.from, lines, "canvas-mechanical-extension");
   renderLeader(dimension.center, dimension.to, lines, "canvas-mechanical-extension");
   lines.push(
-    `<path class="canvas-mechanical-dimension" d="M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}" fill="none" stroke="#253043" />`,
-    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}" text-anchor="middle">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
+    `<path class="canvas-mechanical-dimension" d="M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}" fill="none" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
+    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}" text-anchor="middle" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
   );
 }
 
@@ -652,8 +1306,8 @@ function renderCircularDimension(
   const label = [anchor[0] + 18, anchor[1] - 8] as const;
   renderLeader(dimension.center, anchor, lines, "canvas-mechanical-dimension");
   lines.push(
-    `<circle class="canvas-mechanical-center-mark" cx="${dimension.center[0]}" cy="${dimension.center[1]}" r="2.5" fill="#253043" />`,
-    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
+    `<circle class="canvas-mechanical-center-mark" cx="${dimension.center[0]}" cy="${dimension.center[1]}" r="1.4" fill="#253043" stroke="none" />`,
+    `<text class="canvas-mechanical-label" x="${label[0]}" y="${label[1]}" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" stroke="none">${escapeXmlText(formatMechanicalDimensionText(dimension, defaultUnits))}</text>`,
   );
 }
 
@@ -662,6 +1316,11 @@ export function serializeMechanicalAnnotationOverlayContent(
 ): string {
   const lines: string[] = [];
   const units = sidecar.annotations.units;
+  lines.push(
+    `<g class="canvas-mechanical-annotation-layer" font-family="Arial, Helvetica, sans-serif" fill="none" stroke="#253043" stroke-linecap="square" stroke-linejoin="miter">`,
+  );
+
+  renderMechanicalSheetFrame(sidecar, lines);
 
   for (const dimension of sidecar.annotations.dimensions) {
     if (dimension.kind === "linear" || dimension.kind === "aligned") {
@@ -678,7 +1337,7 @@ export function serializeMechanicalAnnotationOverlayContent(
       renderLeader(note.at, note.leaderTo, lines, "canvas-mechanical-note-leader");
     }
     lines.push(
-      `<text class="canvas-mechanical-note" x="${note.at[0]}" y="${note.at[1]}">${escapeXmlText(note.text)}</text>`,
+      `<text class="canvas-mechanical-note" x="${note.at[0]}" y="${note.at[1]}" fill="#253043" font-size="${MECHANICAL_NOTE_FONT_SIZE}" font-weight="700" stroke="none">${escapeXmlText(note.text)}</text>`,
     );
   }
 
@@ -687,15 +1346,16 @@ export function serializeMechanicalAnnotationOverlayContent(
       renderLeader(datum.at, datum.target, lines, "canvas-mechanical-datum-leader");
     }
     lines.push(
-      `<rect class="canvas-mechanical-datum-box" x="${datum.at[0] - 8}" y="${datum.at[1] - 12}" width="20" height="16" fill="#ffffff" stroke="#253043" />`,
-      `<text class="canvas-mechanical-datum-label" x="${datum.at[0] + 2}" y="${datum.at[1]}">${escapeXmlText(datum.label)}</text>`,
+      `<rect class="canvas-mechanical-datum-box" x="${datum.at[0] - 4.5}" y="${datum.at[1] - 5.5}" width="10" height="8" fill="#ffffff" stroke="#253043" stroke-width="${MECHANICAL_LINE_STROKE}" />`,
+      `<text class="canvas-mechanical-datum-label" x="${datum.at[0] + 0.4}" y="${datum.at[1] + 1.6}" fill="#253043" font-size="${MECHANICAL_LABEL_FONT_SIZE}" font-weight="700" stroke="none">${escapeXmlText(datum.label)}</text>`,
     );
   }
 
   for (const block of sidecar.annotations.blocks) {
-    renderBlock(block, lines);
+    renderBlock(sidecar.annotations, block, lines);
   }
 
+  lines.push(`</g>`);
   return lines.join("");
 }
 

@@ -20,6 +20,7 @@ import type {
 } from "./sceneModel";
 import { stringifyGuideSidecarToml } from "./guideSidecar";
 import {
+  getMechanicalSheetDimensions,
   serializeMechanicalAnnotationOverlayContent,
   serializeMechanicalAnnotationSidecarJson,
 } from "./mechanicalAnnotations";
@@ -1630,9 +1631,31 @@ function serializeResolvedMechanicalAnnotationSidecar(
   return lines;
 }
 
+function getSvgSizeAttributes(document: CanvasDocument): { width: string; height: string } {
+  const mechanicalSidecar = Object.values(document.objects).find(
+    (object): object is Extract<CanvasObject, { kind: "mechanicalAnnotationSidecar" }> =>
+      object.kind === "mechanicalAnnotationSidecar" && object.annotations.sheet !== undefined,
+  );
+  const mechanicalSheet = mechanicalSidecar?.annotations.sheet;
+  const mechanicalDimensions = mechanicalSheet
+    ? getMechanicalSheetDimensions(mechanicalSheet)
+    : undefined;
+  if (mechanicalSheet?.units === "mm" && mechanicalDimensions) {
+    return {
+      width: `${mechanicalDimensions[0]}mm`,
+      height: `${mechanicalDimensions[1]}mm`,
+    };
+  }
+  return {
+    width: String(document.width),
+    height: String(document.height),
+  };
+}
+
 export function serializeCanvasRenderSvg(document: CanvasDocument): string {
+  const size = getSvgSizeAttributes(document);
   const lines = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" viewBox="0 0 ${document.width} ${document.height}">`,
   ];
   const alphaMappedImages = getObjectOrder(document)
     .map((objectId) => document.objects[objectId])

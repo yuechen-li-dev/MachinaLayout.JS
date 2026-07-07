@@ -1,9 +1,12 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import { createCanvasUnitSystem } from "./canvasUnits";
 import {
+  createDefaultMechanicalSheetMetadata,
+  createLinearDimensionFromGeometryRefs,
   createMechanicalAnnotationSet,
   createMechanicalAnnotationSidecarObject,
 } from "./mechanicalAnnotations";
+import { getMechanicalA4LandscapeLayout } from "./mechanicalSheet";
 import { createInitialCanvasDocument } from "./sceneDocument";
 import type { CanvasDocument, CanvasObject, ImageObject } from "./sceneModel";
 import { createSpriteSidecarObject, parseSpriteSidecarToml } from "./spriteSidecar";
@@ -542,60 +545,120 @@ export function createSpriteSheetScene(): CanvasDocument {
 }
 
 export function createMechanicalDraftingScene(): CanvasDocument {
+  const layout = getMechanicalA4LandscapeLayout();
   const plate: Extract<CanvasObject, { kind: "rect" }> = {
     id: "draft-plate",
     name: "Base plate",
     kind: "rect",
     layerId: "geometry",
     visible: true,
-    x: 48,
-    y: 40,
+    x: 46,
+    y: 52,
     width: 132,
     height: 76,
     fill: "transparent",
     stroke: "#1c2430",
     radius: 2,
-    notes: "Simple plate geometry for the first annotation-first drafting mode.",
+    notes: "Existing scene geometry reused as the drawing substrate for drafting annotations.",
+  };
+  const hole: Extract<CanvasObject, { kind: "ellipse" }> = {
+    id: "draft-hole",
+    name: "Mounting hole",
+    kind: "ellipse",
+    layerId: "geometry",
+    visible: true,
+    x: 108,
+    y: 82,
+    width: 18,
+    height: 18,
+    fill: "transparent",
+    stroke: "#1c2430",
+    notes: "Simple existing geometry object used as a referenced annotation target.",
+  };
+  const sheet = {
+    ...createDefaultMechanicalSheetMetadata(),
+    scale: "1:1",
+    drawingNumber: "MC-PLATE-001",
+    title: "Mounting plate bracket",
+    revision: "B",
+  };
+  const sheetWidth = layout.widthMm;
+  const sheetHeight = layout.heightMm;
+  const geometryScene: CanvasDocument = {
+    id: "drafting-geometry-refs",
+    name: "Drafting geometry refs",
+    width: sheetWidth,
+    height: sheetHeight,
+    unit: "mm",
+    unitSystem: createCanvasUnitSystem("mm"),
+    layers: [{ id: "geometry", name: "Geometry", visible: true, objectIds: [plate.id, hole.id] }],
+    objects: { [plate.id]: plate, [hole.id]: hole },
   };
   const annotations = createMechanicalAnnotationSet({
     id: "draft-plate-annotations",
     units: "mm",
     scale: "1:1",
+    sheet,
     dimensions: [
-      {
+      createLinearDimensionFromGeometryRefs({
         id: "plate-width",
-        kind: "linear",
+        scene: geometryScene,
+        from: { objectId: plate.id, anchor: "bottomLeft" },
+        to: { objectId: plate.id, anchor: "bottomRight" },
         axis: "horizontal",
-        from: [plate.x, plate.y + plate.height],
-        to: [plate.x + plate.width, plate.y + plate.height],
-        offset: 22,
+        offset: 14,
         label: "132 mm",
         tolerance: "+/-0.2",
-      },
-      {
+      }),
+      createLinearDimensionFromGeometryRefs({
         id: "plate-height",
-        kind: "linear",
+        scene: geometryScene,
+        from: { objectId: plate.id, anchor: "topRight" },
+        to: { objectId: plate.id, anchor: "bottomRight" },
         axis: "vertical",
-        from: [plate.x + plate.width, plate.y],
-        to: [plate.x + plate.width, plate.y + plate.height],
-        offset: 18,
+        offset: 12,
         label: "76 mm",
+      }),
+      createLinearDimensionFromGeometryRefs({
+        id: "hole-offset-x",
+        scene: geometryScene,
+        from: { objectId: plate.id, anchor: "left" },
+        to: { objectId: hole.id, anchor: "center" },
+        axis: "horizontal",
+        offset: 34,
+        label: "71 mm",
+      }),
+      createLinearDimensionFromGeometryRefs({
+        id: "hole-offset-y",
+        scene: geometryScene,
+        from: { objectId: plate.id, anchor: "top" },
+        to: { objectId: hole.id, anchor: "center" },
+        axis: "vertical",
+        offset: 24,
+        label: "39 mm",
+      }),
+      {
+        id: "hole-diameter",
+        kind: "diameter" as const,
+        center: [hole.x + hole.width / 2, hole.y + hole.height / 2] as const,
+        diameter: hole.width,
+        label: "⌀18 mm",
       },
-    ],
+    ].filter((dimension): dimension is NonNullable<typeof dimension> => dimension !== undefined),
     notes: [
       {
         id: "material-note",
         kind: "callout",
-        at: [212, 70],
-        leaderTo: [plate.x + plate.width, plate.y + 18],
-        text: "Mild steel plate, deburr all edges",
+        at: [188, 56],
+        leaderTo: [plate.x + plate.width - 8, plate.y + 18],
+        text: "Deburr and break sharp edges",
       },
     ],
     datums: [
       {
         id: "datum-a",
         label: "A",
-        at: [plate.x - 18, plate.y + plate.height / 2],
+        at: [plate.x - 12, plate.y + plate.height / 2],
         target: [plate.x, plate.y + plate.height / 2],
       },
     ],
@@ -603,32 +666,39 @@ export function createMechanicalDraftingScene(): CanvasDocument {
       {
         id: "sheet-title-block",
         kind: "titleBlock",
-        x: 182,
-        y: 148,
-        width: 100,
-        height: 48,
+        x: 197,
+        y: 165,
+        width: 90,
+        height: 35,
         fields: {
-          Title: "Plate detail",
-          Scale: "1:1",
-          Units: "mm",
-          Rev: "A",
+          Title: sheet.title,
+          Drawing: sheet.drawingNumber,
+          Rev: sheet.revision,
+          Scale: sheet.scale,
+          Units: sheet.units,
         },
       },
       {
         id: "sheet-revisions",
         kind: "revisionTable",
-        x: 182,
-        y: 90,
+        x: 197,
+        y: 132,
         columns: ["Rev", "Desc", "By"],
-        rows: [{ Rev: "A", Desc: "Initial issue", By: "MC" }],
+        rows: [
+          { Rev: "A", Desc: "Initial issue", By: "MC" },
+          { Rev: "B", Desc: "Hole location updated", By: "YC" },
+        ],
       },
       {
         id: "sheet-bom",
         kind: "bomTable",
-        x: 14,
-        y: 148,
-        columns: ["Item", "Part", "Qty"],
-        rows: [{ Item: "1", Part: "Base plate", Qty: "1" }],
+        x: 167,
+        y: 103,
+        columns: ["Item", "Part", "Qty", "Material"],
+        rows: [
+          { Item: "1", Part: "Base plate", Qty: "1", Material: "Mild steel" },
+          { Item: "2", Part: "Mounting hole", Qty: "1", Material: "Drill to size" },
+        ],
       },
     ],
   });
@@ -638,8 +708,8 @@ export function createMechanicalDraftingScene(): CanvasDocument {
     layerId: "annotations",
     x: 0,
     y: 0,
-    width: 297,
-    height: 210,
+    width: sheetWidth,
+    height: sheetHeight,
     targetObjectId: plate.id,
     annotations,
   });
@@ -647,8 +717,8 @@ export function createMechanicalDraftingScene(): CanvasDocument {
   return cloneDocument({
     id: "mechanical-drafting",
     name: "Mechanical Drafting",
-    width: 297,
-    height: 210,
+    width: sheetWidth,
+    height: sheetHeight,
     unit: "mm",
     unitSystem: createCanvasUnitSystem("mm"),
     referenceGrid: {
@@ -656,16 +726,16 @@ export function createMechanicalDraftingScene(): CanvasDocument {
       rows: 4,
       columnStart: "A",
       rowStart: 1,
-      showBorder: true,
+      showBorder: false,
       showLines: false,
-      showLabels: true,
+      showLabels: false,
     },
     layers: [
       {
         id: "geometry",
         name: "Geometry",
         visible: true,
-        objectIds: [plate.id],
+        objectIds: [plate.id, hole.id],
       },
       {
         id: "annotations",
@@ -678,12 +748,13 @@ export function createMechanicalDraftingScene(): CanvasDocument {
       {
         id: "mechanical-drafting",
         title: "Mechanical Drafting",
-        description: "Annotation-first 2D drafting with semantic overlays.",
-        objectIds: [plate.id],
+        description: "Existing scene geometry with semantic mechanical drafting overlays.",
+        objectIds: [plate.id, hole.id],
       },
     ],
     objects: {
       [plate.id]: plate,
+      [hole.id]: hole,
       [sidecar.id]: sidecar,
     },
     selectedObjectId: sidecar.id,

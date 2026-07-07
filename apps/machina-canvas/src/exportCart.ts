@@ -13,6 +13,7 @@ import { lowerCanvasDocumentToRasterBlob, normalizeRasterExportOptions } from ".
 import type { CanvasEditorModeId } from "./editorModes";
 import type { CanvasDocument, CanvasObject, ImageObject, SpriteSidecarObject } from "./sceneModel";
 import { summarizeScene } from "./sceneSummary";
+import { isMechanicalA4LandscapeSheet } from "./mechanicalAnnotations";
 import {
   buildSpriteAuditReport,
   createSpriteAuditScreenshotDocument,
@@ -125,14 +126,15 @@ export const CANVAS_EXPORT_PRESETS: readonly CanvasExportPreset[] = [
   {
     id: "visual-review",
     title: "Visual review",
-    description: "Rendered previews and reports for human review instead of runtime import.",
+    description:
+      "Rendered previews and reports for human review, including mechanical annotations when the sheet uses drafting overlays.",
     artifactKinds: ["renderSvg", "renderPng", "diagnostics", "spriteAudit"],
   },
   {
     id: "full-archive",
     title: "Full archive",
     description:
-      "Broad source + runtime archive: authoring guide TOML, compiled sprite TOML, reports, and rendered artifacts.",
+      "Broad source + runtime archive: editable scene/source records, authoring sidecars including mechanical sheets, reports, and rendered artifacts.",
     artifactKinds: [
       "documentJson",
       "handoffToml",
@@ -247,6 +249,14 @@ function getSelectedSpriteFrameId(
   if (!selectedObjectId) return undefined;
   const selected = document.objects[selectedObjectId];
   return selected?.kind === "spriteSidecar" ? selected.spec.selectedFrameId : undefined;
+}
+
+function hasMechanicalA4Sheet(scene: CanvasDocument): boolean {
+  return Object.values(scene.objects).some(
+    (object) =>
+      object.kind === "mechanicalAnnotationSidecar" &&
+      isMechanicalA4LandscapeSheet(object.annotations.sheet),
+  );
 }
 
 function normalizeSelection(
@@ -428,6 +438,7 @@ export function collectCanvasExportArtifacts(input: {
     selectedObjectId: input.selectedObjectId,
     summary: summarizeScene(input.scene),
   });
+  const isMechanicalA4 = hasMechanicalA4Sheet(input.scene);
   const artifacts: CanvasExportArtifact[] = [];
 
   artifacts.push({
@@ -453,9 +464,10 @@ export function collectCanvasExportArtifacts(input: {
   artifacts.push({
     id: "render-svg",
     kind: "renderSvg",
-    title: "Rendered SVG",
-    description:
-      "Clean semantic render of the current scene without editor chrome, including mechanical annotations when present.",
+    title: isMechanicalA4 ? "A4 mechanical visual review" : "Rendered SVG",
+    description: isMechanicalA4
+      ? "Print-friendly SVG preview for A4 landscape office paper."
+      : "Mechanical visual review: rendered SVG/preview with dimensions, notes, datums, and blocks when the scene includes drafting annotations.",
     filename: "render.svg",
     selectedByDefault: true,
     group: "review",
@@ -545,11 +557,11 @@ export function collectCanvasExportArtifacts(input: {
       artifacts.push({
         id: `mechanical-json:${object.id}`,
         kind: "mechanicalJson",
-        title: "Mechanical annotations JSON",
+        title: "Mechanical drawing source",
         description:
           target !== undefined
-            ? `Semantic mechanical annotation record for ${target.name}: dimensions, tolerances, notes, datums, and block/table records.`
-            : "Semantic mechanical annotation record attached to the drawing canvas.",
+            ? `Editable .mcanvas scene containing geometry and mechanical annotation records for ${target.name}. Mechanical annotation data includes dimensions, notes, datums, and title/revision/BOM table records.`
+            : "Editable .mcanvas scene containing geometry and mechanical annotation records for the drawing sheet. Mechanical annotation data includes dimensions, notes, datums, and title/revision/BOM table records.",
         filename: getObjectAssetFilename(object),
         selectedByDefault: false,
         sourceObjectId: object.id,

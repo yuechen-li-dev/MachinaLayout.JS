@@ -94,8 +94,13 @@ import {
 import {
   createMechanicalAnnotationSet,
   createMechanicalAnnotationSidecarObject,
+  createDefaultMechanicalSheetMetadata,
   formatMechanicalDimensionText,
-  validateMechanicalAnnotations,
+  getMechanicalInspectorSummary,
+  getMechanicalSheetLayout,
+  getMechanicalTableRenderMetrics,
+  getMechanicalTitleBlockEntries,
+  validateMechanicalAnnotationsForScene,
 } from "./mechanicalAnnotations";
 import {
   resolveGuideAlignmentMarks,
@@ -1425,6 +1430,15 @@ function MechanicalAnnotationSidecarSvg({
 }) {
   if (!sidecar.visible) return null;
 
+  const lineStroke = 0.35;
+  const lightStroke = 0.25;
+  const labelFontSize = 4.2;
+  const noteFontSize = 4.4;
+  const blockTitleFontSize = 4;
+  const tableHeaderFontSize = 3.1;
+  const tableCellFontSize = 3.6;
+  const sheetLayout = getMechanicalSheetLayout(sidecar.annotations.sheet);
+
   const renderLinearDimension = (
     dimension: Extract<
       MechanicalAnnotationSidecarObject["annotations"]["dimensions"][number],
@@ -1448,6 +1462,8 @@ function MechanicalAnnotationSidecarSvg({
       <Fragment key={dimension.id}>
         <line
           className="canvas-mechanical-extension"
+          stroke="#253043"
+          strokeWidth={lightStroke}
           x1={dimension.from[0]}
           x2={start[0]}
           y1={dimension.from[1]}
@@ -1455,6 +1471,8 @@ function MechanicalAnnotationSidecarSvg({
         />
         <line
           className="canvas-mechanical-extension"
+          stroke="#253043"
+          strokeWidth={lightStroke}
           x1={dimension.to[0]}
           x2={end[0]}
           y1={dimension.to[1]}
@@ -1462,6 +1480,8 @@ function MechanicalAnnotationSidecarSvg({
         />
         <line
           className="canvas-mechanical-dimension"
+          stroke="#253043"
+          strokeWidth={lineStroke}
           x1={start[0]}
           x2={end[0]}
           y1={start[1]}
@@ -1469,6 +1489,9 @@ function MechanicalAnnotationSidecarSvg({
         />
         <text
           className="canvas-mechanical-label"
+          fill="#253043"
+          fontSize={labelFontSize}
+          stroke="none"
           textAnchor="middle"
           x={(start[0] + end[0]) / 2}
           y={(start[1] + end[1]) / 2 - 4}
@@ -1512,6 +1535,8 @@ function MechanicalAnnotationSidecarSvg({
       <Fragment key={dimension.id}>
         <line
           className="canvas-mechanical-extension"
+          stroke="#253043"
+          strokeWidth={lightStroke}
           x1={dimension.center[0]}
           x2={dimension.from[0]}
           y1={dimension.center[1]}
@@ -1519,6 +1544,8 @@ function MechanicalAnnotationSidecarSvg({
         />
         <line
           className="canvas-mechanical-extension"
+          stroke="#253043"
+          strokeWidth={lightStroke}
           x1={dimension.center[0]}
           x2={dimension.to[0]}
           y1={dimension.center[1]}
@@ -1528,8 +1555,18 @@ function MechanicalAnnotationSidecarSvg({
           className="canvas-mechanical-dimension"
           d={`M ${start[0]} ${start[1]} A ${radius} ${radius} 0 ${largeArc} 1 ${end[0]} ${end[1]}`}
           fill="none"
+          stroke="#253043"
+          strokeWidth={lineStroke}
         />
-        <text className="canvas-mechanical-label" textAnchor="middle" x={label[0]} y={label[1]}>
+        <text
+          className="canvas-mechanical-label"
+          fill="#253043"
+          fontSize={labelFontSize}
+          stroke="none"
+          textAnchor="middle"
+          x={label[0]}
+          y={label[1]}
+        >
           {formatMechanicalDimensionText(dimension, sidecar.annotations.units)}
         </text>
       </Fragment>
@@ -1548,6 +1585,8 @@ function MechanicalAnnotationSidecarSvg({
       <Fragment key={dimension.id}>
         <line
           className="canvas-mechanical-dimension"
+          stroke="#253043"
+          strokeWidth={lineStroke}
           x1={dimension.center[0]}
           x2={anchor[0]}
           y1={dimension.center[1]}
@@ -1558,9 +1597,17 @@ function MechanicalAnnotationSidecarSvg({
           cx={dimension.center[0]}
           cy={dimension.center[1]}
           fill="#253043"
-          r={2.5}
+          r={1.4}
+          stroke="none"
         />
-        <text className="canvas-mechanical-label" x={anchor[0] + 18} y={anchor[1] - 8}>
+        <text
+          className="canvas-mechanical-label"
+          fill="#253043"
+          fontSize={labelFontSize}
+          stroke="none"
+          x={anchor[0] + 18}
+          y={anchor[1] - 8}
+        >
           {formatMechanicalDimensionText(dimension, sidecar.annotations.units)}
         </text>
       </Fragment>
@@ -1571,41 +1618,62 @@ function MechanicalAnnotationSidecarSvg({
     block: MechanicalAnnotationSidecarObject["annotations"]["blocks"][number],
   ) => {
     if (block.kind === "titleBlock") {
-      const entries = Object.entries(block.fields);
-      const rowHeight = Math.max(18, Math.floor((block.height - 22) / Math.max(entries.length, 1)));
+      const entries = getMechanicalTitleBlockEntries(sidecar.annotations, block);
+      const rowHeight = Math.max(5.2, (block.height - 7) / Math.max(entries.length, 1));
       return (
         <g className="canvas-mechanical-block" data-canvas-mechanical-id={block.id} key={block.id}>
           <rect
-            fill="rgba(255,255,255,0.9)"
+            fill="#ffffff"
             height={block.height}
             stroke="#253043"
+            strokeWidth={lineStroke}
             width={block.width}
             x={block.x}
             y={block.y}
           />
-          <text className="canvas-mechanical-block-title" x={block.x + 8} y={block.y + 16}>
+          <text
+            className="canvas-mechanical-block-title"
+            fill="#253043"
+            fontSize={blockTitleFontSize}
+            fontWeight={700}
+            stroke="none"
+            x={block.x + 3}
+            y={block.y + 5.5}
+          >
             TITLE BLOCK
           </text>
           {entries.map(([key, value], index) => {
-            const rowY = block.y + 22 + index * rowHeight;
+            const rowY = block.y + 7 + index * rowHeight;
             return (
               <Fragment key={`${block.id}:${key}`}>
                 {index > 0 ? (
                   <line
                     stroke="#253043"
+                    strokeWidth={lightStroke}
                     x1={block.x}
                     x2={block.x + block.width}
                     y1={rowY}
                     y2={rowY}
                   />
                 ) : null}
-                <text className="canvas-mechanical-table-header" x={block.x + 8} y={rowY + 13}>
+                <text
+                  className="canvas-mechanical-table-header"
+                  fill="#253043"
+                  fontSize={tableHeaderFontSize}
+                  fontWeight={700}
+                  stroke="none"
+                  x={block.x + 3}
+                  y={rowY + 4.2}
+                >
                   {key}
                 </text>
                 <text
                   className="canvas-mechanical-table-cell"
-                  x={block.x + Math.max(80, block.width * 0.34)}
-                  y={rowY + 13}
+                  fill="#253043"
+                  fontSize={tableCellFontSize}
+                  stroke="none"
+                  x={block.x + Math.max(24, block.width * 0.34)}
+                  y={rowY + 4.4}
                 >
                   {value}
                 </text>
@@ -1616,21 +1684,30 @@ function MechanicalAnnotationSidecarSvg({
       );
     }
 
-    const rowHeight = 18;
-    const columnWidth = 96;
-    const width = Math.max(columnWidth * block.columns.length, 120);
-    const height = rowHeight * (block.rows.length + 1);
+    const { width, height, columnWidth, rowHeight } = getMechanicalTableRenderMetrics(
+      sidecar.annotations,
+      block,
+    );
     const title = block.kind === "revisionTable" ? "REVISIONS" : "BOM";
     return (
       <g className="canvas-mechanical-block" data-canvas-mechanical-id={block.id} key={block.id}>
-        <text className="canvas-mechanical-block-title" x={block.x} y={block.y - 6}>
+        <text
+          className="canvas-mechanical-block-title"
+          fill="#253043"
+          fontSize={blockTitleFontSize}
+          fontWeight={700}
+          stroke="none"
+          x={block.x}
+          y={block.y - 2}
+        >
           {title}
         </text>
         <rect
           className="canvas-mechanical-table"
-          fill="rgba(255,255,255,0.9)"
+          fill="#ffffff"
           height={height}
           stroke="#253043"
+          strokeWidth={lineStroke}
           width={width}
           x={block.x}
           y={block.y}
@@ -1638,9 +1715,13 @@ function MechanicalAnnotationSidecarSvg({
         {block.columns.map((column, columnIndex) => (
           <text
             className="canvas-mechanical-table-header"
+            fill="#253043"
+            fontSize={tableHeaderFontSize}
+            fontWeight={700}
             key={`${block.id}:header:${column}`}
-            x={block.x + columnIndex * columnWidth + 6}
-            y={block.y + 13}
+            stroke="none"
+            x={block.x + columnIndex * columnWidth + 2.5}
+            y={block.y + 5.7}
           >
             {column}
           </text>
@@ -1652,6 +1733,7 @@ function MechanicalAnnotationSidecarSvg({
               className="canvas-mechanical-table-line"
               key={`${block.id}:col:${index}`}
               stroke="#253043"
+              strokeWidth={lightStroke}
               x1={x}
               x2={x}
               y1={block.y}
@@ -1666,6 +1748,7 @@ function MechanicalAnnotationSidecarSvg({
               className="canvas-mechanical-table-line"
               key={`${block.id}:row:${index}`}
               stroke="#253043"
+              strokeWidth={lightStroke}
               x1={block.x}
               x2={block.x + width}
               y1={y}
@@ -1677,9 +1760,12 @@ function MechanicalAnnotationSidecarSvg({
           block.columns.map((column, columnIndex) => (
             <text
               className="canvas-mechanical-table-cell"
+              fill="#253043"
+              fontSize={tableCellFontSize}
               key={`${block.id}:${rowIndex}:${column}`}
-              x={block.x + columnIndex * columnWidth + 6}
-              y={block.y + (rowIndex + 2) * rowHeight - 5}
+              stroke="none"
+              x={block.x + columnIndex * columnWidth + 2.5}
+              y={block.y + (rowIndex + 2) * rowHeight - 2.6}
             >
               {String(row[column] ?? "")}
             </text>
@@ -1695,8 +1781,46 @@ function MechanicalAnnotationSidecarSvg({
       data-canvas-object-id={sidecar.id}
       data-canvas-kind={sidecar.kind}
       data-canvas-name={sidecar.name}
+      fill="none"
+      fontFamily="Arial, Helvetica, sans-serif"
       pointerEvents="none"
+      stroke="#253043"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
     >
+      <g className="canvas-mechanical-sheet-frame" data-canvas-mechanical-sheet="A4-landscape">
+        <rect
+          className="canvas-mechanical-sheet-boundary"
+          fill="#ffffff"
+          height={sheetLayout.heightMm}
+          stroke="#253043"
+          strokeWidth={lineStroke}
+          width={sheetLayout.widthMm}
+          x={0}
+          y={0}
+        />
+        <rect
+          className="canvas-mechanical-sheet-margin"
+          fill="none"
+          height={sheetLayout.contentBoxMm.height}
+          stroke="#7f8896"
+          strokeDasharray="2 1.4"
+          strokeWidth={lightStroke}
+          width={sheetLayout.contentBoxMm.width}
+          x={sheetLayout.contentBoxMm.x}
+          y={sheetLayout.contentBoxMm.y}
+        />
+        <rect
+          className="canvas-mechanical-sheet-content"
+          fill="none"
+          height={sheetLayout.contentBoxMm.height}
+          stroke="#c7ccd4"
+          strokeWidth={lightStroke}
+          width={sheetLayout.contentBoxMm.width}
+          x={sheetLayout.contentBoxMm.x}
+          y={sheetLayout.contentBoxMm.y}
+        />
+      </g>
       {sidecar.annotations.dimensions.map((dimension) =>
         dimension.kind === "linear" || dimension.kind === "aligned"
           ? renderLinearDimension(dimension)
@@ -1710,13 +1834,22 @@ function MechanicalAnnotationSidecarSvg({
             <line
               className="canvas-mechanical-note-leader"
               stroke="#253043"
+              strokeWidth={lineStroke}
               x1={note.at[0]}
               x2={note.leaderTo[0]}
               y1={note.at[1]}
               y2={note.leaderTo[1]}
             />
           ) : null}
-          <text className="canvas-mechanical-note" x={note.at[0]} y={note.at[1]}>
+          <text
+            className="canvas-mechanical-note"
+            fill="#253043"
+            fontSize={noteFontSize}
+            fontWeight={700}
+            stroke="none"
+            x={note.at[0]}
+            y={note.at[1]}
+          >
             {note.text}
           </text>
         </Fragment>
@@ -1727,6 +1860,7 @@ function MechanicalAnnotationSidecarSvg({
             <line
               className="canvas-mechanical-datum-leader"
               stroke="#253043"
+              strokeWidth={lineStroke}
               x1={datum.at[0]}
               x2={datum.target[0]}
               y1={datum.at[1]}
@@ -1736,13 +1870,22 @@ function MechanicalAnnotationSidecarSvg({
           <rect
             className="canvas-mechanical-datum-box"
             fill="#ffffff"
-            height={16}
+            height={8}
             stroke="#253043"
-            width={20}
-            x={datum.at[0] - 8}
-            y={datum.at[1] - 12}
+            strokeWidth={lineStroke}
+            width={10}
+            x={datum.at[0] - 4.5}
+            y={datum.at[1] - 5.5}
           />
-          <text className="canvas-mechanical-datum-label" x={datum.at[0] + 2} y={datum.at[1]}>
+          <text
+            className="canvas-mechanical-datum-label"
+            fill="#253043"
+            fontSize={labelFontSize}
+            fontWeight={700}
+            stroke="none"
+            x={datum.at[0] + 0.4}
+            y={datum.at[1] + 1.6}
+          >
             {datum.label}
           </text>
         </Fragment>
@@ -1751,9 +1894,9 @@ function MechanicalAnnotationSidecarSvg({
       {selected ? (
         <rect
           className="selection-box"
-          height={sidecar.height + 10}
+          height={Math.max(sidecar.height, sheetLayout.heightMm) + 10}
           rx={4}
-          width={sidecar.width + 10}
+          width={Math.max(sidecar.width, sheetLayout.widthMm) + 10}
           x={sidecar.x - 5}
           y={sidecar.y - 5}
         />
@@ -4299,17 +4442,31 @@ function Inspector(props: MachinaSlotProps) {
               </div>
             </>
           ) : null}
-          {selected.kind === "mechanicalAnnotationSidecar" ? (
-            <>
-              <Field label="Target" value={selected.targetObjectId ?? "canvas"} />
-              <Field label="Units" value={selected.annotations.units} />
-              <Field label="Scale" value={selected.annotations.scale ?? "unspecified"} />
-              <Field label="Dimensions" value={selected.annotations.dimensions.length} />
-              <Field label="Notes" value={selected.annotations.notes.length} />
-              <Field label="Datums" value={selected.annotations.datums.length} />
-              <Field label="Blocks" value={selected.annotations.blocks.length} />
-            </>
-          ) : null}
+          {selected.kind === "mechanicalAnnotationSidecar"
+            ? (() => {
+                const summary = getMechanicalInspectorSummary(document, selected);
+                return (
+                  <>
+                    <Field label="Target" value={selected.targetObjectId ?? "canvas"} />
+                    <Field label="Sheet" value={summary.sheetTarget} />
+                    <Field label="Size" value={summary.sheetSizeLabel} />
+                    <Field label="Print margin" value={summary.printMarginLabel} />
+                    <Field label="Units" value={summary.units} />
+                    <Field label="Scale" value={summary.scale} />
+                    <Field label="Drawing no." value={summary.drawingNumber} />
+                    <Field label="Title" value={summary.title} />
+                    <Field label="Revision" value={summary.revision} />
+                    <Field label="Dimensions" value={summary.dimensionCount} />
+                    <Field label="Notes" value={summary.noteCount} />
+                    <Field label="Datums" value={summary.datumCount} />
+                    <Field label="Blocks" value={summary.blockCount} />
+                    <Field label="Diagnostics" value={summary.diagnosticsCount} />
+                    <Field label="Ref diagnostics" value={summary.referenceDiagnosticCount} />
+                    {summary.sheetNotice ? <p>{summary.sheetNotice}</p> : null}
+                  </>
+                );
+              })()
+            : null}
         </InspectorAccordionGroup>
       ) : null}
       {selectedSpriteFrame ? (
@@ -4700,17 +4857,45 @@ function Inspector(props: MachinaSlotProps) {
           title="Mechanical annotations"
         >
           {(() => {
-            const diagnostics = validateMechanicalAnnotations(selected.annotations);
+            const diagnostics = validateMechanicalAnnotationsForScene(document, selected);
+            const summary = getMechanicalInspectorSummary(document, selected);
             return (
               <>
                 <Field label="Target object" value={selected.targetObjectId ?? "canvas"} />
-                <Field label="Units" value={selected.annotations.units} />
-                <Field label="Scale" value={selected.annotations.scale ?? "unspecified"} />
-                <Field label="Dimensions" value={selected.annotations.dimensions.length} />
-                <Field label="Notes" value={selected.annotations.notes.length} />
-                <Field label="Datums" value={selected.annotations.datums.length} />
-                <Field label="Blocks" value={selected.annotations.blocks.length} />
+                <Field label="Sheet" value={summary.sheetTarget} />
+                <Field label="Size" value={summary.sheetSizeLabel} />
+                <Field label="Print margin" value={summary.printMarginLabel} />
+                <Field label="Units" value={summary.units} />
+                <Field label="Scale" value={summary.scale} />
+                <Field label="Drawing no." value={summary.drawingNumber} />
+                <Field label="Title" value={summary.title} />
+                <Field label="Revision" value={summary.revision} />
+                <Field label="Dimensions" value={summary.dimensionCount} />
+                <Field label="Notes" value={summary.noteCount} />
+                <Field label="Datums" value={summary.datumCount} />
+                <Field label="Blocks" value={summary.blockCount} />
+                <Field label="Reference diagnostics" value={summary.referenceDiagnosticCount} />
                 <Field label="Diagnostics" value={diagnostics.length} />
+                {summary.sheetNotice ? <p>{summary.sheetNotice}</p> : null}
+                {summary.dimensionReferenceSummaries.length ? (
+                  <div className="validation-result">
+                    <strong>Reference-backed dimensions</strong>
+                    <ul>
+                      {summary.dimensionReferenceSummaries.map((entry) =>
+                        entry.references.map((reference, index) => (
+                          <li
+                            key={`${entry.dimensionId}-${reference.objectId}-${reference.anchor}-${index}`}
+                          >
+                            <span>{entry.label}</span>
+                            {`: ${reference.objectId} · ${reference.anchor} · ${
+                              reference.resolved ? "resolved" : "unresolved"
+                            }`}
+                          </li>
+                        )),
+                      )}
+                    </ul>
+                  </div>
+                ) : null}
                 {diagnostics.length ? (
                   <div className="validation-result is-error">
                     <strong>Mechanical annotation diagnostics</strong>
@@ -5447,6 +5632,8 @@ export function App() {
             annotations: createMechanicalAnnotationSet({
               id: `${sidecarId}-set`,
               units: annotationUnits,
+              sheet:
+                activeModeId === "mechanical" ? createDefaultMechanicalSheetMetadata() : undefined,
             }),
           });
           let nextDocument: CanvasDocument = {

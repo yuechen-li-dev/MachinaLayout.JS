@@ -29,9 +29,19 @@ They need inspectable geometry.
 
 Mechanical drafting mode is annotation-first 2D drafting. It adds semantic dimensions, tolerances, notes, datums, and table/block records over editable canvas geometry. It does not implement a parametric sketch solver or generalized 2D constraints.
 
-The core source artifact remains `.mcanvas` editor state plus scene object records. PDF/SVG can be future delivery artifacts, while this pass already renders the semantic annotation layer into SVG output and export review flows.
+Mechanical drafting mode reuses existing MachinaCanvas SVG-like scene geometry as the drawing substrate. Mechanical annotations add semantic dimensions, notes, datums, and block/table records on top. Dimensions may reference geometry anchors, but they do not solve or drive geometry.
 
-Title blocks, revision tables, and BOM blocks are modeled as records and rendered as structured table/block content. They are not hand-drawn line geometry in the editable source model.
+There is no separate CAD geometry kernel here, and no parametric sketch solver. Mechanical mode is a drafting workflow over the same `.mcanvas` scene objects used by the other editor modes.
+
+Mechanical drafting currently targets A4 landscape office-printer sheets. MachinaCanvas intentionally avoids AutoCAD-style plotter/profile setup for this mode.
+
+Use A4 landscape for general mechanical drawings. Specialized 1:1 manufacturing outputs such as wire harness boards are out of scope for the current mechanical drafting mode.
+
+The core source artifact remains editable `.mcanvas` editor state plus scene object records. SVG is the current review/print-oriented artifact, and PDF may come later.
+
+Mechanical sheets can carry page metadata such as size, orientation, units, scale, drawing number, title, and revision. Mechanical drafting mode currently optimizes only A4 landscape in the UI and template flow; other sheet sizes are intentionally not exposed here. Title blocks, revision tables, and BOM tables are records rendered as tables, not hand-drawn line art.
+
+The delivery direction is editable `.mcanvas` source plus SVG sheet export, while dimensions remain semantic overlays that can reference existing geometry anchors without turning into constraints or a solver.
 
 ## Workflows, not macros
 
@@ -519,7 +529,7 @@ Presets are selection helpers, not locks:
   artifacts. Guide sidecars stay optional here because `*.guide.toml` is
   authoring IR, not runtime metadata.
 - `Visual review` selects rendered SVG/PNG artifacts plus diagnostics and sprite
-  audit output when present.
+  audit output when present. Mechanical A4 sheets surface as `A4 mechanical visual review`.
 - `Full archive` selects source indexes, handoff contracts, compiled runtime
   sprite TOML, source/authoring sidecars including `*.guide.toml`, reports, and
   rendered artifacts for a broad handoff bundle.
@@ -546,6 +556,7 @@ packaging.
 Generated files follow the M30c split:
 
 - `render.svg` is the clean rendered artifact
+- mechanical drawings render an A4 landscape sheet frame with a 10 mm print-safe margin, title block, and table records directly in SVG
 - `document.json` is the scene graph and bundle index
 - `layers/*.toml` are editable layer contracts
 - `objects/*.toml` are editable object contracts
