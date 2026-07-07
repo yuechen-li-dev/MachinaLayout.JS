@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -60,16 +60,14 @@ const fixtureImagePath = join(
   "assets",
   "tinytown_sprite_alpha.png",
 );
-const guideArtifactPath = join(artifactsDir, "tinytown_sprite_alpha.guide.toml");
-const runtimeArtifactPath = join(artifactsDir, "tinytown_sprite_alpha.compiled.sprite.toml");
-const compileReportPath = join(artifactsDir, "tinytown_sprite_alpha.compile-report.md");
-const auditReportPath = join(artifactsDir, "tinytown_sprite_alpha.audit.md");
-const overlayArtifactPath = join(artifactsDir, "tinytown_sprite_alpha.compiled-overlay.png");
-const dominatusGuideOutputPath = join(dominatusSpritesDir, "tinytown_sprite_alpha.guide.toml");
-const dominatusRuntimeOutputPath = join(
-  dominatusSpritesDir,
-  "tinytown_sprite_alpha.compiled.sprite.toml",
-);
+export const TINYTOWN_WORKFLOW_ARTIFACT_PATHS = {
+  guideToml: join(artifactsDir, "tinytown_sprite_alpha.guide.toml"),
+  runtimeToml: join(artifactsDir, "tinytown_sprite_alpha.compiled.sprite.toml"),
+  compileReport: join(artifactsDir, "tinytown_sprite_alpha.compile-report.md"),
+  auditReport: join(artifactsDir, "tinytown_sprite_alpha.audit.md"),
+  overlay: join(artifactsDir, "tinytown_sprite_alpha.compiled-overlay.png"),
+  manifest: join(artifactsDir, "tinytown_sprite_alpha.workflow.json"),
+} as const;
 
 function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -749,17 +747,16 @@ export function generateTinyTownSpriteArtifacts(): TinyTownArtifacts {
     sourceSpriteforgeTomlPath,
     sourceImagePath,
     fixtureImagePath,
-    guideArtifactPath,
-    runtimeArtifactPath,
+    guideArtifactPath: TINYTOWN_WORKFLOW_ARTIFACT_PATHS.guideToml,
+    runtimeArtifactPath: TINYTOWN_WORKFLOW_ARTIFACT_PATHS.runtimeToml,
     guide: reparsedGuide,
     runtimeSpec: reparsedRuntime,
   });
   const auditReport = createAuditReport(verifiedRuntimeSidecar, image);
 
-  mkdirSync(artifactsDir, { recursive: true });
   renderOverlay({
     imagePath: sourceImagePath,
-    outputPath: overlayArtifactPath,
+    outputPath: TINYTOWN_WORKFLOW_ARTIFACT_PATHS.overlay,
     guideRegions: reparsedGuide.regions.map((region) => ({
       id: region.id,
       x: region.x,
@@ -788,18 +785,11 @@ export function generateTinyTownSpriteArtifacts(): TinyTownArtifacts {
     highlightFrameId: "theo.left.2",
   });
 
-  writeFileSync(guideArtifactPath, guideToml);
-  writeFileSync(runtimeArtifactPath, runtimeToml);
-  writeFileSync(compileReportPath, compileReport);
-  writeFileSync(auditReportPath, auditReport);
-  writeFileSync(dominatusGuideOutputPath, guideToml);
-  writeFileSync(dominatusRuntimeOutputPath, runtimeToml);
-
   return {
     guideToml,
     runtimeToml,
     compileReport,
     auditReport,
-    overlayPath: overlayArtifactPath,
+    overlayPath: TINYTOWN_WORKFLOW_ARTIFACT_PATHS.overlay,
   };
 }

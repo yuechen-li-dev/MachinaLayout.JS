@@ -24,6 +24,14 @@ LLMs do not need more pixels.
 They need inspectable geometry.
 ```
 
+## Workflows, not macros
+
+MachinaCanvas workflows are TypeScript automation over scene records, sidecars, audits, compilers, and export artifacts. They are not UI macros and do not click through the browser.
+
+Workflows can run headlessly from Node or script contexts where practical, which makes them a better fit for Codex and other LLM automation than brittle click replay. The browser editor and script-side workflows should share the same scene, sidecar, compile, audit, and export APIs so automation targets records and artifacts instead of visual state.
+
+The TinyTown sprite workflow under `apps/machina-canvas/scripts/tinytown-sprite-workflow.ts` is the reference example in this repo. It loads authoring inputs, compiles runtime sprite TOML, produces audit artifacts, and writes a workflow manifest without executing arbitrary code inside the browser editor.
+
 ## Why Webpage-Shaped
 
 This app intentionally borrows the structure of a familiar product page instead of a heavy native editor:

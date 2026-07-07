@@ -1,3 +1,10 @@
-import { generateTinyTownSpriteArtifacts } from "./generate-tinytown-sprite-artifacts";
+import { runTinyTownSpriteWorkflow } from "./tinytown-sprite-workflow";
 
-generateTinyTownSpriteArtifacts();
+const result = await runTinyTownSpriteWorkflow();
+for (const entry of result.logs) {
+  console.log(`[${entry.level}] ${entry.at} ${entry.message}`);
+}
+
+if (result.kind === "err") {
+  process.exitCode = 1;
+}
