@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { createCanvasExportBundle } from "../../apps/machina-canvas/src/canvasExport";
 import { createCanvasUnitSystem } from "../../apps/machina-canvas/src/canvasUnits";
 import {
+  nextZoomStep,
+  panCanvasViewport,
   createCanvasViewport,
   fitCanvasViewport,
   getCanvasViewportViewBox,
@@ -9,8 +11,9 @@ import {
   viewportForGridRef,
   viewportForGridSpan,
   viewportForObject,
+  viewportForSpriteFrame,
 } from "../../apps/machina-canvas/src/canvasViewport";
-import type { CanvasDocument } from "../../apps/machina-canvas/src/sceneModel";
+import type { CanvasDocument, ImageObject } from "../../apps/machina-canvas/src/sceneModel";
 import {
   getObjectsInViewport,
   summarizeViewport,
@@ -119,6 +122,21 @@ const document: CanvasDocument = {
   },
 };
 
+const spriteImage: ImageObject = {
+  id: "sheet",
+  name: "Sheet",
+  kind: "image",
+  layerId: "foreground",
+  visible: true,
+  x: 100,
+  y: 60,
+  width: 120,
+  height: 120,
+  src: "/sheet.png",
+  intrinsicWidth: 120,
+  intrinsicHeight: 120,
+};
+
 describe("MachinaCanvas viewport", () => {
   it("creates a default viewport centered on the document at zoom 1", () => {
     expect(createCanvasViewport(document)).toEqual({
@@ -133,6 +151,21 @@ describe("MachinaCanvas viewport", () => {
     expect(normalizeCanvasZoom(0.1)).toBe(0.25);
     expect(normalizeCanvasZoom(20)).toBe(8);
     expect(normalizeCanvasZoom(Number.NaN)).toBe(1);
+  });
+
+  it("zooms in to the next higher stepped level", () => {
+    expect(nextZoomStep(1, 1)).toBe(1.5);
+    expect(nextZoomStep(1.1, 1)).toBe(1.5);
+  });
+
+  it("zooms out to the next lower stepped level", () => {
+    expect(nextZoomStep(1, -1)).toBe(0.75);
+    expect(nextZoomStep(1.6, -1)).toBe(1.5);
+  });
+
+  it("clamps zoom steps at the min and max levels", () => {
+    expect(nextZoomStep(8, 1)).toBe(8);
+    expect(nextZoomStep(0.25, -1)).toBe(0.25);
   });
 
   it("returns the full document viewBox at zoom 1", () => {
@@ -223,5 +256,39 @@ describe("MachinaCanvas viewport", () => {
     expect(handoff).toContain("center_x = 350");
     expect(handoff).toContain('focus_kind = "gridRef"');
     expect(handoff).toContain('focus_value = "D3"');
+  });
+
+  it("pans the viewport predictably from a document-space delta", () => {
+    expect(
+      panCanvasViewport(createCanvasViewport(document, { centerX: 300, centerY: 200 }), {
+        dx: 24,
+        dy: -10,
+      }),
+    ).toMatchObject({
+      centerX: 276,
+      centerY: 210,
+    });
+  });
+
+  it("computes a viewport target for a selected sprite frame", () => {
+    const viewport = viewportForSpriteFrame(document, spriteImage, {
+      sidecarId: "sheet-sidecar",
+      frame: {
+        id: "hero.idle",
+        label: "Hero Idle",
+        x: 10,
+        y: 20,
+        width: 18,
+        height: 20,
+      },
+    });
+
+    expect(viewport.centerX).toBe(119);
+    expect(viewport.centerY).toBe(90);
+    expect(viewport.focus).toEqual({
+      kind: "spriteFrame",
+      sidecarId: "sheet-sidecar",
+      frameId: "hero.idle",
+    });
   });
 });

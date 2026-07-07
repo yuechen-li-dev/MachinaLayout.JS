@@ -16,6 +16,7 @@ import { enumTable, matchEnum } from "machinalayout/match";
 import { MachinaReactView, type MachinaSlotProps } from "machinalayout/react";
 import { CanvasModeStart } from "./CanvasModeStart";
 import { CanvasCommandTerminal } from "./CanvasCommandTerminal";
+import { InspectorAccordionGroup } from "./InspectorAccordionGroup";
 import { resolveAppLayout } from "./appLayout";
 import { getDefaultCanvasAidToggles, type CanvasAidToggles } from "./canvasViewAids";
 import {
@@ -31,13 +32,17 @@ import {
   type RasterExportBackground,
 } from "./rasterExport";
 import {
+  CANVAS_ZOOM_STEPS,
   createCanvasViewport,
   fitCanvasViewport,
   getCanvasViewportViewBox,
+  nextZoomStep,
+  panCanvasViewport,
   setCanvasViewportZoom,
   viewportForGridRef,
   viewportForGridSpan,
   viewportForObject,
+  viewportForSpriteFrame,
   type CanvasViewport,
 } from "./canvasViewport";
 import { formatCanvasMeasurement, getCanvasUnitSystem } from "./canvasUnits";
@@ -238,6 +243,26 @@ type SpriteDragState = {
   startRect: SpriteFrameRect;
 };
 
+type CanvasPanState = {
+  startClientX: number;
+  startClientY: number;
+  startViewport: CanvasViewport;
+};
+
+type InspectorGroupId =
+  | "selected-object"
+  | "selected-sprite-frame"
+  | "geometry"
+  | "viewport"
+  | "sprite-sidecar"
+  | "sprite-audit"
+  | "ui-component"
+  | "view-aids"
+  | "image-assets"
+  | "export"
+  | "command-diagnostics"
+  | "metadata";
+
 type AppViewData = {
   activeMode: CanvasEditorModeTemplate;
   document: CanvasDocument;
@@ -247,6 +272,7 @@ type AppViewData = {
   commandJson: string;
   commandValidation: CanvasCommandValidationResult | undefined;
   commandLog: CommandLogEntry[];
+  commandLogCollapsed: boolean;
   lastApplyResults: CanvasCommandApplyResult[];
   terminalLog: CanvasTerminalLogEntry[];
   terminalCollapsed: boolean;
@@ -264,7 +290,7 @@ type AppViewData = {
   rasterStatus: string;
   isToolGroupVisible: (group: CanvasToolGroupId) => boolean;
   returnToModeSelection: () => void;
-  setViewport: (viewport: CanvasViewport) => void;
+  setViewport: (viewport: CanvasViewport | ((current: CanvasViewport) => CanvasViewport)) => void;
   setAidToggle: (key: keyof CanvasAidToggles, value: boolean) => void;
   fitViewport: () => void;
   setZoom: (zoom: number) => void;
@@ -274,6 +300,7 @@ type AppViewData = {
   runCommand: (command: CanvasCommand) => void;
   runCommands: (commands: CanvasCommand[]) => void;
   runTerminalCommand: (input: string) => void;
+  setCommandLogCollapsed: (collapsed: boolean) => void;
   setTerminalCollapsed: (collapsed: boolean) => void;
   setSpriteFrameEditSettings: (settings: SpriteFrameEditSettings) => void;
   setTerminalInput: (input: string) => void;
@@ -1192,6 +1219,7 @@ function CanvasPanel(props: MachinaSlotProps) {
     activeMode,
     document,
     viewport,
+    setViewport,
     aidToggles,
     runCommand,
     runCommands,
@@ -1200,6 +1228,7 @@ function CanvasPanel(props: MachinaSlotProps) {
   const viewBox = getCanvasViewportViewBox(document, viewport);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragState, setDragState] = useState<SpriteDragState>();
+  const [panState, setPanState] = useState<CanvasPanState>();
   const [hoveredFrame, setHoveredFrame] = useState<
     { sidecarId: string; frameId: string } | undefined
   >();
@@ -1277,6 +1306,34 @@ function CanvasPanel(props: MachinaSlotProps) {
         : undefined;
     });
   }, [document.objects]);
+
+  useEffect(() => {
+    if (!panState) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const bounds = svg.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return;
+      const startViewBox = getCanvasViewportViewBox(document, panState.startViewport);
+      const dx = ((event.clientX - panState.startClientX) / bounds.width) * startViewBox.width;
+      const dy = ((event.clientY - panState.startClientY) / bounds.height) * startViewBox.height;
+      setViewport(panCanvasViewport(panState.startViewport, { dx, dy }));
+    };
+
+    const handlePointerUp = () => {
+      setPanState(undefined);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [document, panState, setViewport]);
 
   useEffect(() => {
     if (!dragState) return;
@@ -1358,6 +1415,7 @@ function CanvasPanel(props: MachinaSlotProps) {
       frame: CanvasSpriteFrame,
       mode: "move" | "resize",
     ) => {
+      if (event.button !== 0) return;
       event.stopPropagation();
       const point = getSvgPoint(event.clientX, event.clientY);
       if (!point) return;
@@ -1402,9 +1460,24 @@ function CanvasPanel(props: MachinaSlotProps) {
       </div>
       <div className="artboard-wrap">
         <svg
-          className="artboard"
+          className={panState ? "artboard is-panning" : "artboard"}
           ref={svgRef}
+          onPointerDownCapture={(event) => {
+            if (event.button !== 1) return;
+            event.preventDefault();
+            setPanState({
+              startClientX: event.clientX,
+              startClientY: event.clientY,
+              startViewport: viewport,
+            });
+          }}
           onPointerLeave={() => setHoveredFrame(undefined)}
+          onWheel={(event) => {
+            event.preventDefault();
+            setViewport((current) =>
+              setCanvasViewportZoom(current, nextZoomStep(current.zoom, event.deltaY < 0 ? 1 : -1)),
+            );
+          }}
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           role="img"
           aria-label={`${document.name} scene graph`}
@@ -1618,6 +1691,99 @@ function formatImageSrcLabel(src: string): string {
     return `${mimeType} data URL (${src.length.toLocaleString()} chars)`;
   }
   return src;
+}
+
+function createClosedInspectorGroups(): Record<InspectorGroupId, boolean> {
+  return {
+    "selected-object": false,
+    "selected-sprite-frame": false,
+    geometry: false,
+    viewport: false,
+    "sprite-sidecar": false,
+    "sprite-audit": false,
+    "ui-component": false,
+    "view-aids": false,
+    "image-assets": false,
+    export: false,
+    "command-diagnostics": false,
+    metadata: false,
+  };
+}
+
+export function getDefaultInspectorAccordionState(options: {
+  modeId: CanvasEditorModeId;
+  selected?: CanvasObject;
+  showViewAids: boolean;
+  showImageTools: boolean;
+  showExport: boolean;
+  hasSelectedSpriteFrame: boolean;
+  hasSpriteAuditResults: boolean;
+}): Record<InspectorGroupId, boolean> {
+  const state = createClosedInspectorGroups();
+  state["selected-object"] = true;
+  state.geometry = true;
+  state.metadata = true;
+  state["ui-component"] = options.selected?.kind === "uiComponent";
+  if (options.showViewAids) state.viewport = options.modeId !== "sprites";
+  if (options.showImageTools) state["image-assets"] = options.modeId !== "sprites";
+  if (options.showExport) state.export = options.modeId !== "sprites";
+  if (options.modeId === "sprites") {
+    state.viewport = true;
+    state["sprite-sidecar"] = options.selected?.kind === "spriteSidecar";
+    state["selected-sprite-frame"] = options.hasSelectedSpriteFrame;
+    state["sprite-audit"] = options.hasSpriteAuditResults;
+    state["view-aids"] = false;
+    state["image-assets"] = false;
+    state.export = false;
+    state["command-diagnostics"] = false;
+  }
+  return state;
+}
+
+export function getSelectedSpriteFrameState(
+  document: CanvasDocument,
+  selected?: CanvasObject,
+): { sidecar: SpriteSidecarObject; frame: CanvasSpriteFrame; image?: ImageObject } | undefined {
+  if (selected?.kind !== "spriteSidecar" || !selected.spec.selectedFrameId) return undefined;
+  const frame = selected.spec.frames.find((entry) => entry.id === selected.spec.selectedFrameId);
+  if (!frame) return undefined;
+  const image = getSpriteSidecarTarget(document, selected);
+  return { sidecar: selected, frame, image };
+}
+
+export function getSelectedSpriteFramePreviewModel(options: {
+  image?: ImageObject;
+  frame: Pick<CanvasSpriteFrame, "x" | "y" | "width" | "height">;
+}): { width: number; height: number; style: Record<string, string> } | { reason: string } {
+  const { image, frame } = options;
+  if (!image?.src) {
+    return { reason: "Preview unavailable: missing linked image" };
+  }
+  const atlasWidth = image.intrinsicWidth ?? image.width;
+  const atlasHeight = image.intrinsicHeight ?? image.height;
+  if (atlasWidth <= 0 || atlasHeight <= 0) {
+    return { reason: "Preview unavailable: missing linked image" };
+  }
+  const margin = 1;
+  const cropWidth = Math.max(1, frame.width + margin * 2);
+  const cropHeight = Math.max(1, frame.height + margin * 2);
+  const scale = Math.min(6, 192 / Math.max(cropWidth, cropHeight));
+  const width = Math.max(72, Math.round(cropWidth * scale));
+  const height = Math.max(72, Math.round(cropHeight * scale));
+  const offsetX = Math.max(0, frame.x - margin);
+  const offsetY = Math.max(0, frame.y - margin);
+  return {
+    width,
+    height,
+    style: {
+      width: `${width}px`,
+      height: `${height}px`,
+      backgroundImage: `url("${image.src}")`,
+      backgroundRepeat: "no-repeat",
+      backgroundSize: `${Math.round(atlasWidth * scale)}px ${Math.round(atlasHeight * scale)}px`,
+      backgroundPosition: `-${Math.round(offsetX * scale)}px -${Math.round(offsetY * scale)}px`,
+    },
+  };
 }
 
 type SpriteAlphaMaskState =
@@ -2255,6 +2421,269 @@ function NumberField({
   );
 }
 
+function SelectedSpriteFrameSection({
+  sidecar,
+  frame,
+  image,
+  spriteFrameEditSettings,
+  setSpriteFrameEditSettings,
+  runCommand,
+  zoomToSelected,
+}: {
+  sidecar: SpriteSidecarObject;
+  frame: CanvasSpriteFrame;
+  image?: ImageObject;
+  spriteFrameEditSettings: SpriteFrameEditSettings;
+  setSpriteFrameEditSettings: (settings: SpriteFrameEditSettings) => void;
+  runCommand: (command: CanvasCommand) => void;
+  zoomToSelected: () => void;
+}) {
+  const atlasWidth = sidecar.spec.atlasWidth ?? image?.intrinsicWidth;
+  const atlasHeight = sidecar.spec.atlasHeight ?? image?.intrinsicHeight;
+  const spriteEditStep =
+    spriteFrameEditSettings.gridSize > 0 ? spriteFrameEditSettings.gridSize : 1;
+  const expectedRect = getSpriteExpectedSourceRect(frame, sidecar.spec.grids);
+  const updateRect = (rect: SpriteFrameRect) =>
+    runCommand({
+      kind: "updateSpriteFrameRect",
+      sidecarId: sidecar.id,
+      frameId: frame.id,
+      rect: snapSpriteFrameRect(rect, {
+        enabled: spriteFrameEditSettings.snapToGrid,
+        gridSize: spriteFrameEditSettings.gridSize,
+      }),
+    });
+  const auditCount = sidecar.spec.diagnostics.filter((diagnostic) =>
+    diagnostic.frameIds?.includes(frame.id),
+  ).length;
+  const preview = getSelectedSpriteFramePreviewModel({ image, frame });
+  const deltaSummary = expectedRect
+    ? `${frame.x - expectedRect.x >= 0 ? "+" : ""}${frame.x - expectedRect.x},${
+        frame.y - expectedRect.y >= 0 ? "+" : ""
+      }${frame.y - expectedRect.y},${frame.width - expectedRect.width >= 0 ? "+" : ""}${
+        frame.width - expectedRect.width
+      },${frame.height - expectedRect.height >= 0 ? "+" : ""}${frame.height - expectedRect.height}`
+    : "No source grid delta";
+
+  return (
+    <>
+      <div className="sprite-frame-preview-panel">
+        <div className="sprite-frame-preview-panel__header">
+          <strong>{frame.label}</strong>
+          <button onClick={zoomToSelected} type="button">
+            Zoom to selected frame
+          </button>
+        </div>
+        {"reason" in preview ? (
+          <p className="empty-note">{preview.reason}</p>
+        ) : (
+          <div className="sprite-frame-preview">
+            <div
+              aria-label="Selected frame preview"
+              className="sprite-frame-preview__crop"
+              role="img"
+              style={preview.style}
+            />
+          </div>
+        )}
+      </div>
+      <Field label="Frame ID" value={frame.id} />
+      <Field label="Label" value={frame.label} />
+      <Field label="Source" value={getSpriteFrameSourceKind(frame)} />
+      <Field label="Parent grid" value={frame.sourceGridId ?? "none"} />
+      <Field
+        label="Grid cell"
+        value={
+          frame.sourceRow !== undefined || frame.sourceColumn !== undefined
+            ? `row ${frame.sourceRow ?? "?"}, col ${frame.sourceColumn ?? "?"}`
+            : "none"
+        }
+      />
+      <Field label="Sprite" value={frame.spriteId ?? "none"} />
+      <Field label="Animation" value={frame.animationId ?? "none"} />
+      <Field label="Audit findings" value={auditCount} />
+      <Field
+        label="Snap"
+        value={spriteFrameEditSettings.snapToGrid ? `${spriteFrameEditSettings.gridSize}px` : "off"}
+      />
+      <Field label="Delta" value={deltaSummary} />
+      {expectedRect ? (
+        <Field
+          label="Source rect"
+          value={`x=${expectedRect.x} y=${expectedRect.y} w=${expectedRect.width} h=${expectedRect.height}`}
+        />
+      ) : null}
+      <NumberField
+        label="X"
+        min={0}
+        onChange={(x) => updateRect({ x, y: frame.y, width: frame.width, height: frame.height })}
+        value={frame.x}
+      />
+      <NumberField
+        label="Y"
+        min={0}
+        onChange={(y) => updateRect({ x: frame.x, y, width: frame.width, height: frame.height })}
+        value={frame.y}
+      />
+      <NumberField
+        label="Width"
+        min={1}
+        onChange={(width) =>
+          updateRect({ x: frame.x, y: frame.y, width: Math.max(1, width), height: frame.height })
+        }
+        value={frame.width}
+      />
+      <NumberField
+        label="Height"
+        min={1}
+        onChange={(height) =>
+          updateRect({ x: frame.x, y: frame.y, width: frame.width, height: Math.max(1, height) })
+        }
+        value={frame.height}
+      />
+      <ToggleField
+        checked={spriteFrameEditSettings.snapToGrid}
+        label="Snap frame edits"
+        onChange={(snapToGrid) =>
+          setSpriteFrameEditSettings({
+            ...spriteFrameEditSettings,
+            snapToGrid,
+          })
+        }
+      />
+      <NumberField
+        label="Grid size"
+        min={1}
+        onChange={(gridSize) =>
+          setSpriteFrameEditSettings({
+            ...spriteFrameEditSettings,
+            gridSize: Math.max(1, Math.round(gridSize)),
+          })
+        }
+        value={spriteFrameEditSettings.gridSize}
+      />
+      <p className="empty-note">
+        x/y must stay at or above 0. width/height must stay above 0.
+        {atlasWidth && atlasHeight ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.` : ""}
+      </p>
+      <div className="command-row sprite-edit-buttons">
+        <button
+          onClick={(event) =>
+            runCommand({
+              kind: "nudgeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dx: event.shiftKey ? -10 : -1,
+              dy: 0,
+            })
+          }
+          type="button"
+        >
+          Nudge Left
+        </button>
+        <button
+          onClick={(event) =>
+            runCommand({
+              kind: "nudgeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dx: event.shiftKey ? 10 : 1,
+              dy: 0,
+            })
+          }
+          type="button"
+        >
+          Nudge Right
+        </button>
+        <button
+          onClick={(event) =>
+            runCommand({
+              kind: "nudgeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dx: 0,
+              dy: event.shiftKey ? -10 : -1,
+            })
+          }
+          type="button"
+        >
+          Nudge Up
+        </button>
+        <button
+          onClick={(event) =>
+            runCommand({
+              kind: "nudgeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dx: 0,
+              dy: event.shiftKey ? 10 : 1,
+            })
+          }
+          type="button"
+        >
+          Nudge Down
+        </button>
+        <button
+          onClick={() =>
+            runCommand({
+              kind: "resizeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dw: spriteEditStep,
+              dh: 0,
+            })
+          }
+          type="button"
+        >
+          Grow W
+        </button>
+        <button
+          onClick={() =>
+            runCommand({
+              kind: "resizeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dw: -spriteEditStep,
+              dh: 0,
+            })
+          }
+          type="button"
+        >
+          Shrink W
+        </button>
+        <button
+          onClick={() =>
+            runCommand({
+              kind: "resizeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dw: 0,
+              dh: spriteEditStep,
+            })
+          }
+          type="button"
+        >
+          Grow H
+        </button>
+        <button
+          onClick={() =>
+            runCommand({
+              kind: "resizeSpriteFrame",
+              sidecarId: sidecar.id,
+              frameId: frame.id,
+              dw: 0,
+              dh: -spriteEditStep,
+            })
+          }
+          type="button"
+        >
+          Shrink H
+        </button>
+      </div>
+    </>
+  );
+}
+
 function ViewportSection(props: MachinaSlotProps) {
   const {
     document,
@@ -2269,7 +2698,8 @@ function ViewportSection(props: MachinaSlotProps) {
   const [gridSpan, setGridSpan] = useState("A2-C3");
   const [error, setError] = useState("");
   const selected = getSelectedObject(document);
-  const zoomValues = [0.5, 1, 2, 4, 8];
+  const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
+  const zoomButtonLabel = selectedSpriteFrame ? "Zoom to selected frame" : "Zoom to selected";
 
   const runViewportAction = (action: () => void) => {
     try {
@@ -2287,7 +2717,7 @@ function ViewportSection(props: MachinaSlotProps) {
         <button type="button" onClick={fitViewport}>
           Fit
         </button>
-        {zoomValues.map((zoom) => (
+        {CANVAS_ZOOM_STEPS.map((zoom) => (
           <button
             className={viewport.zoom === zoom ? "is-active" : ""}
             key={zoom}
@@ -2304,7 +2734,7 @@ function ViewportSection(props: MachinaSlotProps) {
         disabled={!selected}
         onClick={() => runViewportAction(zoomToSelected)}
       >
-        Zoom to selected
+        {zoomButtonLabel}
       </button>
       <label className="viewport-input-row">
         <span>Grid ref</span>
@@ -2619,14 +3049,17 @@ function ExportPanel(props: MachinaSlotProps) {
 }
 
 function Inspector(props: MachinaSlotProps) {
+  const view = readViewData(props);
   const {
+    activeMode,
     document,
     aidToggles,
     isToolGroupVisible,
     runCommand,
     spriteFrameEditSettings,
     setSpriteFrameEditSettings,
-  } = readViewData(props);
+    zoomToSelected,
+  } = view;
   const selected = getSelectedObject(document);
   const layer = getObjectLayer(document, selected);
   const unitSystem = getCanvasUnitSystem(document);
@@ -2635,6 +3068,51 @@ function Inspector(props: MachinaSlotProps) {
   const showImageTools = isToolGroupVisible("image") || isToolGroupVisible("sprite");
   const showViewAids = isToolGroupVisible("viewAids");
   const showExport = isToolGroupVisible("export");
+  const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
+  const hasSpriteAuditResults = Boolean(
+    (selected?.kind === "spriteSidecar" && selected.spec.diagnostics.length > 0) ||
+      (selected?.kind === "image" &&
+        getSpriteSidecarForImage(document, selected)?.spec.diagnostics.length),
+  );
+  const [accordionState, setAccordionState] = useState(() =>
+    getDefaultInspectorAccordionState({
+      modeId: activeMode.id,
+      selected,
+      showViewAids,
+      showImageTools,
+      showExport,
+      hasSelectedSpriteFrame: selectedSpriteFrame !== undefined,
+      hasSpriteAuditResults,
+    }),
+  );
+
+  useEffect(() => {
+    setAccordionState(
+      getDefaultInspectorAccordionState({
+        modeId: activeMode.id,
+        selected,
+        showViewAids,
+        showImageTools,
+        showExport,
+        hasSelectedSpriteFrame: selectedSpriteFrame !== undefined,
+        hasSpriteAuditResults,
+      }),
+    );
+  }, [
+    activeMode.id,
+    selected,
+    showViewAids,
+    showImageTools,
+    showExport,
+    selectedSpriteFrame,
+    hasSpriteAuditResults,
+  ]);
+
+  const toggleAccordion = (id: string) =>
+    setAccordionState((current) => ({
+      ...current,
+      [id]: !current[id as InspectorGroupId],
+    }));
 
   if (!selected) {
     return (
@@ -2644,28 +3122,76 @@ function Inspector(props: MachinaSlotProps) {
           <h2>{document.name}</h2>
         </header>
         {showGeometryTools ? (
-          <InspectorSection title="Document">
+          <InspectorAccordionGroup
+            id="selected-object"
+            onToggle={toggleAccordion}
+            open={accordionState["selected-object"]}
+            summary="Document"
+            title="Selected object"
+          >
             <Field label="ID" value={document.id} />
             <Field label="Size" value={formatDocumentSize(document)} />
             <Field label="Unit" value={unitSystem.label} />
             <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
             <Field label="Layers" value={document.layers.length} />
             <Field label="Objects" value={Object.keys(document.objects).length} />
-          </InspectorSection>
+          </InspectorAccordionGroup>
         ) : null}
-        {showViewAids ? <ViewportSection {...props} /> : null}
-        {showViewAids ? <ViewAidsSection {...props} /> : null}
-        {showImageTools ? <ImageAssetSection {...props} /> : null}
-        {showGeometryTools ? (
-          <InspectorSection title="Measurements">
-            {measurements.map((measurement) => (
-              <Field key={measurement.label} label={measurement.label} value={measurement.text} />
-            ))}
-          </InspectorSection>
+        {showViewAids ? (
+          <InspectorAccordionGroup
+            id="viewport"
+            onToggle={toggleAccordion}
+            open={accordionState.viewport}
+            summary={`${Math.round(view.viewport.zoom * 100)}%`}
+            title="Viewport"
+          >
+            <ViewportSection {...props} />
+          </InspectorAccordionGroup>
         ) : null}
-        {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
-        {showExport ? <ExportPanel {...props} /> : null}
-        <CommandJsonPanel {...props} />
+        {showViewAids ? (
+          <InspectorAccordionGroup
+            id="view-aids"
+            onToggle={toggleAccordion}
+            open={accordionState["view-aids"]}
+            title="View aids"
+          >
+            <ViewAidsSection {...props} />
+          </InspectorAccordionGroup>
+        ) : null}
+        {showImageTools ? (
+          <InspectorAccordionGroup
+            id="image-assets"
+            onToggle={toggleAccordion}
+            open={accordionState["image-assets"]}
+            title="Image assets"
+          >
+            <ImageAssetSection {...props} />
+          </InspectorAccordionGroup>
+        ) : null}
+        {showExport ? (
+          <InspectorAccordionGroup
+            id="export"
+            onToggle={toggleAccordion}
+            open={accordionState.export}
+            title="Export / Handoff"
+          >
+            <ExportPanel {...props} />
+          </InspectorAccordionGroup>
+        ) : null}
+        <InspectorAccordionGroup
+          id="command-diagnostics"
+          onToggle={toggleAccordion}
+          open={accordionState["command-diagnostics"]}
+          title="Command / Diagnostics"
+        >
+          {showGeometryTools
+            ? measurements.map((measurement) => (
+                <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+              ))
+            : null}
+          {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
+          <CommandJsonPanel {...props} />
+        </InspectorAccordionGroup>
       </aside>
     );
   }
@@ -2673,8 +3199,6 @@ function Inspector(props: MachinaSlotProps) {
   const nextFill = selected.fill === "#e34747" ? "#111111" : "#e34747";
   const selectedGrid = objectToGridRef(selected, document);
   const topLeftGrid = objectToGridRef({ ...selected, width: 0, height: 0 }, document).center.ref;
-  const spriteEditStep =
-    spriteFrameEditSettings.gridSize > 0 ? spriteFrameEditSettings.gridSize : 1;
 
   return (
     <aside className="inspector panel">
@@ -2683,7 +3207,13 @@ function Inspector(props: MachinaSlotProps) {
         <h2>{selected.name}</h2>
       </header>
       {showGeometryTools ? (
-        <>
+        <InspectorAccordionGroup
+          id="selected-object"
+          onToggle={toggleAccordion}
+          open={accordionState["selected-object"]}
+          summary={objectKindLabels[selected.kind]}
+          title="Selected object"
+        >
           <div className="command-row">
             <button
               type="button"
@@ -2704,723 +3234,455 @@ function Inspector(props: MachinaSlotProps) {
               Toggle fill
             </button>
           </div>
-          <InspectorSection title="Geometry">
-            <Field label="Kind" value={objectKindLabels[selected.kind]} />
-            <Field label="Layer" value={layer?.name ?? selected.layerId} />
-          </InspectorSection>
-          <InspectorSection title="Frame">
-            <Field label="Intent" value={formatFrameIntent(selected.frame)} />
-          </InspectorSection>
-          <InspectorSection title="Resolved">
-            <Field
-              label="X / Y"
-              value={`${formatCanvasMeasurement(selected.x, unitSystem)} / ${formatCanvasMeasurement(
-                selected.y,
-                unitSystem,
-              )}`}
-            />
-            <Field
-              label="W / H"
-              value={`${formatCanvasMeasurement(
-                selected.width,
-                unitSystem,
-              )} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
-            />
-          </InspectorSection>
-        </>
-      ) : null}
-      {showViewAids ? <ViewportSection {...props} /> : null}
-      {showViewAids ? <ViewAidsSection {...props} /> : null}
-      {showImageTools ? <ImageAssetSection {...props} /> : null}
-      {showImageTools ? <CanvasToolsSection {...props} /> : null}
-      {showGeometryTools ? (
-        <>
-          <InspectorSection title="Measurements">
-            <Field label="Unit" value={unitSystem.label} />
-            <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
-            {measurements.map((measurement) => (
-              <Field key={measurement.label} label={measurement.label} value={measurement.text} />
-            ))}
-          </InspectorSection>
-          <InspectorSection title="Reference">
-            <Field label="Span" value={selectedGrid.span} />
-            <Field label="Center" value={selectedGrid.center.ref} />
-            <Field label="Top-left" value={topLeftGrid} />
-          </InspectorSection>
-          <InspectorSection title="Style">
-            <Field label="Fill" value={selected.fill ?? "none"} />
-            <Field label="Stroke" value={selected.stroke ?? "none"} />
-            {selected.kind === "text" ? (
-              <Field label="Font size" value={selected.fontSize} />
-            ) : null}
-          </InspectorSection>
-        </>
-      ) : null}
-      {selected.kind === "image" ? (
-        <>
-          <InspectorSection title="Image">
+          <Field label="Kind" value={objectKindLabels[selected.kind]} />
+          <Field label="Layer" value={layer?.name ?? selected.layerId} />
+          <Field label="Intent" value={formatFrameIntent(selected.frame)} />
+          {selected.kind === "image" ? (
             <Field label="Src" value={formatImageSrcLabel(selected.src)} />
+          ) : null}
+          {selected.kind === "image" ? (
             <Field label="Role" value={selected.role ?? "image"} />
-            <Field label="Alpha map" value={selected.alphaMapId ?? "none"} />
-            <Field label="Sprite sidecar" value={selected.spriteSidecarId ?? "none"} />
-            <Field label="Opacity" value={selected.opacity ?? 1} />
-            <Field label="Blend" value={selected.blendMode ?? "normal"} />
-            <Field label="Fit" value={selected.fit ?? "fill"} />
-            <Field
-              label="Intrinsic"
-              value={
-                selected.intrinsicWidth && selected.intrinsicHeight
-                  ? `${selected.intrinsicWidth} x ${selected.intrinsicHeight}`
-                  : "unknown"
-              }
-            />
-          </InspectorSection>
-          <InspectorSection title="Sprite Sidecar">
-            {(() => {
-              const sidecar = getSpriteSidecarForImage(document, selected);
-              if (!sidecar) return <Field label="Sidecar" value="none" />;
-              const selectedFrame = sidecar.spec.frames.find(
-                (frame) => frame.id === sidecar.spec.selectedFrameId,
-              );
-              return (
-                <>
-                  <Field label="Sidecar" value={sidecar.id} />
-                  <Field label="Dialect" value={sidecar.spec.dialect} />
-                  <Field label="Subgrids" value={sidecar.spec.grids.length} />
-                  <Field label="Frames" value={sidecar.spec.frames.length} />
-                  <Field
-                    label="Grid frames"
-                    value={
-                      sidecar.spec.frames.filter((frame) => frame.sourceKind === "grid").length
-                    }
-                  />
-                  <Field
-                    label="Exact/custom"
-                    value={
-                      sidecar.spec.frames.filter((frame) =>
-                        ["exact", "manual"].includes(getSpriteFrameSourceKind(frame)),
-                      ).length
-                    }
-                  />
-                  <Field label="Animations" value={sidecar.spec.animations.length} />
-                  <Field
-                    label="Overlay mode"
-                    value={getSpriteOverlayDisplayModeLabel(sidecar.spec.overlay.displayMode)}
-                  />
-                  <Field
-                    label="Selected"
-                    value={selectedFrame ? getSpriteFrameSummary(selectedFrame) : "none"}
-                  />
-                  <div className="command-row">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "setSpriteSidecarVisible",
-                          sidecarId: sidecar.id,
-                          visible: !sidecar.visible,
-                        })
-                      }
-                    >
-                      {sidecar.visible ? "Hide Sprite Overlay" : "Show Sprite Overlay"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({ kind: "detachSpriteSidecar", sourceId: selected.id })
-                      }
-                    >
-                      Detach Sprite Sidecar
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
-          </InspectorSection>
-          {(() => {
-            const sidecar = getSpriteSidecarForImage(document, selected);
-            if (!sidecar) return null;
-            return (
-              <InspectorSection title="Sprite Audit">
-                <SpriteAuditSectionContent
-                  key={`${sidecar.id}:${selected.id}`}
-                  document={document}
-                  sidecar={sidecar}
-                  image={selected}
+          ) : null}
+          {selected.kind === "sketchOverlay" ? (
+            <>
+              <Field label="Target" value={selected.targetId} />
+              <Field label="Dialect" value={selected.spec.dialect} />
+              <Field label="Primitives" value={selected.spec.primitives.length} />
+              <label className="toggle-row">
+                <span>Visible</span>
+                <input
+                  checked={selected.visible}
+                  onChange={(event) =>
+                    runCommand({
+                      kind: "setSketchOverlayVisible",
+                      overlayId: selected.id,
+                      visible: event.target.checked,
+                    })
+                  }
+                  type="checkbox"
                 />
-              </InspectorSection>
-            );
-          })()}
-          <InspectorSection title="Sketch Overlay">
-            {(() => {
-              const overlay = getSketchOverlayForImage(document, selected);
-              if (!overlay) {
-                const demoOverlay = document.objects["generated-product-sketch"];
-                const attachable =
-                  demoOverlay?.kind === "sketchOverlay" && demoOverlay.targetId === selected.id;
-                return (
-                  <>
-                    <Field label="Overlay" value="none" />
-                    {attachable ? (
-                      <div className="command-row">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            runCommand({
-                              kind: "attachSketchOverlay",
-                              sourceId: selected.id,
-                              overlayId: demoOverlay.id,
-                            })
-                          }
-                        >
-                          Attach Demo Sketch Overlay
-                        </button>
-                      </div>
-                    ) : null}
-                  </>
-                );
-              }
-              return (
-                <>
-                  <Field label="Overlay" value={overlay.id} />
-                  <Field label="Dialect" value={overlay.spec.dialect} />
-                  <div className="command-row">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "setSketchOverlayVisible",
-                          overlayId: overlay.id,
-                          visible: !overlay.visible,
-                        })
-                      }
-                    >
-                      {overlay.visible ? "Hide Sketch Overlay" : "Show Sketch Overlay"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "detachSketchOverlay",
-                          sourceId: selected.id,
-                        })
-                      }
-                    >
-                      Detach Sketch Overlay
-                    </button>
+              </label>
+              <div className="sketch-primitive-list">
+                {selected.spec.primitives.map((primitive) => (
+                  <div className="sketch-primitive-card" key={primitive.id}>
+                    <strong>
+                      {primitive.kind} / {primitive.id}
+                    </strong>
+                    <p>
+                      {"label" in primitive && primitive.label
+                        ? primitive.label
+                        : primitive.kind === "label"
+                          ? primitive.text
+                          : "no label"}
+                    </p>
                   </div>
-                </>
-              );
-            })()}
-          </InspectorSection>
-          <InspectorSection title="Composite">
-            {selected.alphaMapId ? (
-              <Field label="Uses alpha map" value={selected.alphaMapId} />
-            ) : null}
-            {selected.role === "alphaMap" ? (
-              <>
-                <Field label="Role" value="alpha map" />
-                <Field label="Attachable" value="Can be attached to an image object" />
-              </>
-            ) : null}
-          </InspectorSection>
-        </>
-      ) : null}
-      {selected.kind === "sketchOverlay" ? (
-        <InspectorSection title="Sketch Overlay">
-          <Field label="Target" value={selected.targetId} />
-          <Field label="Dialect" value={selected.spec.dialect} />
-          <Field label="Primitives" value={selected.spec.primitives.length} />
-          <label className="toggle-row">
-            <span>Visible</span>
-            <input
-              checked={selected.visible}
-              onChange={(event) =>
-                runCommand({
-                  kind: "setSketchOverlayVisible",
-                  overlayId: selected.id,
-                  visible: event.target.checked,
-                })
-              }
-              type="checkbox"
-            />
-          </label>
-          <div className="sketch-primitive-list">
-            {selected.spec.primitives.map((primitive) => (
-              <div className="sketch-primitive-card" key={primitive.id}>
-                <strong>
-                  {primitive.kind} / {primitive.id}
-                </strong>
-                <p>
-                  {"label" in primitive && primitive.label
-                    ? primitive.label
-                    : primitive.kind === "label"
-                      ? primitive.text
-                      : "no label"}
-                </p>
+                ))}
               </div>
-            ))}
-          </div>
-        </InspectorSection>
+            </>
+          ) : null}
+        </InspectorAccordionGroup>
+      ) : null}
+      {selectedSpriteFrame ? (
+        <InspectorAccordionGroup
+          id="selected-sprite-frame"
+          onToggle={toggleAccordion}
+          open={accordionState["selected-sprite-frame"]}
+          summary={selectedSpriteFrame.frame.id}
+          title="Selected sprite frame"
+        >
+          <SelectedSpriteFrameSection
+            frame={selectedSpriteFrame.frame}
+            image={selectedSpriteFrame.image}
+            runCommand={runCommand}
+            setSpriteFrameEditSettings={setSpriteFrameEditSettings}
+            sidecar={selectedSpriteFrame.sidecar}
+            spriteFrameEditSettings={spriteFrameEditSettings}
+            zoomToSelected={zoomToSelected}
+          />
+        </InspectorAccordionGroup>
+      ) : null}
+      {showGeometryTools ? (
+        <InspectorAccordionGroup
+          id="geometry"
+          onToggle={toggleAccordion}
+          open={accordionState.geometry}
+          summary={selectedGrid.span}
+          title="Geometry"
+        >
+          <Field
+            label="X / Y"
+            value={`${formatCanvasMeasurement(selected.x, unitSystem)} / ${formatCanvasMeasurement(selected.y, unitSystem)}`}
+          />
+          <Field
+            label="W / H"
+            value={`${formatCanvasMeasurement(selected.width, unitSystem)} / ${formatCanvasMeasurement(selected.height, unitSystem)}`}
+          />
+          <Field label="Unit" value={unitSystem.label} />
+          <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
+          {measurements.map((measurement) => (
+            <Field key={measurement.label} label={measurement.label} value={measurement.text} />
+          ))}
+          <Field label="Span" value={selectedGrid.span} />
+          <Field label="Center" value={selectedGrid.center.ref} />
+          <Field label="Top-left" value={topLeftGrid} />
+          <Field label="Fill" value={selected.fill ?? "none"} />
+          <Field label="Stroke" value={selected.stroke ?? "none"} />
+          {selected.kind === "text" ? <Field label="Font size" value={selected.fontSize} /> : null}
+        </InspectorAccordionGroup>
+      ) : null}
+      {showViewAids ? (
+        <InspectorAccordionGroup
+          id="viewport"
+          onToggle={toggleAccordion}
+          open={accordionState.viewport}
+          summary={`${Math.round(view.viewport.zoom * 100)}%`}
+          title="Viewport"
+        >
+          <ViewportSection {...props} />
+        </InspectorAccordionGroup>
       ) : null}
       {selected.kind === "spriteSidecar" ? (
-        <>
-          <InspectorSection title="Sprite Sidecar">
-            <Field label="Target" value={selected.targetId} />
-            <Field label="Dialect" value={selected.spec.dialect} />
-            <Field label="Source" value={selected.spec.sourceName ?? "unknown"} />
-            <Field
-              label="Atlas"
-              value={
-                selected.spec.atlasWidth && selected.spec.atlasHeight
-                  ? `${selected.spec.atlasWidth} x ${selected.spec.atlasHeight}`
-                  : "unknown"
+        <InspectorAccordionGroup
+          id="sprite-sidecar"
+          onToggle={toggleAccordion}
+          open={accordionState["sprite-sidecar"]}
+          summary={`${selected.spec.frames.length} frames`}
+          title="Sprite sidecar"
+        >
+          <Field label="Target" value={selected.targetId} />
+          <Field label="Dialect" value={selected.spec.dialect} />
+          <Field label="Source" value={selected.spec.sourceName ?? "unknown"} />
+          <Field
+            label="Atlas"
+            value={
+              selected.spec.atlasWidth && selected.spec.atlasHeight
+                ? `${selected.spec.atlasWidth} x ${selected.spec.atlasHeight}`
+                : "unknown"
+            }
+          />
+          <Field label="Subgrids" value={selected.spec.grids.length} />
+          <Field label="Frames" value={selected.spec.frames.length} />
+          <Field label="Animations" value={selected.spec.animations.length} />
+          <label className="sprite-frame-select">
+            <span>Overlay mode</span>
+            <select
+              value={selected.spec.overlay.displayMode}
+              onChange={(event) =>
+                runCommand({
+                  kind: "setSpriteOverlayDisplayMode",
+                  sidecarId: selected.id,
+                  mode: event.currentTarget.value as
+                    | "focus"
+                    | "cutEdit"
+                    | "gridEdit"
+                    | "audit"
+                    | "debug",
+                })
               }
-            />
-            <Field label="Subgrids" value={selected.spec.grids.length} />
-            <Field label="Frames" value={selected.spec.frames.length} />
-            <Field
-              label="Grid frames"
-              value={selected.spec.frames.filter((frame) => frame.sourceKind === "grid").length}
-            />
-            <Field
-              label="Exact/custom"
-              value={
-                selected.spec.frames.filter((frame) =>
-                  ["exact", "manual"].includes(getSpriteFrameSourceKind(frame)),
-                ).length
+            >
+              {SPRITE_OVERLAY_DISPLAY_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {getSpriteOverlayDisplayModeLabel(mode)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ToggleField
+            checked={selected.spec.overlay.showBounds}
+            label="Bounds / cut lines"
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showBounds",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            checked={selected.spec.overlay.showSubgrids}
+            label="Subgrid regions"
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showSubgrids",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            checked={selected.spec.overlay.showExactFrames}
+            label="Exact/custom frames"
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showExactFrames",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            checked={selected.spec.overlay.showLabels}
+            label="All frame labels"
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "showLabels",
+                value,
+              })
+            }
+          />
+          <ToggleField
+            checked={selected.spec.overlay.selectedOnly}
+            label="Legacy selected-only filter"
+            onChange={(value) =>
+              runCommand({
+                kind: "setSpriteOverlayOption",
+                sidecarId: selected.id,
+                option: "selectedOnly",
+                value,
+              })
+            }
+          />
+          <label className="sprite-frame-select">
+            <span>Selected frame</span>
+            <select
+              value={selected.spec.selectedFrameId ?? ""}
+              onChange={(event) =>
+                runCommand({
+                  kind: "selectSpriteFrame",
+                  sidecarId: selected.id,
+                  frameId: event.currentTarget.value || undefined,
+                })
               }
-            />
-            <Field label="Animations" value={selected.spec.animations.length} />
-            <label className="sprite-frame-select">
-              <span>Overlay mode</span>
-              <select
-                value={selected.spec.overlay.displayMode}
-                onChange={(event) =>
-                  runCommand({
-                    kind: "setSpriteOverlayDisplayMode",
-                    sidecarId: selected.id,
-                    mode: event.currentTarget.value as
-                      | "focus"
-                      | "cutEdit"
-                      | "gridEdit"
-                      | "audit"
-                      | "debug",
-                  })
+            >
+              {selected.spec.frames.map((frame) => (
+                <option key={frame.id} value={frame.id}>
+                  {frame.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="sprite-frame-list">
+            {selected.spec.frames.slice(0, 36).map((frame) => (
+              <button
+                className={
+                  selected.spec.selectedFrameId === frame.id
+                    ? "sprite-frame-card is-selected"
+                    : "sprite-frame-card"
                 }
-              >
-                {SPRITE_OVERLAY_DISPLAY_MODES.map((mode) => (
-                  <option key={mode} value={mode}>
-                    {getSpriteOverlayDisplayModeLabel(mode)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="toggle-row">
-              <span>Overlay visible</span>
-              <input
-                checked={selected.visible}
-                onChange={(event) =>
-                  runCommand({
-                    kind: "setSpriteSidecarVisible",
-                    sidecarId: selected.id,
-                    visible: event.target.checked,
-                  })
-                }
-                type="checkbox"
-              />
-            </label>
-            <ToggleField
-              label="Bounds / cut lines"
-              checked={selected.spec.overlay.showBounds}
-              onChange={(value) =>
-                runCommand({
-                  kind: "setSpriteOverlayOption",
-                  sidecarId: selected.id,
-                  option: "showBounds",
-                  value,
-                })
-              }
-            />
-            <ToggleField
-              label="Subgrid regions"
-              checked={selected.spec.overlay.showSubgrids}
-              onChange={(value) =>
-                runCommand({
-                  kind: "setSpriteOverlayOption",
-                  sidecarId: selected.id,
-                  option: "showSubgrids",
-                  value,
-                })
-              }
-            />
-            <ToggleField
-              label="Exact/custom frames"
-              checked={selected.spec.overlay.showExactFrames}
-              onChange={(value) =>
-                runCommand({
-                  kind: "setSpriteOverlayOption",
-                  sidecarId: selected.id,
-                  option: "showExactFrames",
-                  value,
-                })
-              }
-            />
-            <ToggleField
-              label="All frame labels"
-              checked={selected.spec.overlay.showLabels}
-              onChange={(value) =>
-                runCommand({
-                  kind: "setSpriteOverlayOption",
-                  sidecarId: selected.id,
-                  option: "showLabels",
-                  value,
-                })
-              }
-            />
-            <ToggleField
-              label="Legacy selected-only filter"
-              checked={selected.spec.overlay.selectedOnly}
-              onChange={(value) =>
-                runCommand({
-                  kind: "setSpriteOverlayOption",
-                  sidecarId: selected.id,
-                  option: "selectedOnly",
-                  value,
-                })
-              }
-            />
-            <ToggleField
-              label="Snap frame edits"
-              checked={spriteFrameEditSettings.snapToGrid}
-              onChange={(snapToGrid) =>
-                setSpriteFrameEditSettings({
-                  ...spriteFrameEditSettings,
-                  snapToGrid,
-                })
-              }
-            />
-            <NumberField
-              label="Grid size"
-              min={1}
-              value={spriteFrameEditSettings.gridSize}
-              onChange={(gridSize) =>
-                setSpriteFrameEditSettings({
-                  ...spriteFrameEditSettings,
-                  gridSize: Math.max(1, Math.round(gridSize)),
-                })
-              }
-            />
-            <label className="sprite-frame-select">
-              <span>Selected frame</span>
-              <select
-                value={selected.spec.selectedFrameId ?? ""}
-                onChange={(event) =>
+                key={frame.id}
+                type="button"
+                onClick={() =>
                   runCommand({
                     kind: "selectSpriteFrame",
                     sidecarId: selected.id,
-                    frameId: event.currentTarget.value || undefined,
+                    frameId: frame.id,
                   })
                 }
               >
-                {selected.spec.frames.map((frame) => (
-                  <option key={frame.id} value={frame.id}>
-                    {frame.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {(() => {
-              const selectedFrame = selected.spec.frames.find(
-                (frame) => frame.id === selected.spec.selectedFrameId,
-              );
-              if (!selectedFrame) return <Field label="Selected frame" value="none" />;
-              const imageTarget = getSpriteSidecarTarget(document, selected);
-              const atlasWidth = selected.spec.atlasWidth ?? imageTarget?.intrinsicWidth;
-              const atlasHeight = selected.spec.atlasHeight ?? imageTarget?.intrinsicHeight;
-              const updateRect = (rect: SpriteFrameRect) =>
-                runCommand({
-                  kind: "updateSpriteFrameRect",
-                  sidecarId: selected.id,
-                  frameId: selectedFrame.id,
-                  rect: snapSpriteFrameRect(rect, {
-                    enabled: spriteFrameEditSettings.snapToGrid,
-                    gridSize: spriteFrameEditSettings.gridSize,
-                  }),
-                });
-              return (
-                <>
-                  <Field
-                    label="Overlay mode"
-                    value={getSpriteOverlayDisplayModeLabel(selected.spec.overlay.displayMode)}
-                  />
-                  <Field label="Frame ID" value={selectedFrame.id} />
-                  <Field label="Label" value={selectedFrame.label} />
-                  <Field label="Source" value={getSpriteFrameSourceKind(selectedFrame)} />
-                  <Field label="Sprite" value={selectedFrame.spriteId ?? "none"} />
-                  <Field label="Animation" value={selectedFrame.animationId ?? "none"} />
-                  <Field label="Parent grid" value={selectedFrame.sourceGridId ?? "none"} />
-                  <Field
-                    label="Grid cell"
-                    value={
-                      selectedFrame.sourceRow !== undefined ||
-                      selectedFrame.sourceColumn !== undefined
-                        ? `row ${selectedFrame.sourceRow ?? "?"}, col ${selectedFrame.sourceColumn ?? "?"}`
-                        : "none"
-                    }
-                  />
-                  {(() => {
-                    const expectedRect = getSpriteExpectedSourceRect(
-                      selectedFrame,
-                      selected.spec.grids,
-                    );
-                    if (!expectedRect) return null;
-                    const dx = selectedFrame.x - expectedRect.x;
-                    const dy = selectedFrame.y - expectedRect.y;
-                    const dw = selectedFrame.width - expectedRect.width;
-                    const dh = selectedFrame.height - expectedRect.height;
-                    return (
-                      <>
-                        <Field
-                          label="Actual rect"
-                          value={`x=${selectedFrame.x} y=${selectedFrame.y} w=${selectedFrame.width} h=${selectedFrame.height}`}
-                        />
-                        <Field
-                          label="Expected cell"
-                          value={`x=${expectedRect.x} y=${expectedRect.y} w=${expectedRect.width} h=${expectedRect.height}`}
-                        />
-                        <Field
-                          label="Delta"
-                          value={`${dx >= 0 ? "+" : ""}${dx},${dy >= 0 ? "+" : ""}${dy},${dw >= 0 ? "+" : ""}${dw},${dh >= 0 ? "+" : ""}${dh}`}
-                        />
-                      </>
-                    );
-                  })()}
-                  <NumberField
-                    label="X"
-                    min={0}
-                    value={selectedFrame.x}
-                    onChange={(x) =>
-                      updateRect({
-                        x,
-                        y: selectedFrame.y,
-                        width: selectedFrame.width,
-                        height: selectedFrame.height,
-                      })
-                    }
-                  />
-                  <NumberField
-                    label="Y"
-                    min={0}
-                    value={selectedFrame.y}
-                    onChange={(y) =>
-                      updateRect({
-                        x: selectedFrame.x,
-                        y,
-                        width: selectedFrame.width,
-                        height: selectedFrame.height,
-                      })
-                    }
-                  />
-                  <NumberField
-                    label="Width"
-                    min={1}
-                    value={selectedFrame.width}
-                    onChange={(width) =>
-                      updateRect({
-                        x: selectedFrame.x,
-                        y: selectedFrame.y,
-                        width: Math.max(1, width),
-                        height: selectedFrame.height,
-                      })
-                    }
-                  />
-                  <NumberField
-                    label="Height"
-                    min={1}
-                    value={selectedFrame.height}
-                    onChange={(height) =>
-                      updateRect({
-                        x: selectedFrame.x,
-                        y: selectedFrame.y,
-                        width: selectedFrame.width,
-                        height: Math.max(1, height),
-                      })
-                    }
-                  />
-                  <p className="empty-note">
-                    x/y must stay at or above 0. width/height must stay above 0.
-                    {atlasWidth && atlasHeight
-                      ? ` Atlas bounds: ${atlasWidth} x ${atlasHeight}.`
-                      : ""}
-                  </p>
-                  <div className="command-row sprite-edit-buttons">
-                    <button
-                      type="button"
-                      onClick={(event) =>
-                        runCommand({
-                          kind: "nudgeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dx: event.shiftKey ? -10 : -1,
-                          dy: 0,
-                        })
-                      }
-                    >
-                      Nudge Left
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) =>
-                        runCommand({
-                          kind: "nudgeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dx: event.shiftKey ? 10 : 1,
-                          dy: 0,
-                        })
-                      }
-                    >
-                      Nudge Right
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) =>
-                        runCommand({
-                          kind: "nudgeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dx: 0,
-                          dy: event.shiftKey ? -10 : -1,
-                        })
-                      }
-                    >
-                      Nudge Up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) =>
-                        runCommand({
-                          kind: "nudgeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dx: 0,
-                          dy: event.shiftKey ? 10 : 1,
-                        })
-                      }
-                    >
-                      Nudge Down
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "resizeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dw: spriteEditStep,
-                          dh: 0,
-                        })
-                      }
-                    >
-                      Grow W
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "resizeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dw: -spriteEditStep,
-                          dh: 0,
-                        })
-                      }
-                    >
-                      Shrink W
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "resizeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dw: 0,
-                          dh: spriteEditStep,
-                        })
-                      }
-                    >
-                      Grow H
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        runCommand({
-                          kind: "resizeSpriteFrame",
-                          sidecarId: selected.id,
-                          frameId: selectedFrame.id,
-                          dw: 0,
-                          dh: -spriteEditStep,
-                        })
-                      }
-                    >
-                      Shrink H
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
-            <div className="sprite-frame-list">
-              {selected.spec.frames.slice(0, 36).map((frame) => (
-                <button
-                  className={
-                    selected.spec.selectedFrameId === frame.id
-                      ? "sprite-frame-card is-selected"
-                      : "sprite-frame-card"
-                  }
-                  key={frame.id}
-                  type="button"
-                  onClick={() =>
-                    runCommand({
-                      kind: "selectSpriteFrame",
-                      sidecarId: selected.id,
-                      frameId: frame.id,
-                    })
-                  }
-                >
-                  <strong>{frame.label}</strong>
-                  <small>{getSpriteFrameSummary(frame)}</small>
-                </button>
-              ))}
-            </div>
-            {selected.spec.frames.length > 36 ? (
-              <p className="empty-note">
-                Showing first 36 of {selected.spec.frames.length} frames. Use the selector for the
-                full list.
-              </p>
-            ) : null}
-          </InspectorSection>
-          <InspectorSection title="Sprite Audit">
-            {(() => {
-              const imageTarget = getSpriteSidecarTarget(document, selected);
-              if (!imageTarget) {
-                return <Field label="Sprite audit" value="linked image missing" />;
-              }
-              return (
-                <SpriteAuditSectionContent
-                  key={`${selected.id}:${imageTarget.id}`}
-                  document={document}
-                  sidecar={selected}
-                  image={imageTarget}
+                <strong>{frame.label}</strong>
+                <small>{getSpriteFrameSummary(frame)}</small>
+              </button>
+            ))}
+          </div>
+        </InspectorAccordionGroup>
+      ) : null}
+      {selected.kind === "image" ? (
+        <InspectorAccordionGroup
+          id="sprite-sidecar"
+          onToggle={toggleAccordion}
+          open={accordionState["sprite-sidecar"]}
+          title="Sprite sidecar"
+        >
+          {(() => {
+            const sidecar = getSpriteSidecarForImage(document, selected);
+            if (!sidecar) return <Field label="Sidecar" value="none" />;
+            const currentFrame = sidecar.spec.frames.find(
+              (frame) => frame.id === sidecar.spec.selectedFrameId,
+            );
+            return (
+              <>
+                <Field label="Sidecar" value={sidecar.id} />
+                <Field label="Dialect" value={sidecar.spec.dialect} />
+                <Field label="Subgrids" value={sidecar.spec.grids.length} />
+                <Field label="Frames" value={sidecar.spec.frames.length} />
+                <Field
+                  label="Overlay mode"
+                  value={getSpriteOverlayDisplayModeLabel(sidecar.spec.overlay.displayMode)}
                 />
-              );
-            })()}
-          </InspectorSection>
-        </>
+                <Field
+                  label="Selected"
+                  value={currentFrame ? getSpriteFrameSummary(currentFrame) : "none"}
+                />
+                <div className="command-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({
+                        kind: "setSpriteSidecarVisible",
+                        sidecarId: sidecar.id,
+                        visible: !sidecar.visible,
+                      })
+                    }
+                  >
+                    {sidecar.visible ? "Hide Sprite Overlay" : "Show Sprite Overlay"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      runCommand({ kind: "detachSpriteSidecar", sourceId: selected.id })
+                    }
+                  >
+                    Detach Sprite Sidecar
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </InspectorAccordionGroup>
+      ) : null}
+      {selected.kind === "image" || selected.kind === "spriteSidecar" ? (
+        <InspectorAccordionGroup
+          id="sprite-audit"
+          onToggle={toggleAccordion}
+          open={accordionState["sprite-audit"]}
+          title="Sprite audit"
+        >
+          {selected.kind === "image"
+            ? (() => {
+                const sidecar = getSpriteSidecarForImage(document, selected);
+                if (!sidecar)
+                  return <Field label="Sprite audit" value="linked sprite sidecar missing" />;
+                return (
+                  <SpriteAuditSectionContent
+                    key={`${sidecar.id}:${selected.id}`}
+                    document={document}
+                    image={selected}
+                    sidecar={sidecar}
+                  />
+                );
+              })()
+            : (() => {
+                const imageTarget = getSpriteSidecarTarget(document, selected);
+                if (!imageTarget)
+                  return <Field label="Sprite audit" value="linked image missing" />;
+                return (
+                  <SpriteAuditSectionContent
+                    key={`${selected.id}:${imageTarget.id}`}
+                    document={document}
+                    image={imageTarget}
+                    sidecar={selected}
+                  />
+                );
+              })()}
+        </InspectorAccordionGroup>
+      ) : null}
+      {showViewAids ? (
+        <InspectorAccordionGroup
+          id="view-aids"
+          onToggle={toggleAccordion}
+          open={accordionState["view-aids"]}
+          title="View aids"
+        >
+          <ViewAidsSection {...props} />
+        </InspectorAccordionGroup>
+      ) : null}
+      {showImageTools ? (
+        <InspectorAccordionGroup
+          id="image-assets"
+          onToggle={toggleAccordion}
+          open={accordionState["image-assets"]}
+          title="Image assets"
+        >
+          <ImageAssetSection {...props} />
+          <CanvasToolsSection {...props} />
+          {selected.kind === "image" ? (
+            <>
+              {(() => {
+                const overlay = getSketchOverlayForImage(document, selected);
+                if (!overlay) {
+                  const demoOverlay = document.objects["generated-product-sketch"];
+                  const attachable =
+                    demoOverlay?.kind === "sketchOverlay" && demoOverlay.targetId === selected.id;
+                  return (
+                    <>
+                      <Field label="Sketch overlay" value="none" />
+                      {attachable ? (
+                        <div className="command-row">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              runCommand({
+                                kind: "attachSketchOverlay",
+                                sourceId: selected.id,
+                                overlayId: demoOverlay.id,
+                              })
+                            }
+                          >
+                            Attach Demo Sketch Overlay
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <Field label="Sketch overlay" value={overlay.id} />
+                    <Field label="Overlay dialect" value={overlay.spec.dialect} />
+                    <div className="command-row">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          runCommand({
+                            kind: "setSketchOverlayVisible",
+                            overlayId: overlay.id,
+                            visible: !overlay.visible,
+                          })
+                        }
+                      >
+                        {overlay.visible ? "Hide Sketch Overlay" : "Show Sketch Overlay"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          runCommand({
+                            kind: "detachSketchOverlay",
+                            sourceId: selected.id,
+                          })
+                        }
+                      >
+                        Detach Sketch Overlay
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+              {selected.alphaMapId ? (
+                <Field label="Uses alpha map" value={selected.alphaMapId} />
+              ) : null}
+              {selected.role === "alphaMap" ? (
+                <>
+                  <Field label="Role" value="alpha map" />
+                  <Field label="Attachable" value="Can be attached to an image object" />
+                </>
+              ) : null}
+            </>
+          ) : null}
+        </InspectorAccordionGroup>
       ) : null}
       {selected.kind === "uiComponent" ? (
-        <InspectorSection title="UI Component">
+        <InspectorAccordionGroup
+          id="ui-component"
+          onToggle={toggleAccordion}
+          open={accordionState["ui-component"]}
+          summary={selected.componentId}
+          title="UI Component"
+        >
           {(() => {
             try {
               const definition = getCanvasUiComponentDefinition(selected.componentId);
@@ -3452,16 +3714,37 @@ function Inspector(props: MachinaSlotProps) {
               );
             }
           })()}
-        </InspectorSection>
+        </InspectorAccordionGroup>
       ) : null}
-      <InspectorSection title="Metadata">
+      <InspectorAccordionGroup
+        id="metadata"
+        onToggle={toggleAccordion}
+        open={accordionState.metadata}
+        title="Metadata"
+      >
         <Field label="ID" value={selected.id} />
         <Field label="Tags" value={selected.tags?.join(", ") ?? "none"} />
         <Field label="Notes" value={selected.notes ?? "none"} />
-      </InspectorSection>
-      {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
-      {showExport ? <ExportPanel {...props} /> : null}
-      <CommandJsonPanel {...props} />
+      </InspectorAccordionGroup>
+      {showExport ? (
+        <InspectorAccordionGroup
+          id="export"
+          onToggle={toggleAccordion}
+          open={accordionState.export}
+          title="Export / Handoff"
+        >
+          <ExportPanel {...props} />
+        </InspectorAccordionGroup>
+      ) : null}
+      <InspectorAccordionGroup
+        id="command-diagnostics"
+        onToggle={toggleAccordion}
+        open={accordionState["command-diagnostics"]}
+        title="Command / Diagnostics"
+      >
+        {aidToggles.showGeometryDiagnostics ? <GeometryDiagnosticsSection {...props} /> : null}
+        <CommandJsonPanel {...props} />
+      </InspectorAccordionGroup>
     </aside>
   );
 }
@@ -3472,10 +3755,12 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
     viewport,
     runCommand,
     commandLog,
+    commandLogCollapsed,
     terminalLog,
     terminalCollapsed,
     terminalInput,
     runTerminalCommand,
+    setCommandLogCollapsed,
     setTerminalCollapsed,
     setTerminalInput,
   } = readViewData(props);
@@ -3517,12 +3802,20 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
           onToggleCollapsed={() => setTerminalCollapsed(!terminalCollapsed)}
         />
       </div>
-      <aside className="command-log" aria-label="Command log">
+      <aside
+        className={commandLogCollapsed ? "command-log is-collapsed" : "command-log"}
+        aria-label="Command log"
+      >
         <header>
           <small>Command log</small>
           <strong>{commandLog.length}</strong>
+          <button onClick={() => setCommandLogCollapsed(!commandLogCollapsed)} type="button">
+            {commandLogCollapsed ? "Expand" : "Collapse"}
+          </button>
         </header>
-        {recentLog.length === 0 ? (
+        {commandLogCollapsed ? (
+          <p className="empty-note">Recent command history is hidden while editing.</p>
+        ) : recentLog.length === 0 ? (
           <p className="empty-note">No commands applied yet.</p>
         ) : (
           recentLog.map((entry) => (
@@ -3590,6 +3883,7 @@ export function App() {
     CanvasCommandValidationResult | undefined
   >();
   const [commandLog, setCommandLog] = useState<CommandLogEntry[]>([]);
+  const [commandLogCollapsed, setCommandLogCollapsed] = useState(false);
   const [terminalLog, setTerminalLog] = useState<CanvasTerminalLogEntry[]>([]);
   const [terminalCollapsed, setTerminalCollapsed] = useState(true);
   const [terminalInput, setTerminalInput] = useState("");
@@ -3633,6 +3927,7 @@ export function App() {
     setCommandJson(exampleCommandJson);
     setCommandValidation(undefined);
     setCommandLog([]);
+    setCommandLogCollapsed(modeId === "sprites");
     setTerminalLog([]);
     setTerminalCollapsed(true);
     setTerminalInput("");
@@ -3837,6 +4132,18 @@ export function App() {
 
     const zoomToSelected = () => {
       if (!document.selectedObjectId) return;
+      const selected = getSelectedObject(document);
+      const selectedFrame = getSelectedSpriteFrameState(document, selected);
+      if (selectedFrame?.image) {
+        setViewport(
+          viewportForSpriteFrame(document, selectedFrame.image, {
+            sidecarId: selectedFrame.sidecar.id,
+            frame: selectedFrame.frame,
+          }),
+        );
+        setLastCommand(`viewport zoomed to sprite frame ${selectedFrame.frame.id}`);
+        return;
+      }
       setViewport(viewportForObject(document, document.selectedObjectId));
       setLastCommand(`viewport zoomed to ${document.selectedObjectId}`);
     };
@@ -4075,6 +4382,7 @@ export function App() {
       commandJson,
       commandValidation,
       commandLog,
+      commandLogCollapsed,
       lastApplyResults,
       terminalLog,
       terminalCollapsed,
@@ -4102,6 +4410,7 @@ export function App() {
       runCommand,
       runCommands,
       runTerminalCommand,
+      setCommandLogCollapsed,
       setTerminalCollapsed,
       setSpriteFrameEditSettings,
       setTerminalInput,
@@ -4147,6 +4456,7 @@ export function App() {
     rasterBackground,
     rasterArtifact,
     rasterStatus,
+    commandLogCollapsed,
     returnToModeSelection,
   ]);
 

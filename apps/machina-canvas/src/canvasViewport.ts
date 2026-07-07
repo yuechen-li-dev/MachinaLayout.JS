@@ -5,6 +5,8 @@ import {
   parseGridPointRef,
   parseGridSpanRef,
 } from "./referenceGrid";
+import { mapSpriteFrameToCanvasRect } from "./spriteFrameEditor";
+import type { CanvasSpriteFrame, ImageObject } from "./sceneModel";
 
 export type CanvasViewportFocus =
   | {
@@ -28,6 +30,11 @@ export type CanvasViewportFocus =
       y: number;
       width: number;
       height: number;
+    }
+  | {
+      kind: "spriteFrame";
+      sidecarId: string;
+      frameId: string;
     };
 
 export type CanvasViewport = {
@@ -46,6 +53,7 @@ export const DEFAULT_CANVAS_VIEWPORT: CanvasViewport = {
 
 const MIN_CANVAS_ZOOM = 0.25;
 const MAX_CANVAS_ZOOM = 8;
+export const CANVAS_ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 4, 8] as const;
 
 function finiteOrFallback(value: number | undefined, fallback: number): number {
   return Number.isFinite(value) ? (value as number) : fallback;
@@ -85,6 +93,46 @@ export function setCanvasViewportZoom(viewport: CanvasViewport, zoom: number): C
     ...viewport,
     zoom: normalizeCanvasZoom(zoom),
   };
+}
+
+export function nextZoomStep(currentZoom: number, direction: 1 | -1): number {
+  const normalized = normalizeCanvasZoom(currentZoom);
+  if (direction > 0) {
+    for (const step of CANVAS_ZOOM_STEPS) {
+      if (step > normalized) return step;
+    }
+    return CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1];
+  }
+  for (let index = CANVAS_ZOOM_STEPS.length - 1; index >= 0; index -= 1) {
+    const step = CANVAS_ZOOM_STEPS[index];
+    if (step < normalized) return step;
+  }
+  return CANVAS_ZOOM_STEPS[0];
+}
+
+export function panCanvasViewport(
+  viewport: CanvasViewport,
+  delta: { dx: number; dy: number },
+): CanvasViewport {
+  return {
+    ...viewport,
+    centerX: viewport.centerX - delta.dx,
+    centerY: viewport.centerY - delta.dy,
+  };
+}
+
+function getZoomStepForRect(
+  document: CanvasDocument,
+  rect: { width: number; height: number },
+): number {
+  const width = Math.max(1, rect.width);
+  const height = Math.max(1, rect.height);
+  const targetZoom = Math.min((document.width * 0.42) / width, (document.height * 0.42) / height);
+  const normalized = normalizeCanvasZoom(targetZoom);
+  for (const step of CANVAS_ZOOM_STEPS) {
+    if (step >= normalized) return step;
+  }
+  return CANVAS_ZOOM_STEPS[CANVAS_ZOOM_STEPS.length - 1];
 }
 
 export function viewportForRect(
@@ -206,5 +254,26 @@ export function viewportForGridSpan(
     zoom: options?.zoom ?? 3,
     padding: options?.padding,
     focus: { kind: "gridSpan", span: parsed.span },
+  });
+}
+
+export function viewportForSpriteFrame(
+  document: CanvasDocument,
+  image: ImageObject,
+  options: {
+    sidecarId: string;
+    frame: CanvasSpriteFrame;
+    padding?: number;
+  },
+): CanvasViewport {
+  const rect = mapSpriteFrameToCanvasRect(image, options.frame);
+  return viewportForRect(rect, {
+    zoom: getZoomStepForRect(document, rect),
+    padding: options.padding ?? 12,
+    focus: {
+      kind: "spriteFrame",
+      sidecarId: options.sidecarId,
+      frameId: options.frame.id,
+    },
   });
 }

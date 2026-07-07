@@ -82,6 +82,10 @@ For non-tiling sprite sheets with transparency, MachinaCanvas can audit cut line
 
 Sprite audits now distinguish errors, warnings, and notes. Exact/custom crops can keep parent-grid context, so an intentional crop inside a larger grid cell is reported as a softer note instead of a generic bad-grid warning when the geometry clearly looks like an exact cut.
 
+Sprite editing uses a focus-first inspector: selected frame controls and zoom preview appear near the top, while lower-priority inspector groups are collapsible.
+
+The canvas supports middle-mouse drag panning and stepped mouse-wheel zoom in the artboard area.
+
 This is frame slicing and sidecar editing, not raster painting. MachinaCanvas still does not add brush tools, pixel editing, or an animation timeline here.
 
 ## Command Terminal

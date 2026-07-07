@@ -44,6 +44,7 @@ function formatFocus(viewport: CanvasViewport): string {
   if (focus.kind === "object") return `object ${focus.objectId}`;
   if (focus.kind === "gridRef") return focus.ref;
   if (focus.kind === "gridSpan") return focus.span;
+  if (focus.kind === "spriteFrame") return `sprite frame ${focus.frameId}`;
   return "rect";
 }
 

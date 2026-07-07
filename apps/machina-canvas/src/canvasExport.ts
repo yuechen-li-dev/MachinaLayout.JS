@@ -231,6 +231,7 @@ function getViewportFocusValue(focus: CanvasViewportFocus | undefined): string |
   if (focus.kind === "object") return focus.objectId;
   if (focus.kind === "gridRef") return focus.ref;
   if (focus.kind === "gridSpan") return focus.span;
+  if (focus.kind === "spriteFrame") return `${focus.sidecarId}:${focus.frameId}`;
   return `${focus.x},${focus.y},${focus.width},${focus.height}`;
 }
 
