@@ -1,0 +1,169 @@
+[guide]
+id = "m40c-guide"
+units = "mm"
+description = "M40c construction guide pass with bounding mask, datums, feature centers, arc cues, and authoring dimensions before final drafting."
+
+[[regions]]
+id = "m40c-guide-overall-bounds"
+kind = "bodyEnvelope"
+x = 50
+y = 14
+width = 126
+height = 176
+description = "overall body bounds"
+
+[[regions]]
+id = "m40c-guide-top-head-region"
+kind = "headRegion"
+x = 72
+y = 14
+width = 48
+height = 38
+description = "top head region"
+
+[[regions]]
+id = "m40c-guide-center-boss-region"
+kind = "bossRegion"
+x = 66
+y = 80
+width = 60
+height = 56
+description = "center boss region"
+
+[[regions]]
+id = "m40c-guide-right-boss-region"
+kind = "bossRegion"
+x = 126
+y = 70
+width = 40
+height = 44
+description = "right boss region"
+
+[[regions]]
+id = "m40c-guide-slot-region"
+kind = "slotRegion"
+x = 76
+y = 144
+width = 82
+height = 44
+description = "lower slot region"
+
+[[datums]]
+id = "datum-vertical-centerline"
+kind = "vertical"
+x = 96
+label = "Main CL"
+
+[[datums]]
+id = "datum-main-horizontal"
+kind = "horizontal"
+y = 108
+label = "Main bore datum"
+
+[[datums]]
+id = "datum-top-horizontal"
+kind = "horizontal"
+y = 32
+label = "Top datum"
+
+[[datums]]
+id = "datum-right-horizontal"
+kind = "horizontal"
+y = 92
+label = "Right boss datum"
+
+[[datums]]
+id = "datum-top-center"
+kind = "point"
+x = 96
+y = 32
+label = "Top"
+
+[[datums]]
+id = "datum-main-center"
+kind = "point"
+x = 96
+y = 108
+label = "Main"
+
+[[datums]]
+id = "datum-right-center"
+kind = "point"
+x = 144
+y = 92
+label = "Right"
+
+[[datums]]
+id = "datum-slot-center"
+kind = "point"
+x = 115
+y = 166
+label = "Slot"
+
+[[dimensions]]
+id = "guide-vertical-176"
+kind = "linear"
+label = "176"
+from = [ 96, 32 ]
+to = [ 96, 108 ]
+
+[[dimensions]]
+id = "guide-vertical-120"
+kind = "linear"
+label = "120"
+from = [ 96, 108 ]
+to = [ 115, 166 ]
+
+[[dimensions]]
+id = "guide-horizontal-96"
+kind = "linear"
+label = "96"
+from = [ 96, 108 ]
+to = [ 144, 108 ]
+
+[[dimensions]]
+id = "guide-vertical-38"
+kind = "linear"
+label = "38"
+from = [ 144, 108 ]
+to = [ 144, 92 ]
+
+[[dimensions]]
+id = "guide-main-outer"
+kind = "diameter"
+label = "Ø88"
+center = [ 96, 108 ]
+
+[[dimensions]]
+id = "guide-main-inner"
+kind = "diameter"
+label = "Ø56"
+center = [ 96, 108 ]
+
+[[alignment_marks]]
+id = "mark-top"
+kind = "point"
+x = 96
+y = 32
+label = "Top center"
+
+[[alignment_marks]]
+id = "mark-main"
+kind = "point"
+x = 96
+y = 108
+label = "Main center"
+
+[[alignment_marks]]
+id = "mark-right"
+kind = "point"
+x = 144
+y = 92
+label = "Right center"
+
+[[alignment_marks]]
+id = "mark-slot"
+kind = "point"
+x = 115
+y = 166
+label = "Slot center"

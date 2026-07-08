@@ -1,0 +1,150 @@
+[blockout]
+id = "m40c-blockout"
+name = "M40c feature blockout"
+description = "Green feature decomposition for top head, main boss, right boss, lower slot, lower body, and local transition cues."
+
+[[boxes]]
+id = "m40c-blockout-top-head"
+kind = "bodyRegion"
+x = 72
+y = 14
+width = 48
+height = 38
+role = "solid"
+label = "top head blockout"
+
+[[boxes]]
+id = "m40c-blockout-top-hole"
+kind = "hole"
+x = 87
+y = 23
+width = 18
+height = 18
+role = "void"
+label = "top hole blockout"
+
+[[boxes]]
+id = "m40c-blockout-main-boss"
+kind = "boss"
+x = 70
+y = 82
+width = 52
+height = 52
+role = "solid"
+label = "main boss blockout"
+
+[[boxes]]
+id = "m40c-blockout-main-hole"
+kind = "hole"
+x = 80
+y = 92
+width = 32
+height = 32
+role = "void"
+label = "main hole blockout"
+
+[[boxes]]
+id = "m40c-blockout-right-boss"
+kind = "boss"
+x = 126
+y = 74
+width = 36
+height = 36
+role = "solid"
+label = "right boss blockout"
+
+[[boxes]]
+id = "m40c-blockout-right-hole"
+kind = "hole"
+x = 135
+y = 83
+width = 18
+height = 18
+role = "void"
+label = "right hole blockout"
+
+[[boxes]]
+id = "m40c-blockout-lower-slot"
+kind = "slot"
+x = 78
+y = 146
+width = 76
+height = 40
+role = "void"
+label = "lower slot blockout"
+
+[[boxes]]
+id = "m40c-blockout-lower-body"
+kind = "bodyRegion"
+x = 56
+y = 126
+width = 118
+height = 64
+role = "solid"
+label = "lower outer profile blockout"
+
+[[boxes]]
+id = "m40c-blockout-right-neck"
+kind = "transition"
+x = 120
+y = 44
+width = 48
+height = 38
+role = "construction"
+label = "right neck transition"
+
+[[points]]
+id = "top-center"
+kind = "center"
+x = 96
+y = 32
+label = "Top"
+
+[[points]]
+id = "main-center"
+kind = "center"
+x = 96
+y = 108
+label = "Main"
+
+[[points]]
+id = "right-center"
+kind = "center"
+x = 144
+y = 92
+label = "Right"
+
+[[points]]
+id = "slot-center"
+kind = "center"
+x = 115
+y = 166
+label = "Slot"
+
+[[curves]]
+id = "top-cap-cue"
+kind = "arcCue"
+points = [ [ 78, 32 ], [ 96, 14 ], [ 114, 32 ] ]
+role = "construction"
+label = "Top cap cue"
+
+[[curves]]
+id = "right-shoulder-cue"
+kind = "arcCue"
+points = [ [ 122, 71 ], [ 140, 80 ], [ 160, 92 ] ]
+role = "construction"
+label = "Right shoulder cue"
+
+[[curves]]
+id = "lower-sweep-cue"
+kind = "arcCue"
+points = [ [ 72, 180 ], [ 113, 188 ], [ 164, 167 ] ]
+role = "construction"
+label = "Lower sweep cue"
+
+[[curves]]
+id = "slot-axis-cue"
+kind = "centerline"
+points = [ [ 81.1710656517073, 178.31272515972407 ], [ 148.8289343482927, 153.68727484027593 ] ]
+role = "construction"
+label = "Slot axis cue"

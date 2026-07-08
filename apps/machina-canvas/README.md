@@ -43,6 +43,8 @@ M39d/M39e/M39f include a dogfood exercise that recreates a reference 2D mechanic
 
 M39g extends that dogfood with a staged blockout method: first establish global bounds and datum lines, then feature blockout boxes, then lower the guide masks into filled body/void topology and annotations. This is not automatic image-to-CAD extraction; it is an explicit authoring method for LLM-assisted drafting. Run `npm run canvas:mechanical-exercise-354-blockout` to regenerate the global mask, feature mask, filled-profile render, preview PNG, scene JSON, and process notes artifacts.
 
+M40c adds a fresh mechanical dogfood pass that starts from a real `*.guide.toml`, continues through a real `*.blockout.toml`, and then lowers both into a filled mechanical profile plus semantic annotations. Run `npm run canvas:mechanical-exercise-m40c` to regenerate the guide SVG, blockout SVG, guide TOML, blockout TOML, final scene JSON, final SVG, preview PNG, dogfood report, and process notes artifacts.
+
 The core source artifact remains editable `.mcanvas` editor state plus scene object records. SVG is the current review/print-oriented artifact, and PDF may come later.
 
 Mechanical sheets can carry page metadata such as size, orientation, units, scale, drawing number, title, and revision. Mechanical drafting mode currently optimizes only A4 landscape in the UI and template flow; other sheet sizes are intentionally not exposed here. Title blocks, revision tables, and BOM tables are records rendered as tables, not hand-drawn line art.

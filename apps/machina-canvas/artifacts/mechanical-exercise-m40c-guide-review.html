@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>M40c Guide Review</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f3f1eb;
+        color: #1d2430;
+      }
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+      p {
+        margin: 0 0 18px;
+        max-width: 72ch;
+        line-height: 1.5;
+      }
+      .board {
+        position: relative;
+        display: inline-block;
+        border: 1px solid #d3cdc2;
+        background: #fff;
+        box-shadow: 0 16px 36px rgba(18, 24, 36, 0.12);
+      }
+      .board img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .guide {
+        position: absolute;
+        inset: 0;
+        opacity: 0.45;
+        mix-blend-mode: multiply;
+        pointer-events: none;
+      }
+      .caption {
+        margin-top: 12px;
+        font-size: 14px;
+      }
+      code {
+        font-family: "Cascadia Code", Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>M40c Guide Overlay Review</h1>
+      <p>
+        Reference image with the authored <code>mechanical-exercise-m40c.guide.toml</code>
+        visualization overlaid in red. This is a browser-side review surface used because the current
+        MachinaCanvas UI/browser automation path exposes guide file inputs but does not provide a clean
+        automated file-attach workflow here.
+      </p>
+      <div class="board">
+        <img
+          src="./reference-mechanical-exercise-m40c.png"
+          alt="Reference mechanical drawing"
+        />
+        <img
+          class="guide"
+          src="./mechanical-exercise-m40c-guide.render.png"
+          alt="Guide overlay"
+        />
+      </div>
+      <p class="caption">
+        Prior note to keep in mind: the other Codex author wrote that a global mask only helps if it
+        prevents drift before curve authoring. This review checks whether the current guide actually
+        does that.
+      </p>
+    </main>
+  </body>
+</html>
