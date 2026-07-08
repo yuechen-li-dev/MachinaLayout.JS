@@ -178,6 +178,7 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 
 ## Docs index
 
+- [DeusMachina](docs/deusmachina.md) — deterministic row-first state machines, hydration, adapter hooks, and transition table bridges.
 - [Row model](docs/row-model.md)
 - [Frames and stack](docs/frames-and-stack.md)
 - [Grid arrange](docs/grid-arrange.md)
@@ -205,6 +206,16 @@ Named layers organize paint order over the existing bounded `z` system. Layers a
 - [Text utilities](docs/text-utilities.md) — tiny deterministic helpers for padding, truncation, casing, and slugs.
 - [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
 - [Local sample subpath imports](docs/local-sample-subpath-imports.md) — standard local harness for nested samples that dogfood `machinalayout/*` subpaths before publish.
+
+## Deus ergonomics
+
+Recent Deus ergonomics are documented in [DeusMachina](docs/deusmachina.md) and [Exhaustive match helpers](docs/exhaustive-match.md), including:
+
+- `useDeusMachine(machine, board, { initialState })`
+- `matchKind(..., { ok, _: fallback })` and `matchEnum(..., { ready, _: fallback })`
+- typed `pendingResultTransitionsFromTable<Board, Event>(table)`
+- shared ancestor-prefix transitions without empty parent state rows
+- conditional `to` functions that return `undefined` to stay put
 
 ## Tiny `LayoutRow[]` example
 
@@ -423,7 +434,7 @@ const views = {
 - [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.
 - [`samples/static-dispatch`](samples/static-dispatch) demonstrates `machinalayout/static` lowering a finite dispatch table to checked-in HTML/CSS with no JS.
 - [`samples/static-http`](samples/static-http) demonstrates `machinalayout/static` lowering native GET/POST HTTP intent to checked-in HTML/CSS with no JS.
-- [`apps/machina-canvas`](apps/machina-canvas/README.md) demonstrates using MachinaLayout.JS to build an LLM-friendly 2D scene editor.
+- [`apps/machina-canvas`](apps/machina-canvas/README.md) is the AGPL-licensed MachinaCanvas app/product dogfood area built on top of the MIT MachinaLayout.JS toolbox. It may split into its own project later; the npm package remains library/toolbox oriented. See the [MachinaCanvas M40 closeout](apps/machina-canvas/docs/phase-closeout-m40.md).
 
 Run it locally:
 

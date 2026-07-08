@@ -134,4 +134,12 @@ The prop is controlled. M26 does not add React state management or hooks; DeusMa
 
 ## DeusMachina hook
 
-`machinalayout/react` exports `useDeusMachine(machine, initialBoard)`. The hook is a thin wrapper around the DeusMachina kernel and returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`. It follows the mutable board contract: actions may mutate the board, while the hook replaces the snapshot object after dispatch so React re-renders. Keep machine definitions stable; changing the machine reference resets the hook snapshot.
+`machinalayout/react` exports `useDeusMachine(machine, initialBoard, options?)`. The hook is a thin wrapper around the DeusMachina kernel and returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`. It follows the mutable board contract: actions may mutate the board, while the hook replaces the snapshot object after dispatch so React re-renders. Keep machine definitions stable; changing the machine reference resets the hook snapshot.
+
+Use `options.initialState` when the first snapshot should hydrate into a specific validated Deus state:
+
+```tsx
+const debug = useDeusMachine(debugMachine, createBoard, {
+  initialState: ["debugOverlay", "interactivePanel"],
+});
+```

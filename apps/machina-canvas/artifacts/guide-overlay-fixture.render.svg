@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="480" viewBox="0 0 680 480">
+  <image data-canvas-object-id="guide-overlay-reference-image" data-canvas-kind="image" data-canvas-name="Guide overlay reference" href="guide-overlay-reference.png" x="40" y="40" width="600" height="400" preserveAspectRatio="none" />
+  <g class="canvas-guide-overlay" data-canvas-object-id="guide-overlay-fixture" data-canvas-kind="guideSidecar" data-canvas-name="guide-overlay-fixture.guide.toml" opacity="0.82">
+    <rect class="canvas-guide-region" data-canvas-guide-region-id="overall-bounds" x="80" y="80" width="520" height="320" fill="rgba(233, 77, 26, 0.06)" stroke="#e94d1a" stroke-dasharray="8 6" pointer-events="none" />
+    <text class="canvas-guide-label" x="86" y="96" pointer-events="none">overall-bounds</text>
+    <line class="canvas-guide-grid" x1="210" y1="80" x2="210" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="340" y1="80" x2="340" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="470" y1="80" x2="470" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="160" x2="600" y2="160" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="240" x2="600" y2="240" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="320" x2="600" y2="320" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-datum" x1="340" y1="40" x2="340" y2="440" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="344" y="54" pointer-events="none">Center X</text>
+    <line class="canvas-guide-datum" x1="40" y1="240" x2="640" y2="240" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="46" y="236" pointer-events="none">Center Y</text>
+    <line class="canvas-guide-datum" x1="74" y1="80" x2="86" y2="80" stroke="#d9480f" pointer-events="none" />
+    <line class="canvas-guide-datum" x1="80" y1="74" x2="80" y2="86" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="88" y="72" pointer-events="none">Origin point</text>
+    <line class="canvas-guide-dimension" x1="80" y1="80" x2="600" y2="80" stroke="#ff7a00" pointer-events="none" />
+    <text class="canvas-guide-label" x="340" y="74" text-anchor="middle" pointer-events="none">260 px</text>
+    <circle class="canvas-guide-mark" cx="80" cy="80" r="4" fill="#c92a2a" pointer-events="none" />
+    <line class="canvas-guide-mark" x1="72" y1="80" x2="88" y2="80" stroke="#c92a2a" pointer-events="none" />
+    <line class="canvas-guide-mark" x1="80" y1="72" x2="80" y2="88" stroke="#c92a2a" pointer-events="none" />
+    <text class="canvas-guide-label" x="88" y="94" pointer-events="none">Origin</text>
+  </g>
+</svg>

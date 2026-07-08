@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>M40d Guide Overlay Review</title>
+  <style>
+    body { margin: 0; font: 14px/1.4 Arial, sans-serif; color: #231f20; background: #f4f2ee; }
+    .review { display: grid; grid-template-columns: 280px 1fr 280px; min-height: 100vh; }
+    aside { padding: 18px; background: #ffffff; border-right: 1px solid #d8d2ca; }
+    aside:last-child { border-right: 0; border-left: 1px solid #d8d2ca; }
+    h1, h2 { margin: 0 0 12px; }
+    h1 { font-size: 18px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .stage { display: grid; place-items: center; padding: 22px; }
+    .sheet { background: white; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }
+    .tree { font-size: 12px; white-space: pre-wrap; }
+    .image-row { margin: 10px 0 0; padding: 10px; border: 1px solid #d8d2ca; }
+    .guide-row { margin: 8px 0 0 18px; padding: 10px; border-left: 4px solid #e94d1a; background: #fff6f1; }
+    dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px 10px; margin: 0; }
+    dt { font-weight: 700; }
+    dd { margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="review">
+    <aside>
+      <h1>M40d guide overlay</h1>
+      <h2>Layer tree</h2>
+      <div class="image-row">IMG guide-overlay-reference.png</div>
+      <div class="guide-row">GUIDE guide-overlay-fixture.guide.toml<br />Construction mask · visible · 1 regions · 3 datums · 1 dimensions · 1 marks</div>
+      <h2 style="margin-top: 18px;">Structural tree</h2>
+      <div class="tree">[
+  {
+    "id": "group:guide-overlay-fixture-layer",
+    "kind": "group",
+    "title": "Reference Image With Guide",
+    "count": 1,
+    "children": [
+      {
+        "id": "object:guide-overlay-reference-image",
+        "kind": "object",
+        "objectId": "guide-overlay-reference-image",
+        "title": "guide-overlay-reference.png",
+        "subtitle": "300x200",
+        "badge": "IMG",
+        "selected": false,
+        "visible": true,
+        "children": [
+          {
+            "id": "attachment:guide-overlay-fixture",
+            "kind": "attachment",
+            "objectId": "guide-overlay-fixture",
+            "title": "guide-overlay-fixture.guide.toml",
+            "subtitle": "Construction mask · visible · 1 regions · 3 datums · 1 dimensions · 1 marks · authoring guide for guide-overlay-reference.png",
+            "badge": "GUIDE",
+            "selected": true,
+            "visible": true,
+            "relation": "guideSidecar"
+          }
+        ]
+      }
+    ]
+  }
+]</div>
+    </aside>
+    <section class="stage">
+      <div class="sheet"><svg role="img" aria-label="Guide overlay fixture render" xmlns="http://www.w3.org/2000/svg" width="680" height="480" viewBox="0 0 680 480"><title>Guide overlay fixture render</title>
+  <image data-canvas-object-id="guide-overlay-reference-image" data-canvas-kind="image" data-canvas-name="Guide overlay reference" href="guide-overlay-reference.png" x="40" y="40" width="600" height="400" preserveAspectRatio="none" />
+  <g class="canvas-guide-overlay" data-canvas-object-id="guide-overlay-fixture" data-canvas-kind="guideSidecar" data-canvas-name="guide-overlay-fixture.guide.toml" opacity="0.82">
+    <rect class="canvas-guide-region" data-canvas-guide-region-id="overall-bounds" x="80" y="80" width="520" height="320" fill="rgba(233, 77, 26, 0.06)" stroke="#e94d1a" stroke-dasharray="8 6" pointer-events="none" />
+    <text class="canvas-guide-label" x="86" y="96" pointer-events="none">overall-bounds</text>
+    <line class="canvas-guide-grid" x1="210" y1="80" x2="210" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="340" y1="80" x2="340" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="470" y1="80" x2="470" y2="400" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="160" x2="600" y2="160" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="240" x2="600" y2="240" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-grid" x1="80" y1="320" x2="600" y2="320" stroke="#f58d61" pointer-events="none" />
+    <line class="canvas-guide-datum" x1="340" y1="40" x2="340" y2="440" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="344" y="54" pointer-events="none">Center X</text>
+    <line class="canvas-guide-datum" x1="40" y1="240" x2="640" y2="240" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="46" y="236" pointer-events="none">Center Y</text>
+    <line class="canvas-guide-datum" x1="74" y1="80" x2="86" y2="80" stroke="#d9480f" pointer-events="none" />
+    <line class="canvas-guide-datum" x1="80" y1="74" x2="80" y2="86" stroke="#d9480f" pointer-events="none" />
+    <text class="canvas-guide-label" x="88" y="72" pointer-events="none">Origin point</text>
+    <line class="canvas-guide-dimension" x1="80" y1="80" x2="600" y2="80" stroke="#ff7a00" pointer-events="none" />
+    <text class="canvas-guide-label" x="340" y="74" text-anchor="middle" pointer-events="none">260 px</text>
+    <circle class="canvas-guide-mark" cx="80" cy="80" r="4" fill="#c92a2a" pointer-events="none" />
+    <line class="canvas-guide-mark" x1="72" y1="80" x2="88" y2="80" stroke="#c92a2a" pointer-events="none" />
+    <line class="canvas-guide-mark" x1="80" y1="72" x2="80" y2="88" stroke="#c92a2a" pointer-events="none" />
+    <text class="canvas-guide-label" x="88" y="94" pointer-events="none">Origin</text>
+  </g>
+</svg>
+</div>
+    </section>
+    <aside>
+      <h2>Inspector</h2>
+      <dl>
+        <dt>Attached owner</dt><dd>guide-overlay-reference-image</dd>
+        <dt>Guide id</dt><dd>guide-overlay-fixture</dd>
+        <dt>Visible</dt><dd>yes</dd>
+        <dt>Opacity</dt><dd>0.82</dd>
+        <dt>Regions</dt><dd>1</dd>
+        <dt>Datums</dt><dd>3</dd>
+        <dt>Dimensions</dt><dd>1</dd>
+        <dt>Alignment marks</dt><dd>1</dd>
+      </dl>
+    </aside>
+  </main>
+</body>
+</html>

@@ -2,6 +2,11 @@ import { summarizeScene } from "./sceneSummary";
 import { alignObjectByGuideMarks, type CanvasCommand } from "./sceneCommands";
 import type { CanvasDocument, ImageObject, SpriteSidecarObject } from "./sceneModel";
 import type { CanvasExportArtifact, CanvasExportCart, CanvasExportPreset } from "./exportCart";
+import {
+  getCoordinateProfile,
+  visualDirectionDelta,
+  type CanvasVisualDirection,
+} from "./coordinateProfiles";
 import { resolveGuideAlignmentMarks } from "./guideAlignment";
 import {
   findDatumSnapTargetsForSpriteFrame,
@@ -9,7 +14,7 @@ import {
 } from "./spriteGuideDatums";
 
 const CANVAS_TERMINAL_HELP =
-  "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], list-alignment-marks, align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>, align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear";
+  "help, summary, select <objectId>, select-frame|sf <sidecarId> <frameId>, nudge-frame|nudge <dx> <dy>, nudge-frame <up|down|left|right> [amount], set-frame-rect <x> <y> <w> <h>, clamp-frame [sidecarId] [frameId], list-datums, snap-frame <anchor> [datumId], snap-frame-nearest [anchor], list-alignment-marks, align-by-mark <sourceObjectId> <sourceMarkId> <targetObjectId> <targetMarkId>, align-selected-by-mark <sourceMarkId> <targetObjectId> <targetMarkId>, overlay-mode|sprite-mode|mode <focus|cutEdit|gridEdit|audit|debug>, toggle-sprite-overlay, toggle-sprite-labels, toggle-selected-only, export-summary, export-preset <presetId>, export-select <artifactId>, export-unselect <artifactId>, export-checkout, checkpoint [message...], clear";
 
 export type CanvasTerminalLogEntry = {
   readonly kind: "info" | "success" | "error";
@@ -100,6 +105,10 @@ function isDatumAnchor(value: string | undefined): value is SpriteFrameDatumAnch
   return ["left", "right", "centerX", "top", "bottom", "centerY"].includes(value ?? "");
 }
 
+function isVisualDirection(value: string | undefined): value is CanvasVisualDirection {
+  return ["up", "down", "left", "right"].includes(value ?? "");
+}
+
 function getExportSummary(context: CanvasTerminalCommandContext) {
   const { document, exportArtifacts, exportCart, exportPresets } = context;
   const spriteSidecars = Object.values(document.objects).filter(
@@ -175,8 +184,14 @@ export function executeCanvasTerminalCommand(
     if (commandName === "nudge-frame" || commandName === "nudge") {
       const selected = getSelectedFrameSidecar(context.document);
       if (!selected) throw new Error("Select a sprite sidecar frame first.");
-      const dx = parseIntNumber(tokens[1], "dx");
-      const dy = parseIntNumber(tokens[2], "dy");
+      const profile = getCoordinateProfile(context.document.coordinateProfileId);
+      const [dx, dy] = isVisualDirection(tokens[1])
+        ? visualDirectionDelta({
+            direction: tokens[1],
+            amount: parseIntNumber(tokens[2] ?? "1", "amount"),
+            profile,
+          })
+        : [parseIntNumber(tokens[1], "dx"), parseIntNumber(tokens[2], "dy")];
       return {
         commands: [
           {

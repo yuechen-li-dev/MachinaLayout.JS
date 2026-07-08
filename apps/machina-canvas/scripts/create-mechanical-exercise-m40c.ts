@@ -372,14 +372,14 @@ function createClosedCirclePath(cx: number, cy: number, radius: number): string 
     radius,
     startAngleDeg: 180,
     endAngleDeg: 0,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   const lowerArc = createArcFromCenterRadius({
     center: [cx, cy],
     radius,
     startAngleDeg: 0,
     endAngleDeg: 180,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   if (upperArc.kind !== "ok" || lowerArc.kind !== "ok") {
     throw new Error(upperArc.error ?? lowerArc.error ?? "Failed to create circle path.");

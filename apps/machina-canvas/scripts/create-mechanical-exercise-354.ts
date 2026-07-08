@@ -31,6 +31,9 @@ export const MECHANICAL_EXERCISE_354_ARTIFACT_PATHS = {
   svg: join(artifactsDir, "mechanical-exercise-354.render.svg"),
   preview: join(artifactsDir, "mechanical-exercise-354.preview.png"),
   report: join(artifactsDir, "mechanical-exercise-354.dogfood-report.md"),
+  arcRegressionReport: join(artifactsDir, "arc-orientation-regression-report.md"),
+  arcFixtureSvg: join(artifactsDir, "arc-orientation-fixture.svg"),
+  arcFixturePreview: join(artifactsDir, "arc-orientation-fixture.png"),
 } as const;
 
 type PathInput = {
@@ -128,14 +131,14 @@ function createClosedCirclePath(cx: number, cy: number, radius: number): string 
     radius,
     startAngleDeg: 180,
     endAngleDeg: 0,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   const lowerArc = createArcFromCenterRadius({
     center: [cx, cy],
     radius,
     startAngleDeg: 0,
     endAngleDeg: 180,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   if (upperArc.kind !== "ok" || lowerArc.kind !== "ok") {
     throw new Error(upperArc.error ?? lowerArc.error ?? "Failed to create circle path.");
@@ -148,7 +151,8 @@ const rightArmArc = createArcFromCenterRadius({
   radius: 20,
   startAngleDeg: 90,
   endAngleDeg: -90,
-  sweep: "clockwise",
+  // Right arm end cap should bulge outward to the right side of its center.
+  sweep: "counterclockwise",
 });
 const neckArc = createArcFromThreePoints({
   start: [126, 58],
@@ -184,14 +188,16 @@ const slotVoidPath = (() => {
     radius: 10,
     startAngleDeg: -90,
     endAngleDeg: 90,
-    sweep: "counterclockwise",
+    // Slot right cap bulges outward to the right.
+    sweep: "clockwise",
   });
   const leftArc = createArcFromCenterRadius({
     center: [159, 78],
     radius: 10,
     startAngleDeg: 90,
     endAngleDeg: 270,
-    sweep: "counterclockwise",
+    // Slot left cap bulges outward to the left.
+    sweep: "clockwise",
   });
   if (rightArc.kind !== "ok" || leftArc.kind !== "ok") {
     throw new Error(rightArc.error ?? leftArc.error ?? "Failed to create slot path.");
@@ -625,27 +631,158 @@ The generator writes the scene JSON, rendered SVG, preview PNG, and this dogfood
 `;
 }
 
-export function writeMechanicalExercise354Artifacts(): readonly string[] {
-  mkdirSync(artifactsDir, { recursive: true });
-  const uploadedReferencePath = uploadedReferencePaths.find((path) => existsSync(path));
-  if (uploadedReferencePath) {
-    copyFileSync(uploadedReferencePath, MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.reference);
+export function createArcOrientationRegressionReport(): string {
+  return `# Arc Orientation Regression Report
+
+## What broke
+
+M40b replaced several handwritten Exercise 354 arc strings with reusable arc helpers. The generated SVG paths could then select the opposite side of a chord: right-arm arcs bent inward, rounded slot caps faced the wrong way, and circular void halves could choose the wrong semicircle.
+
+## Root cause
+
+The helpers emitted SVG arc \`sweepFlag\` as if \`clockwise\` meant SVG/canvas visual clockwise, but their internal sweep delta and three-point inclusion logic treated increasing \`atan2\` as counterclockwise. In SVG/canvas coordinates, +x points right and +y points down, so increasing the angle moves visually clockwise.
+
+## Helpers fixed
+
+- \`createArcFromThreePoints\` now chooses the sweep that actually contains the through point in SVG/canvas y-down coordinates.
+- \`createArcFromCenterRadius\` and \`createArcFromCenterStartEnd\` now compute large-arc selection with the same visual sweep convention used by SVG lowering.
+- \`createTangentArcBetweenLines\` now maps local cross-product orientation into the corrected visual sweep convention.
+- \`sampleArcResult\` provides a numeric regression check for midpoint and side-of-arc assertions.
+
+## Exercise 354 impact
+
+- Rounded slot caps now bulge outward: the right cap to the right and the left cap to the left.
+- The right-arm end arc now bulges outward instead of cutting inward.
+- Circular void subpaths now use upper and lower semicircle sweeps explicitly.
+- The blockout lower arc cue continues to lower through its intended guide-side point.
+
+## Coordinate convention
+
+MachinaCanvas arc helpers use SVG/canvas coordinates: +x right, +y down.
+
+ArcSweep values describe visual clockwise/counterclockwise motion in that y-down coordinate system.
+
+## Visual evidence
+
+- \`apps/machina-canvas/artifacts/mechanical-exercise-354.render.svg\`
+- \`apps/machina-canvas/artifacts/mechanical-exercise-354.preview.png\`
+- \`apps/machina-canvas/artifacts/mechanical-exercise-354-blockout.render.svg\`
+- \`apps/machina-canvas/artifacts/mechanical-exercise-354-blockout.preview.png\`
+- \`apps/machina-canvas/artifacts/arc-orientation-fixture.svg\`
+- \`apps/machina-canvas/artifacts/arc-orientation-fixture.png\`
+
+## Remaining caveats
+
+Exercise 354 remains a hand-authored approximation rather than solved CAD. Unsupported tangent-reference combinations still return explicit errors instead of guessing.
+`;
+}
+
+function createArcOrientationFixtureSvg(): string {
+  const fixtures = [
+    {
+      id: "clockwise-quarter",
+      label: "clockwise quarter",
+      labelAt: [48, 92],
+      arc: createArcFromCenterRadius({
+        center: [45, 45],
+        radius: 25,
+        startAngleDeg: 0,
+        endAngleDeg: 90,
+        sweep: "clockwise",
+      }),
+    },
+    {
+      id: "counterclockwise-quarter",
+      label: "counterclockwise quarter",
+      labelAt: [135, 92],
+      arc: createArcFromCenterRadius({
+        center: [125, 45],
+        radius: 25,
+        startAngleDeg: 0,
+        endAngleDeg: -90,
+        sweep: "counterclockwise",
+      }),
+    },
+    {
+      id: "upper-semicircle",
+      label: "upper semicircle",
+      labelAt: [230, 92],
+      arc: createArcFromCenterRadius({
+        center: [215, 55],
+        radius: 30,
+        startAngleDeg: 180,
+        endAngleDeg: 0,
+        sweep: "clockwise",
+      }),
+    },
+    {
+      id: "lower-semicircle",
+      label: "lower semicircle",
+      labelAt: [330, 92],
+      arc: createArcFromCenterRadius({
+        center: [305, 55],
+        radius: 30,
+        startAngleDeg: 0,
+        endAngleDeg: 180,
+        sweep: "clockwise",
+      }),
+    },
+    {
+      id: "slot-right-cap",
+      label: "slot right cap",
+      labelAt: [255, 210],
+      arc: createArcFromCenterRadius({
+        center: [235, 145],
+        radius: 25,
+        startAngleDeg: -90,
+        endAngleDeg: 90,
+        sweep: "clockwise",
+      }),
+    },
+    {
+      id: "slot-left-cap",
+      label: "slot left cap",
+      labelAt: [125, 210],
+      arc: createArcFromCenterRadius({
+        center: [145, 145],
+        radius: 25,
+        startAngleDeg: 90,
+        endAngleDeg: 270,
+        sweep: "clockwise",
+      }),
+    },
+  ] as const;
+  for (const fixture of fixtures) {
+    if (fixture.arc.kind !== "ok") {
+      throw new Error(fixture.arc.error ?? `Failed to create ${fixture.id}.`);
+    }
   }
-  const scene = createMechanicalExercise354Scene();
-  const sceneJson = `${JSON.stringify(scene, null, 2)}\n`;
-  const svg = serializeCanvasRenderSvg(scene);
-  const report = createMechanicalExercise354DogfoodReport();
-  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.scene, sceneJson, "utf8");
-  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.svg, svg, "utf8");
-  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.report, report, "utf8");
+  const pathLines = fixtures.map(
+    (fixture) =>
+      `  <path id="${fixture.id}" d="${fixture.arc.path}" fill="none" stroke="#1c2430" stroke-width="2.5" />`,
+  );
+  const labelLines = fixtures.map((fixture) => {
+    return `  <text x="${fixture.labelAt[0]}" y="${fixture.labelAt[1]}" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">${fixture.label}</text>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="390" height="225" viewBox="0 0 390 225">
+  <rect x="0" y="0" width="390" height="225" fill="#ffffff" />
+  <text x="12" y="18" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#1c2430">MachinaCanvas arc orientation fixture (+x right, +y down)</text>
+  <path d="M 145 120 L 235 120 M 235 170 L 145 170" fill="none" stroke="#9aa4b2" stroke-width="1.5" stroke-dasharray="4 3" />
+${pathLines.join("\n")}
+${labelLines.join("\n")}
+</svg>
+`;
+}
+
+function renderPng(svgPath: string, pngPath: string, width: number, height: number) {
   const previewResult = spawnSync(
     inkscapeBin,
     [
-      MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.svg,
+      svgPath,
       "--export-type=png",
-      `--export-filename=${MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.preview}`,
-      "--export-width=1485",
-      "--export-height=1050",
+      `--export-filename=${pngPath}`,
+      `--export-width=${width}`,
+      `--export-height=${height}`,
       "--export-background=#ffffff",
       "--export-background-opacity=1",
     ],
@@ -657,8 +794,39 @@ export function writeMechanicalExercise354Artifacts(): readonly string[] {
   if (previewResult.status !== 0) {
     const stderr = previewResult.stderr?.toString().trim();
     const message = previewResult.error?.message ?? stderr;
-    throw new Error(message || "Inkscape could not rasterize the Exercise 354 preview PNG.");
+    throw new Error(message || `Inkscape could not rasterize ${pngPath}.`);
   }
+}
+
+export function writeMechanicalExercise354Artifacts(): readonly string[] {
+  mkdirSync(artifactsDir, { recursive: true });
+  const uploadedReferencePath = uploadedReferencePaths.find((path) => existsSync(path));
+  if (uploadedReferencePath) {
+    copyFileSync(uploadedReferencePath, MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.reference);
+  }
+  const scene = createMechanicalExercise354Scene();
+  const sceneJson = `${JSON.stringify(scene, null, 2)}\n`;
+  const svg = serializeCanvasRenderSvg(scene);
+  const report = createMechanicalExercise354DogfoodReport();
+  const arcReport = createArcOrientationRegressionReport();
+  const arcFixture = createArcOrientationFixtureSvg();
+  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.scene, sceneJson, "utf8");
+  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.svg, svg, "utf8");
+  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.report, report, "utf8");
+  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcRegressionReport, arcReport, "utf8");
+  writeFileSync(MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcFixtureSvg, arcFixture, "utf8");
+  renderPng(
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.svg,
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.preview,
+    1485,
+    1050,
+  );
+  renderPng(
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcFixtureSvg,
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcFixturePreview,
+    720,
+    380,
+  );
   const formatResult = spawnSync(
     process.execPath,
     [biomeBin, "format", "--write", MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.scene],
@@ -677,6 +845,9 @@ export function writeMechanicalExercise354Artifacts(): readonly string[] {
     MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.svg,
     MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.preview,
     MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.report,
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcRegressionReport,
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcFixtureSvg,
+    MECHANICAL_EXERCISE_354_ARTIFACT_PATHS.arcFixturePreview,
   ];
 }
 

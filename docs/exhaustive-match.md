@@ -32,6 +32,15 @@ matchEnum<Mode, string>(mode, {
 
 At runtime, a missing case throws `MatchEnumError` with `code: "MissingEnumCase"`. Handler errors are not swallowed.
 
+If you want an explicit default arm instead of full exhaustiveness, add `_`:
+
+```ts
+const label = matchEnum(mode, {
+  collapsed: () => "Collapsed",
+  _: (value) => `Fallback:${value}`,
+});
+```
+
 ## Payload union matching
 
 Use `matchKind` for `{ kind: ... }` payload unions where the handler needs the narrowed payload.
@@ -50,6 +59,17 @@ const text = matchKind(result, {
 ```
 
 Adding a new union member requires adding a new handler. The cases are exhaustive over the discriminant values in the union.
+
+If a caller only cares about one or two arms, add `_` as an explicit fallback:
+
+```ts
+const text = matchKind(result, {
+  ok: (value) => `value ${value.value}`,
+  _: (value) => `fallback:${value.kind}`,
+});
+```
+
+Omitting `_` keeps the current exhaustive TypeScript behavior.
 
 ## `matchDiscriminated`
 

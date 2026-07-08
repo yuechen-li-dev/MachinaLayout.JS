@@ -33,6 +33,8 @@ defineDeusMachine({
 
 Hierarchy comes from stack paths such as `debugOverlay/nonInteractiveOverlay`, not from nested authoring syntax.
 
+Ancestor prefixes of declared child states are also valid shared transition owners even when you do not author an empty parent state row. If `["setup", "step1"]` and `["setup", "step2"]` exist, a transition from `["setup"]` is valid. Typos are still rejected because only real prefixes of declared states are synthesized.
+
 Transition arrays are also table-shaped data. If you want an explicit columnar authoring surface, author them in `machinalayout/table` and lower them with `transitionsFromTable`:
 
 ```ts
@@ -105,6 +107,13 @@ const pendingResults = Table.defineWithSchema({
 const transitions = Deus.pendingResultTransitionsFromTable(pendingResults);
 ```
 
+Typed machine seams can keep the bridge precise:
+
+```ts
+const transitions =
+  Deus.pendingResultTransitionsFromTable<SetupBoard, SetupEvent>(pendingResults);
+```
+
 If you want the generic bridge explicitly:
 
 ```ts
@@ -159,7 +168,16 @@ All gathered eligible candidates compete by score regardless of depth. Highest s
 
 If no transition is selected, state and board reference are unchanged, but `stepIndex` increments because a step occurred. If a selected transition has no `to`, state remains the same. Same-state transitions do not run exit or enter hooks.
 
-Dynamic `to` functions are validated at runtime. They must return a valid path that exists in the machine.
+Dynamic `to` functions are validated at runtime. They may return `undefined` to stay in the current state, or return a valid path that exists in the machine.
+
+```ts
+{
+  key: "booking.selectDate",
+  from: ["booking"],
+  event: "selectDate",
+  to: (board) => (board.live ? ["booking", "live"] : undefined),
+}
+```
 
 ## Hierarchical transition fallback
 
@@ -252,6 +270,16 @@ All bindings return the current `snapshot`, `board`, `state`, `dispatch`, `lastT
 Define machines outside render/setup when possible. The React and React Native hooks reset the snapshot when the `machine` reference changes; the Vue composable expects a stable machine input.
 
 `reset()` recreates the snapshot with `stepIndex: 0` and clears `lastTrace`. Pass a board value or factory to reset to that board; omit the argument to reuse the original initial board/factory.
+
+All bindings also accept an optional third argument for initial hydration parity with `createDeusSnapshot`:
+
+```ts
+const debug = useDeusMachine(debugMachine, createBoard, {
+  initialState: ["debugOverlay", "interactivePanel"],
+});
+```
+
+`initialState` is applied only when the hook/composable creates a fresh snapshot. It does not force the machine back to that state on every rerender.
 
 ### React debug overlay example
 

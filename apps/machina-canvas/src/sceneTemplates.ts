@@ -1,5 +1,6 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import { createCanvasUnitSystem } from "./canvasUnits";
+import { DRAFTING_COORDINATES, IMAGE_COORDINATES, SCREEN_COORDINATES } from "./coordinateProfiles";
 import {
   createDefaultMechanicalSheetMetadata,
   createLinearDimensionFromGeometryRefs,
@@ -411,6 +412,7 @@ export function createBlankCanvasScene(): CanvasDocument {
     height: 640,
     unit: "px",
     unitSystem: createCanvasUnitSystem("px"),
+    coordinateProfileId: SCREEN_COORDINATES.id,
     referenceGrid: {
       columns: 6,
       rows: 4,
@@ -440,28 +442,34 @@ export function createBlankCanvasScene(): CanvasDocument {
 
 export function createGraphicsDemoScene(): CanvasDocument {
   const document = createInitialCanvasDocument();
-  return pickObjects(document, (object) => object.kind !== "uiComponent", {
-    id: "graphics-demo",
-    name: "Graphics Editing Demo",
-    selectedObjectId: "headline",
-  });
+  return {
+    ...pickObjects(document, (object) => object.kind !== "uiComponent", {
+      id: "graphics-demo",
+      name: "Graphics Editing Demo",
+      selectedObjectId: "headline",
+    }),
+    coordinateProfileId: SCREEN_COORDINATES.id,
+  };
 }
 
 export function createWebUiDemoScene(): CanvasDocument {
   const document = createInitialCanvasDocument();
-  return pickObjects(
-    document,
-    (object) =>
-      object.kind === "uiComponent" ||
-      object.id === "poster-bg" ||
-      object.id === "logo" ||
-      object.id === "headline",
-    {
-      id: "web-ui-demo",
-      name: "Web UI Editing Demo",
-      selectedObjectId: "ui-hero-card",
-    },
-  );
+  return {
+    ...pickObjects(
+      document,
+      (object) =>
+        object.kind === "uiComponent" ||
+        object.id === "poster-bg" ||
+        object.id === "logo" ||
+        object.id === "headline",
+      {
+        id: "web-ui-demo",
+        name: "Web UI Editing Demo",
+        selectedObjectId: "ui-hero-card",
+      },
+    ),
+    coordinateProfileId: SCREEN_COORDINATES.id,
+  };
 }
 
 export function createSpriteSheetScene(): CanvasDocument {
@@ -505,6 +513,7 @@ export function createSpriteSheetScene(): CanvasDocument {
     height: 640,
     unit: "px",
     unitSystem: createCanvasUnitSystem("px"),
+    coordinateProfileId: IMAGE_COORDINATES.id,
     referenceGrid: {
       columns: 12,
       rows: 8,
@@ -627,6 +636,7 @@ export function createMechanicalDraftingScene(): CanvasDocument {
     height: sheetHeight,
     unit: "mm",
     unitSystem: createCanvasUnitSystem("mm"),
+    coordinateProfileId: DRAFTING_COORDINATES.id,
     layers: [{ id: "geometry", name: "Geometry", visible: true, objectIds: [plate.id, hole.id] }],
     objects: { [plate.id]: plate, [hole.id]: hole },
   };
@@ -757,6 +767,7 @@ export function createMechanicalDraftingScene(): CanvasDocument {
     height: sheetHeight,
     unit: "mm",
     unitSystem: createCanvasUnitSystem("mm"),
+    coordinateProfileId: DRAFTING_COORDINATES.id,
     referenceGrid: {
       columns: 6,
       rows: 4,

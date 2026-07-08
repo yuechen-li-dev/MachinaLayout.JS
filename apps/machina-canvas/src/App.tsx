@@ -201,6 +201,11 @@ import {
   getCanvasUiComponentDefinition,
   type CanvasUiPropDefinition,
 } from "./uiComponents/catalog";
+import {
+  formatCoordinateProfileSummary,
+  getCoordinateProfile,
+  visualDirectionDelta,
+} from "./coordinateProfiles";
 
 const MIN_WIDTH = 760;
 const MIN_HEIGHT = 640;
@@ -2270,6 +2275,7 @@ function CanvasPanel(props: MachinaSlotProps) {
     { sidecarId: string; frameId: string } | undefined
   >();
   const selected = getSelectedObject(document);
+  const coordinateProfile = getCoordinateProfile(document.coordinateProfileId);
   const selectedSpriteFrame = getSelectedSpriteFrameState(document, selected);
   const selectedGuideRegionContext = getSelectedSpriteFrameGuideRegionContext(document, selected);
   const selectedDatumTargets = getSelectedSpriteFrameDatumTargets(document, selected, {
@@ -2459,25 +2465,30 @@ function CanvasPanel(props: MachinaSlotProps) {
       const step = event.shiftKey ? 10 : 1;
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
       event.preventDefault();
-      const delta =
+      const [dx, dy] =
         event.key === "ArrowLeft"
-          ? { dx: -step, dy: 0 }
+          ? visualDirectionDelta({ direction: "left", amount: step, profile: coordinateProfile })
           : event.key === "ArrowRight"
-            ? { dx: step, dy: 0 }
+            ? visualDirectionDelta({ direction: "right", amount: step, profile: coordinateProfile })
             : event.key === "ArrowUp"
-              ? { dx: 0, dy: -step }
-              : { dx: 0, dy: step };
+              ? visualDirectionDelta({ direction: "up", amount: step, profile: coordinateProfile })
+              : visualDirectionDelta({
+                  direction: "down",
+                  amount: step,
+                  profile: coordinateProfile,
+                });
       runCommand({
         kind: "nudgeSpriteFrame",
         sidecarId: selected.id,
         frameId: selected.spec.selectedFrameId,
-        ...delta,
+        dx,
+        dy,
       });
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [document, runCommand]);
+  }, [coordinateProfile, document, runCommand]);
 
   const beginFrameDrag = useCallback(
     (
@@ -2528,7 +2539,10 @@ function CanvasPanel(props: MachinaSlotProps) {
           <h1>{document.name}</h1>
           <small>{activeMode.subtitle}</small>
         </div>
-        <span>{formatDocumentSize(document)}</span>
+        <span>
+          {formatDocumentSize(document)} · Coordinates:{" "}
+          {formatCoordinateProfileSummary(coordinateProfile)}
+        </span>
       </div>
       <div className="artboard-wrap">
         <svg
@@ -3821,6 +3835,7 @@ function SelectedSpriteFrameSection({
   sidecar,
   frame,
   image,
+  coordinateProfile,
   guideRegionContext,
   datumTargets,
   hasGuideSidecars,
@@ -3832,6 +3847,7 @@ function SelectedSpriteFrameSection({
   sidecar: SpriteSidecarObject;
   frame: CanvasSpriteFrame;
   image?: ImageObject;
+  coordinateProfile: ReturnType<typeof getCoordinateProfile>;
   guideRegionContext?: SpriteFrameGuideRegionContext;
   datumTargets: readonly SpriteFrameDatumSnapTarget[];
   hasGuideSidecars: boolean;
@@ -3919,6 +3935,7 @@ function SelectedSpriteFrameSection({
         )}
       </div>
       <Field label="Frame ID" value={frame.id} />
+      <Field label="Coordinates" value={formatCoordinateProfileSummary(coordinateProfile)} />
       <Field label="Label" value={frame.label} />
       <Field label="Source" value={getSpriteFrameSourceKind(frame)} />
       <Field label="Parent grid" value={frame.sourceGridId ?? "none"} />
@@ -3964,13 +3981,13 @@ function SelectedSpriteFrameSection({
         />
       ) : null}
       <NumberField
-        label="X"
+        label="Image X"
         min={0}
         onChange={(x) => updateRect({ x, y: frame.y, width: frame.width, height: frame.height })}
         value={frame.x}
       />
       <NumberField
-        label="Y"
+        label="Image Y from top"
         min={0}
         onChange={(y) => updateRect({ x: frame.x, y, width: frame.width, height: frame.height })}
         value={frame.y}
@@ -4134,57 +4151,77 @@ function SelectedSpriteFrameSection({
       ) : null}
       <div className="command-row sprite-edit-buttons">
         <button
-          onClick={(event) =>
+          onClick={(event) => {
+            const [dx, dy] = visualDirectionDelta({
+              direction: "left",
+              amount: event.shiftKey ? 10 : 1,
+              profile: coordinateProfile,
+            });
             runCommand({
               kind: "nudgeSpriteFrame",
               sidecarId: sidecar.id,
               frameId: frame.id,
-              dx: event.shiftKey ? -10 : -1,
-              dy: 0,
-            })
-          }
+              dx,
+              dy,
+            });
+          }}
           type="button"
         >
           Nudge Left
         </button>
         <button
-          onClick={(event) =>
+          onClick={(event) => {
+            const [dx, dy] = visualDirectionDelta({
+              direction: "right",
+              amount: event.shiftKey ? 10 : 1,
+              profile: coordinateProfile,
+            });
             runCommand({
               kind: "nudgeSpriteFrame",
               sidecarId: sidecar.id,
               frameId: frame.id,
-              dx: event.shiftKey ? 10 : 1,
-              dy: 0,
-            })
-          }
+              dx,
+              dy,
+            });
+          }}
           type="button"
         >
           Nudge Right
         </button>
         <button
-          onClick={(event) =>
+          onClick={(event) => {
+            const [dx, dy] = visualDirectionDelta({
+              direction: "up",
+              amount: event.shiftKey ? 10 : 1,
+              profile: coordinateProfile,
+            });
             runCommand({
               kind: "nudgeSpriteFrame",
               sidecarId: sidecar.id,
               frameId: frame.id,
-              dx: 0,
-              dy: event.shiftKey ? -10 : -1,
-            })
-          }
+              dx,
+              dy,
+            });
+          }}
           type="button"
         >
           Nudge Up
         </button>
         <button
-          onClick={(event) =>
+          onClick={(event) => {
+            const [dx, dy] = visualDirectionDelta({
+              direction: "down",
+              amount: event.shiftKey ? 10 : 1,
+              profile: coordinateProfile,
+            });
             runCommand({
               kind: "nudgeSpriteFrame",
               sidecarId: sidecar.id,
               frameId: frame.id,
-              dx: 0,
-              dy: event.shiftKey ? 10 : 1,
-            })
-          }
+              dx,
+              dy,
+            });
+          }}
           type="button"
         >
           Nudge Down
@@ -4495,6 +4532,7 @@ function Inspector(props: MachinaSlotProps) {
   const selected = getSelectedObject(document);
   const layer = getObjectLayer(document, selected);
   const unitSystem = getCanvasUnitSystem(document);
+  const coordinateProfile = getCoordinateProfile(document.coordinateProfileId);
   const measurements = getSelectedObjectMeasurements(document);
   const showGeometryTools = isToolGroupVisible("geometry");
   const showImageTools = isToolGroupVisible("image") || isToolGroupVisible("sprite");
@@ -4555,6 +4593,7 @@ function Inspector(props: MachinaSlotProps) {
           >
             <Field label="ID" value={document.id} />
             <Field label="Size" value={formatDocumentSize(document)} />
+            <Field label="Coordinates" value={formatCoordinateProfileSummary(coordinateProfile)} />
             <Field label="Unit" value={unitSystem.label} />
             <Field label="Pixels/unit" value={unitSystem.pixelsPerUnit} />
             <Field label="Layers" value={document.layers.length} />
@@ -4665,6 +4704,7 @@ function Inspector(props: MachinaSlotProps) {
             </button>
           </div>
           <Field label="Kind" value={objectKindLabels[selected.kind]} />
+          <Field label="Coordinates" value={formatCoordinateProfileSummary(coordinateProfile)} />
           <Field label="Layer" value={layer?.name ?? selected.layerId} />
           <Field label="Intent" value={formatFrameIntent(selected.frame)} />
           {selected.kind === "image" ? (
@@ -4716,6 +4756,10 @@ function Inspector(props: MachinaSlotProps) {
                 return (
                   <>
                     <Field label="Target" value={selected.targetObjectId ?? "canvas"} />
+                    <Field
+                      label="Coordinates"
+                      value={formatCoordinateProfileSummary(coordinateProfile)}
+                    />
                     <Field label="Sheet" value={summary.sheetTarget} />
                     <Field label="Size" value={summary.sheetSizeLabel} />
                     <Field label="Print margin" value={summary.printMarginLabel} />
@@ -4747,6 +4791,7 @@ function Inspector(props: MachinaSlotProps) {
           title="Selected sprite frame"
         >
           <SelectedSpriteFrameSection
+            coordinateProfile={coordinateProfile}
             datumTargets={selectedDatumTargets}
             frame={selectedSpriteFrame.frame}
             guideRegionContext={selectedGuideRegionContext}
@@ -5032,7 +5077,7 @@ function Inspector(props: MachinaSlotProps) {
           key={`${inspectorContextKey}:guide-sidecar`}
           onOpenChange={(open) => setAccordionOpen("sprite-sidecar", open)}
           open={accordionState["sprite-sidecar"]}
-          subtitle={`${selected.guide.regions.length} regions`}
+          subtitle={`${selected.guide.regions.length} regions · ${selected.guide.datums.length} datums · ${selected.guide.dimensions.length} dimensions · ${selected.guide.alignmentMarks.length} marks`}
           title="Guide sidecar"
         >
           {(() => {
@@ -5053,7 +5098,7 @@ function Inspector(props: MachinaSlotProps) {
             ];
             return (
               <>
-                <Field label="Target image" value={selected.targetId ?? "unattached"} />
+                <Field label="Attached owner" value={selected.targetId ?? "unattached"} />
                 <Field label="Visible" value={selected.visible ? "yes" : "no"} />
                 <Field label="Opacity" value={String(selected.opacity ?? 0.9)} />
                 <Field label="Units" value={selected.guide.units} />
@@ -5607,6 +5652,7 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
   );
   const summaryObjects = objects.length > 0 ? objects : Object.values(document.objects).slice(0, 5);
   const recentLog = commandLog.slice(0, 3);
+  const coordinateProfile = getCoordinateProfile(document.coordinateProfileId);
 
   return (
     <section className="scene-summary panel">
@@ -5614,6 +5660,9 @@ function SceneSummaryShelf(props: MachinaSlotProps) {
         <p className="summary-text">{summarizeScene(document)}</p>
         <p className="summary-text viewport-summary-text">
           {summarizeViewport(document, viewport)}
+        </p>
+        <p className="summary-text viewport-summary-text">
+          Coordinates: {formatCoordinateProfileSummary(coordinateProfile)}
         </p>
         <div className="object-card-row">
           {summaryObjects.map((object) => (

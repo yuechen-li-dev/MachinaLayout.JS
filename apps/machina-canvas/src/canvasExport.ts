@@ -2,6 +2,7 @@ import type { CanvasCommand } from "./sceneCommands";
 import type { GeometryDiagnostic } from "./sceneGeometry";
 import { createArcFromThreePoints } from "./arcGeometry";
 import { getCanvasUnitSystem } from "./canvasUnits";
+import { getCoordinateProfile } from "./coordinateProfiles";
 import type { CanvasViewport, CanvasViewportFocus } from "./canvasViewport";
 import type {
   BlockoutSidecarObject,
@@ -463,6 +464,7 @@ export function serializeCanvasDocumentJson(document: CanvasDocument): string {
         height: document.height,
         unit: getCanvasUnitSystem(document).unit,
         unitSystem: getUnitSystemMetadata(document),
+        coordinateProfile: getCoordinateProfile(document.coordinateProfileId),
       },
       referenceGrid: getReferenceGridMetadata(document),
       layers: document.layers.map((layer) => ({
@@ -1617,8 +1619,10 @@ function serializeResolvedGuideSidecar(
     x: object.x + x * scaleX,
     y: object.y + y * scaleY,
   });
+  const opacity = guideObject.opacity ?? 0.9;
+  const showLabels = guideObject.showLabels ?? true;
   const lines = [
-    `  <g class="canvas-guide-overlay" data-canvas-object-id="${quoteXmlAttribute(guideObject.id)}" data-canvas-kind="guideSidecar" data-canvas-name="${quoteXmlAttribute(guideObject.name)}">`,
+    `  <g class="canvas-guide-overlay" data-canvas-object-id="${quoteXmlAttribute(guideObject.id)}" data-canvas-kind="guideSidecar" data-canvas-name="${quoteXmlAttribute(guideObject.name)}" opacity="${opacity}">`,
   ];
   for (const region of guideObject.guide.regions) {
     const origin = mapPoint(region.x, region.y);
@@ -1633,25 +1637,29 @@ function serializeResolvedGuideSidecar(
       `    <rect class="canvas-guide-region${
         isSelectedContextRegion ? " guide-region--selected-context" : ""
       }${isWarningRegion ? " guide-region--warning" : ""}" data-canvas-guide-region-id="${quoteXmlAttribute(region.id)}" x="${origin.x}" y="${origin.y}" width="${width}" height="${height}" fill="${
-        isSelectedContextRegion ? "rgba(13, 110, 253, 0.06)" : "rgba(13, 110, 253, 0.03)"
+        isSelectedContextRegion ? "rgba(255, 122, 0, 0.1)" : "rgba(233, 77, 26, 0.06)"
       }" stroke="${
-        isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#175bc9" : "#0d6efd"
+        isWarningRegion ? "#d64242" : isSelectedContextRegion ? "#ff7a00" : "#e94d1a"
       }" stroke-dasharray="${
         isWarningRegion ? "10 4" : isSelectedContextRegion ? "10 5" : "8 6"
       }" pointer-events="none" />`,
-      `    <text class="canvas-guide-label" x="${origin.x + 6}" y="${origin.y + 16}" pointer-events="none">${escapeXmlText(region.id)}</text>`,
     );
+    if (showLabels) {
+      lines.push(
+        `    <text class="canvas-guide-label" x="${origin.x + 6}" y="${origin.y + 16}" pointer-events="none">${escapeXmlText(region.id)}</text>`,
+      );
+    }
     if (region.grid) {
       for (let index = 0; index < region.grid.columns - 1; index += 1) {
         const x = origin.x + (index + 1) * region.grid.cellWidth * scaleX;
         lines.push(
-          `    <line class="canvas-guide-grid" x1="${x}" y1="${origin.y}" x2="${x}" y2="${origin.y + height}" stroke="#7aa7ff" pointer-events="none" />`,
+          `    <line class="canvas-guide-grid" x1="${x}" y1="${origin.y}" x2="${x}" y2="${origin.y + height}" stroke="#f58d61" pointer-events="none" />`,
         );
       }
       for (let index = 0; index < region.grid.rows - 1; index += 1) {
         const y = origin.y + (index + 1) * region.grid.cellHeight * scaleY;
         lines.push(
-          `    <line class="canvas-guide-grid" x1="${origin.x}" y1="${y}" x2="${origin.x + width}" y2="${y}" stroke="#7aa7ff" pointer-events="none" />`,
+          `    <line class="canvas-guide-grid" x1="${origin.x}" y1="${y}" x2="${origin.x + width}" y2="${y}" stroke="#f58d61" pointer-events="none" />`,
         );
       }
     }
@@ -1660,40 +1668,63 @@ function serializeResolvedGuideSidecar(
     if (datum.kind === "vertical") {
       const x = object.x + datum.x * scaleX;
       lines.push(
-        `    <line class="canvas-guide-datum" x1="${x}" y1="${object.y}" x2="${x}" y2="${object.y + object.height}" stroke="#28a745" pointer-events="none" />`,
+        `    <line class="canvas-guide-datum" x1="${x}" y1="${object.y}" x2="${x}" y2="${object.y + object.height}" stroke="#d9480f" pointer-events="none" />`,
       );
+      if (showLabels) {
+        lines.push(
+          `    <text class="canvas-guide-label" x="${x + 4}" y="${object.y + 14}" pointer-events="none">${escapeXmlText(datum.label ?? datum.id)}</text>`,
+        );
+      }
       continue;
     }
     if (datum.kind === "horizontal") {
       const y = object.y + datum.y * scaleY;
       lines.push(
-        `    <line class="canvas-guide-datum" x1="${object.x}" y1="${y}" x2="${object.x + object.width}" y2="${y}" stroke="#28a745" pointer-events="none" />`,
+        `    <line class="canvas-guide-datum" x1="${object.x}" y1="${y}" x2="${object.x + object.width}" y2="${y}" stroke="#d9480f" pointer-events="none" />`,
       );
+      if (showLabels) {
+        lines.push(
+          `    <text class="canvas-guide-label" x="${object.x + 6}" y="${y - 4}" pointer-events="none">${escapeXmlText(datum.label ?? datum.id)}</text>`,
+        );
+      }
       continue;
     }
     const point = mapPoint(datum.x, datum.y);
     lines.push(
-      `    <line class="canvas-guide-datum" x1="${point.x - 6}" y1="${point.y}" x2="${point.x + 6}" y2="${point.y}" stroke="#28a745" pointer-events="none" />`,
-      `    <line class="canvas-guide-datum" x1="${point.x}" y1="${point.y - 6}" x2="${point.x}" y2="${point.y + 6}" stroke="#28a745" pointer-events="none" />`,
+      `    <line class="canvas-guide-datum" x1="${point.x - 6}" y1="${point.y}" x2="${point.x + 6}" y2="${point.y}" stroke="#d9480f" pointer-events="none" />`,
+      `    <line class="canvas-guide-datum" x1="${point.x}" y1="${point.y - 6}" x2="${point.x}" y2="${point.y + 6}" stroke="#d9480f" pointer-events="none" />`,
     );
+    if (showLabels) {
+      lines.push(
+        `    <text class="canvas-guide-label" x="${point.x + 8}" y="${point.y - 8}" pointer-events="none">${escapeXmlText(datum.label ?? datum.id)}</text>`,
+      );
+    }
   }
   for (const dimension of guideObject.guide.dimensions) {
     if (dimension.kind !== "linear" || !dimension.from || !dimension.to) continue;
     const from = mapPoint(dimension.from[0], dimension.from[1]);
     const to = mapPoint(dimension.to[0], dimension.to[1]);
     lines.push(
-      `    <line class="canvas-guide-dimension" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#ff8c00" pointer-events="none" />`,
-      `    <text class="canvas-guide-label" x="${(from.x + to.x) / 2}" y="${(from.y + to.y) / 2 - 6}" text-anchor="middle" pointer-events="none">${escapeXmlText(dimension.label)}</text>`,
+      `    <line class="canvas-guide-dimension" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#ff7a00" pointer-events="none" />`,
     );
+    if (showLabels) {
+      lines.push(
+        `    <text class="canvas-guide-label" x="${(from.x + to.x) / 2}" y="${(from.y + to.y) / 2 - 6}" text-anchor="middle" pointer-events="none">${escapeXmlText(dimension.label)}</text>`,
+      );
+    }
   }
   for (const mark of guideObject.guide.alignmentMarks) {
     const point = mapPoint(mark.x, mark.y);
     lines.push(
-      `    <circle class="canvas-guide-mark" cx="${point.x}" cy="${point.y}" r="4" fill="#d63384" pointer-events="none" />`,
-      `    <line class="canvas-guide-mark" x1="${point.x - 8}" y1="${point.y}" x2="${point.x + 8}" y2="${point.y}" stroke="#d63384" pointer-events="none" />`,
-      `    <line class="canvas-guide-mark" x1="${point.x}" y1="${point.y - 8}" x2="${point.x}" y2="${point.y + 8}" stroke="#d63384" pointer-events="none" />`,
-      `    <text class="canvas-guide-label" x="${point.x + 8}" y="${point.y + 14}" pointer-events="none">${escapeXmlText(mark.label ?? mark.id)}</text>`,
+      `    <circle class="canvas-guide-mark" cx="${point.x}" cy="${point.y}" r="4" fill="#c92a2a" pointer-events="none" />`,
+      `    <line class="canvas-guide-mark" x1="${point.x - 8}" y1="${point.y}" x2="${point.x + 8}" y2="${point.y}" stroke="#c92a2a" pointer-events="none" />`,
+      `    <line class="canvas-guide-mark" x1="${point.x}" y1="${point.y - 8}" x2="${point.x}" y2="${point.y + 8}" stroke="#c92a2a" pointer-events="none" />`,
     );
+    if (showLabels) {
+      lines.push(
+        `    <text class="canvas-guide-label" x="${point.x + 8}" y="${point.y + 14}" pointer-events="none">${escapeXmlText(mark.label ?? mark.id)}</text>`,
+      );
+    }
   }
   lines.push("  </g>");
   return lines;

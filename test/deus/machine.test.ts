@@ -106,4 +106,65 @@ describe("Deus machine", () => {
     expect(result.snapshot.state).toEqual(root);
     expect(raw).toEqual({ initial: root, states: [{ path: root }], transitions: [] });
   });
+
+  it("accepts consistent implicit ancestor states for shared transitions", () => {
+    const machine = defineDeusMachine<Board, Event>({
+      initial: child,
+      states: [{ path: child }, { path: other }],
+      transitions: [{ key: "parent", from: root, event: "go", to: other }],
+    });
+
+    expect(machine.states.map((state) => state.path)).toEqual(
+      expect.arrayContaining([root, child]),
+    );
+    expect(
+      stepDeusMachine(machine, createDeusSnapshot(machine, { log: [] }), { type: "go" }).snapshot
+        .state,
+    ).toEqual(other);
+  });
+
+  it("still rejects undeclared non-prefix transition owners", () => {
+    expect(() =>
+      defineDeusMachine<Board, Event>({
+        initial: child,
+        states: [{ path: child }, { path: other }],
+        transitions: [{ key: "typo", from: ["setpu"], event: "go", to: other }],
+      }),
+    ).toThrow(expect.objectContaining({ code: "UnknownDeusStatePath" }));
+  });
+
+  it("preserves explicit parent states without duplicating them", () => {
+    const machine = defineDeusMachine<Board, Event>({
+      initial: child,
+      states: [{ path: root }, { path: child }, { path: other }],
+      transitions: [{ key: "parent", from: root, event: "go", to: other }],
+    });
+
+    expect(machine.states.filter((state) => state.path.join("/") === "root")).toHaveLength(1);
+  });
+
+  it("keeps state when a dynamic target returns undefined", () => {
+    const machine = defineDeusMachine<Board, Event>({
+      initial: root,
+      states: [{ path: root }, { path: other }],
+      transitions: [
+        {
+          key: "conditional",
+          from: root,
+          event: "go",
+          to: (board) => (board.value === "move" ? other : undefined),
+          do: (board) => board.log.push("ran"),
+        },
+      ],
+    });
+    const board: Board = { log: [] };
+
+    const stay = stepDeusMachine(machine, createDeusSnapshot(machine, board), { type: "go" });
+    expect(stay.snapshot.state).toEqual(root);
+    expect(board.log).toEqual(["ran"]);
+
+    board.value = "move";
+    const move = stepDeusMachine(machine, stay.snapshot, { type: "go" });
+    expect(move.snapshot.state).toEqual(other);
+  });
 });

@@ -7,6 +7,7 @@
     "canvas:mechanical-exercise-354": "vite-node apps/machina-canvas/scripts/create-mechanical-exercise-354.ts",
     "canvas:mechanical-exercise-354-blockout": "vite-node apps/machina-canvas/scripts/create-mechanical-exercise-354-blockout.ts",
     "canvas:mechanical-exercise-m40c": "vite-node apps/machina-canvas/scripts/create-mechanical-exercise-m40c.ts",
+    "canvas:guide-overlay-fixture": "vite-node apps/machina-canvas/scripts/create-guide-overlay-fixture.ts",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
     "test": "vitest run",

@@ -302,14 +302,16 @@ function obroundPathFromBox(box: Box): string {
     radius,
     startAngleDeg: -90,
     endAngleDeg: 90,
-    sweep: "counterclockwise",
+    // Obround right cap bulges outward to the right.
+    sweep: "clockwise",
   });
   const leftArc = createArcFromCenterRadius({
     center: [left, top + radius],
     radius,
     startAngleDeg: 90,
     endAngleDeg: 270,
-    sweep: "counterclockwise",
+    // Obround left cap bulges outward to the left.
+    sweep: "clockwise",
   });
   if (rightArc.kind !== "ok" || leftArc.kind !== "ok") {
     throw new Error(rightArc.error ?? leftArc.error ?? "Failed to create obround blockout path.");
@@ -326,14 +328,14 @@ function circlePathFromBox(box: Box): string {
     radius,
     startAngleDeg: 180,
     endAngleDeg: 0,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   const lowerArc = createArcFromCenterRadius({
     center: [cx, cy],
     radius,
     startAngleDeg: 0,
     endAngleDeg: 180,
-    sweep: "counterclockwise",
+    sweep: "clockwise",
   });
   if (upperArc.kind !== "ok" || lowerArc.kind !== "ok") {
     throw new Error(upperArc.error ?? lowerArc.error ?? "Failed to create circle blockout path.");
@@ -425,7 +427,8 @@ const blockoutRightArmArc = createArcFromCenterRadius({
   radius: 20,
   startAngleDeg: 90,
   endAngleDeg: -90,
-  sweep: "clockwise",
+  // Right arm end cap should bulge outward to the right side of its center.
+  sweep: "counterclockwise",
 });
 const blockoutNeckArc = createArcFromThreePoints({
   start: [126, 58],

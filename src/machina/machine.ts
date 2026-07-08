@@ -51,7 +51,7 @@ function pathKey(path: DeusStatePath): string {
 function generatedTransitionKey<TBoard, TEvent extends DeusEvent>(
   from: DeusStatePath,
   eventType: TEvent["type"],
-  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput),
+  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput | undefined),
   suffix = "",
 ): string {
   const target = Array.isArray(to) ? pathKey(to) : typeof to === "string" ? to : "dynamic";
@@ -72,7 +72,7 @@ export function state<TBoard, TEvent extends DeusEvent>(
 export function on<TBoard, TEvent extends DeusEvent>(
   eventType: TEvent["type"],
   from: DeusStatePath,
-  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput),
+  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput | undefined),
   action?: DeusAction<TBoard, TEvent>,
   options: MachinaOnOptions<TBoard, TEvent> = {},
 ): DeusTransitionRow<TBoard, TEvent> {
@@ -91,7 +91,7 @@ export function on<TBoard, TEvent extends DeusEvent>(
 export function choose<TBoard, TEvent extends DeusEvent>(
   eventType: TEvent["type"],
   from: DeusStatePath,
-  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput),
+  to: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput | undefined),
   candidates: readonly MachinaChooseCandidate<TBoard, TEvent>[],
   options: MachinaChooseOptions<TBoard, TEvent> = {},
 ): DeusTransitionRow<TBoard, TEvent> {

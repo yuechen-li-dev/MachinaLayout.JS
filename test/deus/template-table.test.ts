@@ -8,6 +8,7 @@ import {
   transitionsFromTemplateTable,
   validatePendingResultTransitionTable,
   validateTransitionTemplateTable,
+  type DeusTransitionRow,
   type DeusTransitionTemplate,
 } from "../../src/deus";
 import { Table, TableError } from "../../src/table";
@@ -177,6 +178,34 @@ describe("deus transition template tables", () => {
       "resource.resourceCreated",
       "resource.resourceFailed",
     ]);
+  });
+
+  it("supports typed bridge generics at the machine seam", () => {
+    type SetupBoard = {
+      errorMessage?: string;
+      provider?: { id: string };
+      resource?: { id: string };
+    };
+    type SetupEvent =
+      | { type: "providerCreated"; provider: { id: string } }
+      | { type: "providerFailed"; message: string }
+      | { type: "resourceCreated"; resource: { id: string } }
+      | { type: "resourceFailed"; message: string };
+
+    const transitions = pendingResultTransitionsFromTable<SetupBoard, SetupEvent>(
+      pendingResultsTable(),
+    );
+    const typedTransitions: readonly DeusTransitionRow<SetupBoard, SetupEvent>[] = transitions;
+    const machine = defineDeusMachine<SetupBoard, SetupEvent>({
+      initial: providerPending,
+      states: [{ path: idle }, { path: providerPending }, { path: resourcePending }],
+      transitions: [
+        ...typedTransitions,
+        { key: "resource.retry", from: idle, event: "resourceFailed", to: resourcePending },
+      ],
+    });
+
+    expect(machine.transitions).toHaveLength(5);
   });
 
   it("emitted success transitions write success payloads and clear errorMessage", () => {

@@ -57,4 +57,4 @@ Keep `views` stable (component references). Send changing values through `viewDa
 
 ## DeusMachina hook
 
-`machinalayout/react-native` exports the same `useDeusMachine(machine, initialBoard)` contract as the React adapter without importing the DOM adapter. It returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`, and re-renders by replacing the snapshot wrapper while preserving the mutable board convention.
+`machinalayout/react-native` exports the same `useDeusMachine(machine, initialBoard, options?)` contract as the React adapter without importing the DOM adapter. It returns `snapshot`, `board`, `state`, `dispatch`, `lastTrace`, and `reset`, and re-renders by replacing the snapshot wrapper while preserving the mutable board convention. `options.initialState` hydrates the first snapshot into a specific validated state path when needed.

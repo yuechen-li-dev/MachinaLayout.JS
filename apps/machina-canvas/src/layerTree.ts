@@ -123,7 +123,8 @@ function getSketchSubtitle(object: SketchOverlayObject): string {
 }
 
 function getGuideSubtitle(object: GuideSidecarObject): string {
-  return `Construction guide · ${object.guide.regions.length} regions · ${object.guide.datums.length} datums`;
+  const visibility = object.visible ? "visible" : "hidden";
+  return `Construction mask · ${visibility} · ${object.guide.regions.length} regions · ${object.guide.datums.length} datums · ${object.guide.dimensions.length} dimensions · ${object.guide.alignmentMarks.length} marks`;
 }
 
 function getBlockoutSubtitle(object: BlockoutSidecarObject): string {

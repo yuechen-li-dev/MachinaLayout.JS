@@ -248,7 +248,7 @@
       "stroke": "#f04a24",
       "strokeWidth": 0.45,
       "strokeDasharray": "3 3",
-      "d": "M 75 152 A 92.875674 92.875674 0 0 1 151 114",
+      "d": "M 75 152 A 92.875674 92.875674 0 0 0 151 114",
       "tags": ["mechanical-guide", "construction-curve", "lower-arc-cue"]
     },
     "exercise-354-global-bore-center": {
@@ -826,7 +826,7 @@
       "stroke": "none",
       "strokeWidth": 0,
       "fillRule": "evenodd",
-      "d": "M 74 38 C 53 38 35 57 35 78 C 35 94 44 108 58 118 C 66 124 69 133 63 144 C 56 157 62 166 76 166 C 101 165 132 153 151 126 C 157 116 158 107 170 98 L 203 98 A 20 20 0 0 1 203 58 L 126 58 A 31.006383 31.006383 0 0 0 98 48 C 92 41 84 38 74 38 Z M 54 78 A 20 20 0 0 0 94 78 A 20 20 0 0 0 54 78 Z M 79 144 A 7 7 0 0 0 93 144 A 7 7 0 0 0 79 144 Z M 119 132 A 7 7 0 0 0 133 132 A 7 7 0 0 0 119 132 Z M 169 68 L 203 68 A 10 10 0 0 0 203 88 L 169 88 A 10 10 0 0 0 169 68 Z",
+      "d": "M 74 38 C 53 38 35 57 35 78 C 35 94 44 108 58 118 C 66 124 69 133 63 144 C 56 157 62 166 76 166 C 101 165 132 153 151 126 C 157 116 158 107 170 98 L 203 98 A 20 20 0 0 0 203 58 L 126 58 A 31.006383 31.006383 0 0 1 98 48 C 92 41 84 38 74 38 Z M 54 78 A 20 20 0 0 1 94 78 A 20 20 0 0 1 54 78 Z M 79 144 A 7 7 0 0 1 93 144 A 7 7 0 0 1 79 144 Z M 119 132 A 7 7 0 0 1 133 132 A 7 7 0 0 1 119 132 Z M 169 68 L 203 68 A 10 10 0 0 1 203 88 L 169 88 A 10 10 0 0 1 169 68 Z",
       "tags": ["mechanical-body-profile", "filled-profile", "lowered-from-blockout"],
       "notes": "M39g topology lowered from global bounds and feature blockouts; void subpaths come directly from feature boxes."
     },
@@ -843,7 +843,7 @@
       "fill": "transparent",
       "stroke": "#1c2430",
       "strokeWidth": 0.55,
-      "d": "M 74 38 C 53 38 35 57 35 78 C 35 94 44 108 58 118 C 66 124 69 133 63 144 C 56 157 62 166 76 166 C 101 165 132 153 151 126 C 157 116 158 107 170 98 L 203 98 A 20 20 0 0 1 203 58 L 126 58 A 31.006383 31.006383 0 0 0 98 48 C 92 41 84 38 74 38 Z",
+      "d": "M 74 38 C 53 38 35 57 35 78 C 35 94 44 108 58 118 C 66 124 69 133 63 144 C 56 157 62 166 76 166 C 101 165 132 153 151 126 C 157 116 158 107 170 98 L 203 98 A 20 20 0 0 0 203 58 L 126 58 A 31.006383 31.006383 0 0 1 98 48 C 92 41 84 38 74 38 Z",
       "tags": ["mechanical-outline", "lowered-from-blockout"]
     },
     "exercise-354-blockout-large-hole": {
@@ -873,7 +873,7 @@
       "fill": "transparent",
       "stroke": "#1c2430",
       "strokeWidth": 0.55,
-      "d": "M 169 68 L 203 68 A 10 10 0 0 0 203 88 L 169 88 A 10 10 0 0 0 169 68 Z",
+      "d": "M 169 68 L 203 68 A 10 10 0 0 1 203 88 L 169 88 A 10 10 0 0 1 169 68 Z",
       "tags": ["mechanical-void", "lowered-from-blockout", "slot"]
     },
     "exercise-354-blockout-left-small-hole": {

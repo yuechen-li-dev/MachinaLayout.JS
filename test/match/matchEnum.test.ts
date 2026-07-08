@@ -3,6 +3,7 @@ import {
   assertNever,
   enumTable,
   type EnumCaseMap,
+  type EnumCaseMapWithDefault,
   matchEnum,
   MatchEnumError,
 } from "../../src/match";
@@ -93,6 +94,21 @@ describe("matchEnum", () => {
     expect(label).toBe("Collapsed");
     expect(labels[mode]).toBe("Collapsed");
     void missingCases;
+  });
+
+  it("supports an explicit wildcard fallback", () => {
+    const mode: Mode = "nonInteractiveOverlay";
+    const label = matchEnum<Mode, string>(mode, {
+      collapsed: () => "Collapsed",
+      _: (value) => `Fallback:${value}`,
+    });
+    const wildcardCases: EnumCaseMapWithDefault<Mode, string> = {
+      collapsed: () => "Collapsed",
+      _: (value) => `Fallback:${value}`,
+    };
+
+    expect(label).toBe("Fallback:nonInteractiveOverlay");
+    void wildcardCases;
   });
 });
 

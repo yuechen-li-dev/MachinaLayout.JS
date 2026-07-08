@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="225" viewBox="0 0 390 225">
+  <rect x="0" y="0" width="390" height="225" fill="#ffffff" />
+  <text x="12" y="18" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#1c2430">MachinaCanvas arc orientation fixture (+x right, +y down)</text>
+  <path d="M 145 120 L 235 120 M 235 170 L 145 170" fill="none" stroke="#9aa4b2" stroke-width="1.5" stroke-dasharray="4 3" />
+  <path id="clockwise-quarter" d="M 70 45 A 25 25 0 0 1 45 70" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <path id="counterclockwise-quarter" d="M 150 45 A 25 25 0 0 0 125 20" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <path id="upper-semicircle" d="M 185 55 A 30 30 0 0 1 245 55" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <path id="lower-semicircle" d="M 335 55 A 30 30 0 0 1 275 55" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <path id="slot-right-cap" d="M 235 120 A 25 25 0 0 1 235 170" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <path id="slot-left-cap" d="M 145 170 A 25 25 0 0 1 145 120" fill="none" stroke="#1c2430" stroke-width="2.5" />
+  <text x="48" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">clockwise quarter</text>
+  <text x="135" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">counterclockwise quarter</text>
+  <text x="230" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">upper semicircle</text>
+  <text x="330" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">lower semicircle</text>
+  <text x="255" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">slot right cap</text>
+  <text x="125" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#1c2430">slot left cap</text>
+</svg>

@@ -165,6 +165,13 @@ describe("MachinaCanvas export serializers", () => {
         pixelsPerUnit: 1,
         precision: 0,
       },
+      coordinateProfile: {
+        id: "screen",
+        label: "Screen coordinates",
+        yAxis: "down",
+        origin: "topLeft",
+        description: "SVG/React-style render coordinates with +X right and +Y down.",
+      },
     });
     expect(parsed.referenceGrid).toEqual({
       columns: 6,

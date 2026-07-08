@@ -2,6 +2,9 @@ import type { PathObject } from "./sceneModel";
 
 export type Point2 = readonly [number, number];
 
+// MachinaCanvas arc helpers operate in SVG/canvas coordinates:
+// +x points right and +y points down. ArcSweep values describe visual
+// clockwise/counterclockwise motion in that y-down coordinate system.
 export type ArcSweep = "clockwise" | "counterclockwise";
 
 export type ArcPathResult = {
@@ -96,7 +99,7 @@ function normalizeAngle(angle: number): number {
 function sweepDelta(startAngle: number, endAngle: number, sweep: ArcSweep): number {
   const start = normalizeAngle(startAngle);
   const end = normalizeAngle(endAngle);
-  if (sweep === "counterclockwise") {
+  if (sweep === "clockwise") {
     let delta = end - start;
     if (delta < 0) delta += TAU;
     return delta;
@@ -155,6 +158,29 @@ function buildArcPath(
   };
 }
 
+export function sampleArcResult(arc: ArcPathResult, t: number): Point2 | undefined {
+  if (
+    arc.kind !== "ok" ||
+    !arc.center ||
+    !arc.radius ||
+    arc.startAngleRad === undefined ||
+    arc.endAngleRad === undefined ||
+    !arc.sweep ||
+    !Number.isFinite(t)
+  ) {
+    return undefined;
+  }
+
+  const clamped = Math.min(1, Math.max(0, t));
+  const delta = sweepDelta(arc.startAngleRad, arc.endAngleRad, arc.sweep);
+  const direction = arc.sweep === "clockwise" ? 1 : -1;
+  const angle = arc.startAngleRad + direction * delta * clamped;
+  return [
+    arc.center[0] + arc.radius * Math.cos(angle),
+    arc.center[1] + arc.radius * Math.sin(angle),
+  ];
+}
+
 export function createArcFromThreePoints(input: {
   readonly start: Point2;
   readonly through: Point2;
@@ -192,20 +218,20 @@ export function createArcFromThreePoints(input: {
     return { kind: "err", error: "InvalidArcRadius" };
   }
 
-  const ccwCandidate = buildArcPath(center, radius, start, end, "counterclockwise");
-  if (ccwCandidate.kind === "ok") {
+  const clockwiseCandidate = buildArcPath(center, radius, start, end, "clockwise");
+  if (clockwiseCandidate.kind === "ok") {
     const passesThrough = pointOnArc(
       center,
       radius,
-      ccwCandidate.startAngleRad as number,
-      ccwCandidate.endAngleRad as number,
-      "counterclockwise",
+      clockwiseCandidate.startAngleRad as number,
+      clockwiseCandidate.endAngleRad as number,
+      "clockwise",
       through,
     );
-    if (passesThrough) return ccwCandidate;
+    if (passesThrough) return clockwiseCandidate;
   }
 
-  return buildArcPath(center, radius, start, end, "clockwise");
+  return buildArcPath(center, radius, start, end, "counterclockwise");
 }
 
 export function createArcFromCenterRadius(input: {
@@ -383,7 +409,7 @@ export function createTangentArcBetweenLines(input: {
   }
 
   const orientation = cross(subtract(start, center), subtract(end, center));
-  const sweep: ArcSweep = orientation >= 0 ? "counterclockwise" : "clockwise";
+  const sweep: ArcSweep = orientation >= 0 ? "clockwise" : "counterclockwise";
   return createArcFromCenterStartEnd({ center, start, end, sweep });
 }
 

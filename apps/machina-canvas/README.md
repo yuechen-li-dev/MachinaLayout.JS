@@ -1,8 +1,8 @@
 # MachinaCanvas
 
-MachinaCanvas is the first dogfood app for MachinaLayout.JS: a small React/Vite prototype for an LLM-friendly 2D graphics editor substrate.
+MachinaCanvas is the first dogfood app for MachinaLayout.JS: a React/Vite app/product workspace for an LLM-friendly 2D graphics editor substrate.
 
-Please note that while MachinaLayout.JS is MIT licensed, MachinaCanvas is licensed under AGPL v3. 
+MachinaLayout.JS remains the MIT-licensed library/toolbox package. MachinaCanvas is separate app/product code licensed under AGPL v3, and the root npm package is expected to exclude MachinaCanvas app source. See [M40 phase closeout](docs/phase-closeout-m40.md).
 
 Canvas modes are soft templates over the same scene model. They choose starting content and visible affordances; they do not fork MachinaCanvas into separate editors.
 
@@ -138,6 +138,7 @@ Supported commands:
 - `select <objectId>`
 - `select-frame <sidecarId> <frameId>`
 - `nudge-frame <dx> <dy>`
+- `nudge-frame <up|down|left|right> [amount]`
 - `set-frame-rect <x> <y> <w> <h>`
 - `clamp-frame [sidecarId] [frameId]`
 - `list-datums`
@@ -336,13 +337,15 @@ If a guide sidecar, blockout sidecar, sprite sidecar, sketch overlay, or alpha m
 
 ## Guide and blockout sidecars
 
-Guide sidecars (`*.guide.toml`) represent construction masks: regions, datums, dimensions, alignment marks, and future construction curves.
+Guide sidecars (`*.guide.toml`) are visible construction masks. A guide attached to an image renders regions, datums, dimensions, and alignment marks over that image and can be toggled like a layer.
 
 Blockout sidecars (`*.blockout.toml`) represent spatial feature/component masks. They are general-purpose authoring IR for layout, sprites, mechanical drafting, diagrams, and other canvas workflows.
 
 Blockout is layout IR. It helps authors and LLMs solve composition before final geometry or rendering.
 
-Attach guide and blockout sidecars to an image or scene object, toggle their visibility like layers, and use them as visible red and green overlays during editing and visual review. They are authoring-side overlays, not automatic image-to-CAD extraction, not a solver, and not mCAD-specific.
+Attach guide and blockout sidecars to an image or scene object, toggle their visibility like layers, and use them as visible red/orange and green overlays during editing and visual review. Guide coordinates are owner-relative: for image attachments, guide coordinates are interpreted in the target image's intrinsic pixel coordinate system, then scaled and translated into the image rectangle. Guide opacity is part of the sidecar scene object and is reflected in the live overlay and exported visual review SVG. These are authoring-side overlays, not automatic image-to-CAD extraction, not a solver, and not mCAD-specific.
+
+Run `npm run canvas:guide-overlay-fixture` to generate the M40d review fixture at `apps/machina-canvas/artifacts/guide-overlay-fixture.*`. The fixture includes a reference PNG, attached `.guide.toml`, `.mcanvas.json`, rendered SVG, preview PNG, review HTML, and a report that records attachment ids, feature counts, export inclusion, and screenshot evidence target.
 
 Guide sidecars (`*.guide.toml`) are authoring IR. They describe regions, datums, dimensions, and alignment marks used to edit visual artifacts. They are separate from runtime sidecars such as `*.sprite.toml`.
 
@@ -372,9 +375,33 @@ Alignment metadata remains guide-only authoring IR. It stays in `*.guide.toml`, 
 
 This remains intentionally narrow. MachinaCanvas still does not do general constraint solving, full auto-segmentation, or full registration beyond translation-only alignment between authored marks.
 
+### Coordinate profiles
+
+MachinaCanvas renders through SVG/React, whose default coordinate space is screen-like: +x right, +y down.
+
+Renderer coordinates and authoring coordinates are separate concerns. Modes may expose different authoring coordinate profiles. Mechanical drafting uses drafting coordinates with +Y up, while sprite/image workflows use image coordinates with Y measured down from the top-left.
+
+The built-in profiles are:
+
+- Screen coordinates: +X right, +Y down, top-left origin.
+- Image coordinates: +X right, +Y down, image top-left origin.
+- Drafting coordinates: +X right, +Y up, bottom-left authoring origin.
+
+Directional commands such as nudge up/down are visual commands and should not require users to remember raw SVG Y direction. Numeric sprite frame fields remain image-compatible and are labeled as image coordinates, including `Image Y from top`.
+
+Export lowering remains SVG-compatible. Existing scene geometry is still stored as resolved document/render coordinates in this pass; coordinate profile metadata documents the authoring semantics and gives commands/helpers a clear place to choose visual direction.
+
 ### Arc construction helpers
 
 Arc helpers construct local SVG path geometry from drafting inputs such as three points, center/radius angles, chord/radius centers, and fixed tangent references.
+
+MachinaCanvas arc helpers use SVG/canvas render coordinates: +x right, +y down, unless a wrapper is explicitly named for another authoring profile.
+
+ArcSweep values describe visual clockwise/counterclockwise motion in that y-down coordinate system.
+
+For drafting-style +Y-up authoring, transform points into render/SVG coordinates before calling the current arc helpers, then export the resulting path through the normal SVG lowering path.
+
+Arc orientation tests include upper/lower arcs and slot-cap regressions so helper-generated paths do not silently flip.
 
 Tangency helpers adjust the generated arc only; they do not move the entities the arc is tangent to.
 

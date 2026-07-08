@@ -1,0 +1,140 @@
+{
+  "id": "guide-overlay-fixture",
+  "name": "M40d Guide Overlay Fixture",
+  "width": 680,
+  "height": 480,
+  "unit": "px",
+  "unitSystem": {
+    "unit": "px",
+    "label": "px",
+    "unitsPerInch": 96,
+    "pixelsPerUnit": 1,
+    "precision": 0
+  },
+  "layers": [
+    {
+      "id": "guide-overlay-fixture-layer",
+      "name": "Reference Image With Guide",
+      "visible": true,
+      "objectIds": [
+        "guide-overlay-reference-image",
+        "guide-overlay-fixture"
+      ]
+    }
+  ],
+  "objects": {
+    "guide-overlay-reference-image": {
+      "id": "guide-overlay-reference-image",
+      "name": "Guide overlay reference",
+      "kind": "image",
+      "layerId": "guide-overlay-fixture-layer",
+      "visible": true,
+      "x": 40,
+      "y": 40,
+      "width": 600,
+      "height": 400,
+      "src": "guide-overlay-reference.png",
+      "intrinsicWidth": 300,
+      "intrinsicHeight": 200,
+      "fit": "fill"
+    },
+    "guide-overlay-fixture": {
+      "id": "guide-overlay-fixture",
+      "name": "guide-overlay-fixture.guide.toml",
+      "kind": "guideSidecar",
+      "layerId": "guide-overlay-fixture-layer",
+      "visible": true,
+      "opacity": 0.82,
+      "showLabels": true,
+      "x": 40,
+      "y": 40,
+      "width": 600,
+      "height": 400,
+      "role": "guideSidecar",
+      "targetId": "guide-overlay-reference-image",
+      "tags": [
+        "guide",
+        "sidecar"
+      ],
+      "notes": "1 region, 3 datums, 1 dimension.",
+      "guide": {
+        "kind": "canvasGuideSidecar",
+        "id": "guide-overlay-fixture",
+        "target": "guide-overlay-reference-image",
+        "units": "px",
+        "description": "Deterministic M40d guide overlay verification fixture.",
+        "regions": [
+          {
+            "id": "overall-bounds",
+            "kind": "bounds",
+            "x": 20,
+            "y": 20,
+            "width": 260,
+            "height": 160,
+            "description": "Overall bounds",
+            "grid": {
+              "cellWidth": 65,
+              "cellHeight": 40,
+              "columns": 4,
+              "rows": 4
+            }
+          }
+        ],
+        "datums": [
+          {
+            "id": "center-x",
+            "kind": "vertical",
+            "x": 150,
+            "label": "Center X",
+            "region": "overall-bounds"
+          },
+          {
+            "id": "center-y",
+            "kind": "horizontal",
+            "y": 100,
+            "label": "Center Y",
+            "region": "overall-bounds"
+          },
+          {
+            "id": "origin-point",
+            "kind": "point",
+            "x": 20,
+            "y": 20,
+            "label": "Origin point",
+            "region": "overall-bounds"
+          }
+        ],
+        "dimensions": [
+          {
+            "id": "width-260",
+            "kind": "linear",
+            "from": [
+              20,
+              20
+            ],
+            "to": [
+              280,
+              20
+            ],
+            "label": "260 px",
+            "units": "px",
+            "region": "overall-bounds"
+          }
+        ],
+        "alignmentMarks": [
+          {
+            "id": "origin-mark",
+            "kind": "point",
+            "target": "guide-overlay-reference-image",
+            "x": 20,
+            "y": 20,
+            "label": "Origin",
+            "region": "overall-bounds"
+          }
+        ],
+        "rawToml": "[guide]\nid = \"guide-overlay-fixture\"\ntarget = \"guide-overlay-reference-image\"\nunits = \"px\"\ndescription = \"Deterministic M40d guide overlay verification fixture.\"\n\n[[regions]]\nid = \"overall-bounds\"\nkind = \"bounds\"\nx = 20\ny = 20\nwidth = 260\nheight = 160\ndescription = \"Overall bounds\"\n\n[regions.grid]\ncell_width = 65\ncell_height = 40\ncolumns = 4\nrows = 4\n\n[[datums]]\nid = \"center-x\"\nkind = \"vertical\"\nx = 150\nlabel = \"Center X\"\nregion = \"overall-bounds\"\n\n[[datums]]\nid = \"center-y\"\nkind = \"horizontal\"\ny = 100\nlabel = \"Center Y\"\nregion = \"overall-bounds\"\n\n[[datums]]\nid = \"origin-point\"\nkind = \"point\"\nx = 20\ny = 20\nlabel = \"Origin point\"\nregion = \"overall-bounds\"\n\n[[dimensions]]\nid = \"width-260\"\nkind = \"linear\"\nfrom = [20, 20]\nto = [280, 20]\nlabel = \"260 px\"\nunits = \"px\"\nregion = \"overall-bounds\"\n\n[[alignment_marks]]\nid = \"origin-mark\"\nkind = \"point\"\ntarget = \"guide-overlay-reference-image\"\nx = 20\ny = 20\nlabel = \"Origin\"\nregion = \"overall-bounds\"\n"
+      }
+    }
+  },
+  "selectedObjectId": "guide-overlay-fixture"
+}

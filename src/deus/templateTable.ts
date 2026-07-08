@@ -433,10 +433,13 @@ export function validateTransitionTemplateTable(
   return diagnostics;
 }
 
-export function transitionsFromTemplateTable(
+export function transitionsFromTemplateTable<
+  TBoard = TemplateBoard,
+  TEvent extends DeusEvent = TemplateEvent,
+>(
   table: ColumnarTable,
   template: DeusTransitionTemplate,
-): readonly DeusTransitionRow<TemplateBoard, TemplateEvent>[] {
+): readonly DeusTransitionRow<TBoard, TEvent>[] {
   const diagnostics = validateTransitionTemplateTable(table, template);
   if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     throw new TableError(diagnostics);
@@ -446,7 +449,7 @@ export function transitionsFromTemplateTable(
   for (let rowIndex = 0; rowIndex < table.rowCount; rowIndex += 1) {
     transitions.push(...template.expand(getRow(table, rowIndex), { rowIndex, table }));
   }
-  return transitions;
+  return transitions as readonly DeusTransitionRow<TBoard, TEvent>[];
 }
 
 export function pendingResultTransitionTemplate(
@@ -651,10 +654,13 @@ export function validatePendingResultTransitionTable(
   return diagnostics;
 }
 
-export function pendingResultTransitionsFromTable(
+export function pendingResultTransitionsFromTable<
+  TBoard = TemplateBoard,
+  TEvent extends DeusEvent = TemplateEvent,
+>(
   table: ColumnarTable,
   options?: PendingResultTransitionTemplateOptions,
-): readonly DeusTransitionRow<TemplateBoard, TemplateEvent>[] {
+): readonly DeusTransitionRow<TBoard, TEvent>[] {
   const diagnostics = validatePendingResultTransitionTable(table, options);
   if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     throw new TableError(diagnostics);
@@ -671,5 +677,5 @@ export function pendingResultTransitionsFromTable(
     );
   }
 
-  return transitions;
+  return transitions as readonly DeusTransitionRow<TBoard, TEvent>[];
 }

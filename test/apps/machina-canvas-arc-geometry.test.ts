@@ -7,6 +7,7 @@ import {
   createTangentArcBetweenLines,
   createTangentArcBetweenReferences,
   findArcCentersFromChordRadius,
+  sampleArcResult,
   type Point2,
 } from "../../apps/machina-canvas/src/arcGeometry";
 import { serializeCanvasRenderSvg } from "../../apps/machina-canvas/src/canvasExport";
@@ -85,7 +86,8 @@ describe("MachinaCanvas arc geometry helpers", () => {
     });
     expect(arc.kind).toBe("ok");
     if (arc.kind !== "ok") return;
-    expect(arc.sweep).toBe("counterclockwise");
+    expect(arc.sweep).toBe("clockwise");
+    expectPointClose(sampleArcResult(arc, 0.5), [0, 1]);
   });
 
   it("creates arc from center, radius, and angles", () => {
@@ -150,12 +152,12 @@ describe("MachinaCanvas arc geometry helpers", () => {
       radius: 10,
       startAngleDeg: 0,
       endAngleDeg: 270,
-      sweep: "counterclockwise",
+      sweep: "clockwise",
     });
     expect(arc.kind).toBe("ok");
     if (arc.kind !== "ok") return;
     expect(arc.largeArcFlag).toBe(1);
-    expect(arc.path).toContain(" 0 1 0 ");
+    expect(arc.path).toContain(" 0 1 1 ");
   });
 
   it("chord/radius returns two centers", () => {

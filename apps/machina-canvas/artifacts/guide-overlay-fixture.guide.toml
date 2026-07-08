@@ -1,0 +1,60 @@
+[guide]
+id = "guide-overlay-fixture"
+target = "guide-overlay-reference-image"
+units = "px"
+description = "Deterministic M40d guide overlay verification fixture."
+
+[[regions]]
+id = "overall-bounds"
+kind = "bounds"
+x = 20
+y = 20
+width = 260
+height = 160
+description = "Overall bounds"
+
+[regions.grid]
+cell_width = 65
+cell_height = 40
+columns = 4
+rows = 4
+
+[[datums]]
+id = "center-x"
+kind = "vertical"
+x = 150
+label = "Center X"
+region = "overall-bounds"
+
+[[datums]]
+id = "center-y"
+kind = "horizontal"
+y = 100
+label = "Center Y"
+region = "overall-bounds"
+
+[[datums]]
+id = "origin-point"
+kind = "point"
+x = 20
+y = 20
+label = "Origin point"
+region = "overall-bounds"
+
+[[dimensions]]
+id = "width-260"
+kind = "linear"
+from = [20, 20]
+to = [280, 20]
+label = "260 px"
+units = "px"
+region = "overall-bounds"
+
+[[alignment_marks]]
+id = "origin-mark"
+kind = "point"
+target = "guide-overlay-reference-image"
+x = 20
+y = 20
+label = "Origin"
+region = "overall-bounds"

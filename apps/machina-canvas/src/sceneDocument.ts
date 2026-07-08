@@ -1,5 +1,6 @@
 import { resolveCanvasDocumentFrames } from "./canvasFrames";
 import { createCanvasUnitSystem } from "./canvasUnits";
+import { SCREEN_COORDINATES } from "./coordinateProfiles";
 import type { CanvasDocument } from "./sceneModel";
 
 const rawInitialSceneDocument: CanvasDocument = {
@@ -9,6 +10,7 @@ const rawInitialSceneDocument: CanvasDocument = {
   height: 640,
   unit: "px",
   unitSystem: createCanvasUnitSystem("px"),
+  coordinateProfileId: SCREEN_COORDINATES.id,
   selectedObjectId: "headline",
   referenceGrid: {
     columns: 6,

@@ -1,5 +1,14 @@
 # 0.6.0 — Tables as Authoring Primitives + Queryable Columnar Tables
 
+## Unreleased
+
+- Added `useDeusMachine(..., { initialState })` hydration parity for React, React Native, and Vue bindings.
+- Added `_` wildcard/default arms to `matchKind`, `matchEnum`, and `matchDiscriminated` while preserving exhaustive mode when `_` is omitted.
+- Added typed generic return seams for `pendingResultTransitionsFromTable` and `transitionsFromTemplateTable`.
+- Allowed shared Deus transitions to target implicit ancestor prefixes of declared substates without empty parent state boilerplate.
+- Allowed function-form Deus transition `to` callbacks to return `undefined` to stay in the current state.
+- Deferred composed async task-chain orchestration to future work rather than expanding M41 into a new async runtime.
+
 ## Highlights
 
 - Columnar table records, schema columns, export/render helpers, keyed lookup, and derivation helpers.

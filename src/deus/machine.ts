@@ -60,16 +60,24 @@ function pathKey(path: DeusStatePath): string {
 function copyPath(path: DeusStatePath): DeusStatePath {
   return [...path];
 }
+function ancestorPaths(path: DeusStatePath): readonly DeusStatePath[] {
+  const ancestors: DeusStatePath[] = [];
+  for (let i = 1; i < path.length; i += 1) {
+    ancestors.push(copyPath(path.slice(0, i)));
+  }
+  return ancestors;
+}
 function normalizeDeusPathInput(path: DeusPathInput, label: string): DeusStatePath {
   if (typeof path === "string") return parseDeusPath(path);
   assertValidDeusPath(path, label);
   return copyPath(path);
 }
 function resolveTransitionTargetPath(
-  target: DeusPathInput,
+  target: DeusPathInput | undefined,
   ownerPath: DeusStatePath,
   label: string,
-): DeusStatePath {
+): DeusStatePath | undefined {
+  if (target === undefined) return undefined;
   if (typeof target === "string") {
     if (target.startsWith("/")) return parseDeusPath(target);
     const relative = parseDeusPath(target);
@@ -116,7 +124,7 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
   }
 
   const stateKeys = new Set<string>();
-  const states = machine.states.map((s) => {
+  const explicitStates = machine.states.map((s) => {
     assertValidDeusPath(s.path, "state path");
     const key = pathKey(s.path);
     if (stateKeys.has(key))
@@ -124,6 +132,16 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
     stateKeys.add(key);
     return { ...s, path: [...s.path] };
   });
+  const states = [...explicitStates];
+  for (const state of explicitStates) {
+    for (const ancestor of ancestorPaths(state.path)) {
+      const key = pathKey(ancestor);
+      if (!stateKeys.has(key)) {
+        stateKeys.add(key);
+        states.push({ path: ancestor });
+      }
+    }
+  }
   if (!stateKeys.has(pathKey(machine.initial)))
     throw new DeusMachinaError("UnknownDeusStatePath", "initial path must exist");
   const transitionKeys = new Set<string>();
@@ -141,7 +159,7 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
       );
     if (Array.isArray(t.to) || typeof t.to === "string") {
       const resolved = resolveTransitionTargetPath(t.to, t.from, `transition ${t.key} to`);
-      if (!stateKeys.has(pathKey(resolved)))
+      if (!resolved || !stateKeys.has(pathKey(resolved)))
         throw new DeusMachinaError(
           "UnknownDeusStatePath",
           `transition ${t.key} to path must exist`,
@@ -329,14 +347,13 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
         if (t.score === undefined) score = utility.selected.score;
       }
     }
-    const to =
-      eligible && t.to
-        ? resolveTransitionTargetPath(
-            typeof t.to === "function" ? t.to(snapshot.board, event) : t.to,
-            t.from,
-            `transition ${t.key} to`,
-          )
-        : undefined;
+    const to = eligible
+      ? resolveTransitionTargetPath(
+          typeof t.to === "function" ? t.to(snapshot.board, event) : t.to,
+          t.from,
+          `transition ${t.key} to`,
+        )
+      : undefined;
     if (to) {
       assertValidDeusPath(to, `transition ${t.key} to`);
       if (!stateMap.has(pathKey(to)))

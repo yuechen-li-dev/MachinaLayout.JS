@@ -838,6 +838,12 @@ const pendingResults = Table.defineWithSchema({
 const transitions = Deus.pendingResultTransitionsFromTable(pendingResults);
 ```
 
+Typed machines can keep that bridge aligned without `as unknown as`:
+
+```ts
+const transitions = Deus.pendingResultTransitionsFromTable<SetupBoard, SetupEvent>(pendingResults);
+```
+
 If you want the generic template bridge:
 
 ```ts

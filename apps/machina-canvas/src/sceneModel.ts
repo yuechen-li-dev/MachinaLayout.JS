@@ -2,6 +2,7 @@ import type { CanvasBlockoutSidecar } from "./blockoutSidecar";
 import type { CanvasGuideSidecar } from "./guideSidecar";
 import type { MechanicalAnnotationSet } from "./mechanicalAnnotations";
 import type { ReferenceGridConfig } from "./referenceGrid";
+import type { CanvasCoordinateProfileId } from "./coordinateProfiles";
 
 export type CanvasUnitName = "px" | "pt" | "mm" | "cm" | "in" | "cu";
 
@@ -20,6 +21,7 @@ export type CanvasDocument = {
   height: number;
   unit: CanvasUnitName;
   unitSystem: CanvasUnitSystem;
+  coordinateProfileId?: CanvasCoordinateProfileId;
   layers: CanvasLayer[];
   layerGroups?: CanvasLayerGroup[];
   objects: Record<string, CanvasObject>;

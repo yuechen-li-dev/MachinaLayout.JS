@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   createDeusSnapshot,
+  type DeusPathInput,
+  hydrateDeusSnapshot,
   stepDeusMachine,
   type DeusEvent,
   type DeusMachine,
@@ -22,20 +24,41 @@ export type UseDeusMachineResult<TBoard, TEvent extends DeusEvent> = {
 
 type InitialBoard<TBoard> = TBoard | (() => TBoard);
 
+export type UseDeusMachineOptions<TStatePath extends DeusPathInput = DeusPathInput> = {
+  initialState?: TStatePath;
+};
+
 function resolveInitialBoard<TBoard>(initialBoard: InitialBoard<TBoard>): TBoard {
   return typeof initialBoard === "function" ? (initialBoard as () => TBoard)() : initialBoard;
 }
 
-export function useDeusMachine<TBoard, TEvent extends DeusEvent>(
-  machine: DeusMachine<TBoard, TEvent>,
+export function useDeusMachine<
+  TBoard,
+  TEvent extends DeusEvent,
+  TStatePath extends DeusPathInput = DeusPathInput,
+>(
+  machine: DeusMachine<TBoard, TEvent> & {
+    initial: TStatePath;
+    states: readonly { path: TStatePath }[];
+  },
   initialBoard: InitialBoard<TBoard>,
+  options?: UseDeusMachineOptions<TStatePath>,
 ): UseDeusMachineResult<TBoard, TEvent> {
   const initialBoardRef = useRef(initialBoard);
   initialBoardRef.current = initialBoard;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const createSnapshot = useCallback(
-    (board?: InitialBoard<TBoard>) =>
-      createDeusSnapshot(machine, resolveInitialBoard(board ?? initialBoardRef.current)),
+    (board?: InitialBoard<TBoard>) => {
+      const resolvedBoard = resolveInitialBoard(board ?? initialBoardRef.current);
+      return optionsRef.current?.initialState !== undefined
+        ? hydrateDeusSnapshot(machine, {
+            board: resolvedBoard,
+            statePath: optionsRef.current.initialState,
+          })
+        : createDeusSnapshot(machine, resolvedBoard);
+    },
     [machine],
   );
 

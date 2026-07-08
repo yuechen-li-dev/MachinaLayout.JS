@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DiscriminatedCaseMap,
   type KindCaseMap,
+  type KindCaseMapWithDefault,
   matchDiscriminated,
   matchKind,
   MatchUnionError,
@@ -88,6 +89,21 @@ describe("matchKind", () => {
       expect((error as MatchUnionError).message).toContain("err");
     }
   });
+
+  it("supports a wildcard arm for unhandled variants", () => {
+    const value: Result = { kind: "err", message: "denied", code: 403 };
+    const output = matchKind<Result, string>(value, {
+      ok: (result) => `value ${result.value}`,
+      _: (result) => `fallback ${result.kind}`,
+    });
+    const wildcardCases: KindCaseMapWithDefault<Result, string> = {
+      ok: (result) => `value ${result.value}`,
+      _: (result) => `fallback ${result.kind}`,
+    };
+
+    expect(output).toBe("fallback err");
+    void wildcardCases;
+  });
 });
 
 describe("matchDiscriminated", () => {
@@ -157,5 +173,20 @@ describe("matchDiscriminated", () => {
 
     expect(typeof output).toBe("string");
     void missingCases;
+  });
+
+  it("supports wildcard matching for configurable discriminators", () => {
+    type Event = { type: "click"; x: number; y: number } | { type: "submit"; formId: string };
+
+    const output = matchDiscriminated<Event, "type", string>(
+      { type: "submit", formId: "f-1" },
+      "type",
+      {
+        click: (event) => `${event.x},${event.y}`,
+        _: (event) => event.type,
+      },
+    );
+
+    expect(output).toBe("submit");
   });
 });

@@ -56,4 +56,6 @@ To avoid conflicts with Vue fallthrough attrs, root/node styling props are:
 
 ## DeusMachina composable
 
-`machinalayout/vue` exports `useDeusMachine(machine, initialBoard)`. The composable returns `snapshot` and `lastTrace` refs, computed `board` and `state`, plus `dispatch` and `reset`. It wraps `createDeusSnapshot` and `stepDeusMachine`; board mutations are visible through `debug.board.value` because dispatch assigns a new snapshot object. Keep the machine input stable.
+`machinalayout/vue` exports `useDeusMachine(machine, initialBoard, options?)`. The composable returns `snapshot` and `lastTrace` refs, computed `board` and `state`, plus `dispatch` and `reset`. It wraps `createDeusSnapshot` and `stepDeusMachine`; board mutations are visible through `debug.board.value` because dispatch assigns a new snapshot object. Keep the machine input stable.
+
+Use `options.initialState` when the first snapshot should hydrate into a specific validated state path.

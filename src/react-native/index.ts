@@ -1,4 +1,4 @@
-export type { UseDeusMachineResult } from "./useDeusMachine";
+export type { UseDeusMachineOptions, UseDeusMachineResult } from "./useDeusMachine";
 export { useDeusMachine } from "./useDeusMachine";
 export { MachinaReactNativeView } from "./MachinaReactNativeView";
 export type {

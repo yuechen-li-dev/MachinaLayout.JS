@@ -55,7 +55,7 @@ export type DeusTransitionRow<TBoard, TEvent extends DeusEvent> = {
   key: string;
   from: DeusStatePath;
   event?: TEvent["type"];
-  to?: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput);
+  to?: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput | undefined);
   when?: (board: TBoard, event: TEvent) => boolean;
   score?: number | ((board: TBoard, event: TEvent) => number);
   do?: DeusAction<TBoard, TEvent>;
