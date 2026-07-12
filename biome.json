@@ -35,9 +35,9 @@
       "!samples/**/node_modules",
       "!samples/**/dist",
       "!samples/**/.generated",
-      "!apps/**/node_modules",
-      "!apps/**/dist",
-      "!apps/**/tmp",
+      "!app/node_modules",
+      "!app/dist",
+      "!app/tmp",
       "!coverage",
       "!*.tgz"
     ]

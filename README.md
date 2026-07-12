@@ -1,509 +1,169 @@
-# MachinaLayout
+# MachinaLayout.JS
 
-MachinaLayout is a machine-native UI layout substrate: flat records in, deterministic rectangles out.
+MachinaLayout.JS is a TypeScript toolbox for authoring deterministic UI/layout records that machines, humans, tests, and framework renderers can all inspect. It treats documentation, table schemas, static artifacts, and layout rows as part of the public API rather than as implementation details.
 
-**CSS paints; Machina places.**
+## What it is
 
-## Install
+MachinaLayout.JS helps you describe interface structure, geometry, text, state, and data-oriented UI behavior as plain records. Those records can be lowered into resolved layout trees, rendered through React/Vue/native adapters, serialized for handoff, validated with diagnostics, or generated from tables and other authoring tools.
+
+## Design principles
+
+- **Record-first authoring:** prefer explicit typed records over hidden runtime magic.
+- **Table-first tooling:** important authoring surfaces can be produced, reviewed, and validated as tables.
+- **Deterministic lowering:** authored layout rows lower to inspectable frames and trees.
+- **Small public entry points:** use package exports instead of deep source imports.
+- **License clarity:** MachinaLayout.JS is the MIT toolbox; MachinaCanvas is the AGPL app/product under `/app`.
+
+## Installation
 
 ```bash
 npm install machinalayout
 ```
 
-## 0.6.0 — Tables as Authoring Primitives + Queryable Columnar Tables
-
-Machina 0.6.0 expands columnar tables into a typed authoring and derivation substrate.
-
-Tables can now describe:
-- data and schema records
-- concepts
-- form fields
-- command/action records
-- dispatch tables
-- Deus transition tables and transition template tables
-- tabular style sheets
-- Atlas/project cartography
-- in-memory query plans
-- chunked columnar JSON records
-- batch-backed chunk query execution
-
-The core rule remains: author as tables, validate by cell, lower to existing runtime/rendering surfaces.
-
-MachinaQuery and chunked tables are not SQL and not a database. They operate on in-memory `ColumnarTable` and already-loaded `ColumnarTableChunk` records. Storage adapters, indexes, transactions, joins, and query optimization are intentionally out of scope for 0.6.0.
-
-## One-page mental model
-
-1. Author layout as flat `LayoutRow[]` records.
-2. Parent means coordinate ownership.
-3. `frame` decides a node rectangle.
-4. `arrange` decides direct child placement.
-5. Metadata (like `view`, `slot`, `z`, layers, data) shapes rendering behavior, not geometry solving.
-6. Variants are authoring-time row selection.
-7. The resolver outputs deterministic rectangles.
-8. Adapters render those rectangles.
-9. Text renders inside owned rectangles.
-10. CSS paints; Machina places.
-
-## Adapter philosophy
-
-Machina adapters ask you to learn one layout model: Machina records. The framework adapter only asks for components in that framework.
-
-- Machina adapters do not introduce a new layout model per framework.
-- Layout stays framework-independent: author rows, resolve rectangles, render through adapters.
-- Frameworks supply components; Machina supplies geometry.
-- Users should not need framework-specific layout ceremony to place boxes.
-- If you know TypeScript and what a component looks like in your renderer, that is enough.
-- Adapter-specific details stay inside adapter internals.
-
-**CSS paints; Machina places; adapters translate.**
-
-
-## Adapter/text subpath matrix
-
-### Layout adapters
-
-- React DOM: `machinalayout/react`
-- React Native: `machinalayout/react-native`
-- Vue DOM: `machinalayout/vue`
-
-### Text
-
-- Parser/core text: `machinalayout/text`
-- Text utilities: `machinalayout/text`
-
-### Text renderers
-
-- React DOM: `machinalayout/text/react`
-- React Native: `machinalayout/text/react-native`
-- Vue DOM: `machinalayout/text/vue`
-
-Inspection and handoff utilities are available at `machinalayout/inspect` and `machinalayout/handoff`.
-
-Typed semantic style authoring is available at `machinalayout/style`; see [MachinaStyle](docs/machina-style.md).
-
-Static no-JS lowering for tabs, accordions, timelines, finite dispatch machines, and native GET/POST HTTP forms is available at `machinalayout/static`; see [Machina Static](docs/machina-static.md).
-
-Explicit capture records for visible-env closure-like authoring are available at `machinalayout/capture`; see [Explicit capture](docs/explicit-capture.md).
-
-Deus-backed explicit async task lifecycles are available at `machinalayout/async`, including `A.run` for result-only runs and `A.runSnapshot` for one-shot result plus lifecycle receipts; see [Deus async tasks](docs/deus-async-tasks.md).
-
-Promise-backed ordered async batch mapping with explicit concurrency, cancellation, board, and trace is available at `machinalayout/batch`; see [Batch concurrency](docs/batch-concurrency.md).
-
-Explicit iterator machines with visible cursor, board, and trace are available at `machinalayout/iter`; see [Explicit iterators](docs/explicit-iterators.md).
-
-Named capability constraints, concept source records, and template records are available at `machinalayout/concept`; see [Machina Concepts](docs/machina-concepts.md).
-
-Shared diagnostic helpers for authoring, collecting, sorting, grouping, formatting, and adapting subsystem diagnostics are available at `machinalayout/diagnostics`; see [Machina Diagnostics](docs/machina-diagnostics.md).
-
-Dependency-free columnar table records, narrow select/filter/sort/take/drop derivation helpers, chunked columnar JSON artifact records, canonical columnar JSON export, row/object adapters, explicit keyed lookup artifacts, Markdown/CSV rendering, and cell-oriented diagnostics are available at `machinalayout/table`; see [MachinaTable](docs/machina-tables.md).
-
-In-memory query derivation plans over `ColumnarTable`, including inspectable operation-level iterator execution and chunk-query execution over already-loaded chunk records, are available at `machinalayout/query`; see [MachinaQuery](docs/machina-query.md).
-
-Machina Atlas also supports narrow table-authored lowering through `machinalayout/atlas`; see [MachinaAtlas](docs/machina-atlas.md).
-
-Dependency-free form field table lowering is available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
-
-Concept-to-form projection from `ConceptRecord[]` or concept tables into `FormFieldRecord[]` is also available at `machinalayout/form`; see [Machina Forms](docs/machina-forms.md).
-
-Dependency-free command table lowering is available at `machinalayout/command`; see [Machina Commands](docs/machina-commands.md).
-
-Table-authored bridges for the existing MachinaDispatch runtime are available at `machinalayout/dispatch`; see [MachinaDispatch runtime guide](docs/machina-dispatch.md).
-
-Compile-time helper utilities are available at `machinalayout/comptime`; see [Compile-time helpers](docs/compile-time-helpers.md).
-
-Dependency-free text utilities, including `leftPad`, are available at `machinalayout/text`; see [Text utilities](docs/text-utilities.md).
-
-Subpath imports are preferred for adapters/renderers. Root imports remain valid during `0.x` compatibility windows.
-
-Framework peers are adapter-specific (`react`/`react-dom`, `react-native`, `vue`) based on the subpaths you use.
-
-Normal users should not need to learn each framework's layout/template box-drawing system: layout is Machina records, framework components are payloads rendered inside resolved rectangles.
-
-## Current capability summary
-
-### Core
-
-- `RootFrame`
-- `AbsoluteFrame`
-- `AnchorFrame` with `UiLength`
-- `GuideFrame`
-- `FixedFrame`
-- `FillFrame`
-- `CellFrame`
-- `StackArrange`
-- `GridArrange`
-- `OffsetSpec`
-- responsive variants
-- bounded `z`
-- named layers
-- layout interpolation helpers
-- stack geometry/content query helpers
-
-### React
-
-- `MachinaReactView`
-- effective render key: `view ?? slot`
-- `viewData` / `nodeData`
-- named layer paint ordering
-- containment/content-visibility options
-
-### Vue
-
-- `MachinaVueView`
-- same resolved-layout rectangle rendering model as React DOM
-- effective render key: `view ?? slot`
-- `viewData` / `nodeData`
-- named layer paint ordering
-- containment/content-visibility options
-
-### Text
-
-- MachinaText parser
-- diagnostics
-- `MachinaTextView`
-- vertical rhythm policy
-
-### Sharp boundaries
-
-- No portals/reparenting.
-- No intrinsic text sizing driving outer layout.
-- No general constraint solver.
-- No CSS Grid clone.
-- No auto-placement.
-
-`GuideFrame` reads other nodes’ resolved geometry as a read-only alignment input. It preserves the one-parent model: parent remains the coordinate owner. `GuideFrame` does not portal, reparent DOM nodes, or escape clipping.
-
-Named layers organize paint order over the existing bounded `z` system. Layers are not portals.
-
-
-## Docs index
-
-- [DeusMachina](docs/deusmachina.md) — deterministic row-first state machines, hydration, adapter hooks, and transition table bridges.
-- [Row model](docs/row-model.md)
-- [Frames and stack](docs/frames-and-stack.md)
-- [Grid arrange](docs/grid-arrange.md)
-- [Stack geometry helpers](docs/stack-geometry-helpers.md)
-- [Screen catalog and viewport matrix](docs/screen-catalog-and-viewports.md)
-- [Inspection and handoff bundles](docs/inspection-and-handoff.md)
-- [MachinaCanvas export format](docs/machina-canvas-export-format.md)
-- [Error codes](docs/error-codes.md)
-- [MachinaAtlas](docs/machina-atlas.md) — optional app-composition metadata and source-section helpers.
-- [MachinaStyle](docs/machina-style.md) — typed style records that lower to deterministic CSS.
-- [Machina Static](docs/machina-static.md) — finite UI machines, timelines, and native HTTP forms lowered to no-JS HTML/CSS.
-- [Exhaustive match helpers](docs/exhaustive-match.md)
-- [Explicit capture](docs/explicit-capture.md) — visible-env closure-like tasks for inspectable authoring.
-- [Deus async tasks](docs/deus-async-tasks.md) — explicit Promise-backed task lifecycles with visible status, cancellation, and trace.
-- [Batch concurrency](docs/batch-concurrency.md) — ordered async batch mapping with explicit concurrency, fail-fast semantics, cancellation, board, and trace.
-- [Explicit iterators](docs/explicit-iterators.md) — generator-like iteration with visible cursor, board, and trace.
-- [Machina Concepts](docs/machina-concepts.md) — named capability constraints, concept source records, and template records.
-- [Machina Diagnostics](docs/machina-diagnostics.md) — shared diagnostic data helpers for combining subsystem and caller policy reports.
-- [MachinaTable](docs/machina-tables.md) — columnar table records with narrow derivation helpers, chunked columnar JSON artifacts, row/object adapters, keyed lookup artifacts, and cell-oriented diagnostics.
-- [Chunked columnar tables](docs/chunked-columnar-tables.md) — pure chunk/manifest helpers for inspectable columnar JSON artifact records over already-loaded data.
-- [MachinaQuery](docs/machina-query.md) — in-memory derivation-plan queries over `ColumnarTable` with inspectable iterator execution and chunk-query execution over already-loaded chunks; not SQL, not a database.
-- [Machina Forms](docs/machina-forms.md) — field tables lowered into explicit form field render records with cell-oriented diagnostics.
-- [Machina Commands](docs/machina-commands.md) — command/button tables lowered into explicit command records with cell-oriented diagnostics.
-- [Compile-time helpers](docs/compile-time-helpers.md) — compile-time assertions, literal helpers, and narrow type utilities.
-- [Text utilities](docs/text-utilities.md) — tiny deterministic helpers for padding, truncation, casing, and slugs.
-- [Machina toolkit dogfood report](docs/machina-toolkit-dogfood-report.md) — honest notes from using the new M34 utility subpaths together in one backend-style sample.
-- [Local sample subpath imports](docs/local-sample-subpath-imports.md) — standard local harness for nested samples that dogfood `machinalayout/*` subpaths before publish.
-
-## Deus ergonomics
-
-Recent Deus ergonomics are documented in [DeusMachina](docs/deusmachina.md) and [Exhaustive match helpers](docs/exhaustive-match.md), including:
-
-- `useDeusMachine(machine, board, { initialState })`
-- `matchKind(..., { ok, _: fallback })` and `matchEnum(..., { ready, _: fallback })`
-- typed `pendingResultTransitionsFromTable<Board, Event>(table)`
-- shared ancestor-prefix transitions without empty parent state rows
-- conditional `to` functions that return `undefined` to stay put
-
-## Tiny `LayoutRow[]` example
-
 ```ts
-import {
-  type LayoutRow,
-  resolveLayoutRows,
-  type Rect,
-} from "machinalayout";
-
-const rows: LayoutRow[] = [
-  {
-    id: "root",
-    frame: { kind: "root" },
-  },
-  {
-    id: "header",
-    parent: "root",
-    order: 0,
-    frame: { kind: "anchor", left: 0, right: 0, top: 0, height: 64 },
-    view: "header",
-  },
-  {
-    id: "sidebar",
-    parent: "root",
-    order: 1,
-    frame: { kind: "anchor", left: 0, top: 64, bottom: 0, width: 240 },
-    view: "sidebar",
-  },
-  {
-    id: "toolbar",
-    parent: "root",
-    order: 2,
-    frame: { kind: "anchor", left: 240, right: 0, top: 64, height: 56 },
-    arrange: {
-      kind: "stack",
-      axis: "horizontal",
-      gap: 8,
-      padding: { top: 8, right: 8, bottom: 8, left: 8 },
-      justify: "start",
-      align: "center",
-    },
-  },
-  {
-    id: "toolbar-button-1",
-    parent: "toolbar",
-    order: 0,
-    frame: { kind: "fixed", width: 120, height: 40 },
-    view: "toolbarButton",
-  },
-];
-
-const rootRect: Rect = { x: 0, y: 0, width: 1024, height: 640 };
-const resolved = resolveLayoutRows(rows, rootRect);
-```
-
-`view` is the preferred author-facing render key. `slot` remains valid as the adapter-facing technical key. The effective render key is `view ?? slot`.
-
-## React adapter quick example
-
-```tsx
 import { resolveLayoutRows } from "machinalayout";
-import { MachinaReactView } from "machinalayout/react";
-import { parseMachinaText } from "machinalayout/text";
-import { MachinaTextView } from "machinalayout/text/react";
-
-const resolved = resolveLayoutRows(rows, rootRect);
-const textAst = parseMachinaText("Hello");
-
-const views = {
-  header: HeaderView,
-  sidebar: SidebarView,
-  toolbarButton: ToolbarButtonView,
-};
-
-export function App() {
-  return <MachinaReactView layout={resolved} views={views} viewData={{ sidebar: { collapsed: false } }} />;
-}
+import { M } from "machinalayout/machina";
+import { Table } from "machinalayout/table";
 ```
 
-
-Subpath imports are the preferred path for adapters (`machinalayout/react`, `machinalayout/react-native`, `machinalayout/vue`, `machinalayout/text`, `machinalayout/text/react`, `machinalayout/text/react-native`, `machinalayout/text/vue`).
-
-MachinaStyle is available from `machinalayout/style` for typed semantic style records and deterministic CSS serialization.
-
-`machinalayout/react-native` and `machinalayout/text/react-native` require the `react-native` peer dependency in your app, and `machinalayout/vue` / `machinalayout/text/vue` require the `vue` peer dependency in your app. Root imports remain valid for compatibility during `0.x`.
-
-## Unified adapter usage pattern
+## Five-minute example
 
 ```ts
-import { resolveLayoutRows, type LayoutRow } from "machinalayout";
+import { resolveLayoutRows } from "machinalayout";
+import { M } from "machinalayout/machina";
 
-const rows: LayoutRow[] = [
-  { id: "root", frame: { kind: "root" } },
-  {
-    id: "sidebar",
-    parent: "root",
-    frame: { kind: "anchor", left: 0, top: 0, bottom: 0, width: 240 },
-    view: "Sidebar",
-  },
-];
+const authored = M.root("home", [
+  M.vstack("panel", [
+    M.text("title", "MachinaLayout.JS"),
+    M.space(M.px(12)),
+    M.hstack("actions", [M.text("primary", "Build"), M.text("secondary", "Inspect")]),
+  ]),
+]);
 
-const layout = resolveLayoutRows(rows, { x: 0, y: 0, width: 1200, height: 800 });
+const resolved = resolveLayoutRows(M.rows(authored));
 ```
 
-```tsx
-import { MachinaReactView } from "machinalayout/react";
-const views = { Sidebar };
-<MachinaReactView layout={layout} views={views} />;
+Use `M.*` to author layout intent, then use the resolver/renderer/static APIs that match your target.
+
+## The `M.*` shorthand
+
+`M` is exported by `machinalayout/machina`. It is shorthand for the public Machina authoring DSL: nodes, stacks, grids, guides, layers, screens, text records, machine-shaped records, and atlas sections. It is not a dumping ground for every API family.
+
+See the complete [`M.*` shorthand reference](docs/m-shorthand-reference.md) for exact names, examples, common mistakes, and deeper links.
+
+## Core API map
+
+| Need | Use |
+|------|-----|
+| Author layout records | `M` from `machinalayout/machina` |
+| Resolve layout rows/trees | `machinalayout` core exports |
+| Style records/tokens/artifacts | `machinalayout/style` |
+| Static documents/serialization | `machinalayout/static` |
+| Durable authoring tables | `machinalayout/table` and `Table` |
+| Query tabular/columnar data | `machinalayout/query` and `Q` |
+| Declarative event updates | `machinalayout/dispatch` |
+| State machines | `machinalayout/deus` plus React/Vue hooks |
+| Exhaustive branching | `machinalayout/match` |
+| Async/batch/iterator workflows | `machinalayout/async`, `machinalayout/batch`, `machinalayout/iter` |
+| Concepts/forms/commands/diagnostics/atlas | their matching package subpaths |
+| Framework rendering | `machinalayout/react`, `machinalayout/vue`, `machinalayout/react-native` |
+
+## Tables as authoring primitives
+
+Tables are first-class because they are reviewable, serializable, schema-checkable, and easy for LLMs to emit. Use `Table.define`, schema columns, conversion helpers, keyed tables, derivation helpers, chunks, and table bridges for concepts, Dispatch, Deus, atlas, styles, and queries. See [Machina tables](docs/machina-tables.md).
+
+## Dispatch
+
+Dispatch maps events to set/toggle/increment behavior using explicit tables and helpers such as `dispatchEvent`, `defineDispatchTables`, and table bridge functions. Use Dispatch when behavior is mostly data updates rather than hierarchical state. See [Machina Dispatch](docs/machina-dispatch.md).
+
+## Deus state machines
+
+Deus models stateful flows with explicit states, transitions, guards, effects, debug overlays, framework hooks, and table bridges. M41 ergonomics include hook `initialState`, optional wildcard matching, implicit ancestor states, typed table bridges, and conditional `to` functions.
+
+```ts
+useDeusMachine(machine, board, {
+  initialState: ["setup", "ready"],
+});
 ```
 
-```tsx
-import { MachinaReactNativeView } from "machinalayout/react-native";
-const views = { Sidebar };
-<MachinaReactNativeView layout={layout} views={views} />;
+```ts
+const machine = defineDeusMachine<Board, Event>({
+  states: [M.state(["setup", "editing"]), M.state(["setup", "review"])],
+  transitions: [
+    M.on("cancel", ["setup"], ["cancelled"]),
+    {
+      from: ["booking"],
+      on: "publish",
+      to: (board) => (board.live ? ["booking", "live"] : undefined),
+    },
+  ],
+});
 ```
 
-```vue
-<script setup lang="ts">
-import { MachinaVueView } from "machinalayout/vue";
-const views = { Sidebar };
-</script>
+`initialState` hydrates the hook only on initialization. Implicit ancestors are prefixes of declared substates, not arbitrary states. A function `to` returning `undefined` remains in the current state. See [Deus Machina](docs/deusmachina.md).
 
-<template>
-  <MachinaVueView :layout="layout" :views="views" />
-</template>
+## Match and async helpers
+
+Use match helpers when TypeScript should force exhaustive branching. Wildcards are optional; omitting `_` preserves exhaustiveness.
+
+```ts
+matchKind(result, {
+  ok: onOk,
+  _: onFallback,
+});
 ```
 
-Keep `views` stable (component references), and send changing data through `viewData` / `nodeData`:
+Use `machinalayout/async`, `machinalayout/batch`, and `machinalayout/iter` for task/result/trace/controller records. See [exhaustive match](docs/exhaustive-match.md), [batch concurrency](docs/batch-concurrency.md), and [explicit iterators](docs/explicit-iterators.md).
 
-```tsx
-const views = { Inspector };
+## Query and columnar tables
 
-<MachinaReactView
-  layout={layout}
-  views={views}
-  viewData={{ Inspector: inspectorData }}
-/>;
-```
+`machinalayout/query` provides `Q.from`, explicit plans, validation, execution, iteration snapshots, and chunk-aware query execution over columnar tables. Use it when the problem is data selection/projection rather than layout or state. See [Machina query](docs/machina-query.md) and [chunked columnar tables](docs/chunked-columnar-tables.md).
 
-```tsx
-const views = {
-  Inspector: () => <Inspector value={value} />,
-};
-```
+## React and Vue bindings
 
-## Public API index
+- `machinalayout/react` exports `MachinaReactView`, error surfaces, and `useDeusMachine`.
+- `machinalayout/vue` exports `MachinaVueView` and `useDeusMachine`.
+- `machinalayout/react-native` exports native rendering support.
+- Text-specific renderers live under `machinalayout/text/react`, `machinalayout/text/vue`, and `machinalayout/text/react-native`.
 
-### Core authoring/types
+## Samples
 
-- `LayoutRow`
-- `FrameSpec`
-- `ArrangeSpec`
-- `UiLength`
-- `OffsetSpec`
-
-### Frames
-
-- `RootFrame`
-- `AbsoluteFrame`
-- `AnchorFrame`
-- `GuideFrame`
-- `FixedFrame`
-- `FillFrame`
-- `CellFrame`
-
-### Arrangers
-
-- `StackArrange`
-- `GridArrange`
-
-### Core functions
-
-- `compileLayoutRows`
-- `selectLayoutRowsForRoot`
-- `resolveLayoutRows`
-- `resolveLayoutDocument`
-- `resolveFrame`
-- `lerpResolvedLayouts`
-
-### Resolved helpers
-
-- `toResolvedTree`
-- `flattenResolvedTree`
-- `formatRect`
-
-### React
-
-- `MachinaReactView`
-- `MachinaReactViewProps`
-- `MachinaSlotProps`
-- `MachinaRenderLayer`
-
-### Text
-
-- `parseMachinaText`
-- `MachinaTextView`
-- `MachinaTextSpec`
-- `MachinaTextDocument`
-
-### Error
-
-- `MachinaLayoutError`
-- `MachinaLayoutErrorCode`
-
-## Sample demos
-
-- [`samples/control-room`](samples/control-room/README.md)
-- [`samples/music-player`](samples/music-player/README.md)
-- [`samples/dispatch-counter`](samples/dispatch-counter/README.md)
-- [`samples/codex-product-page`](samples/codex-product-page/README.md)
-- [`samples/style-dogfood`](samples/style-dogfood/README.md) demonstrates `machinalayout/style` lowering from `style.ts` to checked-in CSS.
-- [`samples/toolkit-pipeline`](samples/toolkit-pipeline) demonstrates `machinalayout/match`, `capture`, `async`, `batch`, `iter`, `concept`, `diagnostics`, and `comptime` together in a backend-style order pipeline with checked-in report artifacts and the shared local sample subpath import harness.
-- [`samples/static-tabs`](samples/static-tabs) demonstrates `machinalayout/static` lowering tabs to checked-in HTML/CSS with no JS.
-- [`samples/static-accordion`](samples/static-accordion) demonstrates `machinalayout/static` lowering accordion disclosure state to checked-in HTML/CSS with no JS.
-- [`samples/static-timeline`](samples/static-timeline) demonstrates `machinalayout/static` lowering a timeline stepper to checked-in animated HTML/CSS with no JS.
-- [`samples/static-dispatch`](samples/static-dispatch) demonstrates `machinalayout/static` lowering a finite dispatch table to checked-in HTML/CSS with no JS.
-- [`samples/static-http`](samples/static-http) demonstrates `machinalayout/static` lowering native GET/POST HTTP intent to checked-in HTML/CSS with no JS.
-- [`apps/machina-canvas`](apps/machina-canvas/README.md) is the AGPL-licensed MachinaCanvas app/product dogfood area built on top of the MIT MachinaLayout.JS toolbox. It may split into its own project later; the npm package remains library/toolbox oriented. See the [MachinaCanvas M40 closeout](apps/machina-canvas/docs/phase-closeout-m40.md).
-
-Run it locally:
-
-```bash
-cd samples/control-room
-npm install
-npm run dev
-```
-
-## Formatting
-
-This repo uses Biome.
-
-- `npm run format` rewrites files.
-- `npm run format:check` checks formatting.
-- `npm run lint` runs Biome lint rules.
-- Generated `dist/` is ignored by Biome.
+Samples live in [`samples/`](samples/) and demonstrate package-style imports, adapters, and resolved layout behavior.
 
 ## Documentation
 
+Start with the [documentation index](docs/README.md). Important references include:
+
+- [`M.*` shorthand reference](docs/m-shorthand-reference.md)
+- [Package/export map](docs/package-exports.md)
 - [Machina authoring](docs/machina-authoring.md)
-- [Machina Static](docs/machina-static.md)
-- [MachinaCanvas export format](docs/machina-canvas-export-format.md) documents
-  the `.mcanvas` JSON/TOML/rendered artifact split and the
-  [`demo-poster.mcanvas`](apps/machina-canvas/fixtures/demo-poster.mcanvas)
-  fixture bundle.
+- [Machina tables](docs/machina-tables.md)
+- [Deus Machina](docs/deusmachina.md)
+- [Exhaustive match](docs/exhaustive-match.md)
 
-### Milestones and audits
+## MachinaCanvas
 
-- [M0 contract](docs/m0-contract.md)
-- [M1/M2 MachinaText plan notes](docs/machina-text-m2a-plan.md)
-- [M2z npm prepublish audit](docs/npm-prepublish-m2z-audit.md)
-- [M3c npm cleanup audit](docs/npm-prepublish-m3c-cleanup.md)
-- [M4 interpolation guide](docs/layout-interpolation.md)
-- [M5a GridArrange design contract](docs/grid-arrange-m5a-contract.md)
-- [M7a reference alignment design contract](docs/reference-alignment-m7a-contract.md)
-- [M8 API coherence audit](docs/api-coherence-m8-audit.md)
-- [A0 adapter packaging plan](docs/adapter-packaging-a0-plan.md)
+MachinaCanvas is the AGPL product/editor built on the MIT MachinaLayout.JS toolbox. Its source, tests, scripts, docs, fixtures, public assets, and dogfood artifacts are consolidated under [`/app`](app/README.md) so it can graduate into a separate repository. See the [repository graduation guide](app/docs/repository-graduation.md).
 
-### Core layout model
+## Package and license boundaries
 
-- [Row model](docs/row-model.md)
-- [Frames and stack](docs/frames-and-stack.md)
-- [Grid arrange runtime guide](docs/grid-arrange.md)
-- [Reference alignment runtime guide](docs/reference-alignment.md)
-- [Responsive variants](docs/responsive-variants.md)
-- [Tabular style sheets](docs/machina-style.md#tabular-style-sheets)
-- [Named layers](docs/named-layers.md)
-- [Layout interpolation](docs/layout-interpolation.md)
+MachinaLayout.JS is MIT licensed via the root [`LICENSE`](LICENSE) and root `package.json`. MachinaCanvas is AGPL-3.0-or-later via [`app/LICENSE`](app/LICENSE) and private [`app/package.json`](app/package.json). The root npm package uses a `files` allowlist and must not ship `/app` source, tests, docs, fixtures, artifacts, assets, or package metadata; verify with `npm pack --dry-run --json`.
 
-### Adapters and text
+## Development
 
-- [Adapter overview](docs/adapters.md)
-- [React adapter boundary](docs/react-adapter.md)
-- [React Native adapter](docs/react-native-adapter.md)
-- [Vue adapter](docs/vue-adapter.md)
-- [A0 adapter packaging plan](docs/adapter-packaging-a0-plan.md)
-- [MachinaText parser](docs/machina-text-parser.md)
-- [MachinaText React renderer](docs/machina-text-react.md)
-- [MachinaText React Native renderer](docs/react-native-text-renderer.md)
-- [MachinaText Vue renderer](docs/vue-text-renderer.md)
+```bash
+npm run format
+npm run format:check
+npm run lint
+npm test
+npm run build
+npm pack --dry-run --json
+```
 
-### Boundaries and diagnostics
+Root convenience scripts delegate stable MachinaCanvas artifact workflows into `/app`:
 
-- [Forbidden concepts](docs/forbidden-concepts.md)
-- [Z-order and containment](docs/z-order-and-containment.md)
-- [Error code reference](docs/error-codes.md)
-- [Exhaustive match helpers](docs/exhaustive-match.md)
-- [MachinaDispatch runtime guide](docs/machina-dispatch.md)
-- [DeusMachina behavioral kernel and framework bindings](docs/deusmachina.md)
-- Dispatch sample: [`samples/dispatch-counter`](samples/dispatch-counter/README.md) (uses `machinalayout/dispatch`)
-
+```bash
+npm run canvas:mechanical-exercise-354
+npm run canvas:mechanical-exercise-354-blockout
+npm run canvas:guide-overlay-fixture
+```

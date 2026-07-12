@@ -11,7 +11,7 @@ composing layers without inventing a one-off image script each time.
 ## Scope
 
 Tools are plain TypeScript definitions registered in
-`apps/machina-canvas/src/tools/`. The registry is intentionally small:
+`app/src/tools/`. The registry is intentionally small:
 
 - `defineCanvasTools(...)`
 - `listCanvasTools(...)`
@@ -70,7 +70,7 @@ assets.
 
 ## Adding A Future Tool
 
-Add a file in `apps/machina-canvas/src/tools/`, export a
+Add a file in `app/src/tools/`, export a
 `CanvasToolDefinition`, and register it in `tools/index.ts`.
 
 A future tool should:

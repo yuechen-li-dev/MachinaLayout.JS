@@ -155,3 +155,16 @@ matchEnum(mode, {
 ```
 
 In that example, TypeScript sees `mode` as any string, so it cannot know the finite set of required cases. The same applies to discriminated unions whose discriminant is widened to `string`. Prefer explicit union types for enum-like and tagged-union application concepts.
+
+## Wildcard fallbacks
+
+`matchKind` and `matchEnum` support an optional `_` fallback for call sites that deliberately want a default branch:
+
+```ts
+matchKind(result, {
+  ok: onOk,
+  _: onFallback,
+});
+```
+
+The wildcard is optional. Omitting `_` preserves exhaustiveness and asks TypeScript to require each known case explicitly.

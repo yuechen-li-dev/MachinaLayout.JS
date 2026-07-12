@@ -703,7 +703,7 @@ Rules:
 schema_version = 1
 name = "Demo Poster"
 created_by = "MachinaCanvas"
-source_app = "apps/machina-canvas"
+source_app = "app"
 
 render_svg = "render.svg"
 document_json = "document.json"
@@ -959,7 +959,7 @@ text-based SVG check.
 The M30c fixture lives at:
 
 ```txt
-apps/machina-canvas/fixtures/demo-poster.mcanvas/
+app/fixtures/demo-poster.mcanvas/
 ```
 
 It includes `render.svg`, `document.json`, `handoff.toml`, layer TOML files, object TOML files, and `commands/example-commands.toml`.

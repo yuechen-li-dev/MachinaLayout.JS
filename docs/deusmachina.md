@@ -345,3 +345,50 @@ const debugMachine = createMachinaDebugOverlayMachine();
 const debug = useDeusMachine(debugMachine, { mode: "collapsed", labels: true, borders: true });
 const behavior = computed(() => getMachinaDebugOverlayBehavior(debug.board.value));
 ```
+
+## M41 ergonomics checklist
+
+React and Vue Deus hooks accept an `initialState` option for initial hydration only:
+
+```ts
+useDeusMachine(machine, board, {
+  initialState: ["setup", "ready"],
+});
+```
+
+Wildcard matching is optional. Use `_` when a fallback branch is intentional; omit it when you want TypeScript exhaustiveness:
+
+```ts
+matchKind(result, {
+  ok: onOk,
+  _: onFallback,
+});
+```
+
+Typed table bridges can preserve board/event typing:
+
+```ts
+pendingResultTransitionsFromTable<Board, Event>(table);
+```
+
+Declared substates create implicit ancestor matches for prefixes of those substates:
+
+```ts
+states: [
+  M.state(["setup", "editing"]),
+  M.state(["setup", "review"]),
+],
+transitions: [
+  M.on("cancel", ["setup"], ["cancelled"]),
+];
+```
+
+Implicit ancestors are prefixes of declared substates, not arbitrary states.
+
+A transition `to` may be conditional. Returning `undefined` means remain in the current state:
+
+```ts
+to: board => board.live
+  ? ["booking", "live"]
+  : undefined
+```
