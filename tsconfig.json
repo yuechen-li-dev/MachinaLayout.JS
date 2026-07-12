@@ -11,7 +11,30 @@
     "skipLibCheck": true,
     "types": ["vitest/globals"],
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM"],
+    "paths": {
+      "machinalayout": ["./src/index.ts"],
+      "machinalayout/async": ["./src/async/index.ts"],
+      "machinalayout/batch": ["./src/batch/index.ts"],
+      "machinalayout/capture": ["./src/capture/index.ts"],
+      "machinalayout/concept": ["./src/concept/index.ts"],
+      "machinalayout/diagnostics": ["./src/diagnostics/index.ts"],
+      "machinalayout/iter": ["./src/iter/index.ts"],
+      "machinalayout/match": ["./src/match/index.ts"],
+      "machinalayout/comptime": ["./src/comptime/index.ts"],
+      "machinalayout/table": ["./src/table/index.ts"],
+      "machinalayout/query": ["./src/query/index.ts"],
+      "machinalayout/dispatch": ["./src/dispatch/index.ts"],
+      "machinalayout/deus": ["./src/deus/index.ts"],
+      "machinalayout/react": ["./src/react/index.ts"],
+      "machinalayout/vue": ["./src/vue/index.ts"],
+      "machinalayout/machina": ["./src/machina/index.ts"],
+      "machinalayout/style": ["./src/style/index.ts"],
+      "machinalayout/static": ["./src/static/index.ts"],
+      "machinalayout/atlas": ["./src/atlas/index.ts"],
+      "machinalayout/command": ["./src/command/index.ts"],
+      "machinalayout/form": ["./src/form/index.ts"]
+    }
   },
   "include": ["src", "test"]
 }
