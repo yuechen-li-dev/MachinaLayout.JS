@@ -9,6 +9,7 @@ import {
   type DeusMachine,
 } from "../../src/deus";
 import { useDeusMachine } from "../../src/react";
+import { M } from "../../src/machina";
 import type { UseDeusMachineOptions, UseDeusMachineResult } from "../../src/react";
 
 type Board = { count: number };
@@ -64,6 +65,29 @@ describe("React useDeusMachine", () => {
       />,
     );
     expect(hook.state).toEqual(["active"]);
+  });
+
+  it("exposes push/pop stack state without resetting it on rerender", () => {
+    const stackMachine: DeusMachine<Board, { type: "push" | "pop" }> = {
+      initial: ["idle"],
+      states: [{ path: ["idle"] }, { path: ["child"] }],
+      transitions: [
+        { key: "push", from: ["idle"], event: "push", to: M.push(["child"]) },
+        { key: "pop", from: ["child"], event: "pop", to: M.pop() },
+      ],
+    };
+    let hook!: UseDeusMachineResult<Board, { type: "push" | "pop" }>;
+    function StackHarness() {
+      hook = useDeusMachine(stackMachine, { count: 0 });
+      return null;
+    }
+    const rendered = render(<StackHarness />);
+    act(() => hook.dispatch({ type: "push" }));
+    expect(hook.stack).toEqual([{ returnState: ["idle"] }]);
+    rendered.rerender(<StackHarness />);
+    expect(hook.stack).toEqual([{ returnState: ["idle"] }]);
+    act(() => hook.dispatch({ type: "pop" }));
+    expect(hook).toMatchObject({ state: ["idle"], stack: [] });
   });
 
   it("hydrates from a board factory and explicit initial state", () => {

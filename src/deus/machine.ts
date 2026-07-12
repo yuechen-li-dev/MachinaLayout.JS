@@ -4,6 +4,8 @@ import {
   type DeusEvent,
   type DeusMachine,
   type DeusPathInput,
+  type DeusControlTarget,
+  type DeusStackFrame,
   type DeusSnapshot,
   type DeusStatePath,
   type DeusStepResult,
@@ -86,6 +88,50 @@ function resolveTransitionTargetPath(
   assertValidDeusPath(target, label);
   return copyPath(target);
 }
+function isDeusControlTarget(target: unknown): target is DeusControlTarget {
+  return (
+    !!target &&
+    typeof target === "object" &&
+    ["goto", "push", "pop", "stay"].includes((target as { kind?: unknown }).kind as string)
+  );
+}
+function copyControlTarget(target: DeusControlTarget): DeusControlTarget {
+  if (target.kind === "pop" || target.kind === "stay") return { kind: target.kind };
+  return {
+    kind: target.kind,
+    state: Array.isArray(target.state) ? copyPath(target.state) : target.state,
+  };
+}
+function resolveControlTarget(
+  target: DeusControlTarget,
+  ownerPath: DeusStatePath,
+  label: string,
+): { kind: DeusControlTarget["kind"]; target?: DeusStatePath } {
+  if (target.kind === "pop" || target.kind === "stay") return { kind: target.kind };
+  return { kind: target.kind, target: resolveTransitionTargetPath(target.state, ownerPath, label) };
+}
+function validateStack<TBoard, TEvent extends DeusEvent>(
+  machine: DeusMachine<TBoard, TEvent>,
+  stack: readonly DeusStackFrame[] | undefined,
+): readonly DeusStackFrame[] {
+  if (stack === undefined) return [];
+  if (!Array.isArray(stack))
+    throw new DeusMachinaError("DEUS_STACK_INVALID_RETURN_STATE", "stack must be an array");
+  return stack.map((frame, index) => {
+    if (!frame || typeof frame !== "object")
+      throw new DeusMachinaError(
+        "DEUS_STACK_INVALID_RETURN_STATE",
+        `stack[${index}] must be a stack frame`,
+      );
+    assertValidDeusPath(frame.returnState, `stack[${index}].returnState`);
+    if (!hasDeusStatePath(machine, frame.returnState))
+      throw new DeusMachinaError(
+        "DEUS_STACK_INVALID_RETURN_STATE",
+        `stack[${index}].returnState must exist`,
+      );
+    return { returnState: copyPath(frame.returnState) };
+  });
+}
 export function hasDeusStatePath<TBoard, TEvent extends DeusEvent>(
   machine: DeusMachine<TBoard, TEvent>,
   path: DeusPathInput,
@@ -164,6 +210,20 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
           "UnknownDeusStatePath",
           `transition ${t.key} to path must exist`,
         );
+    } else if (isDeusControlTarget(t.to)) {
+      if (t.to.kind === "goto" || t.to.kind === "push") {
+        const resolved = resolveTransitionTargetPath(t.to.state, t.from, `transition ${t.key} to`);
+        if (!resolved || !stateKeys.has(pathKey(resolved)))
+          throw new DeusMachinaError(
+            t.to.kind === "push" ? "DEUS_PUSH_TARGET_INVALID" : "DEUS_GOTO_TARGET_INVALID",
+            `transition ${t.key} ${t.to.kind} target must exist`,
+          );
+      }
+    } else if (t.to !== undefined && typeof t.to === "object" && t.to !== null && "kind" in t.to) {
+      throw new DeusMachinaError(
+        "DEUS_CONTROL_TARGET_INVALID",
+        `transition ${t.key} has an invalid control target`,
+      );
     } else if (t.to !== undefined && typeof t.to !== "function") {
       throw new DeusMachinaError(
         "InvalidDeusTransition",
@@ -208,7 +268,11 @@ export function defineDeusMachine<TBoard, TEvent extends DeusEvent>(
     return {
       ...t,
       from: copyPath(t.from),
-      to: Array.isArray(t.to) ? copyPath(t.to) : t.to,
+      to: Array.isArray(t.to)
+        ? copyPath(t.to)
+        : isDeusControlTarget(t.to)
+          ? copyControlTarget(t.to)
+          : t.to,
     };
   });
   return { initial: [...machine.initial], states, transitions };
@@ -222,7 +286,12 @@ export function hydrateDeusSnapshot<TBoard, TEvent extends DeusEvent>(
     ? normalizeDeusPathInput(options.statePath, "statePath")
     : copyPath(machine.initial);
   assertDeusStatePath(machine, state, "statePath");
-  const snapshot = { state: copyPath(state), board: options.board, stepIndex: 0 };
+  const snapshot = {
+    state: copyPath(state),
+    board: options.board,
+    stack: validateStack(machine, options.stack),
+    stepIndex: 0,
+  };
   if (options.runEnter) {
     const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
     const event = { type: "@@deus/hydrate" } as TEvent;
@@ -236,16 +305,24 @@ export function hydrateDeusSnapshot<TBoard, TEvent extends DeusEvent>(
 function resolveSnapshotCreation(
   machine: DeusMachine<unknown, DeusEvent>,
   boardOrOptions: unknown,
-): { board: unknown; state: DeusStatePath; runEnter: boolean; hydrated: boolean } {
+): {
+  board: unknown;
+  state: DeusStatePath;
+  stack: readonly DeusStackFrame[];
+  runEnter: boolean;
+  hydrated: boolean;
+} {
   const hasOptionsShape =
     !!boardOrOptions &&
     typeof boardOrOptions === "object" &&
     ("statePath" in (boardOrOptions as Record<string, unknown>) ||
-      "runEnter" in (boardOrOptions as Record<string, unknown>));
+      "runEnter" in (boardOrOptions as Record<string, unknown>) ||
+      "stack" in (boardOrOptions as Record<string, unknown>));
   if (!hasOptionsShape) {
     return {
       board: boardOrOptions,
       state: copyPath(machine.initial),
+      stack: [],
       runEnter: false,
       hydrated: false,
     };
@@ -259,6 +336,7 @@ function resolveSnapshotCreation(
   return {
     board,
     state,
+    stack: validateStack(machine, options.stack),
     runEnter: options.runEnter ?? false,
     hydrated: options.statePath !== undefined,
   };
@@ -279,8 +357,19 @@ export function createDeusSnapshot<TBoard, TEvent extends DeusEvent>(
   const resolved = resolveSnapshotCreation(
     machine as unknown as DeusMachine<unknown, DeusEvent>,
     board,
-  ) as { board: TBoard; state: DeusStatePath; runEnter: boolean; hydrated: boolean };
-  const snapshot = { state: copyPath(resolved.state), board: resolved.board, stepIndex: 0 };
+  ) as {
+    board: TBoard;
+    state: DeusStatePath;
+    stack: readonly DeusStackFrame[];
+    runEnter: boolean;
+    hydrated: boolean;
+  };
+  const snapshot = {
+    state: copyPath(resolved.state),
+    board: resolved.board,
+    stack: resolved.stack,
+    stepIndex: 0,
+  };
   if (resolved.runEnter) {
     const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
     const event = { type: "@@deus/hydrate" } as TEvent;
@@ -298,6 +387,7 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
 ): DeusStepResult<TBoard> {
   const stateBefore = [...snapshot.state];
   assertValidDeusPath(stateBefore, "snapshot state");
+  const stackBefore = validateStack(machine, snapshot.stack);
   const stateMap = new Map(machine.states.map((s) => [pathKey(s.path), s]));
   const orderedFrom = stateBefore.map((_, i) => stateBefore.slice(0, stateBefore.length - i));
   const searchedTransitionPaths = orderedFrom.map((path) => copyPath(path));
@@ -306,7 +396,12 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
   );
   const traces: DeusTransitionTrace[] = [];
   let selected:
-    | { trace: DeusTransitionTrace; t: (typeof machine.transitions)[number]; utilityKey?: string }
+    | {
+        trace: DeusTransitionTrace;
+        t: (typeof machine.transitions)[number];
+        utilityKey?: string;
+        control?: ReturnType<typeof resolveControlTarget>;
+      }
     | undefined;
   candidates.forEach(({ t }, index) => {
     const eventMatches = t.event === undefined || t.event === event.type;
@@ -347,19 +442,44 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
         if (t.score === undefined) score = utility.selected.score;
       }
     }
-    const to = eligible
-      ? resolveTransitionTargetPath(
-          typeof t.to === "function" ? t.to(snapshot.board, event) : t.to,
+    const rawTarget = eligible
+      ? typeof t.to === "function"
+        ? t.to(snapshot.board, event)
+        : t.to
+      : undefined;
+    const control = isDeusControlTarget(rawTarget)
+      ? resolveControlTarget(rawTarget, t.from, `transition ${t.key} ${rawTarget.kind} target`)
+      : undefined;
+    if (
+      rawTarget !== undefined &&
+      typeof rawTarget === "object" &&
+      rawTarget !== null &&
+      "kind" in rawTarget &&
+      !control
+    )
+      throw new DeusMachinaError(
+        "DEUS_CONTROL_TARGET_INVALID",
+        `transition ${t.key} returned an invalid control target`,
+      );
+    const to = control
+      ? control.target
+      : resolveTransitionTargetPath(
+          rawTarget as DeusPathInput | undefined,
           t.from,
           `transition ${t.key} to`,
-        )
-      : undefined;
+        );
     if (to) {
       assertValidDeusPath(to, `transition ${t.key} to`);
       if (!stateMap.has(pathKey(to)))
         throw new DeusMachinaError(
-          "UnknownDeusStatePath",
-          `transition ${t.key} to path must exist`,
+          control?.kind === "push"
+            ? "DEUS_PUSH_TARGET_INVALID"
+            : control?.kind === "goto"
+              ? "DEUS_GOTO_TARGET_INVALID"
+              : "UnknownDeusStatePath",
+          control?.kind === "push" || control?.kind === "goto"
+            ? `transition ${t.key} ${control.kind} target must exist`
+            : `transition ${t.key} to path must exist`,
         );
     }
     const reason = typeof t.reason === "function" ? t.reason(snapshot.board, event) : t.reason;
@@ -376,11 +496,16 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
     };
     traces.push(trace);
     if (eligible && (!selected || trace.score > selected.trace.score))
-      selected = { trace, t, utilityKey };
+      selected = { trace, t, utilityKey, control };
   });
   if (!selected)
     return {
-      snapshot: { state: stateBefore, board: snapshot.board, stepIndex: snapshot.stepIndex + 1 },
+      snapshot: {
+        state: stateBefore,
+        board: snapshot.board,
+        stack: stackBefore,
+        stepIndex: snapshot.stepIndex + 1,
+      },
       trace: {
         stateBefore,
         stateAfter: stateBefore,
@@ -389,7 +514,23 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
         transitions: traces,
       },
     };
-  const target = selected.trace.to ?? stateBefore;
+  let stack = stackBefore;
+  let target = selected.trace.to ?? stateBefore;
+  if (selected.control?.kind === "push") {
+    target = selected.control.target!;
+    stack = [...stackBefore, { returnState: stateBefore }];
+  } else if (selected.control?.kind === "pop") {
+    const frame = stackBefore.at(-1);
+    if (!frame)
+      throw new DeusMachinaError(
+        "DEUS_STACK_POP_EMPTY",
+        `Cannot pop Deus state stack because the stack is empty. Current state: ${JSON.stringify(stateBefore)}. Fix: enter this state through M.push(...), or replace M.pop() with M.goto(...) / M.stay().`,
+      );
+    target = copyPath(frame.returnState);
+    stack = stackBefore.slice(0, -1);
+  } else if (selected.control?.kind === "stay") {
+    target = stateBefore;
+  }
   const common = stateBefore.findIndex((v, i) => target[i] !== v);
   const prefix = common === -1 ? Math.min(stateBefore.length, target.length) : common;
   for (let i = stateBefore.length; i > prefix; i--)
@@ -400,7 +541,12 @@ export function stepDeusMachine<TBoard, TEvent extends DeusEvent>(
   for (let i = prefix + 1; i <= target.length; i++)
     stateMap.get(pathKey(target.slice(0, i)))?.onEnter?.(snapshot.board, event);
   return {
-    snapshot: { state: [...target], board: snapshot.board, stepIndex: snapshot.stepIndex + 1 },
+    snapshot: {
+      state: [...target],
+      board: snapshot.board,
+      stack,
+      stepIndex: snapshot.stepIndex + 1,
+    },
     trace: {
       stateBefore,
       stateAfter: [...target],

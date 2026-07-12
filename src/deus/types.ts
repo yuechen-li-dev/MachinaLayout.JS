@@ -33,6 +33,13 @@ export type JudgeUtilityOptions<TKey extends string = string> = {
 
 export type DeusStatePath = readonly string[];
 export type DeusPathInput = DeusStatePath | string;
+export type DeusGotoTarget = { readonly kind: "goto"; readonly state: DeusPathInput };
+export type DeusPushTarget = { readonly kind: "push"; readonly state: DeusPathInput };
+export type DeusPopTarget = { readonly kind: "pop" };
+export type DeusStayTarget = { readonly kind: "stay" };
+export type DeusControlTarget = DeusGotoTarget | DeusPushTarget | DeusPopTarget | DeusStayTarget;
+export type DeusTransitionTarget = DeusPathInput | DeusControlTarget | undefined;
+export type DeusStackFrame = { readonly returnState: DeusStatePath };
 export type DeusEvent = { type: string };
 export type DeusAction<TBoard, TEvent extends DeusEvent> = (board: TBoard, event: TEvent) => void;
 export type DeusStateRow<TBoard, TEvent extends DeusEvent> = {
@@ -55,7 +62,7 @@ export type DeusTransitionRow<TBoard, TEvent extends DeusEvent> = {
   key: string;
   from: DeusStatePath;
   event?: TEvent["type"];
-  to?: DeusPathInput | ((board: TBoard, event: TEvent) => DeusPathInput | undefined);
+  to?: DeusTransitionTarget | ((board: TBoard, event: TEvent) => DeusTransitionTarget);
   when?: (board: TBoard, event: TEvent) => boolean;
   score?: number | ((board: TBoard, event: TEvent) => number);
   do?: DeusAction<TBoard, TEvent>;
@@ -68,10 +75,16 @@ export type DeusMachine<TBoard, TEvent extends DeusEvent> = {
   states: readonly DeusStateRow<TBoard, TEvent>[];
   transitions: readonly DeusTransitionRow<TBoard, TEvent>[];
 };
-export type DeusSnapshot<TBoard> = { state: DeusStatePath; board: TBoard; stepIndex: number };
+export type DeusSnapshot<TBoard> = {
+  state: DeusStatePath;
+  board: TBoard;
+  stack: readonly DeusStackFrame[];
+  stepIndex: number;
+};
 export type CreateDeusSnapshotOptions<TBoard> = {
   board: TBoard;
   statePath?: DeusPathInput;
+  stack?: readonly DeusStackFrame[];
   runEnter?: boolean;
 };
 export type DeusTransitionTrace = {

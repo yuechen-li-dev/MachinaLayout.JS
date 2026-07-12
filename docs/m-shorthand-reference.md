@@ -88,6 +88,10 @@ Deeper docs: [text utilities](text-utilities.md), [text parser](machina-text-par
 | `M.state` | Declare a state path. | path/options | state row/record |
 | `M.on` | Declare an event transition. | event/options | transition record |
 | `M.choose` | Declare a conditional choice. | branches/options | choice record |
+| `M.goto` | Jump to a state without changing the Deus stack. | path | control target |
+| `M.push` | Enter a state and save the current state. | path | control target |
+| `M.pop` | Return to the most recently pushed state. | none | control target |
+| `M.stay` | Keep state and stack unchanged. | none | control target |
 
 Example:
 

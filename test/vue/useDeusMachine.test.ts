@@ -6,6 +6,7 @@ import {
   type DeusMachine,
 } from "../../src/deus";
 import { useDeusMachine } from "../../src/vue";
+import { M } from "../../src/machina";
 
 type Board = { count: number };
 type Event = { type: "inc" };
@@ -42,5 +43,22 @@ describe("Vue useDeusMachine", () => {
     });
     hook.dispatch({ type: "showOverlay" });
     expect(getMachinaDebugOverlayBehavior(hook.board.value).visible).toBe(true);
+  });
+
+  it("exposes push/pop stack state", () => {
+    const stackMachine: DeusMachine<Board, { type: "push" | "pop" }> = {
+      initial: ["idle"],
+      states: [{ path: ["idle"] }, { path: ["child"] }],
+      transitions: [
+        { key: "push", from: ["idle"], event: "push", to: M.push(["child"]) },
+        { key: "pop", from: ["child"], event: "pop", to: M.pop() },
+      ],
+    };
+    const hook = useDeusMachine(stackMachine, { count: 0 });
+    hook.dispatch({ type: "push" });
+    expect(hook.stack.value).toEqual([{ returnState: ["idle"] }]);
+    hook.dispatch({ type: "pop" });
+    expect(hook.stack.value).toEqual([]);
+    expect(hook.state.value).toEqual(["idle"]);
   });
 });

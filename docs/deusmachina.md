@@ -138,6 +138,8 @@ const snapshot = createDeusSnapshot(machine, {
 
 `statePath` accepts either a path array or a slash-delimited string. DeusMachina validates that the requested state path exists in the machine before creating the snapshot.
 
+Snapshots also include a JSON-safe `stack` of `{ returnState }` frames. Pass `stack` to hydration to restore it; omitted stacks default to `[]`, so snapshots created before stack control remain valid. Every hydrated return state is validated.
+
 Hydration creates the snapshot directly at the requested active path. It does not replay transition history and does not run transition actions.
 
 By default, explicit hydration does not run `onEnter` hooks, which keeps restore flows free of entry side effects. If a caller needs entry setup, pass `runEnter: true` or use `hydrateDeusSnapshot(machine, { board, statePath, runEnter: true })`.
@@ -168,7 +170,7 @@ All gathered eligible candidates compete by score regardless of depth. Highest s
 
 If no transition is selected, state and board reference are unchanged, but `stepIndex` increments because a step occurred. If a selected transition has no `to`, state remains the same. Same-state transitions do not run exit or enter hooks.
 
-Dynamic `to` functions are validated at runtime. They may return `undefined` to stay in the current state, or return a valid path that exists in the machine.
+Dynamic `to` functions are validated at runtime. They may return `undefined` to stay in the current state, a valid path that exists in the machine, or an explicit stack-control target.
 
 ```ts
 {
@@ -178,6 +180,32 @@ Dynamic `to` functions are validated at runtime. They may return `undefined` to 
   to: (board) => (board.live ? ["booking", "live"] : undefined),
 }
 ```
+
+## Explicit stack control
+
+Deus stack control is explicit snapshot data. It does not use suspended generators or hidden continuations.
+
+`M.push` enters a state while saving the current state as a return location. `M.pop` restores the most recent return location. `M.goto` changes state without modifying the stack. `M.stay` keeps both state and stack unchanged. Plain path transition targets remain valid and behave like goto targets.
+
+```ts
+const machine = defineDeusMachine<Board, Event>({
+  initial: ["booking", "selecting"],
+  states: [
+    M.state(["booking", "selecting"]),
+    M.state(["booking", "confirm"]),
+    M.state(["booking", "complete"]),
+  ],
+  transitions: [
+    M.on("openConfirm", ["booking", "selecting"], M.push(["booking", "confirm"])),
+    M.on("back", ["booking", "confirm"], M.pop()),
+    M.on("complete", ["booking", "confirm"], M.goto(["booking", "complete"])),
+  ],
+});
+```
+
+Popping an empty stack throws `DEUS_STACK_POP_EMPTY`; use `M.push` before `M.pop`, or use `M.goto`/`M.stay` when returning is not intended. Reducers/actions and effects retain their normal transition ordering.
+
+Future work only: M43b adds scoped workflow authoring with `M.scope` / `M.on` lowering; M43c adds root-relative workflow paths and higher-level workflow definitions.
 
 ## Hierarchical transition fallback
 

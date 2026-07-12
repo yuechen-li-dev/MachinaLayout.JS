@@ -8,6 +8,7 @@ import {
   type DeusEvent,
   type DeusMachine,
   type DeusSnapshot,
+  type DeusStackFrame,
   type DeusStatePath,
   type DeusStepResult,
   type DeusStepTrace,
@@ -17,6 +18,7 @@ export type UseVueDeusMachineResult<TBoard, TEvent extends DeusEvent> = {
   snapshot: Ref<DeusSnapshot<TBoard>>;
   board: ComputedRef<TBoard>;
   state: ComputedRef<DeusStatePath>;
+  stack: ComputedRef<readonly DeusStackFrame[]>;
   dispatch: (event: TEvent) => DeusStepResult<TBoard>;
   lastTrace: Ref<DeusStepTrace | null>;
   reset: (board?: TBoard | (() => TBoard)) => void;
@@ -26,6 +28,7 @@ type InitialBoard<TBoard> = TBoard | (() => TBoard);
 
 export type UseVueDeusMachineOptions<TStatePath extends DeusPathInput = DeusPathInput> = {
   initialState?: TStatePath;
+  initialStack?: readonly DeusStackFrame[];
 };
 
 function resolveInitialBoard<TBoard>(initialBoard: InitialBoard<TBoard>): TBoard {
@@ -46,10 +49,11 @@ export function useDeusMachine<
 ): UseVueDeusMachineResult<TBoard, TEvent> {
   const createSnapshot = (board?: InitialBoard<TBoard>) => {
     const resolvedBoard = resolveInitialBoard(board ?? initialBoard);
-    return options?.initialState !== undefined
+    return options?.initialState !== undefined || options?.initialStack !== undefined
       ? hydrateDeusSnapshot(machine, {
           board: resolvedBoard,
           statePath: options.initialState,
+          stack: options.initialStack,
         })
       : createDeusSnapshot(machine, resolvedBoard);
   };
@@ -72,6 +76,7 @@ export function useDeusMachine<
     snapshot,
     board: computed(() => snapshot.value.board),
     state: computed(() => snapshot.value.state),
+    stack: computed(() => snapshot.value.stack),
     dispatch,
     lastTrace,
     reset,

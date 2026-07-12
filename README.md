@@ -78,7 +78,7 @@ Dispatch maps events to set/toggle/increment behavior using explicit tables and 
 
 ## Deus state machines
 
-Deus models stateful flows with explicit states, transitions, guards, effects, debug overlays, framework hooks, and table bridges. M41 ergonomics include hook `initialState`, optional wildcard matching, implicit ancestor states, typed table bridges, and conditional `to` functions.
+Deus models stateful flows with explicit states, transitions, guards, effects, debug overlays, framework hooks, and table bridges. M43a adds explicit serializable stack targets: `M.push(path)`, `M.pop()`, `M.goto(path)`, and `M.stay()`. Plain path targets still behave like `goto`; no generators or hidden continuations are used.
 
 ```ts
 useDeusMachine(machine, board, {
