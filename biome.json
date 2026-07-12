@@ -38,6 +38,12 @@
       "!app/node_modules",
       "!app/dist",
       "!app/tmp",
+      "!app/.codex-temp",
+      "!apps/**/node_modules",
+      "!apps/**/dist",
+      "!apps/**/tmp",
+      "!apps/**/.codex-temp",
+      "!apps/**/vite-*.log",
       "!coverage",
       "!*.tgz"
     ]

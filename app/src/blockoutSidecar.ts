@@ -87,7 +87,7 @@ function asTableArray(value: unknown): readonly Record<string, unknown>[] {
 
 function asPoint(value: unknown): readonly [number, number] | undefined {
   const array = asArray(value);
-  if (!array || array.length !== 2) return undefined;
+  if (array?.length !== 2) return undefined;
   const x = asNumber(array[0]);
   const y = asNumber(array[1]);
   return x !== undefined && y !== undefined ? [x, y] : undefined;

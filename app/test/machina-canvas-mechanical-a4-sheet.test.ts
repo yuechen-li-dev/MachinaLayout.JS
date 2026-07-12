@@ -40,7 +40,7 @@ describe("MachinaCanvas mechanical A4 sheet", () => {
       throw new Error("Expected mechanical annotation sidecar.");
     }
     const titleBlock = sidecar.annotations.blocks.find((block) => block.id === "sheet-title-block");
-    if (!titleBlock || titleBlock.kind !== "titleBlock") {
+    if (titleBlock?.kind !== "titleBlock") {
       throw new Error("Expected title block.");
     }
     expect(sidecar.annotations.sheet).toMatchObject({
