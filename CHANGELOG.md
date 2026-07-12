@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added typed root-relative Deus workflow authoring: `M.workflow`, bound event-narrowing helpers, `relative(...)`, and `transitionsFromWorkflow`, all lowering to ordinary Deus transition rows with no runtime changes.
 - Added explicit serializable Deus stack control: `M.goto`, `M.push`, `M.pop`, and `M.stay`, including snapshot/hydration stack support and empty-pop diagnostics.
 - Added scoped Deus transition authoring: `M.scope` and scoped `M.on` lower deterministically through `transitionsFromScopes` into ordinary `DeusTransitionRow` values without a new runtime.
 - Added `useDeusMachine(..., { initialState })` hydration parity for React, React Native, and Vue bindings.

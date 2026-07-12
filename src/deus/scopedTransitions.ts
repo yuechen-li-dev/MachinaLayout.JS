@@ -1,7 +1,6 @@
 import { DeusMachinaError } from "./types";
 import type {
   DeusEvent,
-  DeusPathInput,
   DeusScopedTransitionRow,
   DeusStatePath,
   DeusTransitionRow,

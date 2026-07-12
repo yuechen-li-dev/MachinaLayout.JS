@@ -84,7 +84,45 @@ const transitions = transitionsFromScopes<SetupBoard, SetupEvent>([
 const machine = defineDeusMachine({ states, initial: ["setup"], transitions });
 ```
 
-Use `M.on<Board, Event, "editProviderField">("editProviderField", ...)` when a callback needs narrow event payload typing; TypeScript cannot infer a trailing event-literal type parameter after callers explicitly supply the first two generic parameters. Its options use the normal Deus field names (`when`, `do`, `to`, `score`, `reason`, `utility`, and `hysteresis`); there is no separate effect field in the Deus transition model. Scoped authoring introduces no second runtime, suspended generators, or hidden continuation state. Explicit transition rows remain fully supported and can be combined with lowered rows. Paths are still ordinary Deus paths—there are no root-relative/local paths and no `M.workflow` in M43b.
+Use `M.on<Board, Event, "editProviderField">("editProviderField", ...)` when a standalone scoped callback needs narrow event payload typing; TypeScript cannot infer a trailing event-literal type parameter after callers explicitly supply the first two generic parameters. Its options use the normal Deus field names (`when`, `do`, `to`, `score`, `reason`, `utility`, and `hysteresis`); there is no separate effect field in the Deus transition model. Scoped authoring introduces no second runtime, suspended generators, or hidden continuation state. Explicit transition rows remain fully supported and can be combined with lowered rows.
+
+## Workflow authoring
+
+`M.workflow` binds board/event types and a root state path for concise workflow-shaped authoring. It is a typed record builder: the factory executes only during definition, so it does not use generators, suspended iterators, or hidden continuation state.
+
+```ts
+type BookingBoard = { live: boolean; selectedDate?: string };
+type BookingEvent =
+  | { type: "selectDate"; date: string }
+  | { type: "confirm" }
+  | { type: "back" }
+  | { type: "submit" };
+
+const bookingWorkflow = M.workflow<BookingBoard, BookingEvent>(
+  ["booking"],
+  ({ scope, on, goto, push, pop, stay, relative }) => [
+    scope("selecting", [
+      on("selectDate", {
+        do: (board, event) => (board.selectedDate = event.date),
+        to: (board) => (board.live ? goto("live") : stay()),
+      }),
+      on("confirm", { to: push("confirmation") }),
+    ]),
+    scope("confirmation", [
+      on("back", { to: pop() }),
+      on("submit", { to: goto(relative("submitting", "request")) }),
+    ]),
+  ],
+);
+
+const machine = defineDeusMachine({
+  states,
+  initial: ["booking", "selecting"],
+  transitions: transitionsFromWorkflow(bookingWorkflow),
+});
+```
+
+String paths inside a workflow are relative to the workflow root. Deus path arrays remain absolute. Use `relative("selecting", "date")` or `relative(["selecting", "date"])` for a multi-segment root-relative path; local string paths are one segment and slash strings, `.` and `..` are rejected. Bound `on` calls narrow their event payload without a third generic. Workflow definitions lower into ordinary absolute `DeusTransitionRow` values before runtime. Explicit rows, table-authored rows, scoped rows, and workflows all use the same Deus runtime.
 
 ## Transition template tables
 
@@ -232,7 +270,6 @@ const machine = defineDeusMachine<Board, Event>({
 
 Popping an empty stack throws `DEUS_STACK_POP_EMPTY`; use `M.push` before `M.pop`, or use `M.goto`/`M.stay` when returning is not intended. Reducers/actions and effects retain their normal transition ordering.
 
-Future work only: M43c adds `M.workflow`, a workflow root path, relative/local state paths, and workflow-level lowering. Possible future syntax is `M.workflow(["booking"], [M.scope("selecting", [...])])`; it is not implemented here.
 
 ## Hierarchical transition fallback
 

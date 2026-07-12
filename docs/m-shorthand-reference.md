@@ -88,6 +88,7 @@ Deeper docs: [text utilities](text-utilities.md), [text parser](machina-text-par
 | `M.state` | Declare a state path. | path/options | state row/record |
 | `M.on` | Declare an event transition. | scoped `event, options` or legacy positional arguments | transition record |
 | `M.scope` | Group scoped transitions with one shared from-state. | from path, `M.on` rows | authoring scope |
+| `M.workflow` | Bind a workflow root plus board/event types. | root, authoring factory | workflow definition |
 | `M.choose` | Declare a conditional choice. | branches/options | choice record |
 | `M.goto` | Jump to a state without changing the Deus stack. | path | control target |
 | `M.push` | Enter a state and save the current state. | path | control target |
@@ -103,7 +104,7 @@ const flow = M.machine({
 });
 ```
 
-For concise scoped transition authoring, `M.scope` groups transitions that share the same from-state and `M.on` declares a transition row inside that scope. Lower scopes with `transitionsFromScopes` from `machinalayout/deus` before passing them to `defineDeusMachine`.
+For concise scoped transition authoring, `M.scope` groups transitions that share the same from-state and `M.on` declares a transition row inside that scope. Lower scopes with `transitionsFromScopes` from `machinalayout/deus` before passing them to `defineDeusMachine`. `M.workflow(root, factory)` binds root-relative `scope`, `goto`, and `push` helpers plus board/event types; lower it with `transitionsFromWorkflow`. Inside a workflow, strings are root-relative, arrays remain absolute, and `relative("a", "b")` expresses a multi-segment root-relative path.
 
 Common mistake: runtime Deus helpers such as `defineDeusMachine`, `transitionDeusMachine`, `useDeusMachine`, and table bridges are exported from `machinalayout/deus`, `machinalayout/react`, or `machinalayout/vue`; they are not members of `M`.
 

@@ -109,6 +109,43 @@ export type DeusTransitionScope<TBoard, TEvent extends DeusEvent> = Readonly<{
   from: DeusPathInput;
   rows: readonly DeusScopedTransitionRow<TBoard, TEvent>[];
 }>;
+/** An explicit multi-segment path relative to an M.workflow root. */
+export type DeusWorkflowRelativePath = Readonly<{
+  kind: "deusWorkflowRelativePath";
+  segments: DeusStatePath;
+}>;
+export type DeusWorkflowPathInput = string | DeusStatePath | DeusWorkflowRelativePath;
+export type DeusWorkflowScopeBuilder<TBoard, TEvent extends DeusEvent> = (
+  from: DeusWorkflowPathInput,
+  rows: readonly DeusScopedTransitionRow<TBoard, TEvent>[],
+) => DeusTransitionScope<TBoard, TEvent>;
+export type DeusWorkflowOnBuilder<TBoard, TEvent extends DeusEvent> = <
+  TType extends TEvent["type"],
+>(
+  event: TType,
+  options?: DeusScopedTransitionOptions<TBoard, TEvent, TType>,
+) => DeusScopedTransitionRow<TBoard, TEvent, TType>;
+export type DeusWorkflowGotoBuilder = (state: DeusWorkflowPathInput) => DeusGotoTarget;
+export type DeusWorkflowPushBuilder = (state: DeusWorkflowPathInput) => DeusPushTarget;
+export type DeusWorkflowRelativePathBuilder = (
+  ...segments: readonly [string, ...string[]] | [DeusStatePath]
+) => DeusWorkflowRelativePath;
+export type DeusWorkflowAuthoringContext<TBoard, TEvent extends DeusEvent> = Readonly<{
+  scope: DeusWorkflowScopeBuilder<TBoard, TEvent>;
+  on: DeusWorkflowOnBuilder<TBoard, TEvent>;
+  goto: DeusWorkflowGotoBuilder;
+  push: DeusWorkflowPushBuilder;
+  pop: () => DeusPopTarget;
+  stay: () => DeusStayTarget;
+  relative: DeusWorkflowRelativePathBuilder;
+}>;
+declare const deusWorkflowTypes: unique symbol;
+export type DeusWorkflowDefinition<TBoard, TEvent extends DeusEvent> = Readonly<{
+  kind: "deusWorkflow";
+  root: DeusStatePath;
+  scopes: readonly DeusTransitionScope<TBoard, TEvent>[];
+  readonly [deusWorkflowTypes]?: { readonly board: TBoard; readonly event: TEvent };
+}>;
 export type DeusMachine<TBoard, TEvent extends DeusEvent> = {
   initial: DeusStatePath;
   states: readonly DeusStateRow<TBoard, TEvent>[];

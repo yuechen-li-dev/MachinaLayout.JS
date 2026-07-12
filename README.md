@@ -78,7 +78,7 @@ Dispatch maps events to set/toggle/increment behavior using explicit tables and 
 
 ## Deus state machines
 
-Deus models stateful flows with explicit states, transitions, guards, effects, debug overlays, framework hooks, and table bridges. M43a adds explicit serializable stack targets: `M.push(path)`, `M.pop()`, `M.goto(path)`, and `M.stay()`. M43b adds `M.scope` / `M.on` for grouping rows with the same `from` path; use `transitionsFromScopes` from `machinalayout/deus` to lower them before machine definition. Plain path targets still behave like `goto`; no generators or hidden continuations are used.
+Deus models stateful flows with explicit states, transitions, guards, effects, debug overlays, framework hooks, and table bridges. M43a adds explicit serializable stack targets: `M.push(path)`, `M.pop()`, `M.goto(path)`, and `M.stay()`. M43b adds `M.scope` / `M.on` for grouping rows with the same `from` path. M43c adds `M.workflow(root, factory)`: string paths inside a workflow are relative to its root, while Deus path arrays remain absolute. Workflows lower through `transitionsFromWorkflow` into ordinary transition rows before machine definition. Plain path targets still behave like `goto`; no generators or hidden continuations are used.
 
 ```ts
 useDeusMachine(machine, board, {

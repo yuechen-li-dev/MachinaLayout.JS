@@ -11,6 +11,7 @@ export * from "./text";
 export * from "./layers";
 export * from "./screen";
 export * from "./machine";
+export * from "./workflow";
 export * from "./atlas";
 
 import { anchor } from "./anchor";
@@ -24,6 +25,7 @@ import { text } from "./text";
 import { defineLayers, onLayer } from "./layers";
 import { screen } from "./screen";
 import { choose, goto, machine, on, pop, push, scope, state, stay } from "./machine";
+import { workflow } from "./workflow";
 import { atlas, section } from "./atlas";
 
 export const M = {
@@ -62,6 +64,7 @@ export const M = {
   push,
   pop,
   stay,
+  workflow,
   section,
   atlas,
 } as const;
