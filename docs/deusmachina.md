@@ -59,6 +59,33 @@ const transitions = Deus.transitionsFromTable(transitionTable);
 
 That does not create a second runtime. MachinaTable is the authoring and diagnostic surface; DeusMachina still validates, owns semantics, and runs the lowered transition rows.
 
+## Scoped transition authoring
+
+`M.scope` groups transitions that share the same from-state. `M.on` declares a transition row inside that scope. Scoped transitions are authoring records only: `transitionsFromScopes` lowers them into ordinary `DeusTransitionRow` values before the machine runs.
+
+```ts
+import { defineDeusMachine, transitionsFromScopes } from "machinalayout/deus";
+import { M } from "machinalayout/machina";
+
+const transitions = transitionsFromScopes<SetupBoard, SetupEvent>([
+  M.scope(["setup"], [
+    M.on("editProviderField", {
+      do: (board, event) => {
+        board.provider[event.field] = event.value;
+      },
+      to: M.stay(),
+    }),
+    M.on("openReview", { to: M.push(["setup", "review"]) }),
+    M.on("cancel", { to: M.goto(["cancelled"]) }),
+  ]),
+  M.scope(["setup", "review"], [M.on("back", { to: M.pop() })]),
+]);
+
+const machine = defineDeusMachine({ states, initial: ["setup"], transitions });
+```
+
+Use `M.on<Board, Event, "editProviderField">("editProviderField", ...)` when a callback needs narrow event payload typing; TypeScript cannot infer a trailing event-literal type parameter after callers explicitly supply the first two generic parameters. Its options use the normal Deus field names (`when`, `do`, `to`, `score`, `reason`, `utility`, and `hysteresis`); there is no separate effect field in the Deus transition model. Scoped authoring introduces no second runtime, suspended generators, or hidden continuation state. Explicit transition rows remain fully supported and can be combined with lowered rows. Paths are still ordinary Deus paths—there are no root-relative/local paths and no `M.workflow` in M43b.
+
 ## Transition template tables
 
 Concrete transition tables stay one row to one transition. Template tables cover the other repeated pattern: one source row describes a small transition family and lowers into ordinary `DeusTransitionRow[]`.
@@ -205,7 +232,7 @@ const machine = defineDeusMachine<Board, Event>({
 
 Popping an empty stack throws `DEUS_STACK_POP_EMPTY`; use `M.push` before `M.pop`, or use `M.goto`/`M.stay` when returning is not intended. Reducers/actions and effects retain their normal transition ordering.
 
-Future work only: M43b adds scoped workflow authoring with `M.scope` / `M.on` lowering; M43c adds root-relative workflow paths and higher-level workflow definitions.
+Future work only: M43c adds `M.workflow`, a workflow root path, relative/local state paths, and workflow-level lowering. Possible future syntax is `M.workflow(["booking"], [M.scope("selecting", [...])])`; it is not implemented here.
 
 ## Hierarchical transition fallback
 

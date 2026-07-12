@@ -70,6 +70,45 @@ export type DeusTransitionRow<TBoard, TEvent extends DeusEvent> = {
   utility?: readonly DeusUtilityTransitionCandidate<TBoard, TEvent>[];
   hysteresis?: { previous: (board: TBoard) => string | undefined; margin: number };
 };
+export type DeusEventOfType<TEvent extends DeusEvent, TType extends TEvent["type"]> = Extract<
+  TEvent,
+  { type: TType }
+>;
+export type DeusScopedTransitionOptions<
+  TBoard,
+  TEvent extends DeusEvent,
+  TType extends TEvent["type"],
+> = {
+  key?: string;
+  to?:
+    | DeusTransitionTarget
+    | ((board: TBoard, event: DeusEventOfType<TEvent, TType>) => DeusTransitionTarget);
+  when?: (board: TBoard, event: DeusEventOfType<TEvent, TType>) => boolean;
+  score?: number | ((board: TBoard, event: DeusEventOfType<TEvent, TType>) => number);
+  do?: (board: TBoard, event: DeusEventOfType<TEvent, TType>) => void;
+  reason?: string | ((board: TBoard, event: DeusEventOfType<TEvent, TType>) => string);
+  utility?: readonly DeusUtilityTransitionCandidate<TBoard, DeusEventOfType<TEvent, TType>>[];
+  hysteresis?: { previous: (board: TBoard) => string | undefined; margin: number };
+};
+type DeusScopedTransitionRowForType<
+  TBoard,
+  TEvent extends DeusEvent,
+  TType extends TEvent["type"],
+> = Readonly<{
+  kind: "deusScopedTransition";
+  event: TType;
+}> &
+  Readonly<DeusScopedTransitionOptions<TBoard, TEvent, TType>>;
+export type DeusScopedTransitionRow<
+  TBoard,
+  TEvent extends DeusEvent,
+  TType extends TEvent["type"] = TEvent["type"],
+> = TType extends TEvent["type"] ? DeusScopedTransitionRowForType<TBoard, TEvent, TType> : never;
+export type DeusTransitionScope<TBoard, TEvent extends DeusEvent> = Readonly<{
+  kind: "deusTransitionScope";
+  from: DeusPathInput;
+  rows: readonly DeusScopedTransitionRow<TBoard, TEvent>[];
+}>;
 export type DeusMachine<TBoard, TEvent extends DeusEvent> = {
   initial: DeusStatePath;
   states: readonly DeusStateRow<TBoard, TEvent>[];

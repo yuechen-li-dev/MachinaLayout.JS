@@ -4,3 +4,4 @@ export * from "./machine";
 export * from "./debugOverlay";
 export * from "./fromTable";
 export * from "./templateTable";
+export * from "./scopedTransitions";

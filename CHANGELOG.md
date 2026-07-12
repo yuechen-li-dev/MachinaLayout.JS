@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added explicit serializable Deus stack control: `M.goto`, `M.push`, `M.pop`, and `M.stay`, including snapshot/hydration stack support and empty-pop diagnostics.
+- Added scoped Deus transition authoring: `M.scope` and scoped `M.on` lower deterministically through `transitionsFromScopes` into ordinary `DeusTransitionRow` values without a new runtime.
 - Added `useDeusMachine(..., { initialState })` hydration parity for React, React Native, and Vue bindings.
 - Added `_` wildcard/default arms to `matchKind`, `matchEnum`, and `matchDiscriminated` while preserving exhaustive mode when `_` is omitted.
 - Added typed generic return seams for `pendingResultTransitionsFromTable` and `transitionsFromTemplateTable`.

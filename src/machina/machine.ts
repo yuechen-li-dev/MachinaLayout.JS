@@ -8,6 +8,9 @@ import {
   type DeusStatePath,
   type DeusStateRow,
   type DeusTransitionRow,
+  type DeusScopedTransitionOptions,
+  type DeusScopedTransitionRow,
+  type DeusTransitionScope,
 } from "../deus";
 
 export type MachinaStateOptions<TBoard, TEvent extends DeusEvent> = {
@@ -70,7 +73,7 @@ export function state<TBoard, TEvent extends DeusEvent>(
   };
 }
 
-export function on<TBoard, TEvent extends DeusEvent>(
+function explicitOn<TBoard, TEvent extends DeusEvent>(
   eventType: TEvent["type"],
   from: DeusStatePath,
   to: DeusTransitionTarget | ((board: TBoard, event: TEvent) => DeusTransitionTarget),
@@ -87,6 +90,59 @@ export function on<TBoard, TEvent extends DeusEvent>(
     ...(options.score !== undefined ? { score: options.score } : null),
     ...(options.reason !== undefined ? { reason: options.reason } : null),
   };
+}
+
+export function scopedOn<TBoard, TEvent extends DeusEvent, TType extends TEvent["type"]>(
+  event: TType,
+  options: DeusScopedTransitionOptions<TBoard, TEvent, TType> = {},
+): DeusScopedTransitionRow<TBoard, TEvent, TType> {
+  const copied = {
+    kind: "deusScopedTransition" as const,
+    event,
+    ...options,
+    ...(Array.isArray(options.to) ? { to: Object.freeze([...options.to]) } : null),
+    ...(options.utility
+      ? { utility: Object.freeze(options.utility.map((candidate) => ({ ...candidate }))) }
+      : null),
+    ...(options.hysteresis ? { hysteresis: Object.freeze({ ...options.hysteresis }) } : null),
+  };
+  return Object.freeze(copied) as DeusScopedTransitionRow<TBoard, TEvent, TType>;
+}
+
+export function on<TBoard, TEvent extends DeusEvent, TType extends TEvent["type"] = TEvent["type"]>(
+  event: TType,
+  options?: DeusScopedTransitionOptions<TBoard, TEvent, TType>,
+): DeusScopedTransitionRow<TBoard, TEvent, TType>;
+export function on<TBoard, TEvent extends DeusEvent>(
+  event: TEvent["type"],
+  from: DeusStatePath,
+  to: DeusTransitionTarget | ((board: TBoard, event: TEvent) => DeusTransitionTarget),
+  action?: DeusAction<TBoard, TEvent>,
+  options?: MachinaOnOptions<TBoard, TEvent>,
+): DeusTransitionRow<TBoard, TEvent>;
+export function on<TBoard, TEvent extends DeusEvent>(
+  event: TEvent["type"],
+  optionsOrFrom?: DeusScopedTransitionOptions<TBoard, TEvent, TEvent["type"]> | DeusStatePath,
+  to?: DeusTransitionTarget | ((board: TBoard, event: TEvent) => DeusTransitionTarget),
+  action?: DeusAction<TBoard, TEvent>,
+  options?: MachinaOnOptions<TBoard, TEvent>,
+): DeusScopedTransitionRow<TBoard, TEvent> | DeusTransitionRow<TBoard, TEvent> {
+  if (Array.isArray(optionsOrFrom)) return explicitOn(event, optionsOrFrom, to, action, options);
+  return scopedOn(
+    event,
+    optionsOrFrom as DeusScopedTransitionOptions<TBoard, TEvent, TEvent["type"]>,
+  );
+}
+
+export function scope<TBoard, TEvent extends DeusEvent>(
+  from: DeusPathInput,
+  rows: readonly DeusScopedTransitionRow<TBoard, TEvent>[],
+): DeusTransitionScope<TBoard, TEvent> {
+  return Object.freeze({
+    kind: "deusTransitionScope" as const,
+    from: Array.isArray(from) ? Object.freeze([...from]) : from,
+    rows: Object.freeze([...rows]),
+  });
 }
 
 export function choose<TBoard, TEvent extends DeusEvent>(

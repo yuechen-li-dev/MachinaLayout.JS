@@ -86,7 +86,8 @@ Deeper docs: [text utilities](text-utilities.md), [text parser](machina-text-par
 |-----------|---------|---------------|------------|
 | `M.machine` | Author a machine-shaped record. | machine options | machine definition input |
 | `M.state` | Declare a state path. | path/options | state row/record |
-| `M.on` | Declare an event transition. | event/options | transition record |
+| `M.on` | Declare an event transition. | scoped `event, options` or legacy positional arguments | transition record |
+| `M.scope` | Group scoped transitions with one shared from-state. | from path, `M.on` rows | authoring scope |
 | `M.choose` | Declare a conditional choice. | branches/options | choice record |
 | `M.goto` | Jump to a state without changing the Deus stack. | path | control target |
 | `M.push` | Enter a state and save the current state. | path | control target |
@@ -98,9 +99,11 @@ Example:
 ```ts
 const flow = M.machine({
   states: [M.state(["setup", "editing"]), M.state(["setup", "review"])],
-  transitions: [M.on("cancel", { from: ["setup"], to: ["cancelled"] })],
+  transitions: [M.on("cancel", ["setup"], ["cancelled"])],
 });
 ```
+
+For concise scoped transition authoring, `M.scope` groups transitions that share the same from-state and `M.on` declares a transition row inside that scope. Lower scopes with `transitionsFromScopes` from `machinalayout/deus` before passing them to `defineDeusMachine`.
 
 Common mistake: runtime Deus helpers such as `defineDeusMachine`, `transitionDeusMachine`, `useDeusMachine`, and table bridges are exported from `machinalayout/deus`, `machinalayout/react`, or `machinalayout/vue`; they are not members of `M`.
 

@@ -23,7 +23,7 @@ import { edge, guide } from "./guide";
 import { text } from "./text";
 import { defineLayers, onLayer } from "./layers";
 import { screen } from "./screen";
-import { choose, goto, machine, on, pop, push, state, stay } from "./machine";
+import { choose, goto, machine, on, pop, push, scope, state, stay } from "./machine";
 import { atlas, section } from "./atlas";
 
 export const M = {
@@ -56,6 +56,7 @@ export const M = {
   machine,
   state,
   on,
+  scope,
   choose,
   goto,
   push,
