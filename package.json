@@ -1,6 +1,6 @@
 {
   "name": "machinalayout",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "canvas:tinytown-artifacts": "vite-node app/scripts/run-generate-tinytown-sprite-artifacts.ts",
