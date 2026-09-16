@@ -23,6 +23,7 @@ export default defineConfig({
     "iter/index": "src/iter/index.ts",
     "concept/index": "src/concept/index.ts",
     "diagnostics/index": "src/diagnostics/index.ts",
+    "viewport2d/index": "src/viewport2d/index.ts",
     "table/index": "src/table/index.ts",
     "query/index": "src/query/index.ts",
     "form/index": "src/form/index.ts",

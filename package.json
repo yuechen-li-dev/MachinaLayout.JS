@@ -108,6 +108,10 @@
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
     },
+    "./viewport2d": {
+      "types": "./dist/viewport2d/index.d.ts",
+      "import": "./dist/viewport2d/index.js"
+    },
     "./table": {
       "types": "./dist/table/index.d.ts",
       "import": "./dist/table/index.js"
