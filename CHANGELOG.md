@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Concepts are now typed (M36): `T.Infer<typeof C>` derives TypeScript types; added `T.union`, `T.oneOf`, nested concepts, `T.array(element)`, number/string refinements and brands, closed concepts, `T.custom`, and `T.implements<Type>()` drift guards.
+- Concept diagnostics now recurse with indexed paths, discriminant routing, did-you-mean, origin concepts, and machine-applicable `fix` hints; `T.is` / `T.assert` narrow types.
+- `T.template` derives its input type from `requires`; added `T.overload` (refinement-ordered dispatch with ambiguity diagnostics), `T.registry`, `T.example`, `T.counterexamples`, and `T.explain`.
+- Breaking: numbers reject `NaN` unless `allowNaN`; `undefined` fields count as missing; `T.compose` throws on conflicting source fields unless overridden; diagnostic messages are shorter and include type/origin.
+
 - Added typed root-relative Deus workflow authoring: `M.workflow`, bound event-narrowing helpers, `relative(...)`, and `transitionsFromWorkflow`, all lowering to ordinary Deus transition rows with no runtime changes.
 - Added explicit serializable Deus stack control: `M.goto`, `M.push`, `M.pop`, and `M.stay`, including snapshot/hydration stack support and empty-pop diagnostics.
 - Added scoped Deus transition authoring: `M.scope` and scoped `M.on` lower deterministically through `transitionsFromScopes` into ordinary `DeusTransitionRow` values without a new runtime.

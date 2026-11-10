@@ -1,5 +1,6 @@
-import { assertConceptValue } from "./validate";
+import type { Infer } from "./infer";
 import type { ConceptDefinition, TemplateRecord } from "./types";
+import { assertConceptValue } from "./validate";
 
 function assertTemplateId(id: string): void {
   if (typeof id !== "string" || id.trim().length === 0) {
@@ -24,12 +25,16 @@ function assertTemplateRequires(requires: unknown): asserts requires is ConceptD
   }
 }
 
-export function template<TInput, TOutput>(input: {
+/**
+ * A function whose input type is derived from its required concept, so the
+ * runtime contract and the parameter type cannot drift apart.
+ */
+export function template<const TConcept extends ConceptDefinition, TOutput>(input: {
   id: string;
-  requires: ConceptDefinition;
-  run: (input: TInput) => TOutput;
+  requires: TConcept;
+  run: (input: Infer<TConcept>) => TOutput;
   description?: string;
-}): TemplateRecord<TInput, TOutput> {
+}): TemplateRecord<Infer<TConcept>, TOutput> & { readonly requires: TConcept } {
   assertTemplateId(input.id);
   assertTemplateRun(input.run);
   assertTemplateRequires(input.requires);
@@ -43,6 +48,7 @@ export function template<TInput, TOutput>(input: {
   };
 }
 
+/** Validates `input` against the template's concept, then runs it. */
 export function runTemplate<TInput, TOutput>(
   record: TemplateRecord<TInput, TOutput>,
   input: TInput,

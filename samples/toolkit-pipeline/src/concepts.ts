@@ -1,27 +1,16 @@
 import {
-  T,
+  type ConceptDiagnostic,
   formatConceptDescription,
   formatTemplateDescription,
-  type ConceptDiagnostic,
+  T,
 } from "machinalayout/concept";
-import type { OrderCurrency, OrderStatus } from "./data.js";
-
-export type ValidOrder = T.All<
-  [
-    T.HasId,
-    T.HasField<"customerId", string>,
-    T.HasField<"status", OrderStatus>,
-    T.HasField<"totalCents", number>,
-    T.HasField<"currency", OrderCurrency>,
-    T.HasField<"items", number>,
-  ]
->;
+import { orderCurrencies, orderStatuses } from "./data.js";
 
 export const HasId = T.concept({
   id: "HasId",
   description: "Records that expose a stable order identifier.",
   fields: {
-    id: T.string(),
+    id: T.string({ nonEmpty: true }),
   },
 });
 
@@ -29,12 +18,12 @@ export const OrderShape = T.concept({
   id: "OrderShape",
   description: "The raw backend order payload shape.",
   fields: {
-    id: T.string(),
-    customerId: T.string(),
-    status: T.string(),
-    totalCents: T.number(),
-    currency: T.string(),
-    items: T.number(),
+    id: T.string({ nonEmpty: true }),
+    customerId: T.string({ nonEmpty: true }),
+    status: T.oneOf(...orderStatuses),
+    totalCents: T.number({ int: true }),
+    currency: T.oneOf(...orderCurrencies),
+    items: T.number({ int: true, min: 1 }),
   },
 });
 
@@ -44,11 +33,14 @@ export const PricedOrder = T.compose({
   concepts: [HasId, OrderShape],
 });
 
+/** Derived from the concept — previously a hand-written `T.All<[...]>` that had drifted (status: string vs OrderStatus). */
+export type ValidOrder = T.Infer<typeof PricedOrder>;
+
 export const summarizeOrder = T.template({
   id: "summarizeOrder",
   description: "Summarize an order before export-side enrichment.",
   requires: PricedOrder,
-  run: (order: ValidOrder) =>
+  run: (order) =>
     `${order.id} (${order.status}) for ${order.customerId}: ${order.items} items, ${order.totalCents} cents`,
 });
 

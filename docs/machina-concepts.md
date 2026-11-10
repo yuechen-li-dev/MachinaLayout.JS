@@ -15,17 +15,18 @@ Machina concepts are source records for meaning, validation, diagnostics, and pr
 - Concepts produce readable diagnostics for humans and LLMs.
 - Concept tables author flat concept source records.
 - Templates declare a required concept for runtime inputs.
-- Compile-time helpers name useful generic shapes without pretending to derive them.
+- Concepts are the single source of truth for a shape: `T.Infer<typeof C>` derives the TypeScript type.
+- Templates take their input type from their required concept; overloads dispatch on concept refinement.
 
 ## What it is not
 
 - Not C++ template metaprogramming.
 - Not code generation.
 - Not a Babel or TypeScript transform.
-- Not a recursive schema language.
+- Not a recursive schema language: nesting is by referencing other named concepts, never self-reference.
 - Not a Zod clone.
 - Not a form renderer or form state framework.
-- Not nested-object validation beyond basic `object`/`array` kind checks in M34e.
+- Not a parser: no coercion, transforms, defaults, or silent repair. Values are accepted or diagnosed.
 
 ## Import surface
 
@@ -309,99 +310,93 @@ T.assert(RectLike, {
 
 Invalid inputs throw `ConceptError` with the concept id and collected diagnostics.
 
-## Compile-time concept helpers
+## Typed concepts (M36)
 
-Runtime concepts validate unknown values and produce diagnostics.
-Type helpers express generic constraints at compile time.
-
-If you want the general compile-time helper toolkit, use `machinalayout/comptime`.
-`machinalayout/concept` keeps a concept-oriented subset for ergonomics around concept constraints.
-
-M34f intentionally does not derive TypeScript types from runtime concept objects.
-Pair runtime concepts and type aliases by naming convention for now.
+A concept is the one declaration of a shape. Its TypeScript type is derived, not paired by naming convention.
 
 ```ts
 import { T } from "machinalayout/concept";
 
-export const PositionedConcept = T.concept({
-  id: "Positioned",
-  fields: {
-    x: T.number(),
-    y: T.number(),
-  },
-});
+const Px = T.concept({ id: "Px", fields: { unit: T.literal("px"), value: T.number() } });
+const Ui = T.concept({ id: "Ui", fields: { unit: T.literal("ui"), value: T.number() } });
+const UiLength = T.union(T.number(), Px, Ui);
 
-export type Positioned = T.All<[T.HasField<"x", number>, T.HasField<"y", number>]>;
+const AbsoluteFrame = T.implements<import("machinalayout").AbsoluteFrame>()(
+  T.concept({
+    id: "AbsoluteFrame",
+    closed: true, // unknown keys are errors, with did-you-mean
+    fields: {
+      kind: T.literal("absolute"),
+      x: T.number({ finite: true }),
+      y: T.number({ finite: true }),
+      width: T.number({ finite: true, min: 0 }),
+      height: T.number({ finite: true, min: 0 }),
+    },
+  }),
+);
 
-export const SizedConcept = T.concept({
-  id: "Sized",
-  fields: {
-    width: T.number(),
-    height: T.number(),
-  },
-});
-
-export type Sized = T.All<[T.HasField<"width", number>, T.HasField<"height", number>]>;
-
-export type RectLike = T.All<[Positioned, Sized]>;
-
-export function centerOf<TValue extends RectLike>(rect: TValue) {
-  return {
-    x: rect.x + rect.width / 2,
-    y: rect.y + rect.height / 2,
-  };
-}
+type Frame = T.Infer<typeof AbsoluteFrame>; // exactly AbsoluteFrame
 ```
 
-Useful helpers stay intentionally boring:
+Constraint builders:
 
-- `T.HasField<"x", number>` names a required field shape.
-- `T.OptionalField<"name", string>` names an optional field shape.
-- `T.HasId` and `T.HasKind<"image">` cover common discriminant-style constraints.
-- `T.And<A, B>` and `T.All<[A, B, C]>` compose shapes.
-- `T.ConceptType<{ ... }>` names a useful object shape directly.
-- `T.Extends`, `T.Equal`, and `T.Assert` support compile-time tests and docs.
-- `T.Satisfies<TValue, TConcept>` is a small compatibility helper, not a validation system.
+- `T.string({ nonEmpty, brand })`, `T.number({ finite, int, min, max, allowNaN, brand })`, `T.boolean()`
+- `T.literal(v)`, `T.oneOf(a, b, c)`, `T.union(...constraints)`
+- `T.object()` / `T.object(Concept)` or a concept directly as a field; `T.array()` / `T.array(element, { minLength })`
+- `T.fn<Signature>()` (runtime checks `typeof`, the signature is compile-time only)
+- `T.custom(name, guard, { example })` escape hatch; the guard's type is inferred
+- `T.optional(constraint)`
 
-M34f does not attempt automatic runtime-concept-to-TypeScript-type derivation.
-That would be a later metaprogramming/typegen feature.
+Numbers reject `NaN` by default. Brands (`brand: "px"`) are compile-time only: `number & Brand<"px">` is not assignable to `number & Brand<"ui">`.
 
-## Template records
+`T.implements<Type>()(concept)` is a drift guard for code that keeps a hand-written type. A mismatch is a compile error ending in e.g. `"differs: x", "missing in concept: height"`.
 
-Templates are small runtime records that declare a concept requirement.
+`T.compose` throws `ConflictingConceptField` when sources disagree, unless the field is overridden in `fields`. It records `fieldOrigins`, so diagnostics can say which concept a field came from.
+
+## Diagnostics with fixes
+
+Validation recurses through nested concepts, arrays (`columns[1].size`), and unions. Every diagnostic carries `path`, `expected`, `received`, origin `concept`, and a machine-applicable `fix` (`add` / `remove` / `rename` / `replace`).
+
+```text
+[error] MissingConceptField at frame.height: missing required number(finite, >=0); found 'heigth' — did you mean 'height'? [fix: rename frame.heigth → height]
+[error] UnknownConceptField at arrange.paddingX: unknown key on closed StackArrange; did you mean 'padding'? [fix: rename arrange.paddingX → padding]
+[error] InvalidConceptDiscriminant at frame.kind: "anchr" is not one of "root" | "absolute" | "anchor" | …; did you mean "anchor"? [fix: set frame.kind to "anchor"]
+```
+
+Unions whose object branches have literal fields are routed by those discriminants, so only the matching branch's errors are reported. On open concepts, an unknown key close to an absent optional field is a `SuspiciousConceptField` warning.
+
+`T.is(C, value)` is a type guard and `T.assert(C, value)` an assertion function. Both narrow to `T.Infer<typeof C>`.
+
+## Templates, overloads, registry
 
 ```ts
-const renderRect = T.template({
-  id: "renderRect",
-  requires: RectLike,
-  run: (rect: { x: number; y: number; width: number; height: number }) =>
-    `${rect.x},${rect.y} ${rect.width}x${rect.height}`,
-});
+const label = T.template({ id: "rectLabel", requires: Rect, run: (r) => `${r.width}x${r.height}` });
+// `r` is inferred from Rect; a run function expecting a narrower type is a compile error.
 
-const text = T.runTemplate(renderRect, {
-  x: 10,
-  y: 20,
-  width: 200,
-  height: 100,
-});
+const describeShape = T.overload("describeShape", [pointLabel, rectLabel, squareLabel]);
+describeShape.call(value); // most specific matching template wins
+describeShape.resolve(untrusted); // { ok, template, run } | { ok: false, code, diagnostics }
 ```
 
-Templates are also inspectable:
+"More specific" means structural refinement (every value of A satisfies B), computed from the constraints rather than from declaration order or `composedFrom`. If two incomparable templates both match, the result is `AmbiguousOverload`; nothing is ever chosen silently. Overload sets where a template can never be chosen throw `DuplicateOverload`.
 
-```ts
-const description = T.describeTemplate(renderRect);
-console.log(formatTemplateDescription(description));
-```
+`T.registry().register(...)` answers `capabilities(value)` (what accepts this value, most specific first) and `accepting(Concept)` (what is statically guaranteed to accept every value of a concept).
+
+## Fixtures and explanations
+
+- `T.example(C)` returns a deterministic minimal valid value, self-checked against the validator.
+- `T.counterexamples(C)` returns one single-mutation invalid value per field and failure mode, each verified to produce its `expectedCode` at its `path`.
+- `T.explain(C)` gives the fields with origins, an example, and the rejected failure modes as plain text for LLM or human readers.
+
+## Legacy compile-time helpers
+
+`T.HasField`, `T.OptionalField`, `T.HasId`, `T.HasKind`, `T.And`, `T.All`, `T.ConceptType`, `T.Extends`, `T.Equal`, `T.Assert`, and `T.Satisfies` remain for compatibility. Prefer `T.Infer` plus plain TypeScript: these are aliases for `{ [K]: V }`, `&`, and the identity. For general type-level testing, use `machinalayout/comptime`.
 
 ## Honest boundary
 
-M34e concepts are runtime authoring and diagnostics tools first.
+- Inference covers every built-in constraint. `T.custom` and `T.fn` signatures are compile-time promises the runtime cannot check.
+- Refinement is structural and conservative: open concepts ignore extra keys the way TypeScript object types do. Custom constraints only refine when they are the same guard.
+- Overloads dispatch at runtime by validating each candidate, so cost is O(templates × validation). Use them for authoring and tooling boundaries, not hot loops.
+- No recursion (self-referential concepts), no coercion, no defaults.
 
-- They do not derive perfect compile-time types from runtime objects.
-- They do not validate nested schemas recursively.
-- They do not instantiate generic template graphs.
-- They do not replace TypeScript generics.
-
-The blade stays narrow: named capability constraints and template records.
-
-See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a runtime-validation sample that pairs concepts with policy diagnostics, iterator traversal, and async enrichment.
+See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline), which derives `ValidOrder` from its concept. Its old hand-written type had drifted to `status: string`. Also see the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md).

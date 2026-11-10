@@ -57,7 +57,7 @@ describe("toolkit pipeline sample", () => {
           {
             severity: "error",
             code: "MissingConceptField",
-            message: "Required concept field 'customerId' is missing.",
+            message: "missing required string(nonEmpty), from OrderShape",
             path: "orders[2].customerId",
             source: "concept",
           },
@@ -71,7 +71,7 @@ describe("toolkit pipeline sample", () => {
           },
         ],
         diagnosticsText:
-          "error MissingConceptField at orders[2].customerId\n  source: concept\n  Required concept field 'customerId' is missing.\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100",
+          "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100",
       },
     ]);
     expect(report.iterator.status).toBe("done");
