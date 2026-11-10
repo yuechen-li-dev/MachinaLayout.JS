@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { Assert, Equal, Extends } from "../../src/concept";
+import type { Assert, Equal, Extends } from "../../src/comptime";
 import {
-  type SchemaColumnarTable,
-  type TableSchemaColumns,
-  type TableSchemaRow,
-  Table,
-  TableError,
   enumColumn,
   formatTableDiagnostics,
+  type SchemaColumnarTable,
+  Table,
+  TableError,
+  type TableSchemaColumns,
+  type TableSchemaRow,
 } from "../../src/table";
 
 const roleValues = ["admin", "member"] as const;

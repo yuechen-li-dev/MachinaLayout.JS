@@ -4,9 +4,16 @@ export * from "./fixtures";
 export * from "./infer";
 export * from "./overload";
 export * from "./registry";
-export { conceptRefines, constraintRefines, describeConstraintType } from "./structure";
+export {
+  type ConceptField,
+  conceptFields,
+  conceptRefines,
+  constraintRefines,
+  describeConstraintType,
+  fieldMeta,
+  isConceptDefinition,
+} from "./structure";
 export * from "./table";
 export * from "./template";
-export * from "./typeHelpers";
 export * from "./types";
 export * from "./validate";

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import * as root from "../../src/index";
 import {
   ConceptError,
-  T,
   formatConceptDescription,
   formatConceptDiagnostics,
   formatTemplateDescription,
+  T,
   validateConceptDefinition,
 } from "../../src/concept";
+import * as root from "../../src/index";
 
 describe("concept field helpers", () => {
   it("creates primitive and literal constraints", () => {

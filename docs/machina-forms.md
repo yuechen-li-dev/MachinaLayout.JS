@@ -16,11 +16,11 @@ MachinaForm does not manage form state. It makes field definitions table-shaped 
 
 ## Projecting concepts into form fields
 
-Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+Concept-to-form projection does not manage form state. It maps a concept's fields into field records using caller-supplied values and projection options.
 
 Core thesis:
 
-- concepts are source records
+- concepts are the source
 - form fields are projection records
 - value binding is supplied by the caller
 - there is no path parser
@@ -28,15 +28,23 @@ Core thesis:
 - there is no renderer
 - your app renders `FormFieldRecord[]`
 
-Project concepts directly when you already have `ConceptRecord[]`:
+Project any concept, whether authored in code or lowered from a concept table:
 
 ```ts
 import { T } from "machinalayout/concept";
 import { Form } from "machinalayout/form";
 
-const concepts = T.conceptsFromTable(providerConcepts);
+const Provider = T.concept({
+  id: "Provider",
+  fields: {
+    displayName: T.string({ label: "Provider name", nonEmpty: true }),
+    slug: T.string({ label: "Public slug", changeKey: "providerSlug" }),
+    description: T.optional(T.string({ label: "Description", controlHint: "textarea" })),
+  },
+});
+// or: const Provider = T.conceptFromTable(providerConcepts);
 
-const fields = Form.fieldsFromConcepts(concepts, {
+const fields = Form.fieldsFromConcept(Provider, {
   values: {
     displayName: draft.provider.displayName,
     slug: draft.provider.slug,
@@ -50,13 +58,15 @@ const fields = Form.fieldsFromConcepts(concepts, {
 });
 ```
 
-`fieldsFromConcepts(...)` only projects records:
+`fieldsFromConcept(...)` only projects fields:
 
-- `field` comes from `concept.concept`
-- `label` comes from `concept.label`
-- `changeKey` falls back to `concept.concept`
+- `field` is the field name
+- `label` comes from field metadata, defaulting to the field name
+- `required` is `false` for `T.optional(...)` fields
+- `changeKey` falls back to the field name
 - `controlHint` may map to `"input"` or `"textarea"`
-- values come from `values` or `valueForConcept`
+- values come from `values` or `valueForConcept`; resolver callbacks receive a `ConceptField` (`name`, `constraint`, `required`, `meta`)
+- only string, number, boolean, enum, literal, and unknown fields project; nested, array, or union fields report `UnsupportedConceptFormField`
 
 Render manually at the app boundary:
 

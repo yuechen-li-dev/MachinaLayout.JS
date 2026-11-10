@@ -1,4 +1,11 @@
-import { conceptsFromTable, type ConceptPrimitiveKind, type ConceptRecord } from "../concept";
+import {
+  type ConceptDefinition,
+  type ConceptField,
+  conceptFields,
+  conceptFromTable,
+  describeConstraintType,
+  isConceptDefinition,
+} from "../concept";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError } from "../table/validate";
 import type {
@@ -10,14 +17,7 @@ import type {
 } from "./types";
 
 const formFieldControls = ["input", "textarea"] as const satisfies readonly FormFieldControl[];
-const conceptPrimitiveKinds = [
-  "string",
-  "number",
-  "boolean",
-  "enum",
-  "literal",
-  "unknown",
-] as const satisfies readonly ConceptPrimitiveKind[];
+const projectableKinds = new Set(["string", "number", "boolean", "enum", "literal", "unknown"]);
 
 type ProjectionContext = { readonly index: number };
 
@@ -27,18 +27,8 @@ type ProjectedConceptField = {
   readonly testId?: string;
 };
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
 function isFormFieldControl(value: unknown): value is FormFieldControl {
   return typeof value === "string" && formFieldControls.some((candidate) => candidate === value);
-}
-
-function isConceptPrimitiveKind(value: unknown): value is ConceptPrimitiveKind {
-  return (
-    typeof value === "string" && conceptPrimitiveKinds.some((candidate) => candidate === value)
-  );
 }
 
 function sanitizeIdSegment(value: string, fallback: string): string {
@@ -51,17 +41,13 @@ function sanitizeIdSegment(value: string, fallback: string): string {
   return sanitized === "" ? fallback : sanitized;
 }
 
-function conceptPath(index: number, property?: string): string {
-  return property === undefined ? `concepts[${index}]` : `concepts[${index}].${property}`;
-}
-
 function createDiagnostic(
   index: number,
+  field: string,
   diagnostic: {
     readonly code: TableDiagnostic["code"];
     readonly message: string;
     readonly column?: string;
-    readonly path?: string;
   },
 ): TableDiagnostic {
   return {
@@ -70,12 +56,13 @@ function createDiagnostic(
     message: diagnostic.message,
     row: index,
     column: diagnostic.column,
-    path: diagnostic.path ?? conceptPath(index, diagnostic.column),
+    path:
+      diagnostic.column === undefined ? `fields.${field}` : `fields.${field}.${diagnostic.column}`,
   };
 }
 
 function resolveControlHint(
-  concept: ConceptRecord,
+  concept: ConceptField,
   index: number,
   options: ConceptFormProjectionOptions | undefined,
   diagnostics: TableDiagnostic[],
@@ -88,10 +75,10 @@ function resolveControlHint(
       if (control !== undefined) {
         if (!isFormFieldControl(control)) {
           diagnostics.push(
-            createDiagnostic(index, {
+            createDiagnostic(index, concept.name, {
               code: "InvalidConceptFormControl",
               column: "control",
-              message: `Projected control ${JSON.stringify(control)} is not supported for concept ${JSON.stringify(concept.concept)}.`,
+              message: `Projected control ${JSON.stringify(control)} is not supported for concept ${JSON.stringify(concept.name)}.`,
             }),
           );
           return options.defaultControl ?? "input";
@@ -100,26 +87,26 @@ function resolveControlHint(
       }
     } catch (error) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "ConceptFormControlResolverError",
           column: "control",
-          message: `controlForConcept threw for concept ${JSON.stringify(concept.concept)}: ${error instanceof Error ? error.message : String(error)}.`,
+          message: `controlForConcept threw for concept ${JSON.stringify(concept.name)}: ${error instanceof Error ? error.message : String(error)}.`,
         }),
       );
       return options.defaultControl ?? "input";
     }
   }
 
-  if (concept.controlHint !== undefined) {
-    if (isFormFieldControl(concept.controlHint)) {
-      return concept.controlHint;
+  if (concept.meta.controlHint !== undefined) {
+    if (isFormFieldControl(concept.meta.controlHint)) {
+      return concept.meta.controlHint;
     }
 
     diagnostics.push(
-      createDiagnostic(index, {
+      createDiagnostic(index, concept.name, {
         code: "InvalidConceptFormControl",
         column: "controlHint",
-        message: `Concept controlHint ${JSON.stringify(concept.controlHint)} is not supported for concept ${JSON.stringify(concept.concept)}.`,
+        message: `Concept controlHint ${JSON.stringify(concept.meta.controlHint)} is not supported for concept ${JSON.stringify(concept.name)}.`,
       }),
     );
   }
@@ -128,7 +115,7 @@ function resolveControlHint(
 }
 
 function resolveValue(
-  concept: ConceptRecord,
+  concept: ConceptField,
   index: number,
   options: ConceptFormProjectionOptions | undefined,
   diagnostics: TableDiagnostic[],
@@ -140,21 +127,21 @@ function resolveValue(
       return options.valueForConcept(concept, context);
     } catch (error) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "ConceptFormValueResolverError",
           column: "value",
-          message: `valueForConcept threw for concept ${JSON.stringify(concept.concept)}: ${error instanceof Error ? error.message : String(error)}.`,
+          message: `valueForConcept threw for concept ${JSON.stringify(concept.name)}: ${error instanceof Error ? error.message : String(error)}.`,
         }),
       );
       return undefined;
     }
   }
 
-  return options?.values?.[concept.concept];
+  return options?.values?.[concept.name];
 }
 
 function resolveDisabled(
-  concept: ConceptRecord,
+  concept: ConceptField,
   index: number,
   options: ConceptFormProjectionOptions | undefined,
   diagnostics: TableDiagnostic[],
@@ -166,10 +153,10 @@ function resolveDisabled(
       return options.disabledForConcept(concept, context);
     } catch (error) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "ConceptFormDisabledResolverError",
           column: "disabled",
-          message: `disabledForConcept threw for concept ${JSON.stringify(concept.concept)}: ${error instanceof Error ? error.message : String(error)}.`,
+          message: `disabledForConcept threw for concept ${JSON.stringify(concept.name)}: ${error instanceof Error ? error.message : String(error)}.`,
         }),
       );
       return false;
@@ -181,10 +168,10 @@ function resolveDisabled(
       return options.disabled(concept, context);
     } catch (error) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "ConceptFormDisabledResolverError",
           column: "disabled",
-          message: `disabled resolver threw for concept ${JSON.stringify(concept.concept)}: ${error instanceof Error ? error.message : String(error)}.`,
+          message: `disabled resolver threw for concept ${JSON.stringify(concept.name)}: ${error instanceof Error ? error.message : String(error)}.`,
         }),
       );
       return false;
@@ -199,7 +186,7 @@ function resolveDisabled(
 }
 
 function projectConceptFields(
-  concepts: readonly ConceptRecord[],
+  definition: ConceptDefinition,
   options: ConceptFormProjectionOptions | undefined,
 ): {
   readonly diagnostics: readonly TableDiagnostic[];
@@ -207,24 +194,25 @@ function projectConceptFields(
 } {
   const diagnostics: TableDiagnostic[] = [];
   const fields: ProjectedConceptField[] = [];
-  const seenFields = new Map<string, number>();
   const seenInputIds = new Map<string, number>();
   const seenTestIds = new Map<string, number>();
 
-  for (const [index, concept] of concepts.entries()) {
-    if (!isNonEmptyString(concept.concept)) {
+  for (const [index, concept] of conceptFields(definition).entries()) {
+    const kind = isConceptDefinition(concept.constraint) ? "concept" : concept.constraint.kind;
+    if (!projectableKinds.has(kind)) {
       diagnostics.push(
-        createDiagnostic(index, {
-          code: "InvalidConceptId",
-          column: "concept",
-          message: "Concept id must be a non-empty string.",
+        createDiagnostic(index, concept.name, {
+          code: "UnsupportedConceptFormField",
+          column: "type",
+          message: `Field ${JSON.stringify(concept.name)} is ${describeConstraintType(concept.constraint)}; only string, number, boolean, enum, literal, and unknown fields project to form controls.`,
         }),
       );
     }
 
-    if (!isNonEmptyString(concept.label)) {
+    const label = concept.meta.label ?? concept.name;
+    if (label.trim().length === 0) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "InvalidConceptLabel",
           column: "label",
           message: "Concept label must be a non-empty string.",
@@ -232,47 +220,21 @@ function projectConceptFields(
       );
     }
 
-    if (!isConceptPrimitiveKind(concept.type)) {
-      diagnostics.push(
-        createDiagnostic(index, {
-          code: "InvalidConceptType",
-          column: "type",
-          message: "Concept type must be one of string, number, boolean, enum, literal, unknown.",
-        }),
-      );
-    }
-
-    const fieldName = concept.concept;
-    if (isNonEmptyString(fieldName)) {
-      const firstRow = seenFields.get(fieldName);
-      if (firstRow !== undefined) {
-        diagnostics.push(
-          createDiagnostic(index, {
-            code: "DuplicateConceptFormField",
-            column: "concept",
-            message: `Projected field ${JSON.stringify(fieldName)} already appears at concept index ${firstRow}.`,
-          }),
-        );
-      } else {
-        seenFields.set(fieldName, index);
-      }
-    }
-
     const control = resolveControlHint(concept, index, options, diagnostics);
     const value = resolveValue(concept, index, options, diagnostics);
     const disabled = resolveDisabled(concept, index, options, diagnostics);
-    const inputId = `${options?.inputIdPrefix ?? "field"}-${sanitizeIdSegment(concept.concept, String(index))}`;
+    const inputId = `${options?.inputIdPrefix ?? "field"}-${sanitizeIdSegment(concept.name, String(index))}`;
     const testId =
-      concept.testId ??
-      (options?.testIdPrefix ? `${options.testIdPrefix}-${concept.concept}` : undefined);
+      concept.meta.testId ??
+      (options?.testIdPrefix ? `${options.testIdPrefix}-${concept.name}` : undefined);
 
     const firstInputIdRow = seenInputIds.get(inputId);
     if (firstInputIdRow !== undefined) {
       diagnostics.push(
-        createDiagnostic(index, {
+        createDiagnostic(index, concept.name, {
           code: "DuplicateConceptFormInputId",
           column: "inputId",
-          message: `Projected inputId ${JSON.stringify(inputId)} already appears at concept index ${firstInputIdRow}.`,
+          message: `Projected inputId ${JSON.stringify(inputId)} already appears at field index ${firstInputIdRow}.`,
         }),
       );
     } else {
@@ -283,10 +245,10 @@ function projectConceptFields(
       const firstTestIdRow = seenTestIds.get(testId);
       if (firstTestIdRow !== undefined) {
         diagnostics.push(
-          createDiagnostic(index, {
+          createDiagnostic(index, concept.name, {
             code: "DuplicateConceptFormTestId",
             column: "testId",
-            message: `Projected testId ${JSON.stringify(testId)} already appears at concept index ${firstTestIdRow}.`,
+            message: `Projected testId ${JSON.stringify(testId)} already appears at field index ${firstTestIdRow}.`,
           }),
         );
       } else {
@@ -299,15 +261,19 @@ function projectConceptFields(
       testId,
       field: {
         kind: "formField",
-        field: concept.concept,
-        label: concept.label,
+        field: concept.name,
+        label,
         control,
         inputId,
         value,
-        changeKey: concept.changeKey ?? concept.concept,
+        changeKey: concept.meta.changeKey ?? concept.name,
         disabled,
-        ...(concept.placeholder === undefined ? {} : { placeholder: concept.placeholder }),
-        ...(concept.description === undefined ? {} : { description: concept.description }),
+        ...(concept.meta.placeholder === undefined
+          ? {}
+          : { placeholder: concept.meta.placeholder }),
+        ...(concept.meta.description === undefined
+          ? {}
+          : { description: concept.meta.description }),
         required: concept.required,
         ...(testId === undefined ? {} : { testId }),
       },
@@ -317,18 +283,20 @@ function projectConceptFields(
   return { diagnostics, fields };
 }
 
+/** Diagnostics for projecting a concept's fields into form field records. */
 export function validateConceptFormProjection(
-  concepts: readonly ConceptRecord[],
+  concept: ConceptDefinition,
   options?: ConceptFormProjectionOptions,
 ): TableDiagnostic[] {
-  return [...projectConceptFields(concepts, options).diagnostics];
+  return [...projectConceptFields(concept, options).diagnostics];
 }
 
-export function fieldsFromConcepts(
-  concepts: readonly ConceptRecord[],
+/** Project a concept (authored in code or lowered from a concept table) into form fields. */
+export function fieldsFromConcept(
+  concept: ConceptDefinition,
   options?: ConceptFormProjectionOptions,
 ): readonly FormFieldRecord[] {
-  const projection = projectConceptFields(concepts, options);
+  const projection = projectConceptFields(concept, options);
   if (projection.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     throw new TableError(projection.diagnostics);
   }
@@ -339,6 +307,5 @@ export function fieldsFromConceptTable(
   table: ColumnarTable,
   options?: FieldsFromConceptTableOptions,
 ): readonly FormFieldRecord[] {
-  const concepts = conceptsFromTable(table, options?.conceptOptions);
-  return fieldsFromConcepts(concepts, options?.projection);
+  return fieldsFromConcept(conceptFromTable(table, options?.conceptOptions), options?.projection);
 }

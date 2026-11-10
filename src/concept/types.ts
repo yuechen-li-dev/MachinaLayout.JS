@@ -10,9 +10,34 @@ export type Phantom<TValue> = { readonly [phantomType]?: TValue };
 /** Nominal tag added to inferred number/string types by `{ brand }`. */
 export type Brand<TBrand extends string> = { readonly [brandKey]: TBrand };
 
-type ConstraintBase = {
-  readonly optional?: boolean;
+/**
+ * Presentation/projection metadata a field can carry (formerly the separate
+ * `ConceptRecord` model). Ignored by validation, inference, and refinement.
+ */
+export type FieldMeta = {
+  readonly label?: string;
   readonly description?: string;
+  readonly diagnosticLabel?: string;
+  readonly controlHint?: string;
+  readonly valuePath?: string;
+  readonly changeKey?: string;
+  readonly placeholder?: string;
+  readonly testId?: string;
+};
+
+export const fieldMetaKeys = [
+  "label",
+  "description",
+  "diagnosticLabel",
+  "controlHint",
+  "valuePath",
+  "changeKey",
+  "placeholder",
+  "testId",
+] as const satisfies readonly (keyof FieldMeta)[];
+
+type ConstraintBase = FieldMeta & {
+  readonly optional?: boolean;
 };
 
 export type StringConstraint = ConstraintBase & {
@@ -33,6 +58,9 @@ export type NumberConstraint = ConstraintBase & {
 };
 
 export type BooleanConstraint = ConstraintBase & { readonly kind: "boolean" };
+
+/** Any present value (only absence is rejected). */
+export type UnknownConstraint = ConstraintBase & { readonly kind: "unknown" };
 
 export type FunctionConstraint<TFn = (...args: never[]) => unknown> = ConstraintBase &
   Phantom<TFn> & { readonly kind: "function" };
@@ -103,6 +131,7 @@ export type ConceptFieldConstraint =
   | StringConstraint
   | NumberConstraint
   | BooleanConstraint
+  | UnknownConstraint
   | FunctionConstraint<unknown>
   | WideObjectConstraint
   | WideArrayConstraint
@@ -159,34 +188,14 @@ export type ConceptDescription = {
   readonly closed?: boolean;
 };
 
+/** Field types a concept table row can declare (the `type` column vocabulary). */
 export type ConceptPrimitiveKind = "string" | "number" | "boolean" | "enum" | "literal" | "unknown";
 
-export type ConceptRecord = {
-  readonly kind: "conceptRecord";
-  readonly concept: string;
-  readonly type: ConceptPrimitiveKind;
-  readonly label: string;
-  readonly required: boolean;
+export type ConceptFromTableOptions = {
+  /** Concept id; defaults to the table id. */
+  readonly id?: string;
   readonly description?: string;
-  readonly diagnosticLabel?: string;
-  readonly controlHint?: string;
-  readonly valuePath?: string;
-  readonly changeKey?: string;
-  readonly enumValues?: readonly (string | number | boolean)[];
-  readonly literalValue?: string | number | boolean;
-  readonly placeholder?: string;
-  readonly testId?: string;
-};
-
-export type ConceptTableDescription = {
-  readonly kind: "conceptTableDescription";
-  readonly tableId: string;
-  readonly conceptCount: number;
-  readonly requiredCount: number;
-  readonly types: readonly ConceptPrimitiveKind[];
-};
-
-export type ConceptsFromTableOptions = {
+  readonly closed?: boolean;
   readonly conceptColumn?: string;
   readonly typeColumn?: string;
   readonly labelColumn?: string;
@@ -228,6 +237,3 @@ export type TemplateDescription = {
   readonly description?: string;
   readonly requires: ConceptDescription;
 };
-
-/** @deprecated Use `Infer<typeof Concept>`; this alias never used its parameter. */
-export type ConceptValue<_TConcept extends ConceptDefinition> = Record<string, unknown>;

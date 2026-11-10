@@ -1,6 +1,5 @@
-import type { TableSchema } from "../table/types";
-import type { ConceptRecord, ConceptsFromTableOptions } from "../concept";
-import type { ColumnarTable } from "../table/types";
+import type { ConceptField, ConceptFromTableOptions } from "../concept";
+import type { ColumnarTable, TableSchema } from "../table/types";
 
 export type FormFieldControl = "input" | "textarea";
 
@@ -32,7 +31,7 @@ export type ConceptFormValueMap = Record<string, FormFieldValue>;
 
 export type ConceptFormDisabledResolver =
   | boolean
-  | ((concept: ConceptRecord, context: { readonly index: number }) => boolean);
+  | ((concept: ConceptField, context: { readonly index: number }) => boolean);
 
 export type ConceptFormProjectionOptions = {
   readonly values?: ConceptFormValueMap;
@@ -40,22 +39,22 @@ export type ConceptFormProjectionOptions = {
   readonly inputIdPrefix?: string;
   readonly defaultControl?: FormFieldControl;
   readonly controlForConcept?: (
-    concept: ConceptRecord,
+    concept: ConceptField,
     context: { readonly index: number },
   ) => FormFieldControl | undefined;
   readonly valueForConcept?: (
-    concept: ConceptRecord,
+    concept: ConceptField,
     context: { readonly index: number },
   ) => FormFieldValue;
   readonly disabledForConcept?: (
-    concept: ConceptRecord,
+    concept: ConceptField,
     context: { readonly index: number },
   ) => boolean;
   readonly testIdPrefix?: string;
 };
 
 export type FieldsFromConceptTableOptions = {
-  readonly conceptOptions?: ConceptsFromTableOptions;
+  readonly conceptOptions?: ConceptFromTableOptions;
   readonly projection?: ConceptFormProjectionOptions;
 };
 

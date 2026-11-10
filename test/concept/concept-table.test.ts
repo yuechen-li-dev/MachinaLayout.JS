@@ -1,17 +1,14 @@
 import { describe, expect, it } from "vitest";
-import * as root from "../../src/index";
+import type { ConceptFromTableOptions, ConceptPrimitiveKind } from "../../src/concept";
 import {
-  T,
+  acceptsValue,
+  conceptFromTable,
+  conceptRefines,
   conceptTableSchema,
-  conceptsFromTable,
-  describeConcepts,
+  T,
   validateConceptTable,
 } from "../../src/concept";
-import type {
-  ConceptPrimitiveKind,
-  ConceptRecord,
-  ConceptsFromTableOptions,
-} from "../../src/concept";
+import * as root from "../../src/index";
 import { Table, TableError } from "../../src/table";
 
 function providerConceptsTable() {
@@ -90,86 +87,60 @@ describe("concept tables", () => {
     });
   });
 
-  it("T.conceptsFromTable lowers a columnar table to concept records", () => {
-    expect(T.conceptsFromTable(providerConceptsTable())).toEqual([
-      {
-        kind: "conceptRecord",
-        concept: "displayName",
-        type: "string",
-        label: "Provider name",
-        required: true,
-        diagnosticLabel: "provider name",
-        controlHint: "input",
-        valuePath: "draft.provider.displayName",
-        changeKey: "displayName",
-        testId: "setup-provider-name",
-      },
-      {
-        kind: "conceptRecord",
-        concept: "slug",
-        type: "string",
-        label: "Public slug",
-        required: true,
-        description: "Public URL-safe identifier.",
-        diagnosticLabel: "provider slug",
-        controlHint: "input",
-        valuePath: "draft.provider.slug",
-        changeKey: "slug",
-        testId: "setup-provider-slug",
-      },
-      {
-        kind: "conceptRecord",
-        concept: "timeZoneId",
-        type: "string",
-        label: "Timezone",
-        required: true,
-        diagnosticLabel: "timezone",
-        controlHint: "input",
-        valuePath: "draft.provider.timeZoneId",
-        changeKey: "timeZoneId",
-        testId: "setup-provider-timezone",
-      },
-      {
-        kind: "conceptRecord",
-        concept: "contactEmail",
-        type: "string",
-        label: "Contact email",
-        required: false,
-        diagnosticLabel: "contact email",
-        controlHint: "input",
-        valuePath: "draft.provider.contactEmail",
-        changeKey: "contactEmail",
-        testId: "setup-provider-email",
-      },
-      {
-        kind: "conceptRecord",
-        concept: "description",
-        type: "string",
-        label: "Short public description",
-        required: false,
-        diagnosticLabel: "description",
-        controlHint: "textarea",
-        valuePath: "draft.provider.description",
-        changeKey: "description",
-        testId: "setup-provider-description",
-      },
+  it("T.conceptFromTable lowers a columnar table to one concept definition", () => {
+    const concept = T.conceptFromTable(providerConceptsTable());
+    expect(concept.kind).toBe("concept");
+    expect(concept.id).toBe("providerConcepts");
+    expect(concept.fields.displayName).toEqual({
+      kind: "string",
+      label: "Provider name",
+      diagnosticLabel: "provider name",
+      controlHint: "input",
+      valuePath: "draft.provider.displayName",
+      changeKey: "displayName",
+      testId: "setup-provider-name",
+    });
+    expect(concept.fields.contactEmail).toMatchObject({ kind: "string", optional: true });
+    expect(concept.fields.slug).toMatchObject({ description: "Public URL-safe identifier." });
+  });
+
+  it("lowered concepts validate values like authored ones", () => {
+    const concept = T.conceptFromTable(providerConceptsTable());
+    expect(T.validate(concept, { displayName: "Acme", slug: "acme", timeZoneId: "UTC" })).toEqual(
+      [],
+    );
+    expect(T.validate(concept, { displayName: "Acme", slug: 3 }).map((d) => d.code)).toEqual([
+      "InvalidConceptFieldType",
+      "MissingConceptField",
     ]);
   });
 
-  it("works with schema tables", () => {
+  it("accepts id, description, and closed options", () => {
+    const concept = T.conceptFromTable(providerConceptsTable(), {
+      id: "Provider",
+      description: "Provider setup form.",
+      closed: true,
+    });
+    expect(concept).toMatchObject({
+      id: "Provider",
+      description: "Provider setup form.",
+      closed: true,
+    });
+  });
+
+  it("works with schema-authored tables", () => {
     const authored = Table.defineWithSchema({
       id: "providerConcepts",
       schema: T.conceptTableSchema(),
       columns: providerConceptsTable().columns,
     });
 
-    const concepts = T.conceptsFromTable(authored);
-    expect(concepts[0]?.concept).toBe("displayName");
+    expect(Object.keys(T.conceptFromTable(authored).fields)[0]).toBe("displayName");
   });
 
-  it("preserves row order", () => {
-    const concepts = T.conceptsFromTable(providerConceptsTable());
-    expect(concepts.map((concept) => concept.concept)).toEqual([
+  it("preserves row order as field order", () => {
+    const concept = T.conceptFromTable(providerConceptsTable());
+    expect(T.fieldsOf(concept).map((field) => field.name)).toEqual([
       "displayName",
       "slug",
       "timeZoneId",
@@ -179,7 +150,7 @@ describe("concept tables", () => {
   });
 
   it("supports string number boolean and unknown concepts", () => {
-    const concepts = T.conceptsFromTable(
+    const concept = T.conceptFromTable(
       Table.define({
         id: "primitiveConcepts",
         columns: {
@@ -191,16 +162,23 @@ describe("concept tables", () => {
       }),
     );
 
-    expect(concepts.map((concept) => concept.type)).toEqual([
+    expect(T.fieldsOf(concept).map((field) => [field.name, field.required])).toEqual([
+      ["title", true],
+      ["capacity", false],
+      ["published", true],
+      ["opaqueBlob", false],
+    ]);
+    expect(Object.values(concept.fields).map((field) => (field as { kind: string }).kind)).toEqual([
       "string",
       "number",
       "boolean",
       "unknown",
     ]);
+    expect(T.validate(concept, { title: "t", published: true, opaqueBlob: [1] })).toEqual([]);
   });
 
   it("supports enum with enumValues", () => {
-    const [status] = T.conceptsFromTable(
+    const concept = T.conceptFromTable(
       Table.define({
         id: "statusConcepts",
         columns: {
@@ -213,18 +191,20 @@ describe("concept tables", () => {
       }),
     );
 
-    expect(status).toEqual({
-      kind: "conceptRecord",
-      concept: "status",
-      type: "enum",
+    expect(concept.fields.status).toEqual({
+      kind: "enum",
+      values: ["draft", "published", "archived"],
       label: "Status",
-      required: true,
-      enumValues: ["draft", "published", "archived"],
+    });
+    expect(T.validate(concept, { status: "publshed" })[0]?.fix).toEqual({
+      op: "replace",
+      path: "status",
+      expected: '"published"',
     });
   });
 
   it("supports literal with literalValue", () => {
-    const [shape] = T.conceptsFromTable(
+    const concept = T.conceptFromTable(
       Table.define({
         id: "shapeConcepts",
         columns: {
@@ -237,18 +217,15 @@ describe("concept tables", () => {
       }),
     );
 
-    expect(shape).toEqual({
-      kind: "conceptRecord",
-      concept: "shapeKind",
-      type: "literal",
+    expect(concept.fields.shapeKind).toEqual({
+      kind: "literal",
+      value: "provider",
       label: "Shape kind",
-      required: true,
-      literalValue: "provider",
     });
   });
 
-  it("optional metadata fields flow through", () => {
-    const [first] = T.conceptsFromTable(
+  it("optional metadata fields flow through as field metadata", () => {
+    const concept = T.conceptFromTable(
       Table.define({
         id: "metadataConcepts",
         columns: {
@@ -267,58 +244,40 @@ describe("concept tables", () => {
       }),
     );
 
-    expect(first).toEqual({
-      kind: "conceptRecord",
-      concept: "notes",
-      type: "string",
-      label: "Notes",
-      required: false,
-      description: "Visible helper copy",
-      diagnosticLabel: "notes",
-      controlHint: "textarea",
-      valuePath: "draft.notes",
-      changeKey: "notes",
-      placeholder: "Type notes",
-      testId: "notes-field",
-    });
+    expect(T.fieldsOf(concept)).toEqual([
+      {
+        name: "notes",
+        concept: "metadataConcepts",
+        constraint: concept.fields.notes,
+        required: false,
+        meta: {
+          label: "Notes",
+          description: "Visible helper copy",
+          diagnosticLabel: "notes",
+          controlHint: "textarea",
+          valuePath: "draft.notes",
+          changeKey: "notes",
+          placeholder: "Type notes",
+          testId: "notes-field",
+        },
+      },
+    ]);
   });
 
-  it("T.describeConcepts returns count requiredCount and distinct types", () => {
-    expect(
-      T.describeConcepts(
-        [
-          {
-            kind: "conceptRecord",
-            concept: "title",
-            type: "string",
-            label: "Title",
-            required: true,
-          },
-          {
-            kind: "conceptRecord",
-            concept: "status",
-            type: "enum",
-            label: "Status",
-            required: false,
-            enumValues: ["draft", "live"],
-          },
-          {
-            kind: "conceptRecord",
-            concept: "slug",
-            type: "string",
-            label: "Slug",
-            required: true,
-          },
-        ],
-        "providerConcepts",
-      ),
-    ).toEqual({
-      kind: "conceptTableDescription",
-      tableId: "providerConcepts",
-      conceptCount: 3,
-      requiredCount: 2,
-      types: ["string", "enum"],
+  it("metadata does not affect refinement", () => {
+    const lowered = T.conceptFromTable(providerConceptsTable());
+    const authored = T.concept({
+      id: "Authored",
+      fields: {
+        displayName: T.string(),
+        slug: T.string(),
+        timeZoneId: T.string(),
+        contactEmail: T.optional(T.string()),
+        description: T.optional(T.string()),
+      },
     });
+    expect(conceptRefines(lowered, authored, acceptsValue)).toBe(true);
+    expect(conceptRefines(authored, lowered, acceptsValue)).toBe(true);
   });
 
   it("missing required concept column reports MissingConceptColumn", () => {
@@ -661,9 +620,9 @@ describe("concept tables", () => {
     });
   });
 
-  it("T.conceptsFromTable throws TableError on invalid table", () => {
+  it("T.conceptFromTable throws TableError on invalid table", () => {
     expect(() =>
-      T.conceptsFromTable(
+      T.conceptFromTable(
         Table.define({
           id: "providerConcepts",
           columns: {
@@ -693,33 +652,23 @@ describe("concept tables", () => {
 describe("concept table exports and typing", () => {
   it("exports concept table helpers from the concept subpath", () => {
     expect(T.conceptTableSchema).toBeTypeOf("function");
-    expect(T.conceptsFromTable).toBeTypeOf("function");
+    expect(T.conceptFromTable).toBeTypeOf("function");
     expect(T.validateConceptTable).toBeTypeOf("function");
-    expect(T.describeConcepts).toBeTypeOf("function");
     expect("T" in root).toBe(false);
   });
 
   it("exports named helpers", () => {
     expect(conceptTableSchema).toBeTypeOf("function");
-    expect(conceptsFromTable).toBeTypeOf("function");
+    expect(conceptFromTable).toBeTypeOf("function");
     expect(validateConceptTable).toBeTypeOf("function");
-    expect(describeConcepts).toBeTypeOf("function");
   });
 
-  it("ConceptRecord has expected primitive kind union", () => {
-    const options: ConceptsFromTableOptions = {
+  it("table type vocabulary stays narrow", () => {
+    const options: ConceptFromTableOptions = {
       conceptColumn: "concept",
       typeColumn: "type",
     };
     const primitiveKind: ConceptPrimitiveKind = "enum";
-    const record: ConceptRecord = {
-      kind: "conceptRecord",
-      concept: "status",
-      type: primitiveKind,
-      label: "Status",
-      required: true,
-      enumValues: ["draft", "live"],
-    };
     void options;
 
     // biome-ignore lint/correctness/noConstantCondition: compile-time type assertion block
@@ -731,6 +680,6 @@ describe("concept table exports and typing", () => {
       void nope;
     }
 
-    expect(record.type).toBe("enum");
+    expect(primitiveKind).toBe("enum");
   });
 });

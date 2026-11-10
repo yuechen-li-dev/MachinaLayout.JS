@@ -17,7 +17,7 @@ const Px = T.concept({ id: "Px", fields: { unit: T.literal("px"), value: T.numbe
 const Ui = T.concept({ id: "Ui", fields: { unit: T.literal("ui"), value: T.number() } });
 const UiLengthC = T.union(T.number(), Px, Ui);
 
-const _uiLengthCheck: T.Assert<T.Equal<T.Infer<typeof UiLengthC>, UiLength>> = true;
+const _uiLengthCheck: T.Matches<typeof UiLengthC, UiLength> = true;
 
 const EdgeRef = T.concept({
   id: "EdgeRef",
@@ -110,7 +110,7 @@ const FrameSpecC = T.union(
   GuideFrame,
 );
 
-const _frameCheck: T.Assert<T.Equal<T.Infer<typeof FrameSpecC>, FrameSpec>> = true;
+const _frameCheck: T.Matches<typeof FrameSpecC, FrameSpec> = true;
 
 const EdgeInsets = T.concept({
   id: "EdgeInsets",

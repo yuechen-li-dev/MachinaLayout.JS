@@ -1,19 +1,24 @@
-import { describeConcept, describeConcepts, describeTemplate, explainConcept } from "./describe";
+import { describeConcept, describeTemplate, explainConcept } from "./describe";
 import { counterexamples, example } from "./fixtures";
 import type * as InferTypes from "./infer";
 import type { ConceptMatches, ConceptMismatchKeys } from "./infer";
 import { overload } from "./overload";
 import { registry } from "./registry";
-import { constraintsEquivalent, describeConstraintType, isConceptDefinition } from "./structure";
-import { conceptsFromTable, conceptTableSchema, validateConceptTable } from "./table";
+import {
+  conceptFields,
+  constraintsEquivalent,
+  describeConstraintType,
+  isConceptDefinition,
+} from "./structure";
+import { conceptFromTable, conceptTableSchema, validateConceptTable } from "./table";
 import { runTemplate, template } from "./template";
-import type * as TypeHelpers from "./typeHelpers";
 import {
   type ConceptDefinition,
   ConceptError,
   type ConceptFieldConstraint,
   type ConceptFields,
   type CustomConstraint,
+  type FieldMeta,
   type FunctionConstraint,
 } from "./types";
 import { acceptsValue, assertConceptValue, isConceptValue, validateConceptValue } from "./validate";
@@ -26,20 +31,18 @@ function assertConceptId(id: string): void {
 
 type Simplify<TValue> = { [K in keyof TValue]: TValue[K] } & {};
 
-type StringOptions = {
+type StringOptions = FieldMeta & {
   readonly nonEmpty?: boolean;
   readonly brand?: string;
-  readonly description?: string;
 };
 
-type NumberOptions = {
+type NumberOptions = FieldMeta & {
   readonly finite?: boolean;
   readonly int?: boolean;
   readonly min?: number;
   readonly max?: number;
   readonly allowNaN?: boolean;
   readonly brand?: string;
-  readonly description?: string;
 };
 
 type Primitive = string | number | boolean;
@@ -68,6 +71,29 @@ export function number(options?: NumberOptions) {
 
 export function boolean() {
   return { kind: "boolean" as const };
+}
+
+/** Any present value; only absence is an error. Infers `unknown`. */
+export function unknown() {
+  return { kind: "unknown" as const };
+}
+
+type WithMeta<TConstraint extends ConceptFieldConstraint> = TConstraint extends ConceptDefinition
+  ? { readonly kind: "object"; readonly shape: TConstraint }
+  : TConstraint;
+
+/**
+ * Attach presentation metadata (label, placeholder, controlHint, …) to any
+ * constraint. Metadata never affects validation, inference, or refinement.
+ */
+export function meta<const TConstraint extends ConceptFieldConstraint>(
+  constraint: TConstraint,
+  fieldMeta: FieldMeta,
+): WithMeta<TConstraint> {
+  if (isConceptDefinition(constraint)) {
+    return { kind: "object", shape: constraint, ...fieldMeta } as WithMeta<TConstraint>;
+  }
+  return { ...constraint, ...fieldMeta } as WithMeta<TConstraint>;
 }
 
 /**
@@ -265,12 +291,15 @@ const toolkit = {
   describeTemplate,
   overload,
   registry,
+  fieldsOf: conceptFields,
   example,
   counterexamples,
   fields,
   string,
   number,
   boolean,
+  unknown,
+  meta,
   fn,
   function: fn,
   object,
@@ -281,9 +310,8 @@ const toolkit = {
   custom,
   optional,
   conceptTableSchema,
-  conceptsFromTable,
+  conceptFromTable,
   validateConceptTable,
-  describeConcepts,
 } as const;
 
 /** Explicitly annotated so `T.assert(...)` works as an assertion function. */
@@ -297,28 +325,4 @@ export declare namespace T {
   /** TypeScript type of a concept's values: `type Rect = T.Infer<typeof RectLike>`. */
   export type Infer<TConcept> = InferTypes.InferConcept<TConcept>;
   export type Matches<TConcept, TType> = InferTypes.ConceptMatches<TConcept, TType>;
-  export type HasField<TKey extends PropertyKey, TValue> = TypeHelpers.ConceptTypeHelpers.HasField<
-    TKey,
-    TValue
-  >;
-  export type OptionalField<
-    TKey extends PropertyKey,
-    TValue,
-  > = TypeHelpers.ConceptTypeHelpers.OptionalField<TKey, TValue>;
-  export type HasId<TId = string> = TypeHelpers.ConceptTypeHelpers.HasId<TId>;
-  export type HasKind<TKind = string> = TypeHelpers.ConceptTypeHelpers.HasKind<TKind>;
-  export type And<TLeft, TRight> = TypeHelpers.ConceptTypeHelpers.And<TLeft, TRight>;
-  export type All<TItems extends readonly unknown[]> = TypeHelpers.ConceptTypeHelpers.All<TItems>;
-  export type ConceptType<TShape extends object> =
-    TypeHelpers.ConceptTypeHelpers.ConceptType<TShape>;
-  export type Extends<TValue, TExpected> = TypeHelpers.ConceptTypeHelpers.Extends<
-    TValue,
-    TExpected
-  >;
-  export type Equal<TLeft, TRight> = TypeHelpers.ConceptTypeHelpers.Equal<TLeft, TRight>;
-  export type Assert<TValue extends true> = TypeHelpers.ConceptTypeHelpers.Assert<TValue>;
-  export type Satisfies<TValue, TConcept> = TypeHelpers.ConceptTypeHelpers.Satisfies<
-    TValue,
-    TConcept
-  >;
 }

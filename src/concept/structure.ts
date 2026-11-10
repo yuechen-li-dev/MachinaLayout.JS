@@ -1,4 +1,9 @@
-import type { ConceptDefinition, ConceptFieldConstraint } from "./types";
+import {
+  type ConceptDefinition,
+  type ConceptFieldConstraint,
+  type FieldMeta,
+  fieldMetaKeys,
+} from "./types";
 
 /** Non-concept constraint form: a nested concept is treated as `object(shape)`. */
 export type NormalizedConstraint = Exclude<ConceptFieldConstraint, ConceptDefinition>;
@@ -50,6 +55,8 @@ export function describeConstraintType(input: ConceptFieldConstraint): string {
     }
     case "boolean":
       return "boolean";
+    case "unknown":
+      return "unknown";
     case "function":
       return "function";
     case "object":
@@ -87,6 +94,12 @@ export function constraintRefines(
   const narrow = normalizeConstraint(narrowInput);
   const wide = normalizeConstraint(wideInput);
 
+  if (wide.kind === "unknown") {
+    return true;
+  }
+  if (narrow.kind === "unknown") {
+    return false;
+  }
   if (narrow.kind === "union") {
     return narrow.options.every((option) =>
       constraintRefines(stripOptional(option), wideInput, accepts),
@@ -252,4 +265,39 @@ export function closestName(name: string, candidates: Iterable<string>): string 
     }
   }
   return best;
+}
+
+/** One field of a concept, flattened for projection (forms, tables, docs). */
+export type ConceptField = {
+  readonly name: string;
+  /** Concept that declared the field (origin, for composed concepts). */
+  readonly concept: string;
+  readonly constraint: ConceptFieldConstraint;
+  readonly required: boolean;
+  readonly meta: FieldMeta;
+};
+
+export function fieldMeta(constraint: ConceptFieldConstraint): FieldMeta {
+  if (isConceptDefinition(constraint)) {
+    return constraint.description === undefined ? {} : { description: constraint.description };
+  }
+  const meta: Record<string, string> = {};
+  for (const key of fieldMetaKeys) {
+    const value = constraint[key];
+    if (value !== undefined) {
+      meta[key] = value;
+    }
+  }
+  return meta as FieldMeta;
+}
+
+/** Fields in declaration order with requiredness, origin, and metadata. */
+export function conceptFields(concept: ConceptDefinition): readonly ConceptField[] {
+  return Object.entries(concept.fields).map(([name, constraint]) => ({
+    name,
+    concept: concept.fieldOrigins?.[name] ?? concept.id,
+    constraint,
+    required: !isOptional(constraint),
+    meta: fieldMeta(constraint),
+  }));
 }

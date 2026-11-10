@@ -1,7 +1,13 @@
 import { Table } from "../table";
 import type { ColumnarTable, TableDiagnostic, TableSchema } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
-import type { ConceptPrimitiveKind, ConceptRecord, ConceptsFromTableOptions } from "./types";
+import type {
+  ConceptDefinition,
+  ConceptFieldConstraint,
+  ConceptFromTableOptions,
+  ConceptPrimitiveKind,
+  FieldMeta,
+} from "./types";
 
 type ResolvedConceptColumns = {
   readonly concept: string;
@@ -37,7 +43,7 @@ type OptionalConceptStringDiagnosticCode =
   | "InvalidConceptPlaceholder"
   | "InvalidConceptTestId";
 
-function resolveColumns(options: ConceptsFromTableOptions | undefined): ResolvedConceptColumns {
+function resolveColumns(options: ConceptFromTableOptions | undefined): ResolvedConceptColumns {
   return {
     concept: options?.conceptColumn ?? "concept",
     type: options?.typeColumn ?? "type",
@@ -268,7 +274,7 @@ export function conceptTableSchema(): TableSchema<{
 
 export function validateConceptTable(
   table: ColumnarTable,
-  options?: ConceptsFromTableOptions,
+  options?: ConceptFromTableOptions,
 ): TableDiagnostic[] {
   const columns = resolveColumns(options);
   const diagnostics = [...validateTable(table)];
@@ -452,72 +458,80 @@ export function validateConceptTable(
   return diagnostics;
 }
 
-export function conceptsFromTable(
+function constraintForRow(
+  type: ConceptPrimitiveKind,
+  enumValues: unknown,
+  literalValue: unknown,
+): ConceptFieldConstraint {
+  switch (type) {
+    case "string":
+    case "number":
+    case "boolean":
+    case "unknown":
+      return { kind: type };
+    case "enum":
+      return { kind: "enum", values: [...(enumValues as readonly (string | number | boolean)[])] };
+    case "literal":
+      return { kind: "literal", value: literalValue as string | number | boolean };
+  }
+}
+
+/**
+ * Lower a concept table into one `ConceptDefinition`: each row is a field
+ * (keyed by the `concept` column), `required: false` rows are optional, and
+ * the label/hint/path columns become field metadata. Throws `TableError` on
+ * invalid tables.
+ */
+export function conceptFromTable(
   table: ColumnarTable,
-  options?: ConceptsFromTableOptions,
-): readonly ConceptRecord[] {
+  options?: ConceptFromTableOptions,
+): ConceptDefinition {
   const diagnostics = validateConceptTable(table, options);
   if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     throw new TableError(diagnostics);
   }
 
   const columns = resolveColumns(options);
-  const conceptValues = table.columns[columns.concept] ?? [];
-  const typeValues = table.columns[columns.type] ?? [];
-  const labelValues = table.columns[columns.label] ?? [];
-  const requiredValues = table.columns[columns.required] ?? [];
-  const descriptionValues = table.columns[columns.description];
-  const diagnosticLabelValues = table.columns[columns.diagnosticLabel];
-  const controlHintValues = table.columns[columns.controlHint];
-  const valuePathValues = table.columns[columns.valuePath];
-  const changeKeyValues = table.columns[columns.changeKey];
-  const enumValues = table.columns[columns.enumValues];
-  const literalValues = table.columns[columns.literalValue];
-  const placeholderValues = table.columns[columns.placeholder];
-  const testIdValues = table.columns[columns.testId];
+  const column = (name: string) => table.columns[name];
+  const metaColumns: readonly (readonly [keyof FieldMeta, string])[] = [
+    ["label", columns.label],
+    ["description", columns.description],
+    ["diagnosticLabel", columns.diagnosticLabel],
+    ["controlHint", columns.controlHint],
+    ["valuePath", columns.valuePath],
+    ["changeKey", columns.changeKey],
+    ["placeholder", columns.placeholder],
+    ["testId", columns.testId],
+  ];
 
-  const concepts: ConceptRecord[] = [];
-
+  const fields: Record<string, ConceptFieldConstraint> = {};
   for (let row = 0; row < table.rowCount; row += 1) {
-    const type = typeValues[row] as ConceptPrimitiveKind;
-    const concept: ConceptRecord = {
-      kind: "conceptRecord",
-      concept: conceptValues[row] as string,
-      type,
-      label: labelValues[row] as string,
-      required: requiredValues[row] as boolean,
-      ...(descriptionValues?.[row] === undefined
-        ? {}
-        : { description: descriptionValues[row] as string }),
-      ...(diagnosticLabelValues?.[row] === undefined
-        ? {}
-        : { diagnosticLabel: diagnosticLabelValues[row] as string }),
-      ...(controlHintValues?.[row] === undefined
-        ? {}
-        : { controlHint: controlHintValues[row] as string }),
-      ...(valuePathValues?.[row] === undefined
-        ? {}
-        : { valuePath: valuePathValues[row] as string }),
-      ...(changeKeyValues?.[row] === undefined
-        ? {}
-        : { changeKey: changeKeyValues[row] as string }),
-      ...(placeholderValues?.[row] === undefined
-        ? {}
-        : { placeholder: placeholderValues[row] as string }),
-      ...(testIdValues?.[row] === undefined ? {} : { testId: testIdValues[row] as string }),
-      ...(type === "enum"
-        ? {
-            enumValues: [...(enumValues?.[row] as readonly (string | number | boolean)[])],
-          }
-        : {}),
-      ...(type === "literal"
-        ? {
-            literalValue: literalValues?.[row] as string | number | boolean,
-          }
-        : {}),
-    };
-    concepts.push(concept);
+    const name = column(columns.concept)?.[row] as string;
+    const base = constraintForRow(
+      column(columns.type)?.[row] as ConceptPrimitiveKind,
+      column(columns.enumValues)?.[row],
+      column(columns.literalValue)?.[row],
+    );
+    const meta: Record<string, string> = {};
+    for (const [key, columnName] of metaColumns) {
+      const value = column(columnName)?.[row];
+      if (value !== undefined) {
+        meta[key] = value as string;
+      }
+    }
+    const required = column(columns.required)?.[row] as boolean;
+    fields[name] = {
+      ...base,
+      ...meta,
+      ...(required ? {} : { optional: true }),
+    } as ConceptFieldConstraint;
   }
 
-  return concepts;
+  return {
+    kind: "concept",
+    id: options?.id ?? table.id,
+    ...(options?.description === undefined ? {} : { description: options.description }),
+    fields,
+    ...(options?.closed ? { closed: true } : {}),
+  };
 }

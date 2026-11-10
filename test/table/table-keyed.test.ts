@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Assert, Equal } from "../../src/concept";
+import type { Assert, Equal } from "../../src/comptime";
 import {
   type KeyedTableDescription,
-  type TableKeyValue,
-  type TableRow,
   Table,
   TableError,
+  type TableKeyValue,
+  type TableRow,
 } from "../../src/table";
 
 const orders = Table.define({

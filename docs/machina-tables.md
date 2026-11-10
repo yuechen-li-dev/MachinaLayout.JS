@@ -578,15 +578,15 @@ MachinaForm does not manage form state. It makes field definitions table-shaped 
 
 Concept tables can also feed the narrow concept-to-form projection bridge.
 
-Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+Concept-to-form projection does not manage form state. It maps a concept's fields into field records using caller-supplied values and projection options.
 
 ```ts
 import { Form } from "machinalayout/form";
 import { T } from "machinalayout/concept";
 
-const concepts = T.conceptsFromTable(providerConcepts);
+const Provider = T.conceptFromTable(providerConcepts);
 
-const fields = Form.fieldsFromConcepts(concepts, {
+const fields = Form.fieldsFromConcept(Provider, {
   values: {
     displayName: draft.provider.displayName,
     slug: draft.provider.slug,
@@ -614,13 +614,13 @@ const fields = Form.fieldsFromConceptTable(providerConcepts, {
 The boundary stays narrow:
 
 - `machinalayout/table` authors the source table
-- `machinalayout/concept` lowers it to semantic source records
+- `machinalayout/concept` lowers it to a `ConceptDefinition`
 - `machinalayout/form` projects it to field render records
 - the app still owns rendering and state
 
 ## Concept tables
 
-MachinaTable can also author concept source records without turning Machina into a form framework or validation clone.
+MachinaTable can also author a concept, one row per field, without turning Machina into a form framework or validation clone.
 
 ```ts
 import { T } from "machinalayout/concept";
@@ -650,13 +650,13 @@ const providerConcepts = Table.defineWithSchema({
   },
 });
 
-const concepts = T.conceptsFromTable(providerConcepts);
+const Provider = T.conceptFromTable(providerConcepts);
 ```
 
 This keeps the dependency direction clean:
 
 - MachinaTable is the authoring and diagnostic surface.
-- `machinalayout/concept` is a narrow lowering bridge to explicit source records.
+- `machinalayout/concept` lowers the table to the same `ConceptDefinition` code-authored concepts use.
 - M35k does not render forms, place layouts, or generate third-party schemas.
 
 Use `T.validateConceptTable(table)` when you want cell-oriented diagnostics without throwing.

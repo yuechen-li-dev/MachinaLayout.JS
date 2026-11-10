@@ -29,7 +29,8 @@ New files: `src/concept/{infer,structure,overload,registry,fixtures}.ts`. `valid
 6. **Brands are compile-time only.** `T.is(UiPoint, pxValue)` is true at runtime. A runtime unit tag belongs in the data (`{unit: "px"}`), which Machina already does.
 7. **The `implements` error is encoded in property names.** TypeScript truncates big types but prints missing property names in full, so the error ends with `"differs: x", "missing in concept: height"`. This is a deliberate hack, and the most useful single trick in the change.
 8. **Not a Zod clone, still:** no coercion, transforms, defaults or parsing. Values are accepted or diagnosed. I updated the "What it is not" list in the docs because two of its lines (no inference, no nesting) are now false.
-9. **Legacy `T.HasField`/`All`/`Satisfies` kept, documented as legacy.** I'd delete them before 1.0. I didn't, to keep this change non-breaking for type-helper users.
+9. **Superseded type helpers removed** (follow-up commit). `HasField`/`All`/`Satisfies`/… were aliases for `{ [K]: V }`, `&` and the identity; `T.Infer` replaces their only real job. Their one good idea, compile-time assertions in tests, already lives in `machinalayout/comptime`, so two table tests now import `Assert`/`Equal` from there.
+10. **`ConceptRecord` merged into `ConceptDefinition`** (follow-up commit). Labels and other presentation hints are now `FieldMeta` on any constraint (`T.string({ label })`, `T.meta(c, {...})`). Metadata is ignored by validation, inference and refinement, so a table-lowered concept and an equivalent code-authored one count as equivalent for overloads. `T.conceptFromTable` returns one `ConceptDefinition`; `Form.fieldsFromConcept` projects any concept. The labels default to the field name. Nested, array and union fields report `UnsupportedConceptFormField`. `DuplicateConceptFormField` is gone because field names are now object keys. Form diagnostic paths changed from `concepts[i].x` to `fields.<name>.x`.
 
 ## Claudefood findings
 
@@ -51,16 +52,23 @@ What I found:
 - Diagnostic message text changed (shorter, includes type and origin). One sample test expectation was updated.
 - `T.compose` throws on conflicting sources.
 
+## Failing tests (diagnosed and fixed)
+
+The three failures that predated this work were environment and repo problems, not code bugs:
+
+- `static-html-http` and `toolkit-pipeline` compare against checked-in `dist/` artifacts, but `.gitignore` excluded `dist/` for those two samples (the other static samples are whitelisted). The files were never committed, so the tests could only pass on the machine that generated them. Fix: whitelist them and commit freshly generated output.
+- `machina-style-dogfood` runs `npm run build` inside the sample, which needs `@vitejs/plugin-react` and `tsx` from the sample's own lockfile, but nothing installs it. Fix: add both to root devDependencies (`@vitejs/plugin-react@4`, compatible with the root's vite 5), so a root `npm ci` is enough.
+
 ## Verification
 
 - `tsc --noEmit`: clean. Biome: clean on touched files.
-- Vitest: 1188 passed, 3 failed. The 3 failures are the same ones as on `main` before this change: the `machina-style-dogfood` build, `static-html-http`, and `toolkit-pipeline` checked-in `dist/report.json`, which isn't in the repo. The toolkit sample file went from failing to load to 9/10 passing once the package is built.
-- 23 new tests (`concept-claudefood-layout`, `concept-overload-registry`). The fixture generator verifies itself against the validator.
+- Vitest: 1193 passed, 0 failed.
+- New tests: `concept-claudefood-layout`, `concept-overload-registry`, plus rewritten table-lowering and form-projection tests for the merged model. The fixture generator verifies itself against the validator.
 - Type-check cost: about 14% more instantiations repo-wide (153k → 175k), +0.16s, mostly from the `LayoutRow` dogfood.
 
 ## Not done / next
 
-- `ConceptRecord` (concept tables → forms) is still a separate model from `ConceptDefinition`. Next step: lower `ConceptRecord[]` into a `ConceptDefinition` so tables get inference and overloads.
+- Table-lowered concepts are runtime values, so `T.Infer` on them is `Record<string, unknown>`. Typed inference for tables would need literal-typed table columns flowing into `conceptFromTable`'s return type.
 - Overload dispatch validates every candidate (O(n × validation)). Fine at authoring and tool boundaries; it would need discriminant indexing for hot paths.
 - No recursive (self-referential) concepts.
 - `T.registry` + `T.explain` would make a natural Oblivion card.

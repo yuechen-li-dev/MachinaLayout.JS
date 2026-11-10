@@ -19,6 +19,7 @@ const CONSTRAINT_KINDS = new Set([
   "string",
   "number",
   "boolean",
+  "unknown",
   "function",
   "object",
   "array",
@@ -527,6 +528,8 @@ function checkConstraint(
       }
       return;
     }
+    case "unknown":
+      return;
     case "boolean":
     case "function":
       if (typeof value !== constraint.kind) {

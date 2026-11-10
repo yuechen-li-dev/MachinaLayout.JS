@@ -28,6 +28,8 @@ function exampleFor(
     }
     case "boolean":
       return false;
+    case "unknown":
+      return null;
     case "function":
       return () => undefined;
     case "object":
@@ -178,6 +180,7 @@ function mutationsFor(constraint: ConceptFieldConstraint, required: boolean): Mu
       });
       break;
     case "custom":
+    case "unknown":
       break;
   }
   if (normalized.kind === "number") {

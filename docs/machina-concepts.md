@@ -34,36 +34,27 @@ Machina concepts are source records for meaning, validation, diagnostics, and pr
 import {
   T,
   ConceptError,
+  conceptFromTable,
   conceptTableSchema,
-  conceptsFromTable,
   validateConceptTable,
-  describeConcepts,
   formatConceptDescription,
   formatConceptDiagnostics,
   formatTemplateDescription,
 } from "machinalayout/concept";
 ```
 
-`machinalayout/concept` exports:
+`T` groups the whole surface:
 
-- `T.concept`
-- `T.compose`
-- `T.validate`
-- `T.assert`
-- `T.describe`
-- `T.template`
-- `T.runTemplate`
-- `T.describeTemplate`
-- `T.conceptTableSchema`
-- `T.conceptsFromTable`
-- `T.validateConceptTable`
-- `T.describeConcepts`
-- field helpers like `T.string()`, `T.number()`, `T.fn()`, and `T.optional(...)`
-- type helpers like `T.HasField`, `T.OptionalField`, `T.HasId`, `T.HasKind`, `T.And`, `T.All`, `T.ConceptType`, `T.Extends`, `T.Equal`, `T.Assert`, and `T.Satisfies`
+- authoring: `T.concept`, `T.compose`, `T.implements`, field builders (`T.string`, `T.number`, `T.boolean`, `T.unknown`, `T.literal`, `T.oneOf`, `T.union`, `T.object`, `T.array`, `T.fn`, `T.custom`, `T.optional`, `T.meta`)
+- checking: `T.validate`, `T.is`, `T.assert`, `T.accepts`
+- describing: `T.describe`, `T.explain`, `T.fieldsOf`, `T.example`, `T.counterexamples`
+- dispatch: `T.template`, `T.runTemplate`, `T.describeTemplate`, `T.overload`, `T.registry`
+- tables: `T.conceptTableSchema`, `T.conceptFromTable`, `T.validateConceptTable`
+- types: `T.Infer<typeof C>`, `T.Matches<typeof C, Type>`
 
 ## Concept tables
 
-M35k adds a narrow source-layer bridge: author concept rows as a Machina table, validate them by cell, and lower them into explicit `ConceptRecord[]`.
+A concept table is one way to author a concept: author field rows as a Machina table, validate them by cell, and lower the table into one `ConceptDefinition`. The result is the same kind of value as a concept authored in code, so it validates, infers, dispatches, and projects to forms the same way.
 
 Core thesis:
 
@@ -73,14 +64,9 @@ Core thesis:
 - Layouts place projections.
 - Renderers lower projections.
 
-A validation schema is a concept with most of its brain removed. Zod-like validation-only schemas are degenerate concepts: they describe type constraints, but concept records can also carry labels, diagnostics, editability hints, layout-facing metadata, and future projection inputs.
+A validation schema is a concept with most of its brain removed. Zod-like validation-only schemas are degenerate concepts: they describe type constraints, but concept fields can also carry labels, diagnostics, editability hints, layout-facing metadata, and future projection inputs (`FieldMeta`).
 
-M35k intentionally stops at concept records:
-
-- it does not render forms
-- it does not project layouts
-- it does not generate Zod or JSON Schema
-- it does not recurse into nested concept trees
+Tables stay flat: one row per field, primitive `type` values only. For nested shapes, author in code (or compose a table-lowered concept into a code-authored one).
 
 Use `T.conceptTableSchema()` when you want schema-authored tables:
 
@@ -138,32 +124,30 @@ const providerConcepts = Table.defineWithSchema({
   },
 });
 
-const concepts = T.conceptsFromTable(providerConcepts);
+const Provider = T.conceptFromTable(providerConcepts, { id: "Provider" });
 ```
 
-Each row lowers to an explicit concept source record:
+Each row lowers to one field; label/hint/path columns become field metadata and `required: false` makes the field optional:
 
 ```ts
-concepts[0];
+Provider.fields.displayName;
 // {
-//   kind: "conceptRecord",
-//   concept: "displayName",
-//   type: "string",
+//   kind: "string",
 //   label: "Provider name",
-//   required: true,
 //   diagnosticLabel: "provider name",
 //   controlHint: "input",
 //   valuePath: "draft.provider.displayName",
 //   changeKey: "displayName",
 //   testId: "setup-provider-name",
 // }
+
+T.fieldsOf(Provider); // [{ name, concept, constraint, required, meta }, ...] in row order
 ```
 
 Validation is cell-shaped and non-throwing when you ask for diagnostics explicitly:
 
 ```ts
 const diagnostics = T.validateConceptTable(providerConcepts);
-const description = T.describeConcepts(concepts, providerConcepts.id);
 ```
 
 Example diagnostic:
@@ -180,18 +164,18 @@ Enum and literal concepts use narrow source-only metadata:
 - non-enum rows must not provide `enumValues`
 - non-literal rows must not provide `literalValue`
 
-Form projection is intentionally deferred. M35k only lowers tables into `ConceptRecord[]`. A later milestone can project those records into form fields, layout hints, API docs, or other downstream authoring surfaces once the mapping is clearer.
+In code, the same metadata is attached with builder options (`T.string({ label: "Provider name" })`) or `T.meta(constraint, { label })`. Metadata never affects validation, inference, or refinement.
 
 ## Projecting concepts into form fields
 
 M35l adds a narrow projection bridge in `machinalayout/form`.
 
-Concept-to-form projection does not manage form state. It maps concept records into field records using caller-supplied values and projection options.
+Concept-to-form projection does not manage form state. It maps a concept's fields into field records using caller-supplied values and projection options. Any concept works, whether authored in code or lowered from a table.
 
 The dependency direction stays one-way:
 
-- `machinalayout/concept` defines source records
-- `machinalayout/form` projects those records into `FormFieldRecord[]`
+- `machinalayout/concept` defines the concept
+- `machinalayout/form` projects its fields into `FormFieldRecord[]`
 - rendering and state stay app-owned
 
 Example:
@@ -200,9 +184,7 @@ Example:
 import { T } from "machinalayout/concept";
 import { Form } from "machinalayout/form";
 
-const concepts = T.conceptsFromTable(providerConcepts);
-
-const fields = Form.fieldsFromConcepts(concepts, {
+const fields = Form.fieldsFromConcept(Provider, {
   values: {
     displayName: draft.provider.displayName,
     slug: draft.provider.slug,
@@ -216,7 +198,7 @@ const fields = Form.fieldsFromConcepts(concepts, {
 });
 ```
 
-This keeps concept records semantic:
+This keeps concepts semantic:
 
 - concepts describe meaning
 - form fields describe editing
@@ -387,10 +369,6 @@ describeShape.resolve(untrusted); // { ok, template, run } | { ok: false, code, 
 - `T.example(C)` returns a deterministic minimal valid value, self-checked against the validator.
 - `T.counterexamples(C)` returns one single-mutation invalid value per field and failure mode, each verified to produce its `expectedCode` at its `path`.
 - `T.explain(C)` gives the fields with origins, an example, and the rejected failure modes as plain text for LLM or human readers.
-
-## Legacy compile-time helpers
-
-`T.HasField`, `T.OptionalField`, `T.HasId`, `T.HasKind`, `T.And`, `T.All`, `T.ConceptType`, `T.Extends`, `T.Equal`, `T.Assert`, and `T.Satisfies` remain for compatibility. Prefer `T.Infer` plus plain TypeScript: these are aliases for `{ [K]: V }`, `&`, and the identity. For general type-level testing, use `machinalayout/comptime`.
 
 ## Honest boundary
 
