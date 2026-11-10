@@ -1,3 +1,13 @@
+export { camel, kebab, pascal } from "./case";
+export type { TextFormatErrorCode } from "./errors";
+export { TextFormatError } from "./errors";
+export type { LinePart } from "./lines";
+export { blank, block, indent, lineArray, lines, list } from "./lines";
+export { centerPad, leftPad, rightPad } from "./pad";
+export { parseMachinaText, parseMachinaTextInline } from "./parseMachinaText";
+export { slug } from "./slug";
+export type { TruncateOptions } from "./truncate";
+export { truncate } from "./truncate";
 export type {
   MachinaBulletItem,
   MachinaInline,
@@ -7,8 +17,8 @@ export type {
   MachinaTextDiagnosticCode,
   MachinaTextDiagnosticLevel,
   MachinaTextDocument,
-  MachinaTextOverflow,
   MachinaTextLeading,
+  MachinaTextOverflow,
   MachinaTextSource,
   MachinaTextSpec,
   MachinaTextVariant,
@@ -16,13 +26,4 @@ export type {
   MachinaTextWrap,
   ParseMachinaTextResult,
 } from "./types";
-
-export { parseMachinaText, parseMachinaTextInline } from "./parseMachinaText";
-export { TextFormatError } from "./errors";
-export type { TextFormatErrorCode } from "./errors";
-export { leftPad, rightPad, centerPad } from "./pad";
-export type { TruncateOptions } from "./truncate";
-export { truncate } from "./truncate";
-export { kebab, camel, pascal } from "./case";
-export { slug } from "./slug";
 export { Text } from "./utilities";

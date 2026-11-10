@@ -30,6 +30,8 @@ export default defineConfig({
     "command/index": "src/command/index.ts",
     "comptime/index": "src/comptime/index.ts",
     "comptime/node/index": "src/comptime/node/index.ts",
+    "kit/index": "src/kit/index.ts",
+    "variants/index": "src/variants/index.ts",
     "style/index": "src/style/index.ts",
     "static/index": "src/static/index.ts",
   },

@@ -133,6 +133,14 @@
       "types": "./dist/comptime/node/index.d.ts",
       "import": "./dist/comptime/node/index.js"
     },
+    "./kit": {
+      "types": "./dist/kit/index.d.ts",
+      "import": "./dist/kit/index.js"
+    },
+    "./variants": {
+      "types": "./dist/variants/index.d.ts",
+      "import": "./dist/variants/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
