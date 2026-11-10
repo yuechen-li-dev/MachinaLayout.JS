@@ -27,7 +27,8 @@ MachinaLayout.JS documentation is organized around public package entry points a
 ## Data and tooling
 
 - [Concepts](machina-concepts.md) — concept definitions, templates, table projection, and validation.
-- [Compile-time helpers](compile-time-helpers.md) — literal, string, and guard utilities.
+- [Compile-time helpers](compile-time-helpers.md) — literal, string, and guard utilities, plus build-time artifacts.
+- [Everyday ergonomics](everyday-ergonomics.md) — `V.variants`, `withDefaults` / `must` / `invariant`, `Text.lines`, and `resolveColumnNames`.
 - [Diagnostics](machina-diagnostics.md) and [error codes](error-codes.md) — diagnostic records and reports.
 - [Text utilities](text-utilities.md), [text parser](machina-text-parser.md), and [M2a text plan](machina-text-m2a-plan.md) — text records, parsing, and helpers.
 - [Commands](machina-commands.md) — command records and command batch helpers.

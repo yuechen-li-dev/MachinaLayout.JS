@@ -1,4 +1,5 @@
 import { Table } from "../table";
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import { defineMachinaAtlas } from "./defineMachinaAtlas";
@@ -24,19 +25,21 @@ const machinaAtlasSectionKinds = [
   "other",
 ] as const satisfies readonly MachinaAtlasSectionKind[];
 
-type ResolvedAtlasSectionColumns = {
-  readonly key: string;
-  readonly name: string;
-  readonly kind: string;
-  readonly route: string;
-  readonly file: string;
-  readonly fixture: string;
-  readonly owns: string;
-  readonly uses: string;
-  readonly usedBy: string;
-  readonly tags: string;
-  readonly notes: string;
-};
+const atlasSectionColumnKeys = [
+  "key",
+  "name",
+  "kind",
+  "route",
+  "file",
+  "fixture",
+  "owns",
+  "uses",
+  "usedBy",
+  "tags",
+  "notes",
+] as const;
+
+type ResolvedAtlasSectionColumns = ColumnNames<(typeof atlasSectionColumnKeys)[number]>;
 
 type OptionalAtlasStringDiagnosticCode =
   | "InvalidAtlasSectionRoute"
@@ -67,19 +70,7 @@ export type AtlasSectionsFromTableOptions = {
 export function resolveAtlasSectionColumns(
   options: AtlasSectionsFromTableOptions | undefined,
 ): ResolvedAtlasSectionColumns {
-  return {
-    key: options?.keyColumn ?? "key",
-    name: options?.nameColumn ?? "name",
-    kind: options?.kindColumn ?? "kind",
-    route: options?.routeColumn ?? "route",
-    file: options?.fileColumn ?? "file",
-    fixture: options?.fixtureColumn ?? "fixture",
-    owns: options?.ownsColumn ?? "owns",
-    uses: options?.usesColumn ?? "uses",
-    usedBy: options?.usedByColumn ?? "usedBy",
-    tags: options?.tagsColumn ?? "tags",
-    notes: options?.notesColumn ?? "notes",
-  };
+  return resolveColumnNames(options, atlasSectionColumnKeys);
 }
 
 function createDiagnostic(

@@ -1,39 +1,31 @@
 import { Table } from "../table";
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import type {
   CommandRecord,
+  CommandsFromTableOptions,
   CommandTableDescription,
   CommandTableSchema,
-  CommandsFromTableOptions,
 } from "./types";
 
-type ResolvedCommandColumns = {
-  readonly command: string;
-  readonly label: string;
-  readonly busyLabel: string;
-  readonly doneLabel: string;
-  readonly testId: string;
-  readonly disabled: string;
-  readonly busy: string;
-  readonly done: string;
-  readonly description: string;
-  readonly variant: string;
-};
+const commandColumnKeys = [
+  "command",
+  "label",
+  "busyLabel",
+  "doneLabel",
+  "testId",
+  "disabled",
+  "busy",
+  "done",
+  "description",
+  "variant",
+] as const;
+
+type ResolvedCommandColumns = ColumnNames<(typeof commandColumnKeys)[number]>;
 
 function resolveColumns(options: CommandsFromTableOptions | undefined): ResolvedCommandColumns {
-  return {
-    command: options?.commandColumn ?? "command",
-    label: options?.labelColumn ?? "label",
-    busyLabel: options?.busyLabelColumn ?? "busyLabel",
-    doneLabel: options?.doneLabelColumn ?? "doneLabel",
-    testId: options?.testIdColumn ?? "testId",
-    disabled: options?.disabledColumn ?? "disabled",
-    busy: options?.busyColumn ?? "busy",
-    done: options?.doneColumn ?? "done",
-    description: options?.descriptionColumn ?? "description",
-    variant: options?.variantColumn ?? "variant",
-  };
+  return resolveColumnNames(options, commandColumnKeys);
 }
 
 function createDiagnostic(

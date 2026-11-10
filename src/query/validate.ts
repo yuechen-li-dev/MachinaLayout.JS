@@ -1,4 +1,4 @@
-import { Table, type ColumnarTable, type TableSortDirection } from "../table";
+import { type ColumnarTable, Table, type TableSortDirection } from "../table";
 import type { TableQueryDiagnostic, TableQueryOperation, TableQueryPlan } from "./types";
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import type {
   CompatibleDiagnostic,
   DiagnosticInput,
@@ -7,9 +8,7 @@ import type {
 } from "./types";
 
 function assertNonEmptyField(value: string, fieldName: "code" | "message"): void {
-  if (value.trim().length === 0) {
-    throw new Error(`Machina diagnostic ${fieldName} must be non-empty.`);
-  }
+  invariant(value.trim().length > 0, `Machina diagnostic ${fieldName} must be non-empty.`);
 }
 
 function createDiagnostic(

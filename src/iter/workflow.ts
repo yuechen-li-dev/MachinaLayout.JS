@@ -1,6 +1,8 @@
 import { T } from "../concept/authoring";
 import type { ConceptDefinition } from "../concept/types";
 import { validateConceptValue } from "../concept/validate";
+import { invariant } from "../kit";
+import { V } from "../variants";
 import {
   type AnyEffectDefinition,
   type AnyEffectRequest,
@@ -19,15 +21,19 @@ import type { IterDiagnostic, IterMachine } from "./types";
 // Types
 // ---------------------------------------------------------------------------
 
-export type SerializedEffectError = {
-  readonly name: string;
-  readonly message: string;
-  readonly data?: unknown;
-};
+const SerializedEffectErrorConcept = T.concept({
+  id: "SerializedEffectError",
+  fields: { name: T.string(), message: T.string(), data: T.optional(T.unknown()) },
+});
+export type SerializedEffectError = T.Infer<typeof SerializedEffectErrorConcept>;
 
-export type EffectOutcome =
-  | { readonly kind: "ok"; readonly value: unknown }
-  | { readonly kind: "err"; readonly error: SerializedEffectError };
+/** What one effect call produced. One declaration: the type and the snapshot validation. */
+export const EffectOutcome = V.variants(
+  "EffectOutcome",
+  { ok: { value: T.unknown() }, err: { error: SerializedEffectErrorConcept } },
+  { closed: true },
+);
+export type EffectOutcome = V.Infer<typeof EffectOutcome>;
 
 /** One resolved step: what was asked (calls) and what came back (outcomes). Plain JSON. */
 export type WorkflowLogEntry = {
@@ -117,9 +123,7 @@ export function workflow<TInput, TReturn>(input: {
   if (typeof input.id !== "string" || input.id.trim().length === 0) {
     throw new Error("Workflow id must be non-empty.");
   }
-  if (typeof input.run !== "function") {
-    throw new Error("Workflow run must be a generator function.");
-  }
+  invariant(typeof input.run === "function", "Workflow run must be a generator function.");
   return {
     kind: "workflow",
     id: input.id,
@@ -356,17 +360,15 @@ export class WorkflowSession<TInput, TReturn> {
 
   /** Record live outcomes for the pending request and continue. */
   resolve(outcomes: readonly EffectOutcome[]): this {
-    if (this.state.kind !== "pending") {
-      throw new Error(
-        `Workflow '${this.workflow.id}' is not waiting on an effect (${this.state.kind}).`,
-      );
-    }
+    invariant(
+      this.state.kind === "pending",
+      `Workflow '${this.workflow.id}' is not waiting on an effect (${this.state.kind}).`,
+    );
     const request = this.state.request;
-    if (outcomes.length !== request.calls.length) {
-      throw new Error(
-        `Expected ${request.calls.length} outcome(s) for ${describeCalls(request.calls, request.parallel)}, received ${outcomes.length}.`,
-      );
-    }
+    invariant(
+      outcomes.length === request.calls.length,
+      `Expected ${request.calls.length} outcome(s) for ${describeCalls(request.calls, request.parallel)}, received ${outcomes.length}.`,
+    );
     const checked = outcomes.map((outcome, index) => checkLiveOutcome(request, index, outcome));
     this.log.push({ calls: request.calls, parallel: request.parallel, outcomes: checked });
     this.replayed += 1;
@@ -617,27 +619,7 @@ const SnapshotConcept = T.concept({
             { minLength: 1 },
           ),
           parallel: T.boolean(),
-          outcomes: T.array(
-            T.union(
-              T.concept({
-                id: "OkOutcome",
-                closed: true,
-                fields: { kind: T.literal("ok"), value: T.optional(T.unknown()) },
-              }),
-              T.concept({
-                id: "ErrOutcome",
-                closed: true,
-                fields: {
-                  kind: T.literal("err"),
-                  error: T.concept({
-                    id: "SerializedEffectError",
-                    fields: { name: T.string(), message: T.string() },
-                  }),
-                },
-              }),
-            ),
-            { minLength: 1 },
-          ),
+          outcomes: T.array(EffectOutcome.constraint, { minLength: 1 }),
         },
       }),
     ),

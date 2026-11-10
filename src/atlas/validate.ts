@@ -1,3 +1,5 @@
+import { withDefaults } from "../kit";
+import { Text } from "../text/utilities";
 import { extractMachinaSection, extractMachinaSections } from "./extract";
 import { parseMachinaSectionMarkers } from "./markers";
 import type { MachinaAtlas } from "./types";
@@ -79,7 +81,7 @@ export function validateMachinaAtlas(
   if (!input?.atlas || typeof input.sourceText !== "string") {
     throw new TypeError("validateMachinaAtlas requires an atlas and sourceText string.");
   }
-  const options = { ...DEFAULT_OPTIONS, ...input.options };
+  const options = withDefaults(input.options, DEFAULT_OPTIONS);
   const diagnostics: MachinaAtlasValidationDiagnostic[] = [];
   const markers = parseMachinaSectionMarkers(input.sourceText);
   const markerNames = new Set(markers.map((marker) => marker.name));
@@ -229,21 +231,25 @@ export function validateMachinaAtlas(
 
 export function formatMachinaAtlasValidationReport(result: MachinaAtlasValidationResult): string {
   const status = result.ok ? "ok" : "failed";
-  const lines = [`MachinaAtlas validation: ${status}`, `Diagnostics: ${result.diagnostics.length}`];
-  if (result.diagnostics.length === 0) return lines.join("\n");
-  lines.push("");
-  result.diagnostics.forEach((diagnostic, index) => {
-    lines.push(`${index + 1}. ${diagnostic.severity} ${diagnostic.code}`);
-    if (diagnostic.sectionKey !== undefined) {
-      lines.push(`   section: ${sectionLabel(diagnostic.sectionKey, diagnostic.sectionName)}`);
-    }
-    if (diagnostic.marker !== undefined) lines.push(`   marker: ${diagnostic.marker}`);
-    if (diagnostic.symbol !== undefined) lines.push(`   symbol: ${diagnostic.symbol}`);
-    if (diagnostic.relation !== undefined) lines.push(`   relation: ${diagnostic.relation}`);
-    if (diagnostic.targetKey !== undefined) lines.push(`   target: ${diagnostic.targetKey}`);
-    if (diagnostic.line !== undefined) lines.push(`   line: ${diagnostic.line}`);
-    lines.push(`   message: ${diagnostic.message}`);
-    if (index + 1 < result.diagnostics.length) lines.push("");
-  });
-  return lines.join("\n");
+  return Text.lines(
+    `MachinaAtlas validation: ${status}`,
+    `Diagnostics: ${result.diagnostics.length}`,
+    result.diagnostics.map((diagnostic, index) => [
+      Text.blank,
+      `${index + 1}. ${diagnostic.severity} ${diagnostic.code}`,
+      Text.indent(
+        [
+          diagnostic.sectionKey !== undefined &&
+            `section: ${sectionLabel(diagnostic.sectionKey, diagnostic.sectionName)}`,
+          diagnostic.marker !== undefined && `marker: ${diagnostic.marker}`,
+          diagnostic.symbol !== undefined && `symbol: ${diagnostic.symbol}`,
+          diagnostic.relation !== undefined && `relation: ${diagnostic.relation}`,
+          diagnostic.targetKey !== undefined && `target: ${diagnostic.targetKey}`,
+          diagnostic.line !== undefined && `line: ${diagnostic.line}`,
+          `message: ${diagnostic.message}`,
+        ],
+        "   ",
+      ),
+    ]),
+  );
 }

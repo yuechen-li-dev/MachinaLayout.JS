@@ -89,3 +89,11 @@ describe("V.variants", () => {
     expect(Event.match(e, { open: ({ id }) => id, close: () => "" })).toBe("x");
   });
 });
+
+describe("V.variants as a nested field", () => {
+  it("keeps the exact union type when used inside another concept", () => {
+    const Holder = T.concept({ id: "Holder", fields: { shape: Shape.constraint } });
+    type _nested = Assert<Equal<T.Infer<typeof Holder>, { shape: Shape }>>;
+    expect(T.validate(Holder, { shape: Shape.make.empty() })).toEqual([]);
+  });
+});

@@ -1,15 +1,16 @@
 import { Table } from "../table";
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic, TableSchema } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import type {
   MachinaStyleSheet,
   StyleRuleRecord,
-  StyleRuleTableDescription,
   StyleRulesFromTableOptions,
+  StyleRuleTableDescription,
   StyleSheetFromTablesOptions,
   StyleTokenRecord,
-  StyleTokenTableDescription,
   StyleTokensFromTableOptions,
+  StyleTokenTableDescription,
 } from "./types";
 
 const DEFAULT_STYLE_THEME_COLUMNS = ["light", "dark"] as const;
@@ -20,14 +21,16 @@ type ResolvedStyleTokenColumns = {
   readonly description: string;
 };
 
-type ResolvedStyleRuleColumns = {
-  readonly selector: string;
-  readonly property: string;
-  readonly value: string;
-  readonly state: string;
-  readonly breakpoint: string;
-  readonly description: string;
-};
+const styleRuleColumnKeys = [
+  "selector",
+  "property",
+  "value",
+  "state",
+  "breakpoint",
+  "description",
+] as const;
+
+type ResolvedStyleRuleColumns = ColumnNames<(typeof styleRuleColumnKeys)[number]>;
 
 function createDiagnostic(
   table: ColumnarTable,
@@ -66,14 +69,7 @@ function resolveTokenColumns(
 function resolveRuleColumns(
   options: StyleRulesFromTableOptions | undefined,
 ): ResolvedStyleRuleColumns {
-  return {
-    selector: options?.selectorColumn ?? "selector",
-    property: options?.propertyColumn ?? "property",
-    value: options?.valueColumn ?? "value",
-    state: options?.stateColumn ?? "state",
-    breakpoint: options?.breakpointColumn ?? "breakpoint",
-    description: options?.descriptionColumn ?? "description",
-  };
+  return resolveColumnNames(options, styleRuleColumnKeys);
 }
 
 function validateRequiredColumn(

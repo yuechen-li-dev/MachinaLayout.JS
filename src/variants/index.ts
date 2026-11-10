@@ -8,6 +8,7 @@ import {
   type ConceptFields,
 } from "../concept/types";
 import { validateConstraintValue } from "../concept/validate";
+import { invariant } from "../kit";
 import { matchDiscriminated } from "../match/matchDiscriminated";
 import type { DiscriminatedCaseMap, DiscriminatedCaseMapWithDefault } from "../match/types";
 
@@ -27,7 +28,7 @@ export type VariantUnion<TSpec extends VariantSpec, TKey extends string> = {
 }[keyof TSpec & string];
 
 type PayloadArgs<TFields extends ConceptFields> =
-  {} extends InferFields<TFields>
+  Record<never, never> extends InferFields<TFields>
     ? [payload?: InferFields<TFields>]
     : [payload: InferFields<TFields>];
 
@@ -74,7 +75,7 @@ export type Variants<TSpec extends VariantSpec, TKey extends string> = {
   /** The whole union as a concept constraint — usable as a field in other concepts. */
   readonly constraint: {
     readonly kind: "union";
-    readonly options: readonly ConceptDefinition[];
+    readonly options: readonly Variants<TSpec, TKey>["concepts"][keyof TSpec & string][];
   };
 };
 
@@ -100,9 +101,7 @@ export function variants<const TSpec extends VariantSpec, const TKey extends str
 ): Variants<TSpec, TKey> {
   const key = (options.key ?? "kind") as TKey;
   const names = Object.keys(spec) as (keyof TSpec & string)[];
-  if (names.length === 0) {
-    throw new Error(`Variants '${id}' needs at least one variant.`);
-  }
+  invariant(names.length > 0, `Variants '${id}' needs at least one variant.`);
   for (const name of names) {
     if (key in spec[name]) {
       throw new Error(
@@ -124,8 +123,8 @@ export function variants<const TSpec extends VariantSpec, const TKey extends str
 
   const constraint = {
     kind: "union" as const,
-    options: names.map((name) => concepts[name] as ConceptDefinition),
-  };
+    options: names.map((name) => concepts[name]),
+  } as Variants<TSpec, TKey>["constraint"];
 
   const validate = (value: unknown) =>
     validateConstraintValue(constraint as ConceptFieldConstraint, value);

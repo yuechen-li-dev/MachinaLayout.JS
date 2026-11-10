@@ -1,4 +1,5 @@
 import { CT } from "machinalayout/comptime";
+import { must } from "machinalayout/kit";
 import { createStaticHtmlArtifact, H } from "machinalayout/static";
 
 export const timeline = H.timeline({
@@ -39,11 +40,11 @@ export const page = H.staticPage({
   body: [timeline],
 });
 
-const fileText = (path: string) => {
-  const file = createStaticHtmlArtifact(page).files.find((candidate) => candidate.path === path);
-  if (!file) throw new Error(`static artifact has no ${path}`);
-  return file.text;
-};
+const fileText = (path: string) =>
+  must(
+    createStaticHtmlArtifact(page).files.find((file) => file.path === path),
+    `static artifact has no ${path}`,
+  ).text;
 
 /** Everything this sample generates. `src/build.ts` writes it; the tests check it. */
 export const artifacts = CT.artifacts({

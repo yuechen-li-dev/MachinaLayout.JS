@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import type { AsyncTask, AsyncTaskDescription } from "./types";
 
 function getEnvKeys(env: unknown): readonly string[] {
@@ -22,24 +23,10 @@ export function describeAsyncTask<TEnv, TInput, TOutput, TError>(
 }
 
 export function formatAsyncTaskDescription(description: AsyncTaskDescription): string {
-  const lines = [`Async task: ${description.id}`];
-
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-
-  if (description.timeoutMs !== undefined) {
-    lines.push(`Timeout: ${description.timeoutMs}ms`);
-  }
-
-  if (description.envKeys.length > 0) {
-    lines.push("Environment keys:");
-    for (const key of description.envKeys) {
-      lines.push(`- ${key}`);
-    }
-  } else {
-    lines.push("Environment keys: none");
-  }
-
-  return lines.join("\n");
+  return Text.lines(
+    `Async task: ${description.id}`,
+    description.description && `Description: ${description.description}`,
+    description.timeoutMs !== undefined && `Timeout: ${description.timeoutMs}ms`,
+    Text.list("Environment keys:", description.envKeys, { empty: "Environment keys: none" }),
+  );
 }

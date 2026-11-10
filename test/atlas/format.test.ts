@@ -51,3 +51,13 @@ describe("formatMachinaAtlasSummary", () => {
     expect(summary).not.toContain("symbol:");
   });
 });
+
+describe("atlas summary options", () => {
+  it("an explicit undefined option keeps its default (regression)", () => {
+    const routed = defineMachinaAtlas({
+      app: "A",
+      sections: [{ key: "a", name: "A", route: "/a" }],
+    });
+    expect(formatMachinaAtlasSummary(routed, { includeRoutes: undefined })).toContain("route: /a");
+  });
+});

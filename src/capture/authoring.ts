@@ -1,17 +1,14 @@
+import { invariant } from "../kit";
 import { describeCaptureTask } from "./describe";
-import { validateCaptureTask } from "./validate";
 import type { CaptureTask } from "./types";
+import { validateCaptureTask } from "./validate";
 
 function assertTaskId(id: string): void {
-  if (id.trim().length === 0) {
-    throw new Error("Capture task id must be non-empty.");
-  }
+  invariant(id.trim().length > 0, "Capture task id must be non-empty.");
 }
 
 function assertTaskRun(run: unknown): asserts run is (...args: readonly unknown[]) => unknown {
-  if (typeof run !== "function") {
-    throw new Error("Capture task run must be a function.");
-  }
+  invariant(typeof run === "function", "Capture task run must be a function.");
 }
 
 function assertTaskDescription(description: string | undefined): void {

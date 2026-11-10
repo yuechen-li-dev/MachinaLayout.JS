@@ -1,3 +1,4 @@
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableColumns, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import type {
@@ -27,11 +28,9 @@ export type DeusTransitionsFromTableOptions<
   readonly doColumn?: TDoColumn;
 };
 
-type ResolvedTransitionColumns = {
-  readonly key: string;
-  readonly from: string;
-  readonly event: string;
-  readonly to: string;
+const transitionColumnKeys = ["key", "from", "event", "to"] as const;
+
+type ResolvedTransitionColumns = ColumnNames<(typeof transitionColumnKeys)[number]> & {
   readonly action: string;
 };
 
@@ -39,10 +38,7 @@ function resolveColumns(
   options: DeusTransitionsFromTableOptions<string, string, string, string, string> | undefined,
 ): ResolvedTransitionColumns {
   return {
-    key: options?.keyColumn ?? "key",
-    from: options?.fromColumn ?? "from",
-    event: options?.eventColumn ?? "event",
-    to: options?.toColumn ?? "to",
+    ...resolveColumnNames(options, transitionColumnKeys),
     action: options?.doColumn ?? "do",
   };
 }

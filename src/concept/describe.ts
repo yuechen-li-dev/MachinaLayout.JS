@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import { counterexamples, example } from "./fixtures";
 import { describeConstraintType, isConceptDefinition, isOptional } from "./structure";
 import type {
@@ -32,25 +33,12 @@ export function describeConcept(concept: ConceptDefinition): ConceptDescription 
 }
 
 export function formatConceptDescription(description: ConceptDescription): string {
-  const lines = [`Concept: ${description.id}`];
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-  if (description.composedFrom.length > 0) {
-    lines.push("Composed from:");
-    for (const source of description.composedFrom) {
-      lines.push(`- ${source}`);
-    }
-  }
-  if (description.fieldEntries.length > 0) {
-    lines.push("Fields:");
-    for (const field of description.fieldEntries) {
-      lines.push(`- ${field}`);
-    }
-  } else {
-    lines.push("Fields: none");
-  }
-  return lines.join("\n");
+  return Text.lines(
+    `Concept: ${description.id}`,
+    description.description && `Description: ${description.description}`,
+    Text.list("Composed from:", description.composedFrom),
+    Text.list("Fields:", description.fieldEntries, { empty: "Fields: none" }),
+  );
 }
 
 export function describeTemplate<TInput, TOutput>(
@@ -65,15 +53,11 @@ export function describeTemplate<TInput, TOutput>(
 }
 
 export function formatTemplateDescription(description: TemplateDescription): string {
-  const lines = [`Template: ${description.id}`];
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-  lines.push("Requires:");
-  for (const line of formatConceptDescription(description.requires).split("\n")) {
-    lines.push(`  ${line}`);
-  }
-  return lines.join("\n");
+  return Text.lines(
+    `Template: ${description.id}`,
+    description.description && `Description: ${description.description}`,
+    Text.block("Requires:", formatConceptDescription(description.requires)),
+  );
 }
 
 function safeJson(value: unknown): string {
@@ -87,30 +71,31 @@ function safeJson(value: unknown): string {
  * example, and the failure modes the validator checks. Plain text, stable order.
  */
 export function explainConcept(concept: ConceptDefinition): string {
-  const lines = [
-    `Concept: ${concept.id}${concept.closed ? " (closed: unknown keys are errors)" : ""}`,
-  ];
-  if (concept.description) {
-    lines.push(`Description: ${concept.description}`);
-  }
-  lines.push("Fields:");
-  for (const [name, constraint] of Object.entries(concept.fields)) {
+  const fields = Object.entries(concept.fields).map(([name, constraint]) => {
     const origin = concept.fieldOrigins?.[name];
     const fromText = origin && origin !== concept.id ? `  (from ${origin})` : "";
-    lines.push(`- ${describeConstraint(name, constraint)}${fromText}`);
-  }
+    return `${describeConstraint(name, constraint)}${fromText}`;
+  });
+  let checks: readonly string[];
   try {
-    lines.push(`Example: ${safeJson(example(concept))}`);
-    const checks = new Map<string, Set<string>>();
+    const byPath = new Map<string, Set<string>>();
     for (const entry of counterexamples(concept)) {
-      checks.set(entry.path, (checks.get(entry.path) ?? new Set()).add(entry.mutation));
+      byPath.set(entry.path, (byPath.get(entry.path) ?? new Set()).add(entry.mutation));
     }
-    lines.push("Rejects:");
-    for (const [path, mutations] of checks) {
-      lines.push(`- ${path}: ${[...mutations].join(", ")}`);
-    }
+    checks = [
+      `Example: ${safeJson(example(concept))}`,
+      ...Text.list(
+        "Rejects:",
+        [...byPath].map(([path, mutations]) => `${path}: ${[...mutations].join(", ")}`),
+      ),
+    ];
   } catch (error) {
-    lines.push(`Example: unavailable (${(error as Error).message.split("\n")[0]})`);
+    checks = [`Example: unavailable (${(error as Error).message.split("\n")[0]})`];
   }
-  return lines.join("\n");
+  return Text.lines(
+    `Concept: ${concept.id}${concept.closed ? " (closed: unknown keys are errors)" : ""}`,
+    concept.description && `Description: ${concept.description}`,
+    Text.list("Fields:", fields),
+    checks,
+  );
 }

@@ -1,16 +1,19 @@
 import { B, type BatchBoard } from "../batch";
+import { invariant } from "../kit";
 import {
-  Table,
-  TableError,
   type ChunkedColumnarTable,
   type ColumnarTable,
   type ColumnarTableChunk,
+  Table,
+  TableError,
 } from "../table";
+import { execute } from "./execute";
+import { plan as createPlan } from "./plan";
 import type {
   SplitTableQueryPlan,
   TableChunkQueryBoard,
-  TableChunkQueryExecution,
   TableChunkQueryDiagnostic,
+  TableChunkQueryExecution,
   TableChunkQueryOptions,
   TableChunkQueryTraceEvent,
   TableQueryDiagnostic,
@@ -18,8 +21,6 @@ import type {
   TableQueryOperationExecutionScope,
   TableQueryPlan,
 } from "./types";
-import { execute } from "./execute";
-import { plan as createPlan } from "./plan";
 import { TableQueryError, validate } from "./validate";
 
 type MutableTableChunkQueryBoard = {
@@ -160,9 +161,10 @@ function mergeTables(
   ) as Record<string, unknown[]>;
 
   for (const table of tables) {
-    if (columnShape(table) !== expectedShape) {
-      throw new Error("Chunk-local query outputs must preserve the same column names and order.");
-    }
+    invariant(
+      columnShape(table) === expectedShape,
+      "Chunk-local query outputs must preserve the same column names and order.",
+    );
     for (const column of expectedColumns) {
       columns[column].push(...table.columns[column]);
     }

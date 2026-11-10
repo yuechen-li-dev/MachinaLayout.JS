@@ -1,3 +1,5 @@
+import { invariant } from "../kit";
+import { Text } from "../text/utilities";
 import { conceptRefines } from "./structure";
 import { type ConceptDiagnostic, ConceptError, type TemplateRecord } from "./types";
 import {
@@ -68,9 +70,7 @@ export function overload<const TTemplates extends readonly AnyTemplate[]>(
   if (typeof id !== "string" || id.trim().length === 0) {
     throw new Error("Overload id must be non-empty.");
   }
-  if (templates.length === 0) {
-    throw new Error(`Overload '${id}' needs at least one template.`);
-  }
+  invariant(templates.length > 0, `Overload '${id}' needs at least one template.`);
 
   const definitionErrors: ConceptDiagnostic[] = [];
   const ids = new Set<string>();
@@ -190,20 +190,17 @@ export function overload<const TTemplates extends readonly AnyTemplate[]>(
       return resolution.run();
     },
     describe: () => {
-      const lines = [`Overload: ${id}`];
-      if (options?.description) {
-        lines.push(`Description: ${options.description}`);
-      }
-      lines.push("Candidates (most specific first):");
-      for (const entry of ordered) {
+      const candidates = ordered.map((entry) => {
         const refines = ordered
           .filter((other) => other !== entry && strictlyRefines(entry, other))
           .map((other) => other.requires.id);
-        lines.push(
-          `- ${entry.id} requires ${entry.requires.id}${refines.length > 0 ? ` (refines ${refines.join(", ")})` : ""}`,
-        );
-      }
-      return lines.join("\n");
+        return `${entry.id} requires ${entry.requires.id}${refines.length > 0 ? ` (refines ${refines.join(", ")})` : ""}`;
+      });
+      return Text.lines(
+        `Overload: ${id}`,
+        options?.description && `Description: ${options.description}`,
+        Text.list("Candidates (most specific first):", candidates),
+      );
     },
   };
 }
