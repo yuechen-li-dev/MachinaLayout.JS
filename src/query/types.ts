@@ -1,4 +1,5 @@
 import type { BatchBoard } from "../batch";
+import type { DiagnosticOf } from "../diagnostics/types";
 import type { ColumnarTable, TableDiagnostic, TableRow, TableSortDirection } from "../table";
 
 export type TableQueryRowPredicate<TTable extends ColumnarTable = ColumnarTable> = (
@@ -252,16 +253,13 @@ export type TableChunkQueryResult =
 
 export type TableChunkQueryExecution = Promise<TableChunkQueryResult>;
 
-export type TableQueryDiagnostic = {
+export type TableQueryDiagnostic = DiagnosticOf<{
   readonly severity: "error" | "warning";
-  readonly code: string;
-  readonly message: string;
   readonly planId?: string;
   readonly operationIndex?: number;
   readonly operationKind?: string;
   readonly column?: string;
-  readonly path?: string;
-};
+}>;
 
 export type TableChunkQueryDiagnostic = TableQueryDiagnostic | TableDiagnostic;
 

@@ -18,7 +18,18 @@ function makeDiagnostic(
   line: number,
   column: number,
 ): MachinaTextDiagnostic {
-  return { code, message, index, length, line, column, level: "error" };
+  return {
+    severity: "error",
+    code,
+    message,
+    path: `${line}:${column}`,
+    source: "text",
+    index,
+    length,
+    line,
+    column,
+    level: "error",
+  };
 }
 
 function toLines(source: string): LineInfo[] {

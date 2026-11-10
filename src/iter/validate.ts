@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import type { IterDiagnostic, IterMachine } from "./types";
 
 function pushDiagnostic(
@@ -59,14 +60,5 @@ export function validateIterMachine<TEnv, TCursor, TYield, TReturn, TError>(
 }
 
 export function formatIterDiagnostics(diagnostics: readonly IterDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No iter diagnostics.";
-  }
-
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No iter diagnostics." });
 }

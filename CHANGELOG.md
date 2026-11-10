@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- One diagnostic shape: every module diagnostic type is now `DiagnosticOf<Extras, Codes>` over `MachinaDiagnostic`, which gains `fix` (moved from concepts; `ConceptFix` is an alias of `DiagnosticFix`). `D.collect` preserves element types, `D.from` is lossless, `D.within` re-bases `path` and `fix.path` together, and `D.format` adds `style: "line"` and `empty`. The 11 module formatters delegate to it (same output, except query diagnostics are now blank-line separated and workflow diagnostics show `at log[n]` instead of `(step n)`).
+- `ArtifactDiagnostic` uses `path` / `details` instead of `artifact` / `diff`. `MachinaTextDiagnostic` gains `severity`, `path` (`line:column`), and `source`.
+
 - Added `machinalayout/variants` (`V.variants`: one declaration gives a discriminated union's type, constructors, guards, exhaustive match, and runtime validation) and `machinalayout/kit` (`withDefaults`, `must`, `invariant`). Added `Text.lines` / `list` / `block` / `indent` / `blank`, `resolveColumnNames` / `ColumnNames` in `machinalayout/table`, and `validateConstraintValue` in `machinalayout/concept`.
 - Fixed: atlas summary and validation options treated an explicit `undefined` as "off" instead of the default.
 - Internal: formatters, table column resolvers, and guard clauses use the new helpers; multi-line diagnostic messages now indent every line.

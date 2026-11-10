@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import type { CaptureDiagnostic, CaptureTask } from "./types";
 
 function pushDiagnostic(
@@ -63,13 +64,5 @@ export function validateCaptureTask<TEnv, TInput, TOutput>(
 }
 
 export function formatCaptureDiagnostics(diagnostics: readonly CaptureDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No capture diagnostics.";
-  }
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No capture diagnostics." });
 }

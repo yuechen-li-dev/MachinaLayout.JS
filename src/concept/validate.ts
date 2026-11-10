@@ -1,3 +1,5 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
+import type { DiagnosticFix } from "../diagnostics/types";
 import type { Infer } from "./infer";
 import {
   closestName,
@@ -12,7 +14,6 @@ import {
   type ConceptDiagnostic,
   ConceptError,
   type ConceptFieldConstraint,
-  type ConceptFix,
 } from "./types";
 
 const CONSTRAINT_KINDS = new Set([
@@ -253,7 +254,7 @@ function error(
     readonly concept?: string;
     readonly expected?: string;
     readonly received?: string;
-    readonly fix?: ConceptFix;
+    readonly fix?: DiagnosticFix;
   } = {},
 ): void {
   out.push({ severity: "error", code, message, path, ...extra });
@@ -681,29 +682,6 @@ export function assertConceptValue<TConcept extends ConceptDefinition>(
   }
 }
 
-function formatFix(fix: ConceptFix): string {
-  switch (fix.op) {
-    case "add":
-      return `add ${fix.path}: ${fix.expected}`;
-    case "remove":
-      return `remove ${fix.path}`;
-    case "rename":
-      return `rename ${fix.path} → ${fix.to}`;
-    case "replace":
-      return `set ${fix.path} to ${fix.expected}`;
-  }
-}
-
 export function formatConceptDiagnostics(diagnostics: readonly ConceptDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No concept diagnostics.";
-  }
-
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      const fix = diagnostic.fix ? ` [fix: ${formatFix(diagnostic.fix)}]` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}${fix}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No concept diagnostics." });
 }

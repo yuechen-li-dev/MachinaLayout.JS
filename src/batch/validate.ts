@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import type { BatchDiagnostic, BatchTask } from "./types";
 
 function pushDiagnostic(
@@ -73,14 +74,5 @@ export function validateBatchTask<TInput, TOutput, TError>(
 }
 
 export function formatBatchDiagnostics(diagnostics: readonly BatchDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No batch diagnostics.";
-  }
-
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No batch diagnostics." });
 }

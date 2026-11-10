@@ -51,6 +51,9 @@ describe("toolkit pipeline sample", () => {
             message: "missing required string(nonEmpty), from OrderShape",
             path: "orders[2].customerId",
             source: "concept",
+            concept: "OrderShape",
+            expected: "string(nonEmpty)",
+            fix: { op: "add", path: "orders[2].customerId", expected: "string(nonEmpty)" },
           },
           {
             severity: "error",
@@ -62,7 +65,7 @@ describe("toolkit pipeline sample", () => {
           },
         ],
         diagnosticsText:
-          "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100",
+          "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n  fix: add orders[2].customerId: string(nonEmpty)\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100",
       },
     ]);
     expect(report.iterator.status).toBe("done");

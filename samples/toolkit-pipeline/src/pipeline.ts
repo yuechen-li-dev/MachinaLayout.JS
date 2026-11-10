@@ -412,12 +412,10 @@ function findOrderDiagnostics(
   order: RawOrderRecord,
   index: number,
 ): import("machinalayout/diagnostics").MachinaDiagnostic[] {
-  const conceptDiagnostics = D.from(findConceptDiagnostics(order), {
-    source: "concept",
-  }).map((diagnostic) => ({
-    ...diagnostic,
-    path: toOrderPath(index, diagnostic.path),
-  }));
+  const conceptDiagnostics = D.within(
+    `orders[${index}]`,
+    D.from(findConceptDiagnostics(order), { source: "concept" }),
+  );
   const policyDiagnostics = validateOrderPolicy(order, index);
   return D.sort(D.collect(conceptDiagnostics, policyDiagnostics));
 }

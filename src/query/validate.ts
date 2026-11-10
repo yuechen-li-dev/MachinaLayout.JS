@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import { type ColumnarTable, Table, type TableSortDirection } from "../table";
 import type { TableQueryDiagnostic, TableQueryOperation, TableQueryPlan } from "./types";
 
@@ -368,10 +369,5 @@ export class TableQueryError extends Error {
 }
 
 export function formatQueryDiagnostics(diagnostics: readonly TableQueryDiagnostic[]): string {
-  return diagnostics
-    .map((diagnostic) => {
-      const location = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `${diagnostic.severity} ${diagnostic.code}${location}\n  ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { includeSource: false, empty: "" });
 }

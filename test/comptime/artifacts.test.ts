@@ -50,10 +50,10 @@ describe("CT.write / CT.check round trip", () => {
     fs.files.set("src/data.json", '{"title":"Bye"}');
     const diagnostics = await CT.check(cfg, { fs, root: "" });
     expect(formatArtifactDiagnostics(diagnostics)).toMatchInlineSnapshot(`
-      "[error] StaleArtifact page.html: differs from what the generator produces now; run CT.write
-      @@ line 1 @@
-      - <h1>Hi</h1>
-      + <h1>Bye</h1>"
+      "[error] StaleArtifact at page.html: differs from what the generator produces now; run CT.write
+        @@ line 1 @@
+        - <h1>Hi</h1>
+        + <h1>Bye</h1>"
     `);
   });
 
@@ -134,7 +134,7 @@ describe("determinism", () => {
       ),
       { fs, root: "" },
     );
-    expect(report.diagnostics.map((d) => `${d.code}:${d.artifact}`)).toEqual([
+    expect(report.diagnostics.map((d) => `${d.code}:${d.path}`)).toEqual([
       "NondeterministicComptime:now.txt",
       "NondeterministicComptime:date.txt",
       "NondeterministicComptime:rand.txt",
@@ -169,7 +169,7 @@ describe("determinism", () => {
       ),
       { fs: CT.memoryFs(), root: "" },
     );
-    expect(diagnostics.map((d) => `${d.code}:${d.artifact}`)).toEqual([
+    expect(diagnostics.map((d) => `${d.code}:${d.path}`)).toEqual([
       "NondeterministicComptime:late.txt",
       "MissingArtifact:async-ok.txt",
     ]);

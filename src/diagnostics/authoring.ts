@@ -1,6 +1,5 @@
 import { invariant } from "../kit";
 import type {
-  CompatibleDiagnostic,
   DiagnosticInput,
   DiagnosticResult,
   MachinaDiagnostic,
@@ -58,18 +57,43 @@ export function err(diagnostics: readonly MachinaDiagnostic[]): DiagnosticResult
   };
 }
 
-export function from(
-  diagnostics: readonly CompatibleDiagnostic[],
+/**
+ * Fill in `source` where missing. Lossless: module-specific fields (fix
+ * hints, table cells, workflow steps) are kept.
+ */
+export function from<TDiagnostic extends MachinaDiagnostic>(
+  diagnostics: readonly TDiagnostic[],
   defaults?: {
     source?: string;
   },
-): MachinaDiagnostic[] {
+): TDiagnostic[] {
+  return diagnostics.map((diagnostic) =>
+    diagnostic.source !== undefined || defaults?.source === undefined
+      ? diagnostic
+      : { ...diagnostic, source: defaults.source },
+  );
+}
+
+function joinPath(prefix: string, path: string | undefined): string {
+  if (path === undefined || path === "") return prefix;
+  if (prefix === "") return path;
+  return path.startsWith("[") ? `${prefix}${path}` : `${prefix}.${path}`;
+}
+
+/**
+ * Re-base diagnostics from a nested check under a parent path, moving `path`
+ * and `fix.path` together: `D.within("orders[2]", diagnostics)` turns
+ * `customerId` into `orders[2].customerId` (and `[0].x` into `orders[2][0].x`).
+ */
+export function within<TDiagnostic extends MachinaDiagnostic>(
+  prefix: string,
+  diagnostics: readonly TDiagnostic[],
+): TDiagnostic[] {
   return diagnostics.map((diagnostic) => ({
-    severity: diagnostic.severity,
-    code: diagnostic.code,
-    message: diagnostic.message,
-    path: diagnostic.path,
-    source: diagnostic.source ?? defaults?.source,
-    details: diagnostic.details ? [...diagnostic.details] : undefined,
+    ...diagnostic,
+    path: joinPath(prefix, diagnostic.path),
+    ...(diagnostic.fix
+      ? { fix: { ...diagnostic.fix, path: joinPath(prefix, diagnostic.fix.path) } }
+      : {}),
   }));
 }

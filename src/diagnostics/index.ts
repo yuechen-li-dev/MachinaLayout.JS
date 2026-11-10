@@ -1,10 +1,10 @@
-export * from "./types";
 export * from "./authoring";
 export * from "./collect";
 export * from "./format";
+export * from "./types";
 
+import { err, error, from, info, ok, warning, within } from "./authoring";
 import { collect, groupBySource, hasErrors, hasWarnings, sort } from "./collect";
-import { err, error, from, info, ok, warning } from "./authoring";
 import { format } from "./format";
 
 export const D = {
@@ -20,4 +20,5 @@ export const D = {
   groupBySource,
   format,
   from,
+  within,
 } as const;
