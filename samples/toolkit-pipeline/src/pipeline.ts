@@ -3,23 +3,29 @@ import { B, formatBatchTaskDescription, formatBatchTrace } from "machinalayout/b
 import { C, formatCaptureTaskDescription } from "machinalayout/capture";
 import { T } from "machinalayout/concept";
 import { D, type DiagnosticResult, type FormatDiagnosticsOptions } from "machinalayout/diagnostics";
-import { I, formatIterMachineDescription, formatIterTrace } from "machinalayout/iter";
+import {
+  formatIterMachineDescription,
+  formatIterTrace,
+  formatWorkflowDiagnostics,
+  I,
+} from "machinalayout/iter";
 import { matchKind } from "machinalayout/match";
 import {
   conceptDescriptions,
   findConceptDiagnostics,
+  PricedOrder,
   summarizeOrder,
   templateDescriptions,
   type ValidOrder,
 } from "./concepts.js";
 import {
+  type OrderCurrency,
   orderStatuses,
+  type PipelineEvent,
   pipelineRoutes,
+  type RawOrderRecord,
   rawOrders,
   routeKeys,
-  type OrderCurrency,
-  type PipelineEvent,
-  type RawOrderRecord,
 } from "./data.js";
 
 type EnrichmentError = {
@@ -281,6 +287,27 @@ const orderIterator = I.machine<
   },
 });
 
+const lookupPlacement = I.effect<[orderId: string], { region: string; route: string }>(
+  "lookupPlacement",
+);
+const persistOrder = I.effect<[orderId: string], { persistedAt: string }>("persistOrder");
+
+/** The enrichment logic as a resumable workflow: its I/O is effects, its state is the log. */
+const enrichWorkflow = I.workflow({
+  id: "enrichOrderWorkflow",
+  input: PricedOrder,
+  run: function* (order: ValidOrder) {
+    const placement = yield* lookupPlacement(order.id);
+    const persisted = yield* persistOrder(order.id);
+    return {
+      ...order,
+      ...placement,
+      risk: order.totalCents > 3000 ? ("review" as const) : ("normal" as const),
+      persistedAt: persisted.persistedAt,
+    };
+  },
+});
+
 const enrichOrder = A.task({
   id: "enrichOrder",
   description: "Deterministically enrich valid orders with fake persistence metadata.",
@@ -313,13 +340,24 @@ const enrichOrder = A.task({
       return A.timeout(15);
     }
 
-    return A.ok({
-      ...order,
-      region: env.region,
-      route: env.route,
-      risk: order.totalCents > 3000 ? "review" : "normal",
-      persistedAt: env.persistedAt,
+    const run = await I.run(enrichWorkflow, order, {
+      signal: ctx.signal,
+      handlers: [
+        lookupPlacement.handle(() => ({ region: env.region, route: env.route })),
+        persistOrder.handle(() => ({ persistedAt: env.persistedAt })),
+      ],
     });
+    if (run.kind === "suspended") {
+      return A.cancelled("aborted during enrichment");
+    }
+    if (run.kind !== "done") {
+      return A.err({
+        kind: "persistence",
+        message:
+          run.kind === "failed" ? String(run.error) : formatWorkflowDiagnostics(run.diagnostics),
+      });
+    }
+    return A.ok(run.value);
   },
 });
 

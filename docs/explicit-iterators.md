@@ -220,3 +220,64 @@ const result = controller.collect();
 That default keeps the blade narrow and practical for diagnostics, artifact generation, and scripted workflows without growing into a general stream framework.
 
 See also: [`samples/toolkit-pipeline`](../samples/toolkit-pipeline) and the [Machina toolkit dogfood report](machina-toolkit-dogfood-report.md) for a batch-processing sample that uses iterator machines in a backend-style pipeline.
+
+## Effect workflows: `yield*` that is typed, testable, and resumable
+
+Native generators have three problems. `const x = yield value` types `x` as one `TNext` for every yield, which in practice means `any` or a cast. Testing one means mocking async I/O. And a generator mid-flight can't be serialized. Workflows fix all three by making I/O *effects*: plain-data requests that a driver resolves and records in a log.
+
+```ts
+import { I } from "machinalayout/iter";
+import { T } from "machinalayout/concept";
+
+const fetchCustomer = I.effect<[id: string], Customer>("fetchCustomer", {
+  run: api.getCustomer, // default handler (optional)
+  response: CustomerConcept, // checked live and on replay (optional)
+});
+
+const fulfil = I.workflow({
+  id: "fulfilOrder",
+  input: OrderConcept,
+  run: function* (order: Order) {
+    const [customer, rate] = yield* I.all([fetchCustomer(order.customerId), fetchFxRate(order.currency)]);
+    const charge = yield* I.attempt(chargeCard(customer.cardToken, order.totalCents * rate));
+    if (!charge.ok) return { status: "declined", reason: charge.error.message } as const;
+    const at = yield* I.now(); // time is an effect, so replay sees the same value
+    return { status: "fulfilled", at } as const;
+  },
+});
+```
+
+`yield* effect(...)` returns the effect's declared response type. `I.attempt` gives `{ ok, value } | { ok: false, error }` instead of throwing. `I.all` is one step with a typed tuple result.
+
+### Drivers
+
+- `I.run(wf, input, { handlers, maxSteps, signal })` runs async. Handlers default to each effect's `run`; override them with `effect.handle(fn)`.
+- `I.runSync` is the same with synchronous handlers.
+- `I.drive(wf, input)` steps by hand for tests, with no handlers, promises, or mocks:
+
+```ts
+const run = I.drive(fulfil, order);
+run.expectAll([fetchCustomer, fetchFxRate]).respond(customer, 1.1);
+run.expect(chargeCard).fail("card declined", { name: "CardDeclined" });
+expect(run.result).toMatchObject({ kind: "done", value: { status: "declined" } });
+```
+
+`expect`/`expectAll` type-check responses against the effect, and a wrong expectation fails with one line: `Expected workflow to wait on chargeCard(…), but it waits on reserveStock("o-1",2).`
+
+### Snapshots and replay
+
+A workflow's state is `{ input, log }`, which is plain JSON. `I.resume(wf, snapshot, opts)` validates the snapshot (with concept diagnostics), replays the generator against the log without executing anything, then continues live. Logged effects are never re-run.
+
+Replay assumes determinism, and checks it:
+
+- `ReplayDivergence` when the workflow yields a different effect than the log: the code changed.
+- `ReplayDivergence` with "make it an effect" when only the arguments differ: ambient time, randomness or state leaked in.
+- `InvalidReplayResponse` when a logged response no longer satisfies the effect's response concept.
+
+Effect arguments and responses must be JSON-safe. A non-JSON response, or one that breaks its concept, is delivered to the workflow as an `EffectError` (`UnserializableEffectResponse` / `InvalidEffectResponse`) and logged, so live runs and replays agree. A missing handler returns `invalid` without logging, so you can resume once it's provided.
+
+`I.toMachine(wf, input, { handlers })` lowers a workflow to an `IterMachine` whose cursor is the log. Controllers, traces, and Deus snapshots then work for generator-authored code. Each step replays from the start, so total cost is O(n²); that's fine at authoring scale.
+
+## One-shot iterables
+
+A generator object iterated twice silently yields nothing the second time. `I.once(iterable, label)` throws `IteratorReusedError` instead. `I.seq(() => gen())` is a re-iterable sequence that calls the factory per pass.
