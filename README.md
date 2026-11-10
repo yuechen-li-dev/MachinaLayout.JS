@@ -12,7 +12,7 @@ MachinaLayout.JS helps you describe interface structure, geometry, text, state, 
 - **Table-first tooling:** important authoring surfaces can be produced, reviewed, and validated as tables.
 - **Deterministic lowering:** authored layout rows lower to inspectable frames and trees.
 - **Small public entry points:** use package exports instead of deep source imports.
-- **License clarity:** MachinaLayout.JS is the MIT toolbox; MachinaCanvas is the AGPL app/product under `/app`.
+- **License clarity:** MachinaLayout.JS is the MIT toolbox; MachinaCanvas, the AGPL editor built on it, lives in its own repository.
 
 ## Installation
 
@@ -143,11 +143,11 @@ Start with the [documentation index](docs/README.md). Important references inclu
 
 ## MachinaCanvas
 
-MachinaCanvas is the AGPL product/editor built on the MIT MachinaLayout.JS toolbox. Its source, tests, scripts, docs, fixtures, public assets, and dogfood artifacts are consolidated under [`/app`](app/README.md) so it can graduate into a separate repository. See the [repository graduation guide](app/docs/repository-graduation.md).
+MachinaCanvas is the AGPL-3.0-or-later product/editor built on the MIT MachinaLayout.JS toolbox. It has moved to its own repository: **[yuechen-li-dev/Machina-Canvas](https://github.com/yuechen-li-dev/Machina-Canvas)**. Use that repository if you want the editor; the copy that used to live under `/app` here was removed (mainly to keep the AGPL product cleanly separate from this MIT package) and was out of date.
 
 ## Package and license boundaries
 
-MachinaLayout.JS is MIT licensed via the root [`LICENSE`](LICENSE) and root `package.json`. MachinaCanvas is AGPL-3.0-or-later via [`app/LICENSE`](app/LICENSE) and private [`app/package.json`](app/package.json). The root npm package uses a `files` allowlist and must not ship `/app` source, tests, docs, fixtures, artifacts, assets, or package metadata; verify with `npm pack --dry-run --json`.
+MachinaLayout.JS is MIT licensed via the root [`LICENSE`](LICENSE) and root `package.json`. This repository contains no AGPL code or product documentation; MachinaCanvas (AGPL-3.0-or-later) is maintained separately at [https://github.com/yuechen-li-dev/Machina-Canvas](https://github.com/yuechen-li-dev/Machina-Canvas). Verify the published contents with `npm pack --dry-run --json`.
 
 ## Development
 
@@ -160,10 +160,3 @@ npm run build
 npm pack --dry-run --json
 ```
 
-Root convenience scripts delegate stable MachinaCanvas artifact workflows into `/app`:
-
-```bash
-npm run canvas:mechanical-exercise-354
-npm run canvas:mechanical-exercise-354-blockout
-npm run canvas:guide-overlay-fixture
-```

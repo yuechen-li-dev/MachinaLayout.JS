@@ -36,7 +36,4 @@ tmp/
 apps/**/vite-dev*.log
 apps/**/vite-preview*.log
 apps/**/.codex-temp/
-app/dist/
-app/.codex-temp/
-app/vite-*.log
 apps/**/dist/

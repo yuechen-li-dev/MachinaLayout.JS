@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Removed the stale MachinaCanvas copy under `/app` and the `canvas:*` scripts. MachinaCanvas (AGPL-3.0-or-later) lives at https://github.com/yuechen-li-dev/Machina-Canvas; its product docs (`machina-canvas-*.md`) moved there too, so nothing AGPL ships in this MIT package's `docs/`.
 - Added build-time artifacts to `machinalayout/comptime`: `CT.artifacts` registry with `CT.text` / `CT.json` (concept-checked) / `CT.module` (literal `as const satisfies` TS modules for exact types), `CT.write` / `CT.check` (always re-evaluates; ambient time/randomness guard plus double evaluation; manifest-based ownership with `UnownedFile` / `HandEditedArtifact` / `OrphanArtifact`; formatter-rewrite detection), and `nodeArtifactFs` from the new `machinalayout/comptime/node` subpath. Removed `CT.tuple` / `CT.object` (use `as const`).
 - Static samples and toolkit-pipeline now declare their outputs as artifact registries; their sync tests check the samples' real registries instead of hand-copied pages. Samples import `machinalayout/*` (root `tsc` no longer needs a built `dist`), and a root `vitest.config.ts` resolves `machinalayout/*` to `src`.
 
