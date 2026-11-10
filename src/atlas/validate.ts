@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 import { withDefaults } from "../kit";
 import { Text } from "../text/utilities";
 import { extractMachinaSection, extractMachinaSections } from "./extract";
@@ -15,18 +16,19 @@ export type MachinaAtlasValidationDiagnosticCode =
   | "AtlasUnknownRelation"
   | "AtlasDuplicateOwnership";
 
-export type MachinaAtlasValidationDiagnostic = {
-  code: MachinaAtlasValidationDiagnosticCode;
-  severity: MachinaAtlasValidationSeverity;
-  message: string;
-  sectionKey?: string;
-  sectionName?: string;
-  marker?: string;
-  symbol?: string;
-  relation?: "uses" | "usedBy" | "dependsOn";
-  targetKey?: string;
-  line?: number;
-};
+export type MachinaAtlasValidationDiagnostic = DiagnosticOf<
+  {
+    readonly severity: MachinaAtlasValidationSeverity;
+    readonly sectionKey?: string;
+    readonly sectionName?: string;
+    readonly marker?: string;
+    readonly symbol?: string;
+    readonly relation?: "uses" | "usedBy" | "dependsOn";
+    readonly targetKey?: string;
+    readonly line?: number;
+  },
+  MachinaAtlasValidationDiagnosticCode
+>;
 
 export type MachinaAtlasValidationOptions = {
   requireSectionMarkers?: boolean;

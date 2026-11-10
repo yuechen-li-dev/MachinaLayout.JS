@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import type { AsyncTask, AsyncTaskDiagnostic } from "./types";
 
 function pushDiagnostic(
@@ -59,14 +60,5 @@ export function validateAsyncTask<TEnv, TInput, TOutput, TError>(
 }
 
 export function formatAsyncTaskDiagnostics(diagnostics: readonly AsyncTaskDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No async task diagnostics.";
-  }
-
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No async task diagnostics." });
 }

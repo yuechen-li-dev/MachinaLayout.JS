@@ -10,17 +10,21 @@ function compareStrings(left: string | undefined, right: string | undefined): nu
   return (left ?? "").localeCompare(right ?? "");
 }
 
-export function collect(
-  ...groups: readonly (readonly MachinaDiagnostic[] | undefined)[]
-): MachinaDiagnostic[] {
-  const diagnostics: MachinaDiagnostic[] = [];
+/**
+ * Concatenate diagnostics from any modules. Element types are preserved
+ * (`ConceptDiagnostic | TableDiagnostic`), so module-specific fields survive.
+ */
+export function collect<
+  const TGroups extends readonly (readonly MachinaDiagnostic[] | undefined)[],
+>(...groups: TGroups): Exclude<TGroups[number], undefined>[number][] {
+  const diagnostics: Exclude<TGroups[number], undefined>[number][] = [];
 
   for (const group of groups) {
     if (group === undefined) {
       continue;
     }
 
-    diagnostics.push(...group);
+    diagnostics.push(...(group as Exclude<TGroups[number], undefined>));
   }
 
   return diagnostics;

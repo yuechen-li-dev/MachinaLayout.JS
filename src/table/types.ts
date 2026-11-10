@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type TableColumnName = string;
 
 export type TableColumns = Record<string, readonly unknown[]>;
@@ -393,12 +394,12 @@ export type TableDiagnosticCode =
   | "InvalidAtlasSectionNotes"
   | "DuplicateAtlasSectionKey";
 
-export type TableDiagnostic = {
-  readonly severity: "error" | "warning";
-  readonly code: TableDiagnosticCode;
-  readonly message: string;
-  readonly tableId?: string;
-  readonly column?: string;
-  readonly row?: number;
-  readonly path?: string;
-};
+export type TableDiagnostic = DiagnosticOf<
+  {
+    readonly severity: "error" | "warning";
+    readonly tableId?: string;
+    readonly column?: string;
+    readonly row?: number;
+  },
+  TableDiagnosticCode
+>;

@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 import type { ColumnarTable } from "../table/types";
 
 export type MachinaFontWeight = "normal" | "medium" | "semibold" | "bold" | number;
@@ -232,12 +233,7 @@ export type MachinaStyleArtifact = {
   css: string;
 };
 
-export type MachinaStyleDiagnostic = {
-  severity: "error" | "warning";
-  code: string;
-  message: string;
-  path?: string;
-};
+export type MachinaStyleDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;
 
 export type StyleTokenRecord = {
   readonly kind: "styleToken";

@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import type { TableDiagnostic } from "./types";
 
 function formatLocation(diagnostic: TableDiagnostic): string | undefined {
@@ -16,14 +17,8 @@ function formatLocation(diagnostic: TableDiagnostic): string | undefined {
 }
 
 export function formatTableDiagnostics(diagnostics: readonly TableDiagnostic[]): string {
-  return diagnostics
-    .map((diagnostic) => {
-      const location = formatLocation(diagnostic);
-      const header =
-        location === undefined
-          ? `${diagnostic.severity} ${diagnostic.code}`
-          : `${diagnostic.severity} ${diagnostic.code} at ${location}`;
-      return `${header}\n  ${diagnostic.message}`;
-    })
-    .join("\n\n");
+  return formatDiagnostics(
+    diagnostics.map((diagnostic) => ({ ...diagnostic, path: formatLocation(diagnostic) })),
+    { includeSource: false, empty: "" },
+  );
 }

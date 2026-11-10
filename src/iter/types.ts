@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type IterMachine<TEnv, TCursor, TYield, TReturn = void, TError = unknown> = {
   readonly kind: "iterMachine";
   readonly id: string;
@@ -111,12 +112,7 @@ export type IterControllerOptions = {
   readonly trace?: boolean;
 };
 
-export type IterDiagnostic = {
-  severity: "error" | "warning";
-  code: string;
-  message: string;
-  path?: string;
-};
+export type IterDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;
 
 export type IterMachineDescription = {
   kind: "iterMachine";

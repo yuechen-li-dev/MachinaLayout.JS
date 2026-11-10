@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type AsyncTask<TEnv, TInput, TOutput, TError> = {
   readonly kind: "asyncTask";
   readonly id: string;
@@ -99,12 +100,7 @@ export type AsyncTaskControllerOptions = {
   now?: () => number;
 };
 
-export type AsyncTaskDiagnostic = {
-  severity: "error" | "warning";
-  code: string;
-  message: string;
-  path?: string;
-};
+export type AsyncTaskDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;
 
 export type AsyncTaskDescription = {
   kind: "asyncTask";

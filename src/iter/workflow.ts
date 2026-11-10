@@ -1,6 +1,7 @@
 import { T } from "../concept/authoring";
 import type { ConceptDefinition } from "../concept/types";
 import { validateConceptValue } from "../concept/validate";
+import { format as formatDiagnostics } from "../diagnostics/format";
 import { invariant } from "../kit";
 import { V } from "../variants";
 import {
@@ -272,6 +273,7 @@ export class WorkflowSession<TInput, TReturn> {
                 severity: "error",
                 code: "ReplayDivergence",
                 step: this.replayed,
+                path: `log[${this.replayed}]`,
                 message: `workflow returned after ${this.replayed} steps but the log has ${extra} more (next: ${describeCalls(this.log[this.replayed].calls, this.log[this.replayed].parallel)})`,
                 expected: describeCalls(
                   this.log[this.replayed].calls,
@@ -926,14 +928,5 @@ export function workflowMachine<TInput, TReturn>(
 
 /** One line per diagnostic: `[error] ReplayDivergence at log[2] (step 2): …`. */
 export function formatWorkflowDiagnostics(diagnostics: readonly WorkflowDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No workflow diagnostics.";
-  }
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      const step = diagnostic.step !== undefined ? ` (step ${diagnostic.step})` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}${step}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No workflow diagnostics." });
 }

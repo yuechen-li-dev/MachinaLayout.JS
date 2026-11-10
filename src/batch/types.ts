@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type BatchTask<TInput, TOutput, TError = unknown> = {
   readonly kind: "batchTask";
   readonly id: string;
@@ -104,12 +105,7 @@ export type BatchRunOptions = {
   readonly now?: () => number;
 };
 
-export type BatchDiagnostic = {
-  readonly severity: "error" | "warning";
-  readonly code: string;
-  readonly message: string;
-  readonly path?: string;
-};
+export type BatchDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;
 
 export type BatchTaskDescription = {
   readonly kind: "batchTask";

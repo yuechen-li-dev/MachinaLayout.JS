@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type CaptureTask<TEnv, TInput, TOutput> = {
   readonly kind: "task";
   readonly id: string;
@@ -20,9 +21,4 @@ export type CaptureTaskDescription = {
   hasRun: boolean;
 };
 
-export type CaptureDiagnostic = {
-  severity: "error" | "warning";
-  code: string;
-  message: string;
-  path?: string;
-};
+export type CaptureDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;

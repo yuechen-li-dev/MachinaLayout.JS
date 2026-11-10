@@ -1,3 +1,4 @@
+import type { DiagnosticOf } from "../diagnostics/types";
 export type MachinaTextSource =
   | { kind: "plain"; text: string }
   | { kind: "machina-text"; text: string };
@@ -52,15 +53,18 @@ export type MachinaTextDiagnosticCode =
   | "unclosed_inline"
   | "invalid_escape";
 
-export type MachinaTextDiagnostic = {
-  code: MachinaTextDiagnosticCode;
-  message: string;
-  index: number;
-  length: number;
-  line: number;
-  column: number;
-  level: MachinaTextDiagnosticLevel;
-};
+export type MachinaTextDiagnostic = DiagnosticOf<
+  {
+    readonly severity: MachinaTextDiagnosticLevel;
+    readonly index: number;
+    readonly length: number;
+    readonly line: number;
+    readonly column: number;
+    /** Same as `severity` (kept for compatibility). */
+    readonly level: MachinaTextDiagnosticLevel;
+  },
+  MachinaTextDiagnosticCode
+>;
 
 export type ParseMachinaTextResult = {
   ok: boolean;

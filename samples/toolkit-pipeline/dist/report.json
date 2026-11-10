@@ -114,6 +114,13 @@
           "code": "MissingConceptField",
           "message": "missing required string(nonEmpty), from OrderShape",
           "path": "orders[2].customerId",
+          "concept": "OrderShape",
+          "expected": "string(nonEmpty)",
+          "fix": {
+            "op": "add",
+            "path": "orders[2].customerId",
+            "expected": "string(nonEmpty)"
+          },
           "source": "concept"
         },
         {
@@ -127,7 +134,7 @@
           ]
         }
       ],
-      "diagnosticsText": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+      "diagnosticsText": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n  fix: add orders[2].customerId: string(nonEmpty)\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
     }
   ],
   "asyncBoards": [
@@ -178,7 +185,7 @@
       "status": "rejected",
       "primaryAmount": "-$1.00",
       "secondaryAmount": "-1,00 $US",
-      "detail": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+      "detail": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n  fix: add orders[2].customerId: string(nonEmpty)\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
     },
     {
       "orderId": "order-002",
@@ -202,7 +209,7 @@
     {
       "kind": "rejected",
       "orderId": "bad-order",
-      "reason": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+      "reason": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n  fix: add orders[2].customerId: string(nonEmpty)\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
     },
     {
       "kind": "enriched",

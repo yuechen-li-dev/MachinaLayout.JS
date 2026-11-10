@@ -9,6 +9,7 @@ Combined diagnostics:
   error MissingConceptField at orders[2].customerId
     source: concept
     missing required string(nonEmpty), from OrderShape
+    fix: add orders[2].customerId: string(nonEmpty)
   
   error ORDER_NEGATIVE_TOTAL at orders[2].totalCents
     source: toolkit-pipeline
@@ -44,6 +45,7 @@ Events:
 - rejected bad-order: error MissingConceptField at orders[2].customerId
   source: concept
   missing required string(nonEmpty), from OrderShape
+  fix: add orders[2].customerId: string(nonEmpty)
 
 error ORDER_NEGATIVE_TOTAL at orders[2].totalCents
   source: toolkit-pipeline

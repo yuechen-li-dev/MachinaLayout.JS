@@ -1,6 +1,8 @@
 import { T } from "../concept/authoring";
 import type { ConceptFieldConstraint } from "../concept/types";
 import { validateConceptValue } from "../concept/validate";
+import { format as formatDiagnostics } from "../diagnostics/format";
+import type { DiagnosticOf } from "../diagnostics/types";
 import { assertJsonSafe, UnserializableValueError } from "../iter/effects";
 import { renderTsModule, type TsDeclaration } from "./emit";
 
@@ -117,26 +119,13 @@ export type ArtifactDiagnosticCode =
   | "UnownedFile"
   | "InvalidManifest";
 
-export type ArtifactDiagnostic = {
-  readonly severity: "error" | "warning";
-  readonly code: ArtifactDiagnosticCode;
-  readonly artifact?: string;
-  readonly message: string;
-  /** For StaleArtifact: a compact `-old` / `+new` hunk. */
-  readonly diff?: string;
-};
+export type ArtifactDiagnostic = DiagnosticOf<
+  { readonly severity: "error" | "warning" },
+  ArtifactDiagnosticCode
+>;
 
 export function formatArtifactDiagnostics(diagnostics: readonly ArtifactDiagnostic[]): string {
-  if (diagnostics.length === 0) {
-    return "No artifact diagnostics.";
-  }
-  return diagnostics
-    .map((diagnostic) => {
-      const where = diagnostic.artifact ? ` ${diagnostic.artifact}` : "";
-      const head = `[${diagnostic.severity}] ${diagnostic.code}${where}: ${diagnostic.message}`;
-      return diagnostic.diff ? `${head}\n${diagnostic.diff}` : head;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No artifact diagnostics." });
 }
 
 // ---------------------------------------------------------------------------
@@ -270,7 +259,7 @@ async function renderOnce(
   ctx: ArtifactContext,
 ): Promise<{ readonly text: string } | { readonly diagnostic: ArtifactDiagnostic }> {
   const fail = (code: ArtifactDiagnosticCode, message: string) => ({
-    diagnostic: { severity: "error" as const, code, artifact: definition.path, message },
+    diagnostic: { severity: "error" as const, code, path: definition.path, message },
   });
   let output: unknown;
   try {
@@ -374,7 +363,7 @@ export async function generateArtifacts(
       diagnostics.push({
         severity: "error",
         code: "InvalidArtifactPath",
-        artifact: definition.path,
+        path: definition.path,
         message: problem,
       });
       continue;
@@ -383,7 +372,7 @@ export async function generateArtifacts(
       diagnostics.push({
         severity: "error",
         code: "DuplicateArtifact",
-        artifact: definition.path,
+        path: definition.path,
         message: "declared more than once",
       });
       continue;
@@ -398,7 +387,7 @@ export async function generateArtifacts(
         diagnostics.push({
           severity: "error",
           code: "InvalidArtifactPath",
-          artifact: definition.path,
+          path: definition.path,
           message: `input '${inputPath}': ${inputProblem}`,
         });
         inputsOk = false;
@@ -408,7 +397,7 @@ export async function generateArtifacts(
         diagnostics.push({
           severity: "error",
           code: "ComptimeCycle",
-          artifact: definition.path,
+          path: definition.path,
           message: `input '${inputPath}' is itself a generated artifact; generators must read sources, not outputs`,
         });
         inputsOk = false;
@@ -419,7 +408,7 @@ export async function generateArtifacts(
         diagnostics.push({
           severity: "error",
           code: "ArtifactInputMissing",
-          artifact: definition.path,
+          path: definition.path,
           message: `declared input '${inputPath}' does not exist`,
         });
         inputsOk = false;
@@ -465,7 +454,7 @@ export async function generateArtifacts(
       diagnostics.push({
         severity: "error",
         code: "NondeterministicComptime",
-        artifact: definition.path,
+        path: definition.path,
         message: `two evaluations produced different output (${firstDifference(first.text, second.text)}); something outside the declared inputs (module state, iteration order, identity) leaks into the output`,
       });
       continue;
@@ -524,7 +513,7 @@ async function readManifest(
       diagnostic: {
         severity: "error",
         code: "InvalidManifest",
-        artifact: manifestFileName,
+        path: manifestFileName,
         message: `cannot read manifest: ${(error as Error).message}`,
       },
     };
@@ -585,7 +574,7 @@ export async function checkArtifacts(
       diagnostics.push({
         severity: "error",
         code: "MissingArtifact",
-        artifact: artifact.path,
+        path: artifact.path,
         message: "not on disk; run CT.write",
       });
       continue;
@@ -596,24 +585,24 @@ export async function checkArtifacts(
     diagnostics.push({
       severity: "error",
       code: handEdited ? "HandEditedArtifact" : "StaleArtifact",
-      artifact: artifact.path,
+      path: artifact.path,
       message: formattingOnly(current, artifact.text)
         ? formatterHint
         : handEdited
           ? "the file was modified after generation; move the change into the generator (or its inputs)"
           : "differs from what the generator produces now; run CT.write",
-      diff: compactDiff(current, artifact.text),
+      details: compactDiff(current, artifact.text).split("\n"),
     });
   }
 
   const declared = new Set(generation.artifacts.map((artifact) => artifact.path));
-  const failed = new Set(generation.diagnostics.map((d) => d.artifact));
+  const failed = new Set(generation.diagnostics.map((d) => d.path));
   for (const path of Object.keys(onDisk?.artifacts ?? {})) {
     if (!declared.has(path) && !failed.has(path)) {
       diagnostics.push({
         severity: "error",
         code: "OrphanArtifact",
-        artifact: path,
+        path: path,
         message: "in the manifest but no longer declared; CT.write will remove it",
       });
     }
@@ -627,7 +616,7 @@ export async function checkArtifacts(
       diagnostics.push({
         severity: "error",
         code: "StaleArtifact",
-        artifact: manifestFileName,
+        path: manifestFileName,
         message: "manifest is missing or out of date (input hashes changed); run CT.write",
       });
     }
@@ -665,7 +654,7 @@ export async function writeArtifacts(
         diagnostics.push({
           severity: "error",
           code: "UnownedFile",
-          artifact: artifact.path,
+          path: artifact.path,
           message: formattingOnly(current, artifact.text)
             ? `not created by CT.write; ${formatterHint}. Run CT.write once with \`force: true\` to adopt it`
             : "a file not created by CT.write already exists here with different content; if it came from an older hand-rolled generator, run CT.write once with `force: true` to adopt it, otherwise move it",
@@ -674,11 +663,11 @@ export async function writeArtifacts(
         diagnostics.push({
           severity: "error",
           code: "HandEditedArtifact",
-          artifact: artifact.path,
+          path: artifact.path,
           message: formattingOnly(current, artifact.text)
             ? formatterHint
             : "the file was modified after generation; move the change into the generator (or pass force)",
-          diff: compactDiff(current, artifact.text),
+          details: compactDiff(current, artifact.text).split("\n"),
         });
       }
     }
@@ -694,7 +683,7 @@ export async function writeArtifacts(
       diagnostics.push({
         severity: "error",
         code: "HandEditedArtifact",
-        artifact: path,
+        path: path,
         message:
           "orphaned artifact was hand-edited; not removing it (delete it yourself or pass force)",
       });

@@ -1,3 +1,5 @@
+import type { DiagnosticFix, DiagnosticOf } from "../diagnostics/types";
+
 declare const phantomType: unique symbol;
 declare const brandKey: unique symbol;
 
@@ -159,24 +161,16 @@ export interface ConceptDefinition<TFields extends ConceptFields = ConceptFields
   readonly fieldOrigins?: { readonly [field: string]: string };
 }
 
-/** Machine-applicable repair hint attached to a diagnostic. */
-export type ConceptFix =
-  | { readonly op: "add"; readonly path: string; readonly expected: string }
-  | { readonly op: "remove"; readonly path: string }
-  | { readonly op: "rename"; readonly path: string; readonly to: string }
-  | { readonly op: "replace"; readonly path: string; readonly expected: string };
+/** @deprecated Alias of `DiagnosticFix` (now part of every `MachinaDiagnostic`). */
+export type ConceptFix = DiagnosticFix;
 
-export type ConceptDiagnostic = {
+export type ConceptDiagnostic = DiagnosticOf<{
   readonly severity: "error" | "warning";
-  readonly code: string;
-  readonly message: string;
-  readonly path?: string;
   /** Concept that declared the failing field (origin, for composed concepts). */
   readonly concept?: string;
   readonly expected?: string;
   readonly received?: string;
-  readonly fix?: ConceptFix;
-};
+}>;
 
 export type ConceptDescription = {
   readonly kind: "concept";

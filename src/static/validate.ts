@@ -1,3 +1,5 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
+import type { DiagnosticOf } from "../diagnostics/types";
 import type {
   StaticAccordion,
   StaticContent,
@@ -10,12 +12,7 @@ import type {
   StaticTimeline,
 } from "./types";
 
-export type StaticMachineDiagnostic = {
-  severity: "error" | "warning";
-  code: string;
-  message: string;
-  path?: string;
-};
+export type StaticMachineDiagnostic = DiagnosticOf<{ readonly severity: "error" | "warning" }>;
 
 const SAFE_STATIC_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const STATIC_HTTP_FIELD_KINDS = new Set([
@@ -876,13 +873,5 @@ export function validateStaticPage(page: StaticPage): StaticMachineDiagnostic[] 
 export function formatStaticMachineDiagnostics(
   diagnostics: readonly StaticMachineDiagnostic[],
 ): string {
-  if (diagnostics.length === 0) {
-    return "No static machine diagnostics.";
-  }
-  return diagnostics
-    .map((entry) => {
-      const location = entry.path ? ` at ${entry.path}` : "";
-      return `[${entry.severity}] ${entry.code}${location}: ${entry.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "No static machine diagnostics." });
 }

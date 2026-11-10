@@ -1,3 +1,4 @@
+import { format as formatDiagnostics } from "../diagnostics/format";
 import { isMachinaStyleSlot } from "./authoring";
 import {
   describeMachinaTokenReference,
@@ -549,10 +550,5 @@ export function validateMachinaStyleSheet(sheet: MachinaStyleSheet): MachinaStyl
 export function formatMachinaStyleDiagnostics(
   diagnostics: readonly MachinaStyleDiagnostic[],
 ): string {
-  return diagnostics
-    .map((diagnostic) => {
-      const path = diagnostic.path ? ` at ${diagnostic.path}` : "";
-      return `[${diagnostic.severity}] ${diagnostic.code}${path}: ${diagnostic.message}`;
-    })
-    .join("\n");
+  return formatDiagnostics(diagnostics, { style: "line", empty: "" });
 }
