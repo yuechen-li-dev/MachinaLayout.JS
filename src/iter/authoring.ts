@@ -1,8 +1,20 @@
-import { createController, collect, next, reset } from "./controller";
+import { collect, createController, next, reset } from "./controller";
 import { describeIterMachine } from "./describe";
+import { all, attempt, effect, now, random } from "./effects";
 import { done, fail, yieldValue } from "./result";
-import { validateIterMachine } from "./validate";
+import { once, seq } from "./sequences";
 import type { IterMachine, IterStep, IterStepContext } from "./types";
+import { validateIterMachine } from "./validate";
+import {
+  driveWorkflow,
+  formatWorkflowDiagnostics,
+  resumeWorkflow,
+  runWorkflow,
+  runWorkflowSync,
+  validateWorkflowSnapshot,
+  workflow,
+  workflowMachine,
+} from "./workflow";
 
 function assertMachineId(id: string): void {
   if (typeof id !== "string" || id.trim().length === 0) {
@@ -61,4 +73,19 @@ export const I = {
   reset,
   describe: describeIterMachine,
   validate: validateIterMachine,
+  effect,
+  attempt,
+  all,
+  now,
+  random,
+  workflow,
+  run: runWorkflow,
+  runSync: runWorkflowSync,
+  resume: resumeWorkflow,
+  drive: driveWorkflow,
+  formatDiagnostics: formatWorkflowDiagnostics,
+  validateSnapshot: validateWorkflowSnapshot,
+  toMachine: workflowMachine,
+  seq,
+  once,
 } as const;

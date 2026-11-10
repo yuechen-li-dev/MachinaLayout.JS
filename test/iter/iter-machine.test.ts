@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { matchKind } from "../../src/match";
 import * as root from "../../src/index";
 import {
   formatIterDiagnostics,
   formatIterMachineDescription,
   formatIterTrace,
-  type IterMachine,
   I,
+  type IterMachine,
 } from "../../src/iter";
+import { matchKind } from "../../src/match";
 
 describe("iter machine authoring and results", () => {
   it("creates a machine with visible env and returns a fresh object", () => {

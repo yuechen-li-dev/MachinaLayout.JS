@@ -37,7 +37,7 @@
       "maxActiveCount": 2
     },
     "description": "Batch task: enrichValidOrders\nInputs: 2\nDescription: Enrich valid orders concurrently while preserving input order.\nConcurrency: 2",
-    "trace": "enrichValidOrders created @ 5000\nenrichValidOrders started @ 5001\nenrichValidOrders workerStarted @ 5002\nenrichValidOrders[0] itemStarted @ 5003\nenrichValidOrders[0] itemStarted @ 2000: running async enrichment for order-001\nenrichValidOrders workerStarted @ 5004\nenrichValidOrders[1] itemStarted @ 5005\nenrichValidOrders[1] itemStarted @ 2001: running async enrichment for order-002\nenrichValidOrders[0] itemSucceeded @ 5006\nenrichValidOrders[1] itemSucceeded @ 5007\nenrichValidOrders queueDrained @ 5008\nenrichValidOrders succeeded @ 5009"
+    "trace": "enrichValidOrders created @ 5000\nenrichValidOrders started @ 5001\nenrichValidOrders workerStarted @ 5002\nenrichValidOrders[0] itemStarted @ 5003\nenrichValidOrders[0] itemStarted @ 2000: running async enrichment for order-001\nenrichValidOrders workerStarted @ 5004\nenrichValidOrders[1] itemStarted @ 5005\nenrichValidOrders[1] itemStarted @ 2001: running async enrichment for order-002\nenrichValidOrders[1] itemSucceeded @ 5006\nenrichValidOrders[0] itemSucceeded @ 5007\nenrichValidOrders queueDrained @ 5008\nenrichValidOrders succeeded @ 5009"
   },
   "eventCounts": {
     "accepted": 2,

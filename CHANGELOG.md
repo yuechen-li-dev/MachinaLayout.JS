@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added effect workflows to `machinalayout/iter`: `I.effect`, `I.workflow`, `I.attempt`, `I.all`, `I.now`, `I.random`; `yield*` returns typed responses. Drivers `I.run`, `I.runSync`, `I.drive` (typed scripted testing), `I.resume` (concept-validated snapshots, deterministic replay with `ReplayDivergence` / `InvalidReplayResponse` diagnostics), and `I.toMachine` (lowering to `IterMachine`, cursor = effect log). Added `I.once` / `I.seq` for one-shot iterator reuse.
+- toolkit-pipeline sample: order enrichment now runs as a workflow inside its async task.
+
 - Concepts are now typed (M36): `T.Infer<typeof C>` derives TypeScript types; added `T.union`, `T.oneOf`, nested concepts, `T.array(element)`, number/string refinements and brands, closed concepts, `T.custom`, and `T.implements<Type>()` drift guards.
 - Concept diagnostics now recurse with indexed paths, discriminant routing, did-you-mean, origin concepts, and machine-applicable `fix` hints; `T.is` / `T.assert` narrow types.
 - `T.template` derives its input type from `requires`; added `T.overload` (refinement-ordered dispatch with ambiguity diagnostics), `T.registry`, `T.example`, `T.counterexamples`, and `T.explain`.

@@ -1,10 +1,10 @@
 import {
   createDeusSnapshot,
-  defineDeusMachine,
-  stepDeusMachine,
   type DeusAction,
   type DeusMachine,
   type DeusSnapshot,
+  defineDeusMachine,
+  stepDeusMachine,
 } from "../deus";
 import { doneNext, failNext, yieldedNext } from "./result";
 import type {
