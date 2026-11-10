@@ -1,0 +1,219 @@
+{
+  "sampleName": "toolkit-pipeline",
+  "processedCount": 3,
+  "validCount": 2,
+  "invalidCount": 1,
+  "routeKeys": [
+    "intake",
+    "export",
+    "diagnostics"
+  ],
+  "iterator": {
+    "status": "done",
+    "yieldCount": 3,
+    "traceCount": 13,
+    "description": "Iter machine: orderBatchIterator\nDescription: Walk the raw order batch with an explicit cursor.\nEnvironment keys:\n- orders\nHas step: yes",
+    "trace": "orderBatchIterator#0 created [cursor]\norderBatchIterator#1 started [cursor]\norderBatchIterator#1 started [cursor]: Preparing order-001.\norderBatchIterator#1 yielded [cursor, yielded]\norderBatchIterator#2 started [cursor]\norderBatchIterator#2 started [cursor]: Preparing order-002.\norderBatchIterator#2 yielded [cursor, yielded]\norderBatchIterator#3 started [cursor]\norderBatchIterator#3 started [cursor]: Preparing bad-order.\norderBatchIterator#3 yielded [cursor, yielded]\norderBatchIterator#4 started [cursor]\norderBatchIterator#4 done [cursor, returnValue]: Finished the raw order batch.\norderBatchIterator#4 done [cursor, returnValue]",
+    "snapshotState": [
+      "done"
+    ]
+  },
+  "asyncCounts": {
+    "ok": 1,
+    "err": 0,
+    "cancelled": 0,
+    "timeout": 1
+  },
+  "batch": {
+    "status": "succeeded",
+    "resultKind": "ok",
+    "inputCount": 2,
+    "concurrency": 2,
+    "completedCount": 2,
+    "traceCount": 12,
+    "scheduler": {
+      "kind": "promiseWorkQueue",
+      "workerCount": 2,
+      "maxActiveCount": 2
+    },
+    "description": "Batch task: enrichValidOrders\nInputs: 2\nDescription: Enrich valid orders concurrently while preserving input order.\nConcurrency: 2",
+    "trace": "enrichValidOrders created @ 5000\nenrichValidOrders started @ 5001\nenrichValidOrders workerStarted @ 5002\nenrichValidOrders[0] itemStarted @ 5003\nenrichValidOrders[0] itemStarted @ 2000: running async enrichment for order-001\nenrichValidOrders workerStarted @ 5004\nenrichValidOrders[1] itemStarted @ 5005\nenrichValidOrders[1] itemStarted @ 2001: running async enrichment for order-002\nenrichValidOrders[0] itemSucceeded @ 5006\nenrichValidOrders[1] itemSucceeded @ 5007\nenrichValidOrders queueDrained @ 5008\nenrichValidOrders succeeded @ 5009"
+  },
+  "eventCounts": {
+    "accepted": 2,
+    "rejected": 1,
+    "enriched": 1,
+    "timedOut": 1
+  },
+  "captureDescriptions": [
+    {
+      "id": "formatMoney",
+      "description": "Task: formatMoney\nDescription: Format order totals for the primary report locale.\nEnvironment keys:\n- locale\n- currency",
+      "envKeys": [
+        "locale",
+        "currency"
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "formatMoneyFr",
+      "description": "Task: formatMoneyFr\nDescription: Format order totals for the French report locale.\nEnvironment keys:\n- locale\n- currency",
+      "envKeys": [
+        "locale",
+        "currency"
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "formatDiagnostics",
+      "description": "Task: formatDiagnostics\nDescription: Render concept and policy diagnostics into a stable text summary.\nEnvironment keys:\n- includeSeverity\n- includeSource\n- includePath",
+      "envKeys": [
+        "includeSeverity",
+        "includeSource",
+        "includePath"
+      ],
+      "diagnostics": []
+    },
+    {
+      "id": "formatReportRow",
+      "description": "Task: formatReportRow\nDescription: Shape deterministic report rows from pipeline outcomes.\nEnvironment keys:\n- primary\n- secondary\n- diagnostics",
+      "envKeys": [
+        "primary",
+        "secondary",
+        "diagnostics"
+      ],
+      "diagnostics": []
+    }
+  ],
+  "conceptDescriptions": [
+    "Concept: HasId\nDescription: Records that expose a stable order identifier.\nFields:\n- id: string(nonEmpty)",
+    "Concept: OrderShape\nDescription: The raw backend order payload shape.\nFields:\n- id: string(nonEmpty)\n- customerId: string(nonEmpty)\n- status: \"new\" | \"paid\" | \"fulfilled\" | \"cancelled\"\n- totalCents: number(int)\n- currency: \"USD\"\n- items: number(int, >=1)",
+    "Concept: PricedOrder\nDescription: Order records ready for pricing, validation, and export work.\nComposed from:\n- HasId\n- OrderShape\nFields:\n- id: string(nonEmpty)\n- customerId: string(nonEmpty)\n- status: \"new\" | \"paid\" | \"fulfilled\" | \"cancelled\"\n- totalCents: number(int)\n- currency: \"USD\"\n- items: number(int, >=1)"
+  ],
+  "templateDescriptions": [
+    "Template: summarizeOrder\nDescription: Summarize an order before export-side enrichment.\nRequires:\n  Concept: PricedOrder\n  Description: Order records ready for pricing, validation, and export work.\n  Composed from:\n  - HasId\n  - OrderShape\n  Fields:\n  - id: string(nonEmpty)\n  - customerId: string(nonEmpty)\n  - status: \"new\" | \"paid\" | \"fulfilled\" | \"cancelled\"\n  - totalCents: number(int)\n  - currency: \"USD\"\n  - items: number(int, >=1)"
+  ],
+  "invalidOrders": [
+    {
+      "id": "bad-order",
+      "diagnostics": [
+        "MissingConceptField",
+        "ORDER_NEGATIVE_TOTAL"
+      ],
+      "groupedDiagnostics": {
+        "concept": [
+          "MissingConceptField"
+        ],
+        "toolkit-pipeline": [
+          "ORDER_NEGATIVE_TOTAL"
+        ]
+      },
+      "sharedDiagnostics": [
+        {
+          "severity": "error",
+          "code": "MissingConceptField",
+          "message": "missing required string(nonEmpty), from OrderShape",
+          "path": "orders[2].customerId",
+          "source": "concept"
+        },
+        {
+          "severity": "error",
+          "code": "ORDER_NEGATIVE_TOTAL",
+          "message": "Order total must be non-negative.",
+          "path": "orders[2].totalCents",
+          "source": "toolkit-pipeline",
+          "details": [
+            "value: -100"
+          ]
+        }
+      ],
+      "diagnosticsText": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+    }
+  ],
+  "asyncBoards": [
+    {
+      "orderId": "order-001",
+      "status": "succeeded",
+      "statePath": [
+        "succeeded"
+      ],
+      "traceKinds": [
+        "created",
+        "started",
+        "domain",
+        "resolved"
+      ]
+    },
+    {
+      "orderId": "order-002",
+      "status": "timedOut",
+      "statePath": [
+        "timedOut"
+      ],
+      "traceKinds": [
+        "created",
+        "started",
+        "domain",
+        "timedOut"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "orderId": "order-001",
+      "status": "accepted",
+      "primaryAmount": "$12.99",
+      "secondaryAmount": "12,99 $US",
+      "detail": "order-001 (new) for customer-a: 2 items, 1299 cents"
+    },
+    {
+      "orderId": "order-002",
+      "status": "accepted",
+      "primaryAmount": "$45.99",
+      "secondaryAmount": "45,99 $US",
+      "detail": "order-002 (paid) for customer-b: 5 items, 4599 cents"
+    },
+    {
+      "orderId": "bad-order",
+      "status": "rejected",
+      "primaryAmount": "-$1.00",
+      "secondaryAmount": "-1,00 $US",
+      "detail": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+    },
+    {
+      "orderId": "order-002",
+      "status": "timedOut",
+      "primaryAmount": "$45.99",
+      "secondaryAmount": "45,99 $US",
+      "detail": "Timed out after 15ms"
+    }
+  ],
+  "events": [
+    {
+      "kind": "accepted",
+      "orderId": "order-001",
+      "summary": "order-001 (new) for customer-a: 2 items, 1299 cents"
+    },
+    {
+      "kind": "accepted",
+      "orderId": "order-002",
+      "summary": "order-002 (paid) for customer-b: 5 items, 4599 cents"
+    },
+    {
+      "kind": "rejected",
+      "orderId": "bad-order",
+      "reason": "error MissingConceptField at orders[2].customerId\n  source: concept\n  missing required string(nonEmpty), from OrderShape\n\nerror ORDER_NEGATIVE_TOTAL at orders[2].totalCents\n  source: toolkit-pipeline\n  Order total must be non-negative.\n  - value: -100"
+    },
+    {
+      "kind": "enriched",
+      "orderId": "order-001",
+      "risk": "normal",
+      "route": "/orders/export"
+    },
+    {
+      "kind": "timedOut",
+      "orderId": "order-002",
+      "timeoutMs": 15
+    }
+  ]
+}

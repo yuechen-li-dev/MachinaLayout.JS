@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Machina Static HTTP</title>
+    <link rel="stylesheet" href="generated.css" />
+  </head>
+  <body>
+<section class="machina-http-action" id="site-search">
+  <h2 class="machina-http-action__title">Search</h2>
+  <div class="machina-http-action__description">This form submits a native browser GET request. The server response is normal page navigation.</div>
+  <form class="machina-http-action__form" method="get" action="/search">
+      <div class="machina-http-action__field">
+        <label for="site-search-q">Query</label>
+        <input id="site-search-q" name="q" type="search" placeholder="machina static" required autocomplete="off" />
+      </div>
+    <button class="machina-http-action__submit" type="submit">Search</button>
+  </form>
+  </section>
+<section class="machina-http-action" id="contact-form">
+  <h2 class="machina-http-action__title">Contact</h2>
+  <div class="machina-http-action__description">This form submits a native browser POST request. Handling, persistence, and validation beyond HTML attributes belong to the server.</div>
+  <form class="machina-http-action__form" method="post" action="/contact">
+      <input type="hidden" id="contact-form-source" name="source" value="machina-static" />
+      <div class="machina-http-action__field">
+        <label for="contact-form-email">Email</label>
+        <input id="contact-form-email" name="email" type="email" required autocomplete="email" />
+      </div>
+      <div class="machina-http-action__field">
+        <label for="contact-form-message">Message</label>
+        <textarea id="contact-form-message" name="message" placeholder="What should the server receive?" required></textarea>
+      </div>
+    <button class="machina-http-action__submit" type="submit">Send</button>
+  </form>
+  </section>
+<a class="machina-http-link" id="docs-link" href="/docs">Read docs</a>
+  </body>
+</html>

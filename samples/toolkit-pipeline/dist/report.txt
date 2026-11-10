@@ -1,0 +1,71 @@
+Machina Toolkit Pipeline Report
+
+Orders processed: 3
+Valid orders: 2
+Invalid orders: 1
+
+Combined diagnostics:
+- bad-order
+  error MissingConceptField at orders[2].customerId
+    source: concept
+    missing required string(nonEmpty), from OrderShape
+  
+  error ORDER_NEGATIVE_TOTAL at orders[2].totalCents
+    source: toolkit-pipeline
+    Order total must be non-negative.
+    - value: -100
+
+Iterator:
+- status: done
+- yield count: 3
+- trace event count: 13
+
+Batch:
+- status: succeeded
+- result: ok
+- input count: 2
+- concurrency: 2
+- completed count: 2
+- scheduler: promiseWorkQueue
+- scheduler workers: 2
+- scheduler max active: 2
+- trace event count: 12
+
+Async:
+- ok: 1
+- err: 0
+- cancelled: 0
+- timeout: 1
+- slug: async-summary
+
+Events:
+- accepted order-001: order-001 (new) for customer-a: 2 items, 1299 cents
+- accepted order-002: order-002 (paid) for customer-b: 5 items, 4599 cents
+- rejected bad-order: error MissingConceptField at orders[2].customerId
+  source: concept
+  missing required string(nonEmpty), from OrderShape
+
+error ORDER_NEGATIVE_TOTAL at orders[2].totalCents
+  source: toolkit-pipeline
+  Order total must be non-negative.
+  - value: -100
+- enriched order-001: normal via /orders/export
+- timed out order-002: 15ms
+
+Event counts:
+- accepted: 2
+- rejected: 1
+- enriched: 1
+- timedOut: 1
+
+Utilities exercised:
+- matchKind
+- matchDiscriminated
+- C.task
+- A.task
+- B.task
+- B.run
+- I.machine
+- T.concept
+- T.template
+- CT.tuple
