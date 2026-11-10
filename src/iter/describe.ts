@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import type { IterMachine, IterMachineDescription } from "./types";
 
 function getEnvKeys(env: unknown): readonly string[] {
@@ -21,22 +22,10 @@ export function describeIterMachine<TEnv, TCursor, TYield, TReturn, TError>(
 }
 
 export function formatIterMachineDescription(description: IterMachineDescription): string {
-  const lines = [`Iter machine: ${description.id}`];
-
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-
-  if (description.envKeys.length > 0) {
-    lines.push("Environment keys:");
-    for (const key of description.envKeys) {
-      lines.push(`- ${key}`);
-    }
-  } else {
-    lines.push("Environment keys: none");
-  }
-
-  lines.push(`Has step: ${description.hasStep ? "yes" : "no"}`);
-
-  return lines.join("\n");
+  return Text.lines(
+    `Iter machine: ${description.id}`,
+    description.description && `Description: ${description.description}`,
+    Text.list("Environment keys:", description.envKeys, { empty: "Environment keys: none" }),
+    `Has step: ${description.hasStep ? "yes" : "no"}`,
+  );
 }

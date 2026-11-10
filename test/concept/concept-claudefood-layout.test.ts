@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Assert, Equal } from "../../src/comptime";
 import { formatConceptDiagnostics, T } from "../../src/concept";
 import type {
   AbsoluteFrame,
@@ -9,6 +10,7 @@ import type {
   StackArrange,
   UiLength,
 } from "../../src/types";
+import { V } from "../../src/variants";
 
 // Claudefood: model Machina's real layout record types as concepts and pin
 // them to the hand-written types with T.implements, so neither can drift.
@@ -29,88 +31,36 @@ const EdgeRef = T.concept({
 });
 const GuideLength = T.union(UiLengthC, EdgeRef);
 
-const RootFrame = T.concept({ id: "RootFrame", closed: true, fields: { kind: T.literal("root") } });
-const AbsoluteFrameC = T.implements<AbsoluteFrame>()(
-  T.concept({
-    id: "AbsoluteFrame",
-    closed: true,
-    fields: {
-      kind: T.literal("absolute"),
-      x: T.number({ finite: true }),
-      y: T.number({ finite: true }),
-      width: T.number({ finite: true, min: 0 }),
-      height: T.number({ finite: true, min: 0 }),
+const finite = T.number({ finite: true });
+const size = T.number({ finite: true, min: 0 });
+const ui = T.optional(UiLengthC);
+const guide = T.optional(GuideLength);
+const Frame = V.variants(
+  "FrameSpec",
+  {
+    root: {},
+    absolute: { x: finite, y: finite, width: size, height: size },
+    anchor: { left: ui, right: ui, top: ui, bottom: ui, width: ui, height: ui },
+    fixed: { width: T.optional(T.number({ min: 0 })), height: T.optional(T.number({ min: 0 })) },
+    fill: {
+      weight: T.optional(T.number({ min: 0 })),
+      cross: T.optional(T.union(T.number(), T.literal("fill"))),
     },
-  }),
-);
-const AnchorFrameC = T.implements<AnchorFrame>()(
-  T.concept({
-    id: "AnchorFrame",
-    closed: true,
-    fields: {
-      kind: T.literal("anchor"),
-      left: T.optional(UiLengthC),
-      right: T.optional(UiLengthC),
-      top: T.optional(UiLengthC),
-      bottom: T.optional(UiLengthC),
-      width: T.optional(UiLengthC),
-      height: T.optional(UiLengthC),
+    cell: {
+      col: T.number({ int: true, min: 0 }),
+      row: T.number({ int: true, min: 0 }),
+      colSpan: T.optional(T.number({ int: true, min: 1 })),
+      rowSpan: T.optional(T.number({ int: true, min: 1 })),
     },
-  }),
+    guide: { left: guide, right: guide, top: guide, bottom: guide, width: ui, height: ui },
+  },
+  { closed: true },
 );
-const GuideFrame = T.concept({
-  id: "GuideFrame",
-  closed: true,
-  fields: {
-    kind: T.literal("guide"),
-    left: T.optional(GuideLength),
-    right: T.optional(GuideLength),
-    top: T.optional(GuideLength),
-    bottom: T.optional(GuideLength),
-    width: T.optional(UiLengthC),
-    height: T.optional(UiLengthC),
-  },
-});
-const FixedFrame = T.concept({
-  id: "FixedFrame",
-  closed: true,
-  fields: {
-    kind: T.literal("fixed"),
-    width: T.optional(T.number({ min: 0 })),
-    height: T.optional(T.number({ min: 0 })),
-  },
-});
-const FillFrame = T.concept({
-  id: "FillFrame",
-  closed: true,
-  fields: {
-    kind: T.literal("fill"),
-    weight: T.optional(T.number({ min: 0 })),
-    cross: T.optional(T.union(T.number(), T.literal("fill"))),
-  },
-});
-const CellFrame = T.concept({
-  id: "CellFrame",
-  closed: true,
-  fields: {
-    kind: T.literal("cell"),
-    col: T.number({ int: true, min: 0 }),
-    row: T.number({ int: true, min: 0 }),
-    colSpan: T.optional(T.number({ int: true, min: 1 })),
-    rowSpan: T.optional(T.number({ int: true, min: 1 })),
-  },
-});
-const FrameSpecC = T.union(
-  RootFrame,
-  AbsoluteFrameC,
-  AnchorFrameC,
-  FixedFrame,
-  FillFrame,
-  CellFrame,
-  GuideFrame,
-);
+const FrameSpecC = Frame.constraint;
 
-const _frameCheck: T.Matches<typeof FrameSpecC, FrameSpec> = true;
+const _frameCheck: Assert<Equal<V.Infer<typeof Frame>, FrameSpec>> = true;
+const _absoluteCheck: Assert<Equal<V.Of<typeof Frame, "absolute">, AbsoluteFrame>> = true;
+const _anchorCheck: Assert<Equal<V.Of<typeof Frame, "anchor">, AnchorFrame>> = true;
 
 const EdgeInsets = T.concept({
   id: "EdgeInsets",

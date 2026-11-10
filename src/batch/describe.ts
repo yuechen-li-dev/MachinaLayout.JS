@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import type { BatchTask, BatchTaskDescription } from "./types";
 
 export function describeBatchTask<TInput, TOutput, TError>(
@@ -13,15 +14,10 @@ export function describeBatchTask<TInput, TOutput, TError>(
 }
 
 export function formatBatchTaskDescription(description: BatchTaskDescription): string {
-  const lines = [`Batch task: ${description.id}`, `Inputs: ${description.inputCount}`];
-
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-
-  if (description.concurrency !== undefined) {
-    lines.push(`Concurrency: ${description.concurrency}`);
-  }
-
-  return lines.join("\n");
+  return Text.lines(
+    `Batch task: ${description.id}`,
+    `Inputs: ${description.inputCount}`,
+    description.description && `Description: ${description.description}`,
+    description.concurrency !== undefined && `Concurrency: ${description.concurrency}`,
+  );
 }

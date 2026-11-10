@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import type { OverloadRecord } from "./overload";
 import { conceptRefines } from "./structure";
 import type { ConceptDefinition, TemplateRecord } from "./types";
@@ -48,9 +49,10 @@ export function registry(): ConceptRegistry {
   const self: ConceptRegistry = {
     register: (...added) => {
       for (const entry of added) {
-        if (entries.some((existing) => existing.id === entry.id)) {
-          throw new Error(`Registry already has an entry with id '${entry.id}'.`);
-        }
+        invariant(
+          !entries.some((existing) => existing.id === entry.id),
+          `Registry already has an entry with id '${entry.id}'.`,
+        );
         entries.push(entry);
       }
       return self;

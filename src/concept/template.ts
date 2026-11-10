@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import type { Infer } from "./infer";
 import type { ConceptDefinition, TemplateRecord } from "./types";
 import { assertConceptValue } from "./validate";
@@ -9,9 +10,7 @@ function assertTemplateId(id: string): void {
 }
 
 function assertTemplateRun(run: unknown): asserts run is (input: unknown) => unknown {
-  if (typeof run !== "function") {
-    throw new Error("Template run must be a function.");
-  }
+  invariant(typeof run === "function", "Template run must be a function.");
 }
 
 function assertTemplateRequires(requires: unknown): asserts requires is ConceptDefinition {

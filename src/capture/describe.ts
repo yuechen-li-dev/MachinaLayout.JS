@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import type { CaptureTask, CaptureTaskDescription } from "./types";
 
 function getEnvKeys(env: unknown): readonly string[] {
@@ -20,17 +21,9 @@ export function describeCaptureTask<TEnv, TInput, TOutput>(
 }
 
 export function formatCaptureTaskDescription(description: CaptureTaskDescription): string {
-  const lines = [`Task: ${description.id}`];
-  if (description.description) {
-    lines.push(`Description: ${description.description}`);
-  }
-  if (description.envKeys.length > 0) {
-    lines.push("Environment keys:");
-    for (const key of description.envKeys) {
-      lines.push(`- ${key}`);
-    }
-  } else {
-    lines.push("Environment keys: none");
-  }
-  return lines.join("\n");
+  return Text.lines(
+    `Task: ${description.id}`,
+    description.description && `Description: ${description.description}`,
+    Text.list("Environment keys:", description.envKeys, { empty: "Environment keys: none" }),
+  );
 }

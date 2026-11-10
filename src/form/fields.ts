@@ -1,4 +1,5 @@
 import { Table } from "../table";
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import {
@@ -15,36 +16,26 @@ import type {
   FormFieldValue,
 } from "./types";
 
-type ResolvedFieldColumns = {
-  readonly field: string;
-  readonly label: string;
-  readonly control: string;
-  readonly inputId: string;
-  readonly value: string;
-  readonly changeKey: string;
-  readonly disabled: string;
-  readonly placeholder: string;
-  readonly description: string;
-  readonly required: string;
-  readonly testId: string;
-};
+const fieldColumnKeys = [
+  "field",
+  "label",
+  "control",
+  "inputId",
+  "value",
+  "changeKey",
+  "disabled",
+  "placeholder",
+  "description",
+  "required",
+  "testId",
+] as const;
+
+type ResolvedFieldColumns = ColumnNames<(typeof fieldColumnKeys)[number]>;
 
 const formFieldControls = ["input", "textarea"] as const satisfies readonly FormFieldControl[];
 
 function resolveColumns(options: FieldsFromTableOptions | undefined): ResolvedFieldColumns {
-  return {
-    field: options?.fieldColumn ?? "field",
-    label: options?.labelColumn ?? "label",
-    control: options?.controlColumn ?? "control",
-    inputId: options?.inputIdColumn ?? "inputId",
-    value: options?.valueColumn ?? "value",
-    changeKey: options?.changeKeyColumn ?? "changeKey",
-    disabled: options?.disabledColumn ?? "disabled",
-    placeholder: options?.placeholderColumn ?? "placeholder",
-    description: options?.descriptionColumn ?? "description",
-    required: options?.requiredColumn ?? "required",
-    testId: options?.testIdColumn ?? "testId",
-  };
+  return resolveColumnNames(options, fieldColumnKeys);
 }
 
 function createDiagnostic(

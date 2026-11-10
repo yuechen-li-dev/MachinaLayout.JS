@@ -122,3 +122,5 @@ export const Table = {
   validateKey,
   formatDiagnostics: formatTableDiagnostics,
 } as const;
+export { resolveColumnNames } from "./columns";
+export type { ColumnNameOptions, ColumnNames } from "./columns";

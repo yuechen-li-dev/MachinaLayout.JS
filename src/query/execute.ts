@@ -1,4 +1,4 @@
-import { Table, type ColumnarTable } from "../table";
+import { type ColumnarTable, Table } from "../table";
 import type { TableQueryExecuteOptions, TableQueryPlan } from "./types";
 import { TableQueryError, validate } from "./validate";
 

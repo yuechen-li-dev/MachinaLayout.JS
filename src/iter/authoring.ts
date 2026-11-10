@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import { collect, createController, next, reset } from "./controller";
 import { describeIterMachine } from "./describe";
 import { all, attempt, effect, now, random } from "./effects";
@@ -25,9 +26,7 @@ function assertMachineId(id: string): void {
 function assertStep(
   step: unknown,
 ): asserts step is (...args: readonly unknown[]) => Record<string, unknown> {
-  if (typeof step !== "function") {
-    throw new Error("Iter machine step must be a function.");
-  }
+  invariant(typeof step === "function", "Iter machine step must be a function.");
 }
 
 function assertDescription(description: string | undefined): void {

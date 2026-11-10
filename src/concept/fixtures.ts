@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import type { Infer } from "./infer";
 import { isConceptDefinition, isOptional, normalizeConstraint } from "./structure";
 import { type ConceptDefinition, ConceptError, type ConceptFieldConstraint } from "./types";
@@ -61,11 +62,10 @@ function exampleFor(
       throw new Error(`No union branch of '${name}' can produce an example.`);
     }
     case "custom":
-      if (constraint.example === undefined) {
-        throw new Error(
-          `Custom constraint '${constraint.name}' needs an \`example\` for fixtures.`,
-        );
-      }
+      invariant(
+        constraint.example !== undefined,
+        `Custom constraint '${constraint.name}' needs an \`example\` for fixtures.`,
+      );
       return constraint.example;
   }
 }

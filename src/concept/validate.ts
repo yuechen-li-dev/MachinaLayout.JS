@@ -626,6 +626,19 @@ function checkConstraint(
   }
 }
 
+/**
+ * Diagnostics for a value against any constraint (a union, an array, a
+ * nested concept), not only a whole concept. Paths are relative to the value.
+ */
+export function validateConstraintValue(
+  constraint: ConceptFieldConstraint,
+  value: unknown,
+): ConceptDiagnostic[] {
+  const out: Out = [];
+  checkConstraint(constraint, value, "", undefined, out);
+  return out;
+}
+
 /** `true` when `value` satisfies a single constraint (no definition checks). */
 export function acceptsValue(constraint: ConceptFieldConstraint, value: unknown): boolean {
   const out: Out = [];

@@ -1,5 +1,5 @@
-import type { ColumnarTable, TableDiagnostic, TableRow, TableSortDirection } from "../table";
 import type { BatchBoard } from "../batch";
+import type { ColumnarTable, TableDiagnostic, TableRow, TableSortDirection } from "../table";
 
 export type TableQueryRowPredicate<TTable extends ColumnarTable = ColumnarTable> = (
   row: TableRow<TTable>,

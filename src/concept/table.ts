@@ -1,4 +1,5 @@
 import { Table } from "../table";
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic, TableSchema } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import type {
@@ -9,21 +10,23 @@ import type {
   FieldMeta,
 } from "./types";
 
-type ResolvedConceptColumns = {
-  readonly concept: string;
-  readonly type: string;
-  readonly label: string;
-  readonly required: string;
-  readonly description: string;
-  readonly diagnosticLabel: string;
-  readonly controlHint: string;
-  readonly valuePath: string;
-  readonly changeKey: string;
-  readonly enumValues: string;
-  readonly literalValue: string;
-  readonly placeholder: string;
-  readonly testId: string;
-};
+const conceptColumnKeys = [
+  "concept",
+  "type",
+  "label",
+  "required",
+  "description",
+  "diagnosticLabel",
+  "controlHint",
+  "valuePath",
+  "changeKey",
+  "enumValues",
+  "literalValue",
+  "placeholder",
+  "testId",
+] as const;
+
+type ResolvedConceptColumns = ColumnNames<(typeof conceptColumnKeys)[number]>;
 
 const conceptPrimitiveKinds = [
   "string",
@@ -44,21 +47,7 @@ type OptionalConceptStringDiagnosticCode =
   | "InvalidConceptTestId";
 
 function resolveColumns(options: ConceptFromTableOptions | undefined): ResolvedConceptColumns {
-  return {
-    concept: options?.conceptColumn ?? "concept",
-    type: options?.typeColumn ?? "type",
-    label: options?.labelColumn ?? "label",
-    required: options?.requiredColumn ?? "required",
-    description: options?.descriptionColumn ?? "description",
-    diagnosticLabel: options?.diagnosticLabelColumn ?? "diagnosticLabel",
-    controlHint: options?.controlHintColumn ?? "controlHint",
-    valuePath: options?.valuePathColumn ?? "valuePath",
-    changeKey: options?.changeKeyColumn ?? "changeKey",
-    enumValues: options?.enumValuesColumn ?? "enumValues",
-    literalValue: options?.literalValueColumn ?? "literalValue",
-    placeholder: options?.placeholderColumn ?? "placeholder",
-    testId: options?.testIdColumn ?? "testId",
-  };
+  return resolveColumnNames(options, conceptColumnKeys);
 }
 
 function createDiagnostic(

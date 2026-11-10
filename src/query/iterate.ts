@@ -1,5 +1,5 @@
 import { I, type IterMachine } from "../iter";
-import { Table, type ColumnarTable } from "../table";
+import { type ColumnarTable, Table } from "../table";
 import type {
   TableQueryDiagnostic,
   TableQueryIteratorBoard,

@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import type { MachinaStyleTokens, MachinaTokenGroup, MachinaTokenReference } from "./types";
 
 export const MACHINA_TOKEN_GROUPS = ["color", "space", "radius", "font", "shadow"] as const;
@@ -71,9 +72,7 @@ export function createMachinaTokenReference(
   if (!isMachinaTokenGroup(group)) {
     throw new Error(`Unknown MachinaStyle token group "${String(group)}".`);
   }
-  if (key.trim().length === 0) {
-    throw new Error("MachinaStyle token key must be non-empty.");
-  }
+  invariant(key.trim().length > 0, "MachinaStyle token key must be non-empty.");
   return Object.freeze({
     kind: "token",
     group,

@@ -1,3 +1,4 @@
+import { invariant } from "../kit";
 import { describeBatchTask } from "./describe";
 import { err, ok } from "./result";
 import { run } from "./run";
@@ -17,9 +18,7 @@ function assertInputs(inputs: unknown): asserts inputs is readonly unknown[] {
 }
 
 function assertMap(map: unknown): asserts map is (...args: readonly unknown[]) => unknown {
-  if (typeof map !== "function") {
-    throw new Error("Batch task map must be a function.");
-  }
+  invariant(typeof map === "function", "Batch task map must be a function.");
 }
 
 function assertConcurrency(concurrency: number | undefined): void {

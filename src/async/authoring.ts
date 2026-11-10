@@ -1,21 +1,18 @@
+import { invariant } from "../kit";
 import { createController, run, runAsyncTaskSnapshot } from "./controller";
 import { describeAsyncTask } from "./describe";
 import { cancelled, err, ok, timeout } from "./result";
-import { validateAsyncTask } from "./validate";
 import type { AsyncTask, AsyncTaskContext, AsyncTaskResult } from "./types";
+import { validateAsyncTask } from "./validate";
 
 function assertTaskId(id: string): void {
-  if (id.trim().length === 0) {
-    throw new Error("Async task id must be non-empty.");
-  }
+  invariant(id.trim().length > 0, "Async task id must be non-empty.");
 }
 
 function assertTaskRun(
   run: unknown,
 ): asserts run is (...args: readonly unknown[]) => Promise<unknown> {
-  if (typeof run !== "function") {
-    throw new Error("Async task run must be a function.");
-  }
+  invariant(typeof run === "function", "Async task run must be a function.");
 }
 
 function assertTimeout(timeoutMs: number | undefined): void {

@@ -1,3 +1,4 @@
+import { Text } from "../text/utilities";
 import type { MachinaDiagnostic } from "./types";
 
 export type FormatDiagnosticsOptions = {
@@ -26,19 +27,14 @@ export function format(
         includePath && diagnostic.path ? `at ${diagnostic.path}` : undefined,
       ].filter((part): part is string => part !== undefined);
 
-      const lines = [headerParts.join(" ")];
-
-      if (includeSource && diagnostic.source) {
-        lines.push(`  source: ${diagnostic.source}`);
-      }
-
-      lines.push(`  ${diagnostic.message}`);
-
-      for (const detail of diagnostic.details ?? []) {
-        lines.push(`  - ${detail}`);
-      }
-
-      return lines.join("\n");
+      return Text.lines(
+        headerParts.join(" "),
+        Text.indent([
+          includeSource && diagnostic.source && `source: ${diagnostic.source}`,
+          diagnostic.message,
+          (diagnostic.details ?? []).map((detail) => `- ${detail}`),
+        ]),
+      );
     })
     .join("\n\n");
 }

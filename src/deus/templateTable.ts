@@ -1,3 +1,4 @@
+import { type ColumnNames, resolveColumnNames } from "../table/columns";
 import type { ColumnarTable, TableDiagnostic, TableRow } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import type {
@@ -38,17 +39,20 @@ export type PendingResultTransitionTemplateOptions = {
   readonly errorTarget?: string;
 };
 
-type PendingColumns = {
-  readonly entity: string;
-  readonly pending: string;
-  readonly successEvent: string;
-  readonly failureEvent: string;
-  readonly successTarget: string;
-  readonly successPayload: string;
-  readonly failurePayload: string;
-  readonly to: string;
-  readonly successKey: string;
-  readonly failureKey: string;
+const pendingColumnKeys = [
+  "entity",
+  "pending",
+  "successEvent",
+  "failureEvent",
+  "successTarget",
+  "successPayload",
+  "failurePayload",
+  "to",
+  "successKey",
+  "failureKey",
+] as const;
+
+type PendingColumns = ColumnNames<(typeof pendingColumnKeys)[number]> & {
   readonly errorTarget: string;
 };
 
@@ -237,16 +241,7 @@ function validateRequiredTemplateColumns(
 
 function resolvePendingColumns(options?: PendingResultTransitionTemplateOptions): PendingColumns {
   return {
-    entity: options?.entityColumn ?? "entity",
-    pending: options?.pendingColumn ?? "pending",
-    successEvent: options?.successEventColumn ?? "successEvent",
-    failureEvent: options?.failureEventColumn ?? "failureEvent",
-    successTarget: options?.successTargetColumn ?? "successTarget",
-    successPayload: options?.successPayloadColumn ?? "successPayload",
-    failurePayload: options?.failurePayloadColumn ?? "failurePayload",
-    to: options?.toColumn ?? "to",
-    successKey: options?.successKeyColumn ?? "successKey",
-    failureKey: options?.failureKeyColumn ?? "failureKey",
+    ...resolveColumnNames(options, pendingColumnKeys),
     errorTarget: options?.errorTarget ?? "errorMessage",
   };
 }

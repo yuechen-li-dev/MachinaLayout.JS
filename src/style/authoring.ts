@@ -1,3 +1,17 @@
+import { invariant } from "../kit";
+import { matchKind } from "../match";
+import {
+  describeStyleRules,
+  describeStyleTokens,
+  rulesFromTable,
+  ruleTableSchema,
+  sheetFromTables,
+  tokensFromTable,
+  tokenTableSchema,
+  validateStyleRuleTable,
+  validateStyleTokenTable,
+} from "./tabular";
+import { createMachinaTokenReference } from "./tokens";
 import type {
   MachinaResponsiveStyle,
   MachinaResponsiveVariant,
@@ -5,24 +19,11 @@ import type {
   MachinaStyleLayer,
   MachinaStyleRecord,
   MachinaStyleSheet,
-  MachinaStyleStateName,
   MachinaStyleSlot,
+  MachinaStyleStateName,
   MachinaStyleTokens,
   MachinaTokenGroup,
 } from "./types";
-import { matchKind } from "../match";
-import {
-  describeStyleRules,
-  describeStyleTokens,
-  ruleTableSchema,
-  rulesFromTable,
-  sheetFromTables,
-  tokenTableSchema,
-  tokensFromTable,
-  validateStyleRuleTable,
-  validateStyleTokenTable,
-} from "./tabular";
-import { createMachinaTokenReference } from "./tokens";
 
 type PlainRecord = Record<string, unknown>;
 type StyleGroupName = keyof MachinaStyleRecord;
@@ -92,18 +93,14 @@ function cloneDefinedObject<T extends PlainRecord>(input: T): T {
 }
 
 function assertValidClassName(className: string): void {
-  if (className.trim().length === 0) {
-    throw new Error("MachinaStyle class names must be non-empty.");
-  }
+  invariant(className.trim().length > 0, "MachinaStyle class names must be non-empty.");
   if (!MACHINA_CLASS_NAME_PATTERN.test(className)) {
     throw new Error(`MachinaStyle class name "${className}" must not contain whitespace.`);
   }
 }
 
 function assertValidStateName(stateName: string): void {
-  if (stateName.trim().length === 0) {
-    throw new Error("MachinaStyle state names must be non-empty.");
-  }
+  invariant(stateName.trim().length > 0, "MachinaStyle state names must be non-empty.");
   if (!MACHINA_STATE_NAME_PATTERN.test(stateName)) {
     throw new Error(
       `MachinaStyle state name "${stateName}" must match /^[a-zA-Z][a-zA-Z0-9_-]*$/.`,
@@ -130,9 +127,7 @@ export function isMachinaStyleSlot<T>(value: unknown): value is MachinaStyleSlot
 }
 
 function assertSetValue(value: unknown): void {
-  if (value === undefined) {
-    throw new Error("MachinaStyle set slot value must not be undefined.");
-  }
+  invariant(value !== undefined, "MachinaStyle set slot value must not be undefined.");
   if (typeof value === "object" && !value) {
     throw new Error("MachinaStyle set slot value must be defined.");
   }
@@ -333,16 +328,12 @@ export function sheet(input: MachinaStyleSheet): MachinaStyleSheet {
   }
   const stateful: Record<string, MachinaStatefulStyle> = {};
   for (const [key, statefulStyle] of Object.entries(input.stateful ?? {})) {
-    if (key.trim().length === 0) {
-      throw new Error("MachinaStyle stateful registry keys must be non-empty.");
-    }
+    invariant(key.trim().length > 0, "MachinaStyle stateful registry keys must be non-empty.");
     stateful[key] = createStatefulStyle(statefulStyle.className, statefulStyle);
   }
   const responsive: Record<string, MachinaResponsiveStyle> = {};
   for (const [key, responsiveStyle] of Object.entries(input.responsive ?? {})) {
-    if (key.trim().length === 0) {
-      throw new Error("MachinaStyle responsive registry keys must be non-empty.");
-    }
+    invariant(key.trim().length > 0, "MachinaStyle responsive registry keys must be non-empty.");
     responsive[key] = createResponsiveStyle(responsiveStyle.className, responsiveStyle);
   }
   return {
@@ -381,9 +372,10 @@ export function resolveMachinaStateStyle(
 ): MachinaStyleRecord {
   assertValidStateName(stateName);
   const stateLayer = stateful.states[stateName];
-  if (!stateLayer) {
-    throw new Error(`Unknown MachinaStyle state "${stateName}" for class "${stateful.className}".`);
-  }
+  invariant(
+    stateLayer,
+    `Unknown MachinaStyle state "${stateName}" for class "${stateful.className}".`,
+  );
   return composeMachinaStyles(stateful.base, stateLayer);
 }
 
@@ -468,19 +460,19 @@ export function createMachinaClassNames<
     ] = className;
   }
   for (const key of Object.keys(sheet.stateful ?? {})) {
-    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
-      throw new Error(`Duplicate MachinaStyle class key "${key}" exists in classes and stateful.`);
-    }
+    invariant(
+      Object.getOwnPropertyDescriptor(sheet.classes, key) === undefined,
+      `Duplicate MachinaStyle class key "${key}" exists in classes and stateful.`,
+    );
     classNames[
       key as keyof TClasses | keyof NonNullable<TStateful> | keyof NonNullable<TResponsive>
     ] = (sheet.stateful as NonNullable<TStateful>)[key].className;
   }
   for (const key of Object.keys(sheet.responsive ?? {})) {
-    if (Object.getOwnPropertyDescriptor(sheet.classes, key) !== undefined) {
-      throw new Error(
-        `Duplicate MachinaStyle class key "${key}" exists in classes and responsive.`,
-      );
-    }
+    invariant(
+      Object.getOwnPropertyDescriptor(sheet.classes, key) === undefined,
+      `Duplicate MachinaStyle class key "${key}" exists in classes and responsive.`,
+    );
     if (Object.getOwnPropertyDescriptor(sheet.stateful ?? {}, key) !== undefined) {
       throw new Error(
         `Duplicate MachinaStyle class key "${key}" exists in stateful and responsive.`,
