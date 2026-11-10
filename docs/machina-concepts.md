@@ -21,7 +21,7 @@ Machina concepts are source records for meaning, validation, diagnostics, and pr
 ## What it is not
 
 - Not C++ template metaprogramming.
-- Not code generation.
+- Not code generation by itself. To get exact types for a table-lowered concept, bake it into a literal module with `CT.module` (see compile-time helpers).
 - Not a Babel or TypeScript transform.
 - Not a recursive schema language: nesting is by referencing other named concepts, never self-reference.
 - Not a Zod clone.

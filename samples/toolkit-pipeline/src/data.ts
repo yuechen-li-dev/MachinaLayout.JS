@@ -1,25 +1,25 @@
 import {
-  CT,
   type Assert,
+  CT,
   type Equal,
   type KebabCase,
   type KindValues,
   type TupleValues,
 } from "machinalayout/comptime";
 
-export const orderStatuses = CT.tuple("new", "paid", "fulfilled", "cancelled");
+export const orderStatuses = ["new", "paid", "fulfilled", "cancelled"] as const;
 export type OrderStatus = TupleValues<typeof orderStatuses>;
 
 type _statusCheck = Assert<Equal<OrderStatus, "new" | "paid" | "fulfilled" | "cancelled">>;
 
-export const orderCurrencies = CT.tuple("USD");
+export const orderCurrencies = ["USD"] as const;
 export type OrderCurrency = TupleValues<typeof orderCurrencies>;
 
-export const pipelineRoutes = CT.object({
+export const pipelineRoutes = {
   intake: "/orders/intake",
   export: "/orders/export",
   diagnostics: "/orders/diagnostics",
-});
+} as const;
 
 export const routeKeys = CT.keys(pipelineRoutes);
 

@@ -1,13 +1,17 @@
-export function tuple<const TValues extends readonly unknown[]>(...values: TValues): TValues {
-  return values;
-}
+import {
+  artifacts,
+  checkArtifacts,
+  formatArtifactDiagnostics,
+  generateArtifacts,
+  json,
+  memoryFs,
+  module,
+  text,
+  writeArtifacts,
+} from "./artifacts";
+import { exportConst, toTsLiteral } from "./emit";
 
-export function object<const TObject extends Record<PropertyKey, unknown>>(
-  value: TObject,
-): TObject {
-  return value;
-}
-
+/** Typed `Object.keys` for literal objects. */
 export function keys<const TObject extends Record<PropertyKey, unknown>>(
   value: TObject,
 ): Array<Extract<keyof TObject, string>> {
@@ -15,7 +19,15 @@ export function keys<const TObject extends Record<PropertyKey, unknown>>(
 }
 
 export const CT = {
-  tuple,
-  object,
   keys,
+  artifacts,
+  text,
+  json,
+  module,
+  ts: { exportConst, literal: toTsLiteral },
+  generate: generateArtifacts,
+  check: checkArtifacts,
+  write: writeArtifacts,
+  formatDiagnostics: formatArtifactDiagnostics,
+  memoryFs,
 } as const;

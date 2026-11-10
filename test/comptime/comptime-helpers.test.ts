@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import * as root from "../../src/index";
-import { CT } from "../../src/comptime";
 import type {
   And,
   Assert,
@@ -17,10 +15,12 @@ import type {
   TupleValues,
   ValueOf,
 } from "../../src/comptime";
+import { CT } from "../../src/comptime";
+import * as root from "../../src/index";
 
 type StaticNode = { kind: "frame"; id: string } | { kind: "text"; value: string };
 type TypedUnion = { type: "start"; payload: 1 } | { type: "stop"; payload: 2 };
-const modes = CT.tuple("desktop", "tablet", "phone");
+const modes = ["desktop", "tablet", "phone"] as const;
 
 type _assertWorks = Assert<Equal<"a", "a">>;
 type _extendsWorks = Assert<Extends<{ id: string }, { id: string }>>;
@@ -46,21 +46,11 @@ type _isNonEmptyTupleWorks = Assert<Equal<IsNonEmptyTuple<[1]>, true>>;
 type _assertRejectsFalse = Assert<Equal<"a", "b">>;
 
 describe("compile-time literal helpers", () => {
-  it("CT.tuple preserves tuple values at runtime", () => {
-    expect(CT.tuple("a", "b")).toEqual(["a", "b"]);
-  });
-
-  it("CT.object returns the same object shape", () => {
-    expect(CT.object({ kind: "x" })).toEqual({ kind: "x" });
-  });
-
   it("CT.keys returns only string keys", () => {
     expect(CT.keys({ a: 1, b: 2 })).toEqual(["a", "b"]);
   });
 
   it("exports CT only from the comptime subpath", () => {
-    expect(CT.tuple).toBeTypeOf("function");
-    expect(CT.object).toBeTypeOf("function");
     expect(CT.keys).toBeTypeOf("function");
     expect("CT" in root).toBe(false);
   });

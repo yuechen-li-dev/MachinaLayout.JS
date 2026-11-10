@@ -37,5 +37,5 @@ MachinaLayout.JS publishes the MIT toolbox/library from the root package. The su
 ## Package and license boundary
 
 - The root package is MIT licensed and its `files` allowlist contains `dist`, `README.md`, `LICENSE`, and `docs`.
-- `/app` is MachinaCanvas, a private AGPL-3.0-or-later app/product package.
-- `npm pack --dry-run --json` is used as the packaging proof: no `app/**` source, tests, docs, fixtures, artifacts, assets, or package metadata should appear in the MIT tarball.
+- MachinaCanvas (AGPL-3.0-or-later) is a separate repository: https://github.com/yuechen-li-dev/Machina-Canvas. Nothing from it is in this repository or tarball.
+- `npm pack --dry-run --json` is the packaging proof for the tarball contents.

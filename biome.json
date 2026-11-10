@@ -35,17 +35,14 @@
       "!samples/**/node_modules",
       "!samples/**/dist",
       "!samples/**/.generated",
-      "!app/node_modules",
-      "!app/dist",
-      "!app/tmp",
-      "!app/.codex-temp",
       "!apps/**/node_modules",
       "!apps/**/dist",
       "!apps/**/tmp",
       "!apps/**/.codex-temp",
       "!apps/**/vite-*.log",
       "!coverage",
-      "!*.tgz"
+      "!*.tgz",
+      "!test/comptime/fixtures/generated"
     ]
   },
   "overrides": [

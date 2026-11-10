@@ -1,4 +1,3 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -11,17 +10,11 @@ const generatedRoot = path.join(sampleRoot, ".generated");
 await prepareSampleSubpathImports([sampleRoot], { cwd: sampleRoot });
 await patchGeneratedJsImports(generatedRoot);
 
-const { runToolkitPipeline } = await import(
-  pathToFileURL(path.join(generatedRoot, "pipeline.js")).href
-);
-const { renderReportArtifacts } = await import(
-  pathToFileURL(path.join(generatedRoot, "report.js")).href
-);
+const { artifacts } = await import(pathToFileURL(path.join(generatedRoot, "artifacts.js")).href);
+const { CT } = await import("machinalayout/comptime");
+const { nodeArtifactFs } = await import("machinalayout/comptime/node");
 
-const report = await runToolkitPipeline();
-const distRoot = path.join(sampleRoot, "dist");
-await mkdir(distRoot, { recursive: true });
-
-for (const artifact of renderReportArtifacts(report)) {
-  await writeFile(path.join(distRoot, artifact.path), artifact.content, "utf8");
+const report = await CT.write(artifacts, { fs: nodeArtifactFs(), root: sampleRoot });
+if (report.diagnostics.length > 0) {
+  throw new Error(CT.formatDiagnostics(report.diagnostics));
 }

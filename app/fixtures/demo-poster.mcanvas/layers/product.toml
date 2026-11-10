@@ -1,8 +1,0 @@
-id = "product"
-name = "Product"
-visible = true
-locked = false
-
-[metadata]
-tags = ["product", "hero"]
-notes = "Product silhouette, highlight, and base shadow."

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "artifacts": {
+    "report.json": {
+      "hash": "cyrb53:7059c2e050d9f"
+    },
+    "report.txt": {
+      "hash": "cyrb53:f1b6100c1d20c"
+    }
+  }
+}

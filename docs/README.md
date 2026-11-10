@@ -46,9 +46,9 @@ MachinaLayout.JS documentation is organized around public package entry points a
 
 - [Table-first authoring](machina-tables.md) — tables as durable authoring primitives.
 - [Compiler/lowering model](machina-authoring.md) — `M.*` records lower to layout rows and resolved trees.
-- [Package boundaries](package-exports.md) — MIT library exports versus the AGPL `/app` product boundary.
+- [Package boundaries](package-exports.md) — what the MIT package exports and ships.
 - [Local sample subpath imports](local-sample-subpath-imports.md) — how samples exercise package-style imports.
 
-## MachinaCanvas app/product
+## MachinaCanvas (separate repository)
 
-MachinaCanvas is not part of the MIT npm package. Its source, tests, scripts, docs, fixtures, public assets, and intentional dogfood artifacts live under [`/app`](../app/README.md), with repository-graduation notes in [`/app/docs/repository-graduation.md`](../app/docs/repository-graduation.md).
+MachinaCanvas is not part of this MIT package. It lives in its own repository, [yuechen-li-dev/Machina-Canvas](https://github.com/yuechen-li-dev/Machina-Canvas) (AGPL-3.0-or-later), including its documentation (export format, tools, sketch overlays, UI components).

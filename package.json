@@ -3,11 +3,6 @@
   "version": "0.7.0",
   "type": "module",
   "scripts": {
-    "canvas:tinytown-artifacts": "vite-node app/scripts/run-generate-tinytown-sprite-artifacts.ts",
-    "canvas:mechanical-exercise-354": "vite-node app/scripts/create-mechanical-exercise-354.ts",
-    "canvas:mechanical-exercise-354-blockout": "vite-node app/scripts/create-mechanical-exercise-354-blockout.ts",
-    "canvas:mechanical-exercise-m40c": "vite-node app/scripts/create-mechanical-exercise-m40c.ts",
-    "canvas:guide-overlay-fixture": "vite-node app/scripts/create-guide-overlay-fixture.ts",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && tsup --config tsup.config.ts --tsconfig tsconfig.build.json",
     "test": "vitest run --dir test",
@@ -133,6 +128,10 @@
     "./comptime": {
       "types": "./dist/comptime/index.d.ts",
       "import": "./dist/comptime/index.js"
+    },
+    "./comptime/node": {
+      "types": "./dist/comptime/node/index.d.ts",
+      "import": "./dist/comptime/node/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",

@@ -527,8 +527,9 @@ describe("package export entrypoints", () => {
   });
 
   it("exposes compile-time helper utilities", () => {
-    expect(CT.tuple).toBeTypeOf("function");
-    expect(CT.object).toBeTypeOf("function");
+    expect(CT.keys).toBeTypeOf("function");
+    expect(CT.check).toBeTypeOf("function");
+    expect(CT.write).toBeTypeOf("function");
     expect(CT.keys).toBeTypeOf("function");
   });
 

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "artifacts": {
+    "provider.concept.ts": {
+      "hash": "cyrb53:4b355ba51fbd0",
+      "inputs": {
+        "test/comptime/fixtures/provider-concepts.json": "cyrb53:ddc8b7679ab1f"
+      }
+    }
+  }
+}
