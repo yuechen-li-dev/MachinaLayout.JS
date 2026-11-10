@@ -1,20 +1,19 @@
+import { counterexamples, example } from "./fixtures";
+import { describeConstraintType, isConceptDefinition, isOptional } from "./structure";
 import type {
   ConceptDefinition,
   ConceptDescription,
   ConceptFieldConstraint,
-  ConceptPrimitiveKind,
-  ConceptRecord,
-  ConceptTableDescription,
   TemplateDescription,
   TemplateRecord,
 } from "./types";
 
 function describeConstraint(name: string, constraint: ConceptFieldConstraint): string {
-  const optional = constraint.optional ? "?" : "";
-  if (constraint.kind === "literal") {
+  const optional = isOptional(constraint) ? "?" : "";
+  if (!isConceptDefinition(constraint) && constraint.kind === "literal") {
     return `${name}: literal(${JSON.stringify(constraint.value)})${optional}`;
   }
-  return `${name}: ${constraint.kind}${optional}`;
+  return `${name}: ${describeConstraintType(constraint)}${optional}`;
 }
 
 export function describeConcept(concept: ConceptDefinition): ConceptDescription {
@@ -28,6 +27,7 @@ export function describeConcept(concept: ConceptDefinition): ConceptDescription 
     fieldEntries: fieldNames.map((fieldName) =>
       describeConstraint(fieldName, concept.fields[fieldName]),
     ),
+    ...(concept.closed ? { closed: true } : {}),
   };
 }
 
@@ -76,23 +76,41 @@ export function formatTemplateDescription(description: TemplateDescription): str
   return lines.join("\n");
 }
 
-export function describeConcepts(
-  concepts: readonly ConceptRecord[],
-  tableId = "",
-): ConceptTableDescription {
-  const types: ConceptPrimitiveKind[] = [];
+function safeJson(value: unknown): string {
+  return JSON.stringify(value, (_key, item) =>
+    typeof item === "function" ? "<function>" : Number.isNaN(item) ? "NaN" : item,
+  );
+}
 
-  for (const concept of concepts) {
-    if (!types.includes(concept.type)) {
-      types.push(concept.type);
-    }
+/**
+ * LLM/human-oriented explanation: field list (with origins), a minimal valid
+ * example, and the failure modes the validator checks. Plain text, stable order.
+ */
+export function explainConcept(concept: ConceptDefinition): string {
+  const lines = [
+    `Concept: ${concept.id}${concept.closed ? " (closed: unknown keys are errors)" : ""}`,
+  ];
+  if (concept.description) {
+    lines.push(`Description: ${concept.description}`);
   }
-
-  return {
-    kind: "conceptTableDescription",
-    tableId,
-    conceptCount: concepts.length,
-    requiredCount: concepts.filter((concept) => concept.required).length,
-    types,
-  };
+  lines.push("Fields:");
+  for (const [name, constraint] of Object.entries(concept.fields)) {
+    const origin = concept.fieldOrigins?.[name];
+    const fromText = origin && origin !== concept.id ? `  (from ${origin})` : "";
+    lines.push(`- ${describeConstraint(name, constraint)}${fromText}`);
+  }
+  try {
+    lines.push(`Example: ${safeJson(example(concept))}`);
+    const checks = new Map<string, Set<string>>();
+    for (const entry of counterexamples(concept)) {
+      checks.set(entry.path, (checks.get(entry.path) ?? new Set()).add(entry.mutation));
+    }
+    lines.push("Rejects:");
+    for (const [path, mutations] of checks) {
+      lines.push(`- ${path}: ${[...mutations].join(", ")}`);
+    }
+  } catch (error) {
+    lines.push(`Example: unavailable (${(error as Error).message.split("\n")[0]})`);
+  }
+  return lines.join("\n");
 }

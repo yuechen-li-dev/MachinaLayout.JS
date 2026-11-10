@@ -328,7 +328,7 @@ export type TableDiagnosticCode =
   | "DuplicateFormField"
   | "DuplicateFormFieldInputId"
   | "InvalidConceptFormControl"
-  | "DuplicateConceptFormField"
+  | "UnsupportedConceptFormField"
   | "DuplicateConceptFormInputId"
   | "DuplicateConceptFormTestId"
   | "ConceptFormValueResolverError"

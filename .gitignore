@@ -17,6 +17,13 @@ samples/static-timeline/.generated/
 !samples/static-dispatch/dist/generated.css
 samples/static-dispatch/.generated/
 samples/toolkit-pipeline/.generated/
+!samples/toolkit-pipeline/dist/
+!samples/toolkit-pipeline/dist/report.json
+!samples/toolkit-pipeline/dist/report.txt
+!samples/static-http/dist/
+!samples/static-http/dist/index.html
+!samples/static-http/dist/generated.css
+samples/static-http/.generated/
 tmp/
 .env
 *.tsbuildinfo

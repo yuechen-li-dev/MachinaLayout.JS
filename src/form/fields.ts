@@ -2,7 +2,7 @@ import { Table } from "../table";
 import type { ColumnarTable, TableDiagnostic } from "../table/types";
 import { TableError, validateTable } from "../table/validate";
 import {
-  fieldsFromConcepts,
+  fieldsFromConcept,
   fieldsFromConceptTable,
   validateConceptFormProjection,
 } from "./conceptProjection";
@@ -377,7 +377,7 @@ export const Form = {
   fieldsFromTable,
   validateFieldTable,
   describeFields,
-  fieldsFromConcepts,
+  fieldsFromConcept,
   validateConceptFormProjection,
   fieldsFromConceptTable,
 } as const;

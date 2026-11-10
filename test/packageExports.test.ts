@@ -39,9 +39,8 @@ import {
 } from "../src/iter";
 import {
   ConceptError,
+  conceptFromTable,
   conceptTableSchema,
-  conceptsFromTable,
-  describeConcepts,
   formatConceptDescription,
   formatConceptDiagnostics,
   formatTemplateDescription,
@@ -49,18 +48,6 @@ import {
   validateConceptTable,
   validateConceptDefinition,
   validateConceptValue,
-} from "../src/concept";
-import type {
-  All,
-  Assert,
-  ConceptType,
-  Equal,
-  Extends,
-  HasField,
-  HasId,
-  HasKind,
-  OptionalField,
-  Satisfies,
 } from "../src/concept";
 import {
   CT,
@@ -131,7 +118,7 @@ import {
   describeFields,
   fieldSchema,
   fieldsFromConceptTable,
-  fieldsFromConcepts,
+  fieldsFromConcept,
   fieldsFromTable,
   type FieldsFromConceptTableOptions,
   Form,
@@ -192,24 +179,15 @@ import { useDeusMachine as useReactDeusMachine } from "../src/react";
 import { useDeusMachine as useNativeDeusMachine } from "../src/react-native";
 import { useDeusMachine as useVueDeusMachine } from "../src/vue";
 
-type _conceptTypeExportSmoke = Assert<
-  Extends<
-    All<[HasField<"id", string>, OptionalField<"name", string>]>,
-    { readonly id: string; readonly name?: string }
-  >
+const _smokeConcept = T.concept({
+  id: "Smoke",
+  fields: { id: T.string(), name: T.optional(T.string()) },
+});
+type _conceptTypeExportSmoke = CompileTimeAssert<
+  CompileTimeEqual<T.Infer<typeof _smokeConcept>, { id: string; name?: string }>
 >;
-type _conceptTypeExportSmokeReverse = Assert<
-  Extends<
-    { readonly id: string; readonly name?: string },
-    All<[HasField<"id", string>, OptionalField<"name", string>]>
-  >
->;
-type _conceptAliasExportSmoke = Assert<Equal<HasId, { readonly id: string }>>;
-type _conceptKindExportSmoke = Assert<Equal<HasKind<"image">, { readonly kind: "image" }>>;
-type _conceptShapeExportSmoke = Assert<Equal<ConceptType<{ value: number }>, { value: number }>>;
-type _conceptExtendsExportSmoke = Assert<Equal<Extends<{ readonly id: string }, HasId>, true>>;
-type _conceptSatisfiesExportSmoke = Assert<
-  Equal<Satisfies<{ readonly id: string }, HasId>, { readonly id: string }>
+type _conceptMatchesExportSmoke = CompileTimeAssert<
+  T.Matches<typeof _smokeConcept, { id: string; name?: string }>
 >;
 type _comptimeAssertExportSmoke = CompileTimeAssert<
   CompileTimeEqual<KebabCase<"ButtonPrimary">, "button-primary">
@@ -395,15 +373,20 @@ describe("package export entrypoints", () => {
     expect(T.literal).toBeTypeOf("function");
     expect(T.optional).toBeTypeOf("function");
     expect(T.conceptTableSchema).toBeTypeOf("function");
-    expect(T.conceptsFromTable).toBeTypeOf("function");
+    expect(T.conceptFromTable).toBeTypeOf("function");
     expect(T.validateConceptTable).toBeTypeOf("function");
-    expect(T.describeConcepts).toBeTypeOf("function");
+    expect(T.overload).toBeTypeOf("function");
+    expect(T.registry).toBeTypeOf("function");
+    expect(T.example).toBeTypeOf("function");
+    expect(T.counterexamples).toBeTypeOf("function");
+    expect(T.explain).toBeTypeOf("function");
+    expect(T.fieldsOf).toBeTypeOf("function");
+    expect(T.meta).toBeTypeOf("function");
     expect(validateConceptDefinition).toBeTypeOf("function");
     expect(validateConceptValue).toBeTypeOf("function");
     expect(conceptTableSchema).toBeTypeOf("function");
-    expect(conceptsFromTable).toBeTypeOf("function");
+    expect(conceptFromTable).toBeTypeOf("function");
     expect(validateConceptTable).toBeTypeOf("function");
-    expect(describeConcepts).toBeTypeOf("function");
     expect(formatConceptDescription).toBeTypeOf("function");
     expect(formatConceptDiagnostics).toBeTypeOf("function");
     expect(formatTemplateDescription).toBeTypeOf("function");
@@ -522,7 +505,7 @@ describe("package export entrypoints", () => {
     expect(Form.fieldsFromTable).toBe(fieldsFromTable);
     expect(Form.validateFieldTable).toBe(validateFieldTable);
     expect(Form.describeFields).toBe(describeFields);
-    expect(Form.fieldsFromConcepts).toBe(fieldsFromConcepts);
+    expect(Form.fieldsFromConcept).toBe(fieldsFromConcept);
     expect(Form.validateConceptFormProjection).toBe(validateConceptFormProjection);
     expect(Form.fieldsFromConceptTable).toBe(fieldsFromConceptTable);
   });
@@ -609,7 +592,7 @@ describe("package export entrypoints", () => {
 
     const chunked = Table.chunkedFromTable(orders, { chunkSize: 1 });
 
-    const concepts = T.conceptsFromTable(
+    const concept = T.conceptFromTable(
       Table.defineWithSchema({
         id: "concepts",
         schema: T.conceptTableSchema(),
@@ -631,7 +614,7 @@ describe("package export entrypoints", () => {
       }),
     );
 
-    const fields = Form.fieldsFromConcepts(concepts, {
+    const fields = Form.fieldsFromConcept(concept, {
       values: { name: "Ada" },
     });
 
