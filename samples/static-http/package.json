@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "generate": "tsc -p tsconfig.json && node .generated/page.js",
+    "prepare:local-package": "node ../../tools/prepare-sample-subpath-imports.mjs .",
+    "generate": "npm run prepare:local-package && tsc -p tsconfig.json && node .generated/build.js",
     "build": "npm run generate"
   },
   "dependencies": {

@@ -1,7 +1,5 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { createStaticHtmlArtifact, H } from "../../../dist/static/index.js";
+import { CT } from "machinalayout/comptime";
+import { createStaticHtmlArtifact, H } from "machinalayout/static";
 
 export const faq = H.accordion({
   id: "faq",
@@ -31,11 +29,17 @@ export const page = H.staticPage({
   body: [faq],
 });
 
-const artifact = createStaticHtmlArtifact(page);
-const sampleRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const distRoot = join(sampleRoot, "dist");
+const fileText = (path: string) => {
+  const file = createStaticHtmlArtifact(page).files.find((candidate) => candidate.path === path);
+  if (!file) throw new Error(`static artifact has no ${path}`);
+  return file.text;
+};
 
-mkdirSync(distRoot, { recursive: true });
-for (const file of artifact.files) {
-  writeFileSync(join(distRoot, file.path), file.text);
-}
+/** Everything this sample generates. `src/build.ts` writes it; the tests check it. */
+export const artifacts = CT.artifacts({
+  outDir: "dist",
+  artifacts: [
+    CT.text("index.html", () => fileText("index.html")),
+    CT.text("generated.css", () => fileText("generated.css")),
+  ],
+});

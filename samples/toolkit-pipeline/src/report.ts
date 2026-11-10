@@ -91,7 +91,7 @@ export function renderTextReport(report: PipelineReport): string {
     "- I.machine",
     "- T.concept",
     "- T.template",
-    "- CT.tuple",
+    "- CT.keys",
   ];
 
   return `${lines.join("\n")}\n`;

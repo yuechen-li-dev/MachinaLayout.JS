@@ -45,7 +45,8 @@
       "!apps/**/.codex-temp",
       "!apps/**/vite-*.log",
       "!coverage",
-      "!*.tgz"
+      "!*.tgz",
+      "!test/comptime/fixtures/generated"
     ]
   },
   "overrides": [

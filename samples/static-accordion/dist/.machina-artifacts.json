@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "artifacts": {
+    "index.html": {
+      "hash": "cyrb53:134648920d7c7d"
+    },
+    "generated.css": {
+      "hash": "cyrb53:197af8921983fd"
+    }
+  }
+}

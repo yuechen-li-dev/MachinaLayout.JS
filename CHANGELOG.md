@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added build-time artifacts to `machinalayout/comptime`: `CT.artifacts` registry with `CT.text` / `CT.json` (concept-checked) / `CT.module` (literal `as const satisfies` TS modules for exact types), `CT.write` / `CT.check` (always re-evaluates; ambient time/randomness guard plus double evaluation; manifest-based ownership with `UnownedFile` / `HandEditedArtifact` / `OrphanArtifact`; formatter-rewrite detection), and `nodeArtifactFs` from the new `machinalayout/comptime/node` subpath. Removed `CT.tuple` / `CT.object` (use `as const`).
+- Static samples and toolkit-pipeline now declare their outputs as artifact registries; their sync tests check the samples' real registries instead of hand-copied pages. Samples import `machinalayout/*` (root `tsc` no longer needs a built `dist`), and a root `vitest.config.ts` resolves `machinalayout/*` to `src`.
+
 - Added effect workflows to `machinalayout/iter`: `I.effect`, `I.workflow`, `I.attempt`, `I.all`, `I.now`, `I.random`; `yield*` returns typed responses. Drivers `I.run`, `I.runSync`, `I.drive` (typed scripted testing), `I.resume` (concept-validated snapshots, deterministic replay with `ReplayDivergence` / `InvalidReplayResponse` diagnostics), and `I.toMachine` (lowering to `IterMachine`, cursor = effect log). Added `I.once` / `I.seq` for one-shot iterator reuse.
 - toolkit-pipeline sample: order enrichment now runs as a workflow inside its async task.
 

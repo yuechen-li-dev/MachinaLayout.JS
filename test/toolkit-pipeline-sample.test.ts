@@ -3,18 +3,15 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
+import { artifacts as sampleArtifacts } from "../samples/toolkit-pipeline/src/artifacts";
 import { runToolkitPipeline } from "../samples/toolkit-pipeline/src/pipeline";
-import {
-  artifactMap,
-  renderReportArtifacts,
-  renderTextReport,
-} from "../samples/toolkit-pipeline/src/report";
+import { renderTextReport } from "../samples/toolkit-pipeline/src/report";
+import { CT, formatArtifactDiagnostics } from "../src/comptime";
+import { nodeArtifactFs } from "../src/comptime/node";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sampleRoot = resolve(repoRoot, "samples/toolkit-pipeline");
 const sampleSourcePath = resolve(sampleRoot, "src/pipeline.ts");
-const reportJsonPath = resolve(sampleRoot, "dist/report.json");
-const reportTextPath = resolve(sampleRoot, "dist/report.txt");
 
 describe("toolkit pipeline sample", () => {
   it("builds the sample package", () => {
@@ -29,14 +26,8 @@ describe("toolkit pipeline sample", () => {
   });
 
   it("keeps checked-in report artifacts in sync with the pipeline output", async () => {
-    const report = await runToolkitPipeline();
-    const artifacts = artifactMap(renderReportArtifacts(report));
-    const checkedJson = readFileSync(reportJsonPath, "utf8");
-    const checkedText = readFileSync(reportTextPath, "utf8");
-
-    expect(artifacts["report.json"]).toBe(checkedJson);
-    expect(artifacts["report.txt"]).toBe(checkedText);
-    expect(renderTextReport(report)).toBe(checkedText);
+    const diagnostics = await CT.check(sampleArtifacts, { fs: nodeArtifactFs(), root: sampleRoot });
+    expect(formatArtifactDiagnostics(diagnostics)).toBe("No artifact diagnostics.");
   });
 
   it("includes processed counts, invalid diagnostics, iterator, batch, and async summaries", async () => {

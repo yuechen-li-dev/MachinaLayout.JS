@@ -134,6 +134,10 @@
       "types": "./dist/comptime/index.d.ts",
       "import": "./dist/comptime/index.js"
     },
+    "./comptime/node": {
+      "types": "./dist/comptime/node/index.d.ts",
+      "import": "./dist/comptime/node/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"

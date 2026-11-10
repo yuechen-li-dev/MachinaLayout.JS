@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { artifacts as sampleArtifacts } from "../samples/static-http/src/page";
+import { CT, formatArtifactDiagnostics } from "../src/comptime";
+import { nodeArtifactFs } from "../src/comptime/node";
+import type { StaticHttpAction } from "../src/static";
 import {
   createStaticHtmlArtifact,
   H,
@@ -10,7 +14,6 @@ import {
   validateStaticHttpLink,
   validateStaticPage,
 } from "../src/static";
-import type { StaticHttpAction } from "../src/static";
 
 function createHttpPage() {
   return H.staticPage({
@@ -317,14 +320,17 @@ describe("static HTTP serialization", () => {
 });
 
 describe("static HTTP sample", () => {
-  it("checks in generated output matching the serializer and contains no JavaScript", () => {
+  it("checks in generated output matching the sample's artifact registry and contains no JavaScript", async () => {
+    const diagnostics = await CT.check(sampleArtifacts, {
+      fs: nodeArtifactFs(),
+      root: join(process.cwd(), "samples", "static-http"),
+    });
+    expect(formatArtifactDiagnostics(diagnostics)).toBe("No artifact diagnostics.");
+
     const sampleRoot = join(process.cwd(), "samples", "static-http", "dist");
     const html = readFileSync(join(sampleRoot, "index.html"), "utf8");
     const css = readFileSync(join(sampleRoot, "generated.css"), "utf8");
-    const page = createHttpPage();
 
-    expect(html).toBe(serializeStaticPageHtml(page));
-    expect(css).toBe(serializeStaticPageCss(page));
     expect(html).not.toMatch(/<script\b|onclick|addEventListener|fetch\(|XMLHttpRequest/i);
     expect(css).not.toMatch(
       /addEventListener|onclick|<script|useEffect|React|react|fetch\(|XMLHttpRequest/,

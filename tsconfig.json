@@ -22,6 +22,7 @@
       "machinalayout/iter": ["./src/iter/index.ts"],
       "machinalayout/match": ["./src/match/index.ts"],
       "machinalayout/comptime": ["./src/comptime/index.ts"],
+      "machinalayout/comptime/node": ["./src/comptime/node/index.ts"],
       "machinalayout/table": ["./src/table/index.ts"],
       "machinalayout/query": ["./src/query/index.ts"],
       "machinalayout/dispatch": ["./src/dispatch/index.ts"],

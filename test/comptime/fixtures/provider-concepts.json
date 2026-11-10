@@ -1,0 +1,11 @@
+{
+  "id": "providerConcepts",
+  "columns": {
+    "concept": ["displayName", "slug", "status", "contactEmail"],
+    "type": ["string", "string", "enum", "string"],
+    "label": ["Provider name", "Public slug", "Status", "Contact email"],
+    "required": [true, true, true, false],
+    "enumValues": [null, null, ["draft", "live", "archived"], null],
+    "controlHint": ["input", "input", "input", "input"]
+  }
+}
